@@ -95,11 +95,8 @@ fun runSseMcpServerWithPlainConfiguration(port: Int): Unit = runBlocking {
         install(SSE)
         routing {
             sse("/sse") {
-                val transport = SSEServerTransport("/message", this)
+                val transport = SseServerTransport("/message", this)
                 val server = configureServer()
-                // For SSE, you can also add prompts/tools/resources if needed:
-                // server.addTool(...), server.addPrompt(...), server.addResource(...)
-
                 servers[transport.sessionId] = server
 
                 server.connect(transport)
@@ -107,7 +104,7 @@ fun runSseMcpServerWithPlainConfiguration(port: Int): Unit = runBlocking {
             post("/message") {
                 logger.debug { "Received Message" }
                 val sessionId: String = call.request.queryParameters["sessionId"]!!
-                val transport = servers[sessionId]?.transport as? SSEServerTransport
+                val transport = servers[sessionId]?.transport as? SseServerTransport
                 if (transport == null) {
                     call.respond(HttpStatusCode.NotFound, "Session not found")
                     return@post
