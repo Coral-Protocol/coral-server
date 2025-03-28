@@ -1,4 +1,4 @@
-package tools
+package org.coralprotocol.agentfuzzyp2ptools
 
 import kotlinx.serialization.Serializable
 

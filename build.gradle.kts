@@ -5,10 +5,10 @@ plugins {
 }
 
 application {
-    mainClass.set("MainKt")
+    mainClass.set("org.coralprotocol.agentfuzzyp2ptools.MainKt")
 }
 
-group = "ai._23t"
+group = "org.coralprotocol"
 version = "1.0-SNAPSHOT"
 
 repositories {

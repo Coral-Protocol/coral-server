@@ -1,12 +1,14 @@
-package tools
+package org.coralprotocol.agentfuzzyp2ptools.tools
 
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Assertions.*
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import org.coralprotocol.agentfuzzyp2ptools.Agent
+import org.coralprotocol.agentfuzzyp2ptools.ThreadManager
+import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 
 class ThreadManagerTest {
 

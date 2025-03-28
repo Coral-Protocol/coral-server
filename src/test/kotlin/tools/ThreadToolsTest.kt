@@ -1,10 +1,12 @@
-package tools
+package org.coralprotocol.agentfuzzyp2ptools.tools
 
-import io.modelcontextprotocol.kotlin.sdk.*
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Assertions.*
+import org.coralprotocol.agentfuzzyp2ptools.Agent
+import org.coralprotocol.agentfuzzyp2ptools.ThreadManager
+import org.coralprotocol.agentfuzzyp2ptools.org.coralprotocol.agentfuzzyp2ptools.ThreadTools
 
 class ThreadToolsTest {
 

@@ -1,20 +1,11 @@
-package tools
+package org.coralprotocol.agentfuzzyp2ptools
 
 import io.modelcontextprotocol.kotlin.sdk.*
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import tools.Agent
-import tools.ThreadManager
-import tools.RegisterAgentInput
-import tools.CreateThreadInput
-import tools.AddParticipantInput
-import tools.RemoveParticipantInput
-import tools.CloseThreadInput
-import tools.SendMessageInput
-import tools.WaitForMentionsInput
-import tools.ListAgentsInput
+import org.coralprotocol.agentfuzzyp2ptools.org.coralprotocol.agentfuzzyp2ptools.ThreadTools
 
 /**
  * Extension function to add all thread-based tools to a server.

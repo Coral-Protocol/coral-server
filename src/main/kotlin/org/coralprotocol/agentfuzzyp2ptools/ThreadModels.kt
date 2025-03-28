@@ -1,9 +1,8 @@
-package tools
+package org.coralprotocol.agentfuzzyp2ptools
 
 import kotlinx.serialization.Serializable
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.CopyOnWriteArrayList
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.abs

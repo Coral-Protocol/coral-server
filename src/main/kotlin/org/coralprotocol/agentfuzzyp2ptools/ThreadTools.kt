@@ -1,7 +1,7 @@
-package tools
+package org.coralprotocol.agentfuzzyp2ptools.org.coralprotocol.agentfuzzyp2ptools
 
-import tools.Message
-import tools.ThreadManager
+import org.coralprotocol.agentfuzzyp2ptools.Message
+import org.coralprotocol.agentfuzzyp2ptools.ThreadManager
 
 /**
  * Class containing utility functions for thread-based tools.
