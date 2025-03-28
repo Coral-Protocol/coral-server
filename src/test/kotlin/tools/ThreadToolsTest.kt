@@ -6,7 +6,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Assertions.*
 import org.coralprotocol.agentfuzzyp2ptools.Agent
 import org.coralprotocol.agentfuzzyp2ptools.ThreadManager
-import org.coralprotocol.agentfuzzyp2ptools.org.coralprotocol.agentfuzzyp2ptools.ThreadTools
+import org.coralprotocol.agentfuzzyp2ptools.ThreadTools
 
 class ThreadToolsTest {
 

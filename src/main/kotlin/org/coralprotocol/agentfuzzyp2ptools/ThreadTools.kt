@@ -1,4 +1,4 @@
-package org.coralprotocol.agentfuzzyp2ptools.org.coralprotocol.agentfuzzyp2ptools
+package org.coralprotocol.agentfuzzyp2ptools
 
 import org.coralprotocol.agentfuzzyp2ptools.Message
 import org.coralprotocol.agentfuzzyp2ptools.ThreadManager

@@ -1,4 +1,4 @@
-package org.coralprotocol.agentfuzzyp2ptools.org.coralprotocol.agentfuzzyp2ptools
+package org.coralprotocol.agentfuzzyp2ptools
 
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -17,7 +17,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.io.asSink
 import kotlinx.io.asSource
 import kotlinx.io.buffered
-import org.coralprotocol.agentfuzzyp2ptools.addThreadTools
+import org.coralprotocol.agentfuzzyp2ptools.tools.addThreadTools
 
 /**
  * Start sse-server mcp on port 3001.
