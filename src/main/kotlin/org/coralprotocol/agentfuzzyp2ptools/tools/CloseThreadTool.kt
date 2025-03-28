@@ -5,8 +5,11 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.coralprotocol.agentfuzzyp2ptools.CloseThreadInput
 import org.coralprotocol.agentfuzzyp2ptools.ThreadManager
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * Extension function to add the close thread tool to a server.
@@ -48,13 +51,17 @@ fun Server.addCloseThreadTool() {
                     content = listOf(TextContent("Thread closed successfully with summary: ${input.summary}"))
                 )
             } else {
+                val errorMessage = "Failed to close thread: Thread not found"
+                logger.error { errorMessage }
                 CallToolResult(
-                    content = listOf(TextContent("Failed to close thread: Thread not found"))
+                    content = listOf(TextContent(errorMessage))
                 )
             }
         } catch (e: Exception) {
+            val errorMessage = "Error closing thread: ${e.message}"
+            logger.error(e) { errorMessage }
             CallToolResult(
-                content = listOf(TextContent("Error closing thread: ${e.message}"))
+                content = listOf(TextContent(errorMessage))
             )
         }
     }

@@ -5,9 +5,12 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.coralprotocol.agentfuzzyp2ptools.WaitForMentionsInput
 import org.coralprotocol.agentfuzzyp2ptools.ThreadManager
 import org.coralprotocol.agentfuzzyp2ptools.ThreadTools
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * Extension function to add the wait for mentions tool to a server.
@@ -39,7 +42,7 @@ fun Server.addWaitForMentionsTool() {
         try {
             val json = Json { ignoreUnknownKeys = true }
             val input = json.decodeFromString<WaitForMentionsInput>(request.arguments.toString())
-            println("Waiting for mentions for agent ${input.agentId} with timeout ${input.timeoutMs}ms")
+            logger.info { "Waiting for mentions for agent ${input.agentId} with timeout ${input.timeoutMs}ms" }
             val messages = ThreadManager.waitForMentions(
                 agentId = input.agentId,
                 timeoutMs = input.timeoutMs
@@ -56,8 +59,10 @@ fun Server.addWaitForMentionsTool() {
                 )
             }
         } catch (e: Exception) {
+            val errorMessage = "Error waiting for mentions: ${e.message}"
+            logger.error(e) { errorMessage }
             CallToolResult(
-                content = listOf(TextContent("Error waiting for mentions: ${e.message}"))
+                content = listOf(TextContent(errorMessage))
             )
         }
     }

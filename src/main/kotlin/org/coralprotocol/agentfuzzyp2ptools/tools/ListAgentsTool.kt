@@ -5,8 +5,11 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.coralprotocol.agentfuzzyp2ptools.ListAgentsInput
 import org.coralprotocol.agentfuzzyp2ptools.ThreadManager
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * Extension function to add the list agents tool to a server.
@@ -63,8 +66,12 @@ fun Server.addListAgentsTool() {
                 )
             }
         } catch (e: Exception) {
+            val errorMessage = "Error listing agents: ${e.message}"
+            logger.error(e) { errorMessage }
+
+            // Return a user-friendly error message
             CallToolResult(
-                content = listOf(TextContent("Error listing agents: ${e.message}"))
+                content = listOf(TextContent(errorMessage))
             )
         }
     }

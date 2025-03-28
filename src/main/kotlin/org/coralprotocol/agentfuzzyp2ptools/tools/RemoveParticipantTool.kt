@@ -5,8 +5,11 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.coralprotocol.agentfuzzyp2ptools.RemoveParticipantInput
 import org.coralprotocol.agentfuzzyp2ptools.ThreadManager
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * Extension function to add the remove participant tool to a server.
@@ -48,13 +51,17 @@ fun Server.addRemoveParticipantTool() {
                     content = listOf(TextContent("Participant removed successfully from thread ${input.threadId}"))
                 )
             } else {
+                val errorMessage = "Failed to remove participant: Thread not found, participant not found, or thread is closed"
+                logger.error { errorMessage }
                 CallToolResult(
-                    content = listOf(TextContent("Failed to remove participant: Thread not found, participant not found, or thread is closed"))
+                    content = listOf(TextContent(errorMessage))
                 )
             }
         } catch (e: Exception) {
+            val errorMessage = "Error removing participant: ${e.message}"
+            logger.error(e) { errorMessage }
             CallToolResult(
-                content = listOf(TextContent("Error removing participant: ${e.message}"))
+                content = listOf(TextContent(errorMessage))
             )
         }
     }

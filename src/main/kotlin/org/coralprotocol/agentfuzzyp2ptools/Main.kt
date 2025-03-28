@@ -17,7 +17,10 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.io.asSink
 import kotlinx.io.asSource
 import kotlinx.io.buffered
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.coralprotocol.agentfuzzyp2ptools.tools.addThreadTools
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * Start sse-server mcp on port 3001.
@@ -37,7 +40,7 @@ fun main(args: Array<String>) {
         "--sse-server-ktor" -> runSseMcpServerUsingKtorPlugin(port)
         "--sse-server" -> runSseMcpServerWithPlainConfiguration(port)
         else -> {
-            System.err.println("Unknown command: $command")
+            logger.error { "Unknown command: $command" }
         }
     }
 }
@@ -78,14 +81,14 @@ fun runMcpServerUsingStdio() {
         server.connect(transport)
         val done = Job()
         done.join()
-        println("Server closed")
+        logger.info { "Server closed" }
     }
 }
 
 fun runSseMcpServerWithPlainConfiguration(port: Int): Unit = runBlocking {
     val servers = ConcurrentMap<String, Server>()
-    println("Starting sse server on port $port. ")
-    println("Use inspector to connect to the http://localhost:$port/sse")
+    logger.info { "Starting sse server on port $port" }
+    logger.info { "Use inspector to connect to the http://localhost:$port/sse" }
 
     embeddedServer(CIO, host = "0.0.0.0", port = port, watchPaths = listOf("classes")) {
 
@@ -102,7 +105,7 @@ fun runSseMcpServerWithPlainConfiguration(port: Int): Unit = runBlocking {
                 server.connect(transport)
             }
             post("/message") {
-                println("Received Message")
+                logger.debug { "Received Message" }
                 val sessionId: String = call.request.queryParameters["sessionId"]!!
                 val transport = servers[sessionId]?.transport as? SSEServerTransport
                 if (transport == null) {
@@ -125,8 +128,8 @@ fun runSseMcpServerWithPlainConfiguration(port: Int): Unit = runBlocking {
  * @return Unit This method does not return a value.
  */
 fun runSseMcpServerUsingKtorPlugin(port: Int): Unit = runBlocking {
-    println("Starting sse server on port $port")
-    println("Use inspector to connect to the http://localhost:$port/sse")
+    logger.info { "Starting sse server on port $port" }
+    logger.info { "Use inspector to connect to the http://localhost:$port/sse" }
 
     embeddedServer(CIO, host = "0.0.0.0", port = port,) {
         mcp {

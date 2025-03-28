@@ -5,9 +5,12 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.coralprotocol.agentfuzzyp2ptools.Agent
 import org.coralprotocol.agentfuzzyp2ptools.RegisterAgentInput
 import org.coralprotocol.agentfuzzyp2ptools.ThreadManager
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * Extension function to add the register agent tool to a server.
@@ -54,19 +57,25 @@ fun Server.addRegisterAgentTool() {
                 } else {
                     ""
                 }
-                println("Agent registered successfully: ${agent.name} (${agent.id})${descriptionInfo}")
+                logger.info { "Agent registered successfully: ${agent.name} (${agent.id})${descriptionInfo}" }
                 CallToolResult(
                     content = listOf(TextContent("Agent registered successfully: ${agent.name} (${agent.id})${descriptionInfo}"))
                 )
 
             } else {
+                val errorMessage = "Failed to register agent: Agent ID '${agent.id}' already exists"
+                logger.error { errorMessage }
+
                 CallToolResult(
-                    content = listOf(TextContent("Failed to register agent: Agent ID already exists"))
+                    content = listOf(TextContent(errorMessage))
                 )
             }
         } catch (e: Exception) {
+            val errorMessage = "Error registering agent: ${e.message}"
+            logger.error(e) { errorMessage }
+
             CallToolResult(
-                content = listOf(TextContent("Error registering agent: ${e.message}"))
+                content = listOf(TextContent(errorMessage))
             )
         }
     }

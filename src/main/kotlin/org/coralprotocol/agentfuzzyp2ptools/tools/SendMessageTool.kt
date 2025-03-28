@@ -5,8 +5,11 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.coralprotocol.agentfuzzyp2ptools.SendMessageInput
 import org.coralprotocol.agentfuzzyp2ptools.ThreadManager
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * Extension function to add the send message tool to a server.
@@ -78,13 +81,17 @@ fun Server.addSendMessageTool() {
                     )
                 )
             } else {
+                val errorMessage = "Failed to send message: Thread not found, sender not found, thread is closed, or sender is not a participant"
+                logger.error { errorMessage }
                 CallToolResult(
-                    content = listOf(TextContent("Failed to send message: Thread not found, sender not found, thread is closed, or sender is not a participant"))
+                    content = listOf(TextContent(errorMessage))
                 )
             }
         } catch (e: Exception) {
+            val errorMessage = "Error sending message: ${e.message}"
+            logger.error(e) { errorMessage }
             CallToolResult(
-                content = listOf(TextContent("Error sending message: ${e.message}"))
+                content = listOf(TextContent(errorMessage))
             )
         }
     }

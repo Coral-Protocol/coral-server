@@ -1,11 +1,14 @@
 package org.coralprotocol.agentfuzzyp2ptools
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.Serializable
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.abs
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * Represents an agent in the system.
@@ -187,8 +190,8 @@ object ThreadManager {
         // Get color based on senderId
         val color = getColorForSenderId(senderId)
 
-        // Print the message with color for the content
-        println("($threadId) $senderId: $color$content$ANSI_RESET \n(mentions^: $mentions)")
+        // Log the message with color for the content
+        logger.info { "($threadId) $senderId: $color$content$ANSI_RESET \n(mentions^: $mentions)" }
 
         val thread = threads[threadId] ?: return null
         val sender = agents[senderId] ?: return null

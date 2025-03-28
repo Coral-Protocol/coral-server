@@ -5,8 +5,11 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.coralprotocol.agentfuzzyp2ptools.CreateThreadInput
 import org.coralprotocol.agentfuzzyp2ptools.ThreadManager
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * Extension function to add the create thread tool to a server.
@@ -70,13 +73,17 @@ fun Server.addCreateThreadTool() {
                     )
                 )
             } else {
+                val errorMessage = "Failed to create thread: Creator not found or invalid participants"
+                logger.error { errorMessage }
                 CallToolResult(
-                    content = listOf(TextContent("Failed to create thread: Creator not found or invalid participants"))
+                    content = listOf(TextContent(errorMessage))
                 )
             }
         } catch (e: Exception) {
+            val errorMessage = "Error creating thread: ${e.message}"
+            logger.error(e) { errorMessage }
             CallToolResult(
-                content = listOf(TextContent("Error creating thread: ${e.message}"))
+                content = listOf(TextContent(errorMessage))
             )
         }
     }
