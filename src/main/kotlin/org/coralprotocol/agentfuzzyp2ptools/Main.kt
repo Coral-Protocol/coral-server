@@ -46,8 +46,6 @@ fun main(args: Array<String>) {
 }
 
 fun configureServer(): Server {
-    val def = CompletableDeferred<Unit>()
-
     val server = Server(
         Implementation(
             name = "mcp-kotlin test server",
