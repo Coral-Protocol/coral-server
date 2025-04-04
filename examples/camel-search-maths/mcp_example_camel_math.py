@@ -63,14 +63,14 @@ async def create_math_agent(tools):
         api_key=os.getenv("OPENAI_API_KEY"),
         model_config_dict={"temperature": 0.3, "max_tokens": 4096},
     )
-    camel_agent = ChatAgent(  # create agent with our mcp tools
+    camel_agent = ChatAgent(
         system_message=sys_msg,
         model=model,
         tools=tools,
         message_window_size=4096 * 50,
         token_limit=20000
     )
-    camel_agent.reset()  # reset after each loop
+    camel_agent.reset()
     camel_agent.memory.clear()
     return camel_agent
 
