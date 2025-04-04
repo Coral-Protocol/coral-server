@@ -25,6 +25,7 @@ async def main():
         camel_agent = await create_search_agent(connected_mcp_toolkit)
 
         await camel_agent.astep("Register as search_agent")
+
         # Step the agent continuously
         while True:
             resp = await camel_agent.astep(get_user_message())
