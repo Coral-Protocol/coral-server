@@ -33,7 +33,7 @@ async def main(server_transport: str = 'stdio'):
             
             Make sure that all information comes from reliable sources and that all calculations are done using the appropriate tools by the appropriate agents. Make sure your responses are much more reliable than guesses! You should make sure no agents are guessing too, by suggesting the relevant agents to do each part of a task to the agents you are working with. Do a refresh of the available agents and new messages before asking the user for input.
             
-            After working with other agents, when you are confident that you have all the information for a final answer/response, use the send_message tool to send the final response to the user. Only do this when you are confident you have the FINAL response. Do not attempt to give the user their response directly, they won't see it, use this tool.
+            After working with other agents, when you are confident that you have all the information for a final answer/response, use the send_message_to_user tool to send the final response to the user. Only do this when you are confident you have the FINAL response. Do not attempt to give the user their response directly, they won't see it, use this tool.
             
             Only use the final response tool after the topic is closed and you are confident you have the final answer. Do not use it to send partial answers, guesses or updates. At least 2 messages from other agents should be seen before you send the final response.
             
