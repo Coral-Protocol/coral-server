@@ -99,3 +99,14 @@ We theorize that not only will this fix many problems with the composability of 
 We welcome contributions! Email us at [hello@coralprotocol.org](mailto:hello@coralprotocol.org) or join our Discord [here](https://discord.gg/rMQc2uWXhj) to connect with the developer team. Feel free to open issues or submit pull requests.
 
 Thanks for checking out the project, we hope you like it!
+
+### Development
+IntelliJ IDEA is recommended for development. The project uses Gradle as the build system.
+
+To clone and import the project:
+Go to File > New > Project from Version Control > Git.
+enter `git@github.com:Coral-Protocol/agent-fuzzy-p2p-tools.git`
+Click Clone.
+
+### Running from IntelliJ IDEA
+You can click the play button next to the main method in the `Main.kt` file to run the server directly from IntelliJ IDEA.
