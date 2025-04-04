@@ -1,4 +1,4 @@
-# Agent Fuzzy A2A (Agent to Agent) Tools
+# Coral Server - Agent Fuzzy A2A (Agent to Agent) Communication MCP Tools
 
 An implementation of the Coral protocol that acts as an MCP server providing tools for agents to communicate with each other.
 
