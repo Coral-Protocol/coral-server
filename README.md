@@ -84,7 +84,17 @@ The server provides the following tools for agent communication:
 When running in SSE mode, you can connect to the server using the MCP Inspector:
 - SSE Server URL: `http://localhost:<port>/sse`
 
-### Contribution Guidelines
+## Philosophy
+
+Open infrastructure for the Society of AI Agents
+
+It's a strange concept; we believe that much of what we now consider work will be handled by a different kind of society—a Society of AI Agents.
+
+To bridge this gap, Coral Protocol was built as the connective tissue of this society. Coral is designed to enable agents to discover one another, communicate securely, exchange value, and scale their collaborative efforts from any framework.
+
+We theorize that not only will this fix many problems with the composability of multi-agent systems, but it will also unlock their full potential to be much more capable and safe, this is due to the graph-like structure that prevents any one agent from holding too much power or becoming overwhelmed with too much responsibility. 
+
+## Contribution Guidelines
 
 We welcome contributions! Email us at [hello@coralprotocol.org](mailto:hello@coralprotocol.org) or join our Discord [here](https://discord.gg/rMQc2uWXhj) to connect with the developer team. Feel free to open issues or submit pull requests.
 
