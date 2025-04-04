@@ -24,10 +24,10 @@ async def main():
     async with mcp_toolkit.connection() as connected_mcp_toolkit:
         camel_agent = await create_search_agent(connected_mcp_toolkit)
 
-        await camel_agent.astep("Register as search_agent")
+        resp = await camel_agent.astep("Register as search_agent")
 
         # Step the agent continuously
-        while True:
+        for i in range(20):  #This should be infinite, but for testing we limit it to 20 to avoid accidental API fees
             resp = await camel_agent.astep(get_user_message())
             msgzero = resp.msgs[0]
             msgzerojson = msgzero.to_dict()

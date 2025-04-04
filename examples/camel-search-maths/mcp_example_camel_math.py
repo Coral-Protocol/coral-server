@@ -29,7 +29,7 @@ async def main():
             "Ask the user for a request to work with the other agents to fulfill by calling the ask human tool.")
 
         # Step the agent continuously
-        while True:
+        for i in range(20):  #This should be infinite, but for testing we limit it to 20 to avoid accidental API fees
             resp = await camel_agent.astep(get_user_message())
             msgzero = resp.msgs[0]
             msgzerojson = msgzero.to_dict()

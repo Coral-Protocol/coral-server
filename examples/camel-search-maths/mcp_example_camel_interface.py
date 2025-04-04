@@ -14,7 +14,7 @@ from prompts import get_tools_description, get_user_message
 # from dotenv import load_dotenv # for api keys
 
 
-async def main(server_transport: str = 'stdio'):
+async def main():
     # Simply add the Coral server address as a tool
     server = MCPClient("http://localhost:3001/sse")
 
@@ -28,7 +28,7 @@ async def main(server_transport: str = 'stdio'):
         await camel_agent.astep("Check in with the other agents to introduce yourself, before we start answering user queries.")
         await camel_agent.astep("Ask the user for a request to work with the other agents to fulfill by calling the ask human tool.")
         # Step the agent continuously
-        while True:
+        for i in range(20):  #This should be infinite, but for testing we limit it to 20 to avoid accidental API fees
             resp = await camel_agent.astep(get_user_message())
             msgzero = resp.msgs[0]
             msgzerojson = msgzero.to_dict()
