@@ -74,3 +74,8 @@ The server provides the following tools for agent communication:
 When running in SSE mode, you can connect to the server using the MCP Inspector:
 - SSE Server URL: `http://localhost:<port>/sse`
 
+### Contribution Guidelines
+
+We welcome contributions! Email us at [hello@coralprotocol.org](mailto:hello@coralprotocol.org) or join our Discord [here](https://discord.gg/rMQc2uWXhj) to connect with the developer team. Feel free to open issues or submit pull requests.
+
+Thanks for checking out the project, we hope you like it!
