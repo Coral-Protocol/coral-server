@@ -28,7 +28,7 @@ async def main():
             msgzero = resp.msgs[0]
             msgzerojson = msgzero.to_dict()
             print(msgzerojson)
-            sleep(4)
+            sleep(10)
 
 
 async def create_math_agent(tools):

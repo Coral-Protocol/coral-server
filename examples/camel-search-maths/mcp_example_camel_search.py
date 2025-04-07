@@ -32,7 +32,7 @@ async def main():
             msgzero = resp.msgs[0]
             msgzerojson = msgzero.to_dict()
             print(msgzerojson)
-            sleep(7)
+            sleep(10)
 
 
 async def create_search_agent(connected_mcp_toolkit):

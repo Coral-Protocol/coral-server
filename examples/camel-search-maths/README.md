@@ -44,9 +44,26 @@ python mcp_example_camel_interface.py
 ## 4. Interact with the agents
 
 You will eventually see the interface agent asking for your query via STDIN. Write your query and hit enter. 
+Try asking for example:
+
+```
+What is the square root of the area of Konstanz?
+```
+
 The society will then work together to address your query, and the interface agent will share their findings with you.
 
+
+## Troubleshooting
+The agents are limited to iterate only 20 times to prevent accidental API expenses, so they might need restarting if they've been alive too long.
+
+Also right now the agents will not be unregistered, so make sure to restart the server if you want to run them again.
+
+This is very early, so we welcome any questions no matter how silly they might seem so we can improve the documentation and Dev Experience!
+
+Come by our Discord for any questions or suggestions: https://discord.gg/cDzGHnzkwD
+
 ---
+
 
 # Build on the example 
 Now that you've got your society running, you can build on it.
