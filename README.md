@@ -43,8 +43,7 @@ The project can be run in several modes:
 
 # Run with custom arguments
 ./gradlew run --args="--stdio"
-./gradlew run --args="--sse-server-ktor 8080"
-./gradlew run --args="--sse-server 8080"
+./gradlew run --args="--sse-server 3001"
 ```
 
 ### Using Java
