@@ -31,7 +31,7 @@ Please don't hesitate to reach out if you want to be involved in coordinating an
 
 ### Quick example
 This repo is a server that enables agents to communicate with each other, for an example of a full multi-agent system using this, check out
-[the example here](/examples/example-agent).
+[the example here](/examples/camel-search-maths).
 
 The project can be run in several modes:
 
