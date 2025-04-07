@@ -108,7 +108,7 @@ IntelliJ IDEA is recommended for development. The project uses Gradle as the bui
 
 To clone and import the project:
 Go to File > New > Project from Version Control > Git.
-enter `git@github.com:Coral-Protocol/agent-fuzzy-p2p-tools.git`
+enter `git@github.com:Coral-Protocol/coral-server.git`
 Click Clone.
 
 ### Running from IntelliJ IDEA
