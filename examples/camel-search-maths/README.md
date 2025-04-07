@@ -2,15 +2,13 @@ In this example we have 3 agents implemented with CAMEL working together to answ
 
 To run it, you need to have the dependencies installed:
 
+# Running the example
 
 # 1. Install the dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-
-
-# Running the example
 ## 2. Start the server
 ```bash
 cd ../../
