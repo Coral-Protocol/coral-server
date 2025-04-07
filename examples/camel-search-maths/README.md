@@ -9,19 +9,24 @@ To run it, you need to have the dependencies installed:
 pip install -r requirements.txt
 ```
 
-## 2. Start the server
+You will need to install CAMEL with all optional dependencies until they fix the minimal requirements version.
+
 ```bash
-cd ../../
+pip install "camel-ai[all]"
+```
+
+## 2. Start the server
+Cd to this project's root directory and run the server.
+```bash
 ./gradlew run
 ```
 
+Note that gradle will show "83"% forever, but it is actually running. You can check the logs in the terminal to see if it is up and running.
 
 ## 3. Run the agents
 Ensure you have an OPENAI_API_KEY set in your environment variables (or change to a different model in the agents)
 
-```bash
-python mcp_example_camel_interface.py
-```
+In a separate terminal, run the agents. They all need to be running for this example to work.
 
 ```bash
 python mcp_example_camel_math.py
@@ -29,6 +34,10 @@ python mcp_example_camel_math.py
 
 ```bash
 python mcp_example_camel_search.py
+```
+
+```bash
+python mcp_example_camel_interface.py
 ```
 
 
