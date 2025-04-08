@@ -33,6 +33,11 @@ Please don't hesitate to reach out if you want to be involved in coordinating an
 This repo is a server that enables agents to communicate with each other, for an example of a full multi-agent system using this, check out
 [the example here](/examples/camel-search-maths).
 
+### Demo Video
+
+[![Coral Server Demo](thumnail.png)](https://youtu.be/MyokByTzY90)
+*Click the image above to watch the demo video*
+
 The project can be run in several modes:
 
 ### Using Gradle
@@ -113,3 +118,4 @@ Click Clone.
 
 ### Running from IntelliJ IDEA
 You can click the play button next to the main method in the `Main.kt` file to run the server directly from IntelliJ IDEA.
+
