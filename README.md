@@ -35,7 +35,7 @@ This repo is a server that enables agents to communicate with each other, for an
 
 ### Demo Video
 
-[![Coral Server Demo](images/thumnail.png)](https://youtu.be/MyokByTzY90)
+[![Coral Server Demo](images/thumnail2.png)](https://youtu.be/MyokByTzY90)
 *Click the image above to watch the demo video*
 
 The project can be run in several modes:
