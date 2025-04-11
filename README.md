@@ -58,7 +58,7 @@ The project can be run in several modes:
 ./gradlew build
 
 # Run the JAR file
-java -jar build/libs/agent-fuzzy-p2p-tools-1.0-SNAPSHOT.jar
+java -jar build/libs/coral-server-1.0-SNAPSHOT.jar
 ```
 
 ### Run Modes
