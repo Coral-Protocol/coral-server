@@ -20,6 +20,12 @@ dependencies {
     implementation("io.modelcontextprotocol:kotlin-sdk:0.4.0")
     implementation("org.slf4j:slf4j-simple:2.0.9")
     implementation("io.github.oshai:kotlin-logging-jvm:7.0.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation("io.ktor:ktor-server-core:3.0.2")
+    implementation("io.ktor:ktor-server-netty:3.0.2")
+    implementation("com.squareup.okio:okio:3.5.0")
 }
 
 tasks.test {
