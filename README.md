@@ -18,9 +18,10 @@ Currently, it provides a set of tools that allow agents to:
 
 The server can be run in different modes (stdio, SSE) to support various integration scenarios.
 
+![0000](https://github.com/user-attachments/assets/a5227d18-8c57-48b9-877f-97859b176957)
+
 ### Status / future direction
 This project is in its early stages and is not yet production-ready. The current focus is on building a robust foundation for agent communication, with plans to add more features and improve performance in the future.
-![0000](https://github.com/user-attachments/assets/a5227d18-8c57-48b9-877f-97859b176957)
 
 Right now, this is "Local-mode" only, but we are working on a "Remote-mode" that will allow agents to communicate over the internet.
 
