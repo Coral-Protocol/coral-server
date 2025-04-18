@@ -1,0 +1,1 @@
+recursive-include coral_protocol/jar *.jar 

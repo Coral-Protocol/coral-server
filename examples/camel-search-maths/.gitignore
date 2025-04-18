@@ -1,0 +1,28 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+
+# JAR files
+*.jar
+
+# Environment variables file
+.env
+
+# IDE specific files
+.vscode/
+.idea/
+
+# Byte-compiled files
+*.pyc
+*.pyo
+
+# Distribution files
+dist/
+build/
+*.egg-info/

@@ -1,0 +1,335 @@
+[33mcommit b7cd7d7f368b0ce07f3c3eeecac3c1f94cbaab8b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mpip[m[33m, [m[1;31mupstream/master[m[33m, [m[1;32mmaster[m[33m)[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Apr 11 12:15:44 2025 +0100
+
+    Update project references in README and settings.gradle.kts to reflect new coral-server name
+
+[33mcommit 995e6f48bf17ab20b6df617eeaef3f22d313bf0d[m
+Merge: 9ddeffb 05831d3
+Author: CaelumF <caelum119@gmail.com>
+Date:   Thu Apr 10 15:03:48 2025 +0100
+
+    Merge pull request #5 from eltociear/patch-1
+    
+    chore: update mcp_example_camel_math.py
+
+[33mcommit 05831d39ac975936379e8157016732a8aaa66c36[m
+Author: Ikko Eltociear Ashimine <eltociear@gmail.com>
+Date:   Wed Apr 9 12:06:59 2025 +0900
+
+    chore: update mcp_example_camel_math.py
+    
+    Mathmatics -> Mathematics
+
+[33mcommit 9ddeffb5ac9ca83f19cc71cff25b9648dc3272ab[m
+Merge: 03f5904 38969ea
+Author: omni-georgio <82511949+omni-georgio@users.noreply.github.com>
+Date:   Tue Apr 8 14:54:50 2025 +0100
+
+    Merge pull request #4 from Coral-Protocol/main
+    
+    Initial commit
+
+[33mcommit 38969eac0c1b8c80992244e2d0d2a3ae4d802001[m[33m ([m[1;31mupstream/main[m[33m)[m
+Author: omni-georgio <omnisvosscio@gmail.com>
+Date:   Tue Apr 8 14:46:46 2025 +0100
+
+    Initial commit
+
+[33mcommit 03f59043b11c999c6103a640c87f2a499ca50db6[m
+Merge: 52d16b5 b98724c
+Author: omni-georgio <82511949+omni-georgio@users.noreply.github.com>
+Date:   Tue Apr 8 12:42:12 2025 +0100
+
+    Merge pull request #3 from Coral-Protocol/main
+    
+    Main
+
+[33mcommit b98724cdc2e97a4222445fa6168d568e99f2f06e[m
+Author: omni-georgio <omnisvosscio@gmail.com>
+Date:   Tue Apr 8 12:41:38 2025 +0100
+
+    Initial commit
+
+[33mcommit 64ef9d801a7864b5f18d2b86b9f77eaf45e00348[m
+Author: omni-georgio <omnisvosscio@gmail.com>
+Date:   Tue Apr 8 12:41:10 2025 +0100
+
+    Add images directory with demo thumbnail
+
+[33mcommit 0e9bb28629570442d9df6d13ef2054195dd7ba6d[m
+Author: omni-georgio <omnisvosscio@gmail.com>
+Date:   Tue Apr 8 12:39:17 2025 +0100
+
+    Add demo thumbnail image
+
+[33mcommit 52d16b5a65156220acc99f0fb04fccb67c7e128f[m
+Author: omni-georgio <omnisvosscio@gmail.com>
+Date:   Tue Apr 8 12:19:16 2025 +0100
+
+    Add demo video to README
+
+[33mcommit 734cc402f1bbd857d07e0d4b5b93b6bad7d9c22d[m
+Author: CaelumF <caelum119@gmail.com>
+Date:   Mon Apr 7 18:05:03 2025 +0100
+
+    Update README.md
+
+[33mcommit 4cf6014a3964b2e58e655498a58708414eb53e43[m
+Author: CaelumF <caelum119@gmail.com>
+Date:   Mon Apr 7 16:09:19 2025 +0100
+
+    Update README.md
+
+[33mcommit 6c3e565a6eab83428239e1160549d3c461a651e9[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Mon Apr 7 15:18:09 2025 +0100
+
+    Update README example link to point to camel-search-maths
+
+[33mcommit eeb663e0f3ceacedbf4cb49a5c37b2781182730f[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Mon Apr 7 15:15:05 2025 +0100
+
+    Add quick example section to README for multi-agent system usage
+
+[33mcommit 1455a8a4223f8a51c7369d1adb573503cc538170[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Mon Apr 7 14:57:26 2025 +0100
+
+    Increase sleep duration in agent scripts and enhance README with troubleshooting tips and example queries
+
+[33mcommit 632ed5c342631b0dfd6019cec62d598f81605c2e[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Mon Apr 7 13:04:00 2025 +0100
+
+    Refactor math agent to use MathToolkit and update registration process
+
+[33mcommit 63af0c617a0d2e1729dc5ccb2f76f12861e5d629[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Mon Apr 7 12:54:21 2025 +0100
+
+    Update README with installation instructions and clarify agent execution steps
+
+[33mcommit ecebe3d8e9ac2015bced42e98b4d8acc3e0c45ac[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Mon Apr 7 12:46:47 2025 +0100
+
+    Reorganize README to improve clarity on running the example
+
+[33mcommit 397367d3a2341d526bd97abc4bf9de4138866c77[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Mon Apr 7 12:42:19 2025 +0100
+
+    easier example running
+
+[33mcommit 5af83fccd4ad0900746bd5ed5982b60aa74d0fc1[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Apr 4 18:46:31 2025 +0100
+
+    Update README with instructions to run agents in separate terminals
+
+[33mcommit 47196fa47263ebfbb4420ac91f181493b7449743[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Apr 4 17:02:30 2025 +0100
+
+    Add development setup instructions to README
+
+[33mcommit ab324427a6bdcfd09fad5562302a5a5f19b19d0c[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Apr 4 16:58:50 2025 +0100
+
+    Remove unused assignment
+
+[33mcommit 0afc01a782818eaea535305b330360f376e046e2[m
+Merge: 684a8a2 648ba98
+Author: caelum <caelum119@gmail.com>
+Date:   Fri Apr 4 16:42:11 2025 +0100
+
+    Merge branch 'master' of github.com:Coral-Protocol/coral-server
+
+[33mcommit 684a8a2df0f8fbeeb6a18586a1d22e41468382b8[m
+Author: caelum <caelum119@gmail.com>
+Date:   Fri Apr 4 16:38:19 2025 +0100
+
+    Update gradle configuration and enhance README with project status and future direction
+
+[33mcommit 648ba98f0976961d1b71b8e0f3abb72a71c04133[m
+Merge: 5ea1fbe f477344
+Author: omni-georgio <82511949+omni-georgio@users.noreply.github.com>
+Date:   Fri Apr 4 16:37:55 2025 +0100
+
+    Merge pull request #2 from Coral-Protocol/roman
+    
+    Update README with philosophy section and improved title
+
+[33mcommit f477344db33868b1f185d5e063be0c7df60f0f52[m[33m ([m[1;31mupstream/roman[m[33m)[m
+Author: omni-georgio <omnisvosscio@gmail.com>
+Date:   Fri Apr 4 16:36:56 2025 +0100
+
+    Update README with philosophy section and improved title
+
+[33mcommit 5ea1fbeb00b8b980583f8e355c787a3504f4a7ec[m
+Author: CaelumF <caelum119@gmail.com>
+Date:   Fri Apr 4 16:29:36 2025 +0100
+
+    Update README.md
+
+[33mcommit bc2fd22027de57f12ee2f2cae13a9f7446843fc8[m
+Merge: 28737c2 1519ef8
+Author: CaelumF <caelum119@gmail.com>
+Date:   Fri Apr 4 15:34:19 2025 +0100
+
+    Merge pull request #1 from Coral-Protocol/roman
+    
+    Update README.md
+
+[33mcommit 1519ef8e88bd28accd11792112d2ebb297707ac1[m
+Author: omni-georgio <omnisvosscio@gmail.com>
+Date:   Fri Apr 4 15:30:33 2025 +0100
+
+    Update README.md
+
+[33mcommit 28737c2ee10ee151184d281556d4d10ec8971df6[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Apr 4 13:02:53 2025 +0100
+
+    Refactor main function to remove server_transport parameter and limit agent steps for testing; add README for setup instructions
+
+[33mcommit c286b4f6492f1389da8c435f512f551ec4088196[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Apr 4 12:46:37 2025 +0100
+
+    Implement user interaction agent in mcp_example_camel_interface.py and add requirements.txt for dependencies
+
+[33mcommit b5f9bbf95817cd71d19678b1758fd0b24f43044d[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Apr 4 12:38:44 2025 +0100
+
+    Fix tool reference in mcp_example_camel_interface.py to use send_message_to_user for final responses
+
+[33mcommit 23600e75e233f1ba24ef0edfc5fda97f3bd2ada7[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Apr 4 12:37:17 2025 +0100
+
+    Fix send_final_response tool reference and add JinaBrowsingToolkit for URL content fetching
+
+[33mcommit 287e337363c03659005e5b457e34e140ca1c1ae9[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Apr 4 12:30:18 2025 +0100
+
+    remove inaccurate comments
+
+[33mcommit f363a4698e56975d55961d3ec80c7c132b82f29b[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Apr 4 12:29:22 2025 +0100
+
+    cleanup math agent
+
+[33mcommit 818f1e2f722bf8114f9fb892feaec7e127178e75[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Apr 4 12:15:00 2025 +0100
+
+    Add initial implementation of MCP example agents for user interaction, math operations, and search functionality
+
+[33mcommit 5ab6462788c68db9639e83538f78c43742d0826f[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Mon Mar 31 12:57:32 2025 +0100
+
+    Remove unused CompletableDeferred from server configuration in Main.kt and clean up XML header in misc.xml
+
+[33mcommit 19efcfcc757d7e9498ae4354dc06f39d27304658[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Mar 28 17:16:06 2025 +0000
+
+    Fix class name casing for SSE server transport in Main.kt
+
+[33mcommit 5c4c69729aec0577411f68f052eaadc38131c77e[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Mar 28 15:21:17 2025 +0000
+
+    Add logging for participant and thread management tools, enhancing error handling and output clarity
+
+[33mcommit 60eaea7c47710d8d296e521b2e86e40dbcd53e38[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Mar 28 14:47:41 2025 +0000
+
+    Add tools for managing threads: create, add/remove participants, close, send messages, list agents, and wait for mentions
+
+[33mcommit b5fbf10488bc15cce3417b717a2da6c65425ba77[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Mar 28 14:10:00 2025 +0000
+
+    Refactor package structure to align with new organization naming conventions and update main class reference in build configuration
+
+[33mcommit 378b1ccdce0087d383ad02f68db73e3358c40fb3[m
+Author: Ai23t <pete@turtles.fun>
+Date:   Wed Mar 26 18:17:36 2025 +0000
+
+    Update README.md
+
+[33mcommit 8d154c9f436b7633fb9f93ba0f871369d8cbe746[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Wed Mar 26 16:16:57 2025 +0000
+
+    Enhance message output with color coding based on sender ID and clean up server initialization
+
+[33mcommit 193ab14789a88712f5e3c7548dc273de77d863df[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Wed Mar 26 14:36:33 2025 +0000
+
+    Refactor logging setup, enhance agent registration description, and add debug prints for message handling
+
+[33mcommit 46d6bd9a4a1e33f2146940624311aa588e1d2a37[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Wed Mar 26 12:40:54 2025 +0000
+
+    Update dependencies and enhance logging configuration in Main.kt
+
+[33mcommit 4fd278d288d86c905da0187dd4e6d43dcbea651b[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Mon Mar 24 15:52:57 2025 +0000
+
+    Add agent description field and enhance related functionality
+
+[33mcommit 6438e897b845df70c70268a71473907e9289c5f1[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Mar 21 18:40:38 2025 +0000
+
+    Remove unused prompt and tool definitions from Main.kt
+
+[33mcommit 3813e3513b139faa6552bfcec83d647a34660bde[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Mar 21 18:37:55 2025 +0000
+
+    Enhance input schemas for thread management tools with detailed properties and required fields
+
+[33mcommit 8604c49b23dab2dabbd588d66dd7123163ee4600[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Mar 21 18:07:40 2025 +0000
+
+    Add ListAgentsInput and implement listing functionality for registered agents
+
+[33mcommit 6a75c039b9a489c69c70ac9209455568a5667bb7[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Mar 21 17:24:02 2025 +0000
+
+    Add thread management tools and tests for agent interactions
+
+[33mcommit 2c26f812f4e7399e276cedbb36eebe7a7c206598[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Mar 21 14:04:35 2025 +0000
+
+    MCP sample impl
+
+[33mcommit 3cc44a72bdc8bd863a56deff5d9065571531f764[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Mar 21 13:14:13 2025 +0000
+
+    Update Kotlin version and add application configuration
+
+[33mcommit 9ebf7307f546b7a92323bff3a77626a10a711f33[m
+Author: Caelum Forder <caelum119@gmail.com>
+Date:   Fri Mar 21 11:41:34 2025 +0000
+
+    Initial commit
