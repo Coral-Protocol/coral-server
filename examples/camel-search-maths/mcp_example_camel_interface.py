@@ -7,12 +7,13 @@ from camel.models import ModelFactory  # encapsulates LLM
 from camel.toolkits import HumanToolkit, MCPToolkit  # import tools
 from camel.toolkits.mcp_toolkit import MCPClient
 from camel.types import ModelPlatformType, ModelType
+from dotenv import load_dotenv
+
+from config import PLATFORM_TYPE, MODEL_TYPE, MODEL_CONFIG, MESSAGE_WINDOW_SIZE, TOKEN_LIMIT
+
+load_dotenv()
 
 from prompts import get_tools_description, get_user_message
-
-
-# from dotenv import load_dotenv # for api keys
-
 
 async def main():
     # Simply add the Coral server address as a tool
@@ -57,18 +58,18 @@ async def create_interface_agent(connected_mcp_toolkit):
             ${get_tools_description()}
             """
     )
-    model = ModelFactory.create(  # define the LLM to create agent
-        model_platform=ModelPlatformType.OPENAI,
-        model_type=ModelType.GPT_4O,
-        api_key=os.getenv("OPENAI_API_KEY"),
-        model_config_dict={"temperature": 0.3, "max_tokens": 4096},
+    model = ModelFactory.create(
+        model_platform=ModelPlatformType[PLATFORM_TYPE],
+        model_type=ModelType[MODEL_TYPE],
+        api_key=os.getenv("API_KEY"),
+        model_config_dict=MODEL_CONFIG,
     )
     camel_agent = ChatAgent(  # create agent with our mcp tools
         system_message=sys_msg,
         model=model,
         tools=tools,
-        message_window_size=4096 * 50,
-        token_limit=20000
+        message_window_size=MESSAGE_WINDOW_SIZE,
+        token_limit=TOKEN_LIMIT
     )
     camel_agent.reset()
     camel_agent.memory.clear()
