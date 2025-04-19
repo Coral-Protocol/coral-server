@@ -19,8 +19,11 @@ import kotlinx.io.asSource
 import kotlinx.io.buffered
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.coralprotocol.agentfuzzyp2ptools.tools.addThreadTools
+import org.coralprotocol.agentfuzzyp2ptools.resources.MessageService
 
 private val logger = KotlinLogging.logger {}
+// Store MessageService instances for each server session
+private val messageServices = ConcurrentMap<String, MessageService>()
 
 /**
  * Start sse-server mcp on port 3001.
@@ -62,7 +65,10 @@ fun configureServer(): Server {
 
     // Add thread-based tools
     server.addThreadTools()
-
+    
+    // Create and store MessageService for this server
+    val messageService = MessageService(server)
+    
     return server
 }
 
@@ -89,13 +95,14 @@ fun runSseMcpServerWithPlainConfiguration(port: Int): Unit = runBlocking {
     logger.info { "Use inspector to connect to the http://localhost:$port/sse" }
 
     embeddedServer(CIO, host = "0.0.0.0", port = port, watchPaths = listOf("classes")) {
-
         install(SSE)
         routing {
             sse("/sse") {
                 val transport = SseServerTransport("/message", this)
                 val server = configureServer()
                 servers[transport.sessionId] = server
+                val messageService = MessageService(server)
+                messageServices[transport.sessionId] = messageService
 
                 server.connect(transport)
             }

@@ -13,8 +13,8 @@ from prompts import get_tools_description, get_user_message
 from tools import JinaBrowsingToolkit
 
 
-# from dotenv import load_dotenv # for api keys
-
+from dotenv import load_dotenv # for api keys
+load_dotenv()
 
 async def main():
     # Simply add the Coral server address as a tool
