@@ -26,6 +26,20 @@ Note that gradle will show "83"% forever, but it is actually running. You can ch
 ## 3. Run the agents
 Ensure you have an OPENAI_API_KEY set in your environment variables (or change to a different model in the agents)
 
+Before running the agents, you can configure the model settings in `config.py`:
+```python
+# Model Configuration
+PLATFORM_TYPE = "OPENAI"  # Change the model provider
+MODEL_TYPE = "GPT_4O"    # Change the model type
+
+# Model Settings
+MODEL_CONFIG = {
+    "temperature": 0.3,  # Adjust model parameters
+    "max_tokens": 4096,
+}
+```
+For available model providers and types, refer to the [CAMEL model types documentation](https://github.com/camel-ai/camel/blob/master/camel/types/enums.py).
+
 In a separate terminal, run the agents. They all need to be running for this example to work.
 
 ```bash
