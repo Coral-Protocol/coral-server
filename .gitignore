@@ -43,3 +43,7 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+
+### Example directories ###
+examples/camel-search-maths/__pycache__/
