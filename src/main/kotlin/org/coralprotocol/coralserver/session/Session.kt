@@ -11,6 +11,8 @@ import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Session class to hold stateful information for a specific application and privacy key.
+ * [waitForAgents] is the number of agents that need to register before the session can proceed. This is for devmode only.
+ * TODO: Implement a mechanism for waiting for specific agents to register for production mode.
  */
 class Session(
     val id: String,

@@ -4,7 +4,7 @@ from time import sleep
 
 from camel.agents import ChatAgent
 from camel.models import ModelFactory
-from camel.toolkits import HumanToolkit, MCPToolkit, MathToolkit
+from camel.toolkits import MCPToolkit, MathToolkit
 from camel.toolkits.mcp_toolkit import MCPClient
 from camel.types import ModelPlatformType, ModelType
 from prompts import get_tools_description, get_user_message
@@ -15,7 +15,7 @@ load_dotenv()
 
 async def main():
     # Simply add the Coral server address as a tool
-    server = MCPClient("http://localhost:3001/sse")
+    server = MCPClient("http://localhost:3001/devmode/test/test/test/sse?waitForAgents=3")
 
     mcp_toolkit = MCPToolkit([server])
 

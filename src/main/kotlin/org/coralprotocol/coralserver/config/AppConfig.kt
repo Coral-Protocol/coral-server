@@ -2,6 +2,8 @@ package org.coralprotocol.coralserver.config
 
 import kotlinx.serialization.Serializable
 
+// TODO: Applications are a work in progress. This is safe to ignore for now.
+
 /**
  * Main application configuration.
  */

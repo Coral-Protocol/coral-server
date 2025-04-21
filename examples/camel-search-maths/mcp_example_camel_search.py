@@ -18,7 +18,7 @@ load_dotenv()
 
 async def main():
     # Simply add the Coral server address as a tool
-    server = MCPClient("http://localhost:3001/sse")
+    server = MCPClient("http://localhost:3001/devmode/test/test/test/sse?waitForAgents=3")
     mcp_toolkit = MCPToolkit([server])
 
     async with mcp_toolkit.connection() as connected_mcp_toolkit:
