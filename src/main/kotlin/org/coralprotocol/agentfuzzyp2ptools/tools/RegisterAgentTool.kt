@@ -6,7 +6,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.coralprotocol.agentfuzzyp2ptools.Agent
+import org.coralprotocol.agentfuzzyp2ptools.models.Agent
 import org.coralprotocol.agentfuzzyp2ptools.RegisterAgentInput
 import org.coralprotocol.agentfuzzyp2ptools.session.session
 

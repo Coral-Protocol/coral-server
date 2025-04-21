@@ -1,6 +1,6 @@
 package org.coralprotocol.agentfuzzyp2ptools
 
-import org.coralprotocol.agentfuzzyp2ptools.Message
+import org.coralprotocol.agentfuzzyp2ptools.models.Message
 import org.coralprotocol.agentfuzzyp2ptools.session.Session
 
 /**
