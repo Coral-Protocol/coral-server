@@ -7,7 +7,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.coralprotocol.agentfuzzyp2ptools.ListAgentsInput
-import org.coralprotocol.agentfuzzyp2ptools.ThreadManager
+import org.coralprotocol.agentfuzzyp2ptools.session.session
 
 private val logger = KotlinLogging.logger {}
 
@@ -17,7 +17,7 @@ private val logger = KotlinLogging.logger {}
 fun Server.addListAgentsTool() {
     addTool(
         name = "list_agents",
-        description = "List all registered agents in the system",
+        description = "List all registered agents in your contact.",
         inputSchema = Tool.Input(
             properties = JsonObject(
                 mapOf(
@@ -28,13 +28,24 @@ fun Server.addListAgentsTool() {
                         )
                     )
                 )
-            )
+            ),
+            required = listOf("includeDetails")
         )
     ) { request ->
         try {
+            // Get the session associated with this server
+            val session = this.session
+            if (session == null) {
+                val errorMessage = "No session associated with this server"
+                logger.error { errorMessage }
+                return@addTool CallToolResult(
+                    content = listOf(TextContent(errorMessage))
+                )
+            }
+
             val json = Json { ignoreUnknownKeys = true }
             val input = json.decodeFromString<ListAgentsInput>(request.arguments.toString())
-            val agents = ThreadManager.getAllAgents()
+            val agents = session.getAllAgents()
 
             if (agents.isNotEmpty()) {
                 val agentsList = if (input.includeDetails) {

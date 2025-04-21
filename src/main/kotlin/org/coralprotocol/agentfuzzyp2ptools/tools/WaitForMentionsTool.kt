@@ -7,8 +7,8 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.coralprotocol.agentfuzzyp2ptools.WaitForMentionsInput
-import org.coralprotocol.agentfuzzyp2ptools.ThreadManager
 import org.coralprotocol.agentfuzzyp2ptools.ThreadTools
+import org.coralprotocol.agentfuzzyp2ptools.session.session
 
 private val logger = KotlinLogging.logger {}
 
@@ -36,20 +36,34 @@ fun Server.addWaitForMentionsTool() {
                     )
                 )
             ),
-            required = listOf("agentId")
+            required = listOf("agentId", "timeoutMs")
         )
-    ) { request ->
+    ) { request: CallToolRequest ->
+
         try {
+            // Get the session associated with this server
+            val session = this.session
+            if (session == null) {
+                val errorMessage = "No session associated with this server"
+                logger.error { errorMessage }
+                return@addTool CallToolResult(
+                    content = listOf(TextContent(errorMessage))
+                )
+            }
+
             val json = Json { ignoreUnknownKeys = true }
             val input = json.decodeFromString<WaitForMentionsInput>(request.arguments.toString())
             logger.info { "Waiting for mentions for agent ${input.agentId} with timeout ${input.timeoutMs}ms" }
-            val messages = ThreadManager.waitForMentions(
+
+            // Use the session to wait for mentions
+            val messages = session.waitForMentions(
                 agentId = input.agentId,
                 timeoutMs = input.timeoutMs
             )
+
             if (messages.isNotEmpty()) {
-                // Format messages in XML-like structure
-                val formattedMessages = ThreadTools.formatMessagesAsXml(messages)
+                // Format messages in XML-like structure using the session
+                val formattedMessages = ThreadTools.formatMessagesAsXml(messages, session)
                 CallToolResult(
                     content = listOf(TextContent(formattedMessages))
                 )

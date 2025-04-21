@@ -17,7 +17,7 @@ from prompts import get_tools_description, get_user_message
 
 async def main():
     # Simply add the Coral server address as a tool
-    server = MCPClient("http://localhost:3001/sse")
+    server = MCPClient("http://localhost:3001/devmode/test/test/test/sse")
 
     mcp_toolkit = MCPToolkit([server])
 

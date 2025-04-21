@@ -7,7 +7,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.coralprotocol.agentfuzzyp2ptools.CreateThreadInput
-import org.coralprotocol.agentfuzzyp2ptools.ThreadManager
+import org.coralprotocol.agentfuzzyp2ptools.session.session
 
 private val logger = KotlinLogging.logger {}
 
@@ -46,13 +46,23 @@ fun Server.addCreateThreadTool() {
                     )
                 )
             ),
-            required = listOf("threadName", "creatorId")
+            required = listOf("threadName", "creatorId", "participantIds")
         )
     ) { request ->
         try {
+            // Get the session associated with this server
+            val session = this.session
+            if (session == null) {
+                val errorMessage = "No session associated with this server"
+                logger.error { errorMessage }
+                return@addTool CallToolResult(
+                    content = listOf(TextContent(errorMessage))
+                )
+            }
+
             val json = Json { ignoreUnknownKeys = true }
             val input = json.decodeFromString<CreateThreadInput>(request.arguments.toString())
-            val thread = ThreadManager.createThread(
+            val thread = session.createThread(
                 name = input.threadName,
                 creatorId = input.creatorId,
                 participantIds = input.participantIds
