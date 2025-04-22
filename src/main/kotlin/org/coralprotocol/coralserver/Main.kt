@@ -1,7 +1,6 @@
 package org.coralprotocol.coralserver
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.coralprotocol.coralserver.server.runMcpServerUsingStdio
 import org.coralprotocol.coralserver.server.runSseMcpServerWithPlainConfiguration
 
 private val logger = KotlinLogging.logger {}
@@ -20,7 +19,7 @@ fun main(args: Array<String>) {
     val command = args.firstOrNull() ?: "--sse-server"
     val port = args.getOrNull(1)?.toIntOrNull() ?: 3001
     when (command) {
-        "--stdio" -> runMcpServerUsingStdio()
+//        "--stdio" -> runMcpServerUsingStdio()
         "--sse-server" -> runSseMcpServerWithPlainConfiguration(port)
         else -> {
             logger.error { "Unknown command: $command" }

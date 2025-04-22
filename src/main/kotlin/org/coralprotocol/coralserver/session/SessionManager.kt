@@ -6,14 +6,14 @@ import java.util.concurrent.ConcurrentHashMap
  * Session manager to create and retrieve sessions.
  */
 object SessionManager {
-    private val sessions = ConcurrentHashMap<String, Session>()
+    private val sessions = ConcurrentHashMap<String, CoralAgentGraphSession>()
 
     /**
      * Create a new session with a random ID.
      */
-    fun createSession(applicationId: String, privacyKey: String): Session {
+    fun createSession(applicationId: String, privacyKey: String): CoralAgentGraphSession {
         val sessionId = java.util.UUID.randomUUID().toString()
-        val session = Session(sessionId, applicationId, privacyKey)
+        val session = CoralAgentGraphSession(sessionId, applicationId, privacyKey)
         sessions[sessionId] = session
         return session
     }
@@ -21,8 +21,8 @@ object SessionManager {
     /**
      * Create a new session with a specific ID.
      */
-    fun createSessionWithId(sessionId: String, applicationId: String, privacyKey: String): Session {
-        val session = Session(sessionId, applicationId, privacyKey)
+    fun createSessionWithId(sessionId: String, applicationId: String, privacyKey: String): CoralAgentGraphSession {
+        val session = CoralAgentGraphSession(sessionId, applicationId, privacyKey)
         sessions[sessionId] = session
         return session
     }
@@ -31,21 +31,21 @@ object SessionManager {
      * Get or create a session with a specific ID.
      * If the session exists, return it. Otherwise, create a new one.
      */
-    fun getOrCreateSession(sessionId: String, applicationId: String, privacyKey: String): Session {
+    fun getOrCreateSession(sessionId: String, applicationId: String, privacyKey: String): CoralAgentGraphSession {
         return sessions[sessionId] ?: createSessionWithId(sessionId, applicationId, privacyKey)
     }
 
     /**
      * Get a session by ID.
      */
-    fun getSession(sessionId: String): Session? {
+    fun getSession(sessionId: String): CoralAgentGraphSession? {
         return sessions[sessionId]
     }
 
     /**
      * Get all sessions.
      */
-    fun getAllSessions(): List<Session> {
+    fun getAllSessions(): List<CoralAgentGraphSession> {
         return sessions.values.toList()
     }
 }

@@ -1,7 +1,7 @@
 package org.coralprotocol.coralserver
 
 import org.coralprotocol.coralserver.models.Message
-import org.coralprotocol.coralserver.session.Session
+import org.coralprotocol.coralserver.session.CoralAgentGraphSession
 
 /**
  * Class containing utility functions for thread-based tools.
@@ -10,7 +10,7 @@ object ThreadTools {
     /**
      * Format messages in an XML-like structure for clear presentation.
      */
-    fun formatMessagesAsXml(messages: List<Message>, session: Session): String {
+    fun formatMessagesAsXml(messages: List<Message>, session: CoralAgentGraphSession): String {
         val sb = StringBuilder("<messages>\n")
 
         // Group messages by thread

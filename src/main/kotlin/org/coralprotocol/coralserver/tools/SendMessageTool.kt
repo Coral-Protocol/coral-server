@@ -1,20 +1,18 @@
 package org.coralprotocol.coralserver.tools
 
 import io.modelcontextprotocol.kotlin.sdk.*
-import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.coralprotocol.coralserver.SendMessageInput
-import org.coralprotocol.coralserver.session.session
+import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
 
 /**
  * Extension function to add the send message tool to a server.
  */
-fun Server.addSendMessageTool() {
+fun CoralAgentIndividualMcp.addSendMessageTool() {
     addTool(
         name = "send_message",
         description = "Send a message to a thread",
@@ -25,12 +23,6 @@ fun Server.addSendMessageTool() {
                         mapOf(
                             "type" to JsonPrimitive("string"),
                             "description" to JsonPrimitive("ID of the thread")
-                        )
-                    ),
-                    "senderId" to JsonObject(
-                        mapOf(
-                            "type" to JsonPrimitive("string"),
-                            "description" to JsonPrimitive("ID of the agent sending the message")
                         )
                     ),
                     "content" to JsonObject(
@@ -56,21 +48,11 @@ fun Server.addSendMessageTool() {
         )
     ) { request ->
         try {
-            // Get the session associated with this server
-            val session = this.session
-            if (session == null) {
-                val errorMessage = "No session associated with this server"
-                logger.error { errorMessage }
-                return@addTool CallToolResult(
-                    content = listOf(TextContent(errorMessage))
-                )
-            }
-
             val json = Json { ignoreUnknownKeys = true }
             val input = json.decodeFromString<SendMessageInput>(request.arguments.toString())
-            val message = session.sendMessage(
+            val message = coralAgentGraphSession.sendMessage(
                 threadId = input.threadId,
-                senderId = input.senderId,
+                senderId = this.connectedAgentId,
                 content = input.content,
                 mentions = input.mentions
             )

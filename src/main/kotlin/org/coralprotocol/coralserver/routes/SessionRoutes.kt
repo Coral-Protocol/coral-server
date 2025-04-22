@@ -17,6 +17,7 @@ private val logger = KotlinLogging.logger {}
  */
 fun Routing.sessionRoutes() {
     // Session creation endpoint
+
     post("/sessions") {
         try {
             val request = call.receive<CreateSessionRequest>()

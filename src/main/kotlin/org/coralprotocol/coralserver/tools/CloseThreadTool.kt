@@ -1,20 +1,18 @@
 package org.coralprotocol.coralserver.tools
 
 import io.modelcontextprotocol.kotlin.sdk.*
-import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.coralprotocol.coralserver.CloseThreadInput
-import org.coralprotocol.coralserver.session.session
+import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
 
 /**
  * Extension function to add the close thread tool to a server.
  */
-fun Server.addCloseThreadTool() {
+fun CoralAgentIndividualMcp.addCloseThreadTool() {
     addTool(
         name = "close_thread",
         description = "Close a thread with a summary",
@@ -39,19 +37,10 @@ fun Server.addCloseThreadTool() {
         )
     ) { request ->
         try {
-            // Get the session associated with this server
-            val session = this.session
-            if (session == null) {
-                val errorMessage = "No session associated with this server"
-                logger.error { errorMessage }
-                return@addTool CallToolResult(
-                    content = listOf(TextContent(errorMessage))
-                )
-            }
 
             val json = Json { ignoreUnknownKeys = true }
             val input = json.decodeFromString<CloseThreadInput>(request.arguments.toString())
-            val success = session.closeThread(
+            val success = coralAgentGraphSession.closeThread(
                 threadId = input.threadId,
                 summary = input.summary
             )

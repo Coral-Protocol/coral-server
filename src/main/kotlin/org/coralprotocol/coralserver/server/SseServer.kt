@@ -22,7 +22,7 @@ private val logger = KotlinLogging.logger {}
  * @param port The port to run the server on
  */
 fun runSseMcpServerWithPlainConfiguration(port: Int): Unit = runBlocking {
-    val servers = ConcurrentMap<String, Server>()
+    val mcpServersByTransportId = ConcurrentMap<String, Server>()
 
     // Load application configuration
     val appConfig = AppConfigLoader.loadConfig()
@@ -35,8 +35,8 @@ fun runSseMcpServerWithPlainConfiguration(port: Int): Unit = runBlocking {
         routing {
             // Configure all routes
             sessionRoutes()
-            sseRoutes(servers)
-            messageRoutes(servers)
+            sseRoutes(mcpServersByTransportId)
+            messageRoutes(mcpServersByTransportId)
         }
     }.start(wait = true)
 }

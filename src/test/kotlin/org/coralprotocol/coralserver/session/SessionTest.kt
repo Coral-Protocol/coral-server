@@ -10,12 +10,12 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 class SessionTest {
-    private lateinit var session: Session
+    private lateinit var session: CoralAgentGraphSession
 
     @BeforeEach
     fun setup() {
         // Create a new session for each test
-        session = Session("test-session", "test-app", "test-key")
+        session = CoralAgentGraphSession("test-session", "test-app", "test-key")
         // Clear any existing data
         session.clearAll()
     }
@@ -97,7 +97,7 @@ class SessionTest {
         )
 
         // Add a participant
-        val addSuccess = session.addParticipant(
+        val addSuccess = session.addParticipantToThread(
             threadId = thread?.id ?: "",
             participantId = "participant2"
         )
@@ -108,7 +108,7 @@ class SessionTest {
         assertTrue(updatedThread?.participants?.contains("participant2") ?: false)
 
         // Remove a participant
-        val removeSuccess = session.removeParticipant(
+        val removeSuccess = session.removeParticipantFromThread(
             threadId = thread?.id ?: "",
             participantId = "participant1"
         )
