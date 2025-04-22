@@ -20,6 +20,11 @@ The server can be run in different modes (stdio, SSE) to support various integra
 
 ![0000](https://github.com/user-attachments/assets/a5227d18-8c57-48b9-877f-97859b176957)
 
+## Core Architecture
+
+To gain a deeper understanding of the core architecture behind this protocol, including how agents, threads, and messages interact within the system, please refer to the [Coral Explanation](coral-explanation/index.md). The explanation provides a detailed overview of the components, data flow, and interactions that form the foundation of the protocol.
+
+
 ### Status / future direction
 This project is in its early stages and is not yet production-ready. The current focus is on building a robust foundation for agent communication, with plans to add more features and improve performance in the future.
 
