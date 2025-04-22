@@ -48,31 +48,23 @@ fun CoralAgentIndividualMcp.addCreateThreadTool() {
             val input = json.decodeFromString<CreateThreadInput>(request.arguments.toString())
             val thread = coralAgentGraphSession.createThread(
                 name = input.threadName,
-                creatorId = input.creatorId,
+                creatorId = connectedAgentId,
                 participantIds = input.participantIds
             )
 
-            if (thread != null) {
-                CallToolResult(
-                    content = listOf(
-                        TextContent(
-                            """
-                            Thread created successfully:
-                            ID: ${thread.id}
-                            Name: ${thread.name}
-                            Creator: ${thread.creatorId}
-                            Participants: ${thread.participants.joinToString(", ")}
-                            """.trimIndent()
-                        )
+            CallToolResult(
+                content = listOf(
+                    TextContent(
+                        """
+                        Thread created successfully:
+                        ID: ${thread.id}
+                        Name: ${thread.name}
+                        Creator: ${thread.creatorId}
+                        Participants: ${thread.participants.joinToString(", ")}
+                        """.trimIndent()
                     )
                 )
-            } else {
-                val errorMessage = "Failed to create thread: Creator not found or invalid participants"
-                logger.error { errorMessage }
-                CallToolResult(
-                    content = listOf(TextContent(errorMessage))
-                )
-            }
+            )
         } catch (e: Exception) {
             val errorMessage = "Error creating thread: ${e.message}"
             logger.error(e) { errorMessage }
