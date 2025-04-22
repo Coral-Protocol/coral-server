@@ -30,6 +30,11 @@ For remote mode, we will mostly preserve the interface provided by these MCP too
 We don't want to re-invent the wheel, so we will reuse existing protocols and standards as much as possible.
 Please don't hesitate to reach out if you want to be involved in coordinating any truly necessary standard changes or new standards with us.
 
+## Core Architecture
+
+To understand how this protocol operates and to explore its main components, please refer to the detailed breakdown in  
+[`coral_explanation/index.md`](coral_explanation/index.md).
+
 ## How to Run
 
 ### Quick example
