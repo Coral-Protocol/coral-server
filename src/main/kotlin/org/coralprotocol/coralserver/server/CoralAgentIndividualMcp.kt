@@ -6,6 +6,7 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import org.coralprotocol.coralserver.session.CoralAgentGraphSession
+import org.coralprotocol.coralserver.tools.addThreadTools
 
 /**
  * Represents a persistent connection to a Coral agent.
@@ -28,7 +29,7 @@ class CoralAgentIndividualMcp(
      * The ID of the agent associated with this connection.
      */
     val connectedAgentId: String
-): Server(
+) : Server(
     Implementation(
         name = "Coral Server",
         version = "0.1.0"
@@ -41,9 +42,12 @@ class CoralAgentIndividualMcp(
         )
     ),
 ) {
+    init {
+        addThreadTools()
+    }
+
     suspend fun closeTransport() {
         latestTransport.close()
     }
-
 }
 
