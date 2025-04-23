@@ -20,6 +20,14 @@ dependencies {
     implementation("io.modelcontextprotocol:kotlin-sdk:0.4.0")
     implementation("org.slf4j:slf4j-simple:2.0.9")
     implementation("io.github.oshai:kotlin-logging-jvm:7.0.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
+
+    // Hoplite for configuration
+    implementation("com.sksamuel.hoplite:hoplite-core:2.7.5")
+    implementation("com.sksamuel.hoplite:hoplite-yaml:2.7.5")
+
 }
 
 tasks.test {
