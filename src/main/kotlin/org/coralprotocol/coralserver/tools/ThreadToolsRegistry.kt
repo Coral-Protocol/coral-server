@@ -1,12 +1,11 @@
-package org.coralprotocol.agentfuzzyp2ptools.tools
+package org.coralprotocol.coralserver.tools
 
-import io.modelcontextprotocol.kotlin.sdk.server.Server
+import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 /**
  * Extension function to add all thread-based tools to a server.
  */
-fun Server.addThreadTools() {
-    addRegisterAgentTool()
+fun CoralAgentIndividualMcp.addThreadTools() {
     addListAgentsTool()
     addCreateThreadTool()
     addAddParticipantTool()

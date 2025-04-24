@@ -1,7 +1,7 @@
-package org.coralprotocol.agentfuzzyp2ptools
+package org.coralprotocol.coralserver
 
-import org.coralprotocol.agentfuzzyp2ptools.Message
-import org.coralprotocol.agentfuzzyp2ptools.ThreadManager
+import org.coralprotocol.coralserver.models.Message
+import org.coralprotocol.coralserver.session.CoralAgentGraphSession
 
 /**
  * Class containing utility functions for thread-based tools.
@@ -10,14 +10,14 @@ object ThreadTools {
     /**
      * Format messages in an XML-like structure for clear presentation.
      */
-    fun formatMessagesAsXml(messages: List<Message>): String {
+    fun formatMessagesAsXml(messages: List<Message>, session: CoralAgentGraphSession): String {
         val sb = StringBuilder("<messages>\n")
 
         // Group messages by thread
         val messagesByThread = messages.groupBy { it.threadId }
 
         for ((threadId, threadMessages) in messagesByThread) {
-            val thread = ThreadManager.getThread(threadId)
+            val thread = session.getThread(threadId)
             sb.append("  <thread id=\"$threadId\" name=\"${thread?.name ?: "Unknown"}\">\n")
 
             // Add thread status
@@ -31,7 +31,7 @@ object ThreadTools {
             // Add participants
             sb.append("    <participants>\n")
             thread?.participants?.forEach { participantId ->
-                val participant = ThreadManager.getAgent(participantId)
+                val participant = session.getAgent(participantId)
                 sb.append("      <participant id=\"$participantId\" name=\"${participant?.name ?: "Unknown"}\" />\n")
             }
             sb.append("    </participants>\n")
@@ -39,7 +39,7 @@ object ThreadTools {
             // Add messages
             sb.append("    <messages>\n")
             threadMessages.forEach { message ->
-                val sender = ThreadManager.getAgent(message.senderId)
+                val sender = session.getAgent(message.senderId)
                 sb.append("      <message id=\"${message.id}\" timestamp=\"${message.timestamp}\">\n")
                 sb.append("        <sender id=\"${message.senderId}\" name=\"${sender?.name ?: "Unknown"}\" />\n")
 
@@ -47,7 +47,7 @@ object ThreadTools {
                 if (message.mentions.isNotEmpty()) {
                     sb.append("        <mentions>\n")
                     message.mentions.forEach { mentionId ->
-                        val mentioned = ThreadManager.getAgent(mentionId)
+                        val mentioned = session.getAgent(mentionId)
                         sb.append("          <mention id=\"$mentionId\" name=\"${mentioned?.name ?: "Unknown"}\" />\n")
                     }
                     sb.append("        </mentions>\n")

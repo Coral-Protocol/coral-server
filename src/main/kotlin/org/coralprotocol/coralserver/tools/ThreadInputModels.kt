@@ -1,16 +1,6 @@
-package org.coralprotocol.agentfuzzyp2ptools
+package org.coralprotocol.coralserver.tools
 
 import kotlinx.serialization.Serializable
-
-/**
- * Tool for registering an agent in the system.
- */
-@Serializable
-data class RegisterAgentInput(
-    val agentId: String,
-    val agentName: String,
-    val description: String = "" // Default empty string for backward compatibility
-)
 
 /**
  * Tool for creating a new thread.
@@ -18,7 +8,6 @@ data class RegisterAgentInput(
 @Serializable
 data class CreateThreadInput(
     val threadName: String,
-    val creatorId: String,
     val participantIds: List<String>
 )
 
@@ -55,7 +44,6 @@ data class CloseThreadInput(
 @Serializable
 data class SendMessageInput(
     val threadId: String,
-    val senderId: String,
     val content: String,
     val mentions: List<String> = emptyList()
 )
@@ -65,7 +53,6 @@ data class SendMessageInput(
  */
 @Serializable
 data class WaitForMentionsInput(
-    val agentId: String,
     val timeoutMs: Long = 30000 // Default timeout of 30 seconds
 )
 

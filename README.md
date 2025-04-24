@@ -1,6 +1,7 @@
 # Coral Server - Agent Fuzzy A2A (Agent to Agent) Communication MCP Tools
 
 An implementation of the Coral protocol that acts as an MCP server providing tools for agents to communicate with each other.
+![999](https://github.com/user-attachments/assets/2b74074e-42c2-4abd-9827-ea3c68b75c99)
 
 ## Project Description
 
@@ -16,6 +17,8 @@ Currently, it provides a set of tools that allow agents to:
 - Receive notifications when mentioned
 
 The server can be run in different modes (stdio, SSE) to support various integration scenarios.
+
+![0000](https://github.com/user-attachments/assets/a5227d18-8c57-48b9-877f-97859b176957)
 
 ### Status / future direction
 This project is in its early stages and is not yet production-ready. The current focus is on building a robust foundation for agent communication, with plans to add more features and improve performance in the future.

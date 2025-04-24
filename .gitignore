@@ -9,6 +9,7 @@ build/
 .idea/jarRepositories.xml
 .idea/compiler.xml
 .idea/libraries/
+.idea/misc.xml
 *.iws
 *.iml
 *.ipr
@@ -43,3 +44,7 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+
+### Example directories ###
+examples/camel-search-maths/__pycache__/

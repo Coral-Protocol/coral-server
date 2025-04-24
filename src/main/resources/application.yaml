@@ -1,0 +1,15 @@
+# Default application configuration
+# TODO: Applications are a work in progress. This is safe to ignore for now.
+applications:
+  - id: "default-app"
+    name: "Default Application"
+    description: "Default application for testing"
+    privacyKeys:
+      - "default-key"
+      - "public"
+
+# Uncomment to configure an external application source
+# applicationSource:
+#   type: "http"
+#   url: "https://example.com/applications"
+#   refreshIntervalSeconds: 3600

@@ -1,23 +1,21 @@
-package org.coralprotocol.agentfuzzyp2ptools.tools
+package org.coralprotocol.coralserver.tools
 
 import io.modelcontextprotocol.kotlin.sdk.*
-import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.coralprotocol.agentfuzzyp2ptools.ListAgentsInput
-import org.coralprotocol.agentfuzzyp2ptools.ThreadManager
+import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
 
 /**
  * Extension function to add the list agents tool to a server.
  */
-fun Server.addListAgentsTool() {
+fun CoralAgentIndividualMcp.addListAgentsTool() {
     addTool(
         name = "list_agents",
-        description = "List all registered agents in the system",
+        description = "List all registered agents in your contact.",
         inputSchema = Tool.Input(
             properties = JsonObject(
                 mapOf(
@@ -28,13 +26,15 @@ fun Server.addListAgentsTool() {
                         )
                     )
                 )
-            )
+            ),
+            required = listOf("includeDetails")
         )
     ) { request ->
         try {
+
             val json = Json { ignoreUnknownKeys = true }
             val input = json.decodeFromString<ListAgentsInput>(request.arguments.toString())
-            val agents = ThreadManager.getAllAgents()
+            val agents = coralAgentGraphSession.getAllAgents()
 
             if (agents.isNotEmpty()) {
                 val agentsList = if (input.includeDetails) {
