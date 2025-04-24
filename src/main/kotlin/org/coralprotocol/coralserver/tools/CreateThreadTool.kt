@@ -39,7 +39,7 @@ fun CoralAgentIndividualMcp.addCreateThreadTool() {
                     )
                 )
             ),
-            required = listOf("threadName", "creatorId", "participantIds")
+            required = listOf("threadName", "participantIds")
         )
     ) { request ->
         try {

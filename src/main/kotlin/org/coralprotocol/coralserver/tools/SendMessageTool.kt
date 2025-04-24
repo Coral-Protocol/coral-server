@@ -44,7 +44,7 @@ fun CoralAgentIndividualMcp.addSendMessageTool() {
                     )
                 )
             ),
-            required = listOf("threadId", "senderId", "content", "mentions")
+            required = listOf("threadId", "content", "mentions")
         )
     ) { request ->
         try {
