@@ -5,7 +5,7 @@ plugins {
 }
 
 application {
-    mainClass.set("org.coralprotocol.agentfuzzyp2ptools.MainKt")
+    mainClass.set("org.coralprotocol.coralserver.MainKt")
 }
 
 group = "org.coralprotocol"
@@ -36,7 +36,7 @@ tasks.test {
 
 tasks.jar {
     manifest {
-        attributes["Main-Class"] = "org.coralprotocol.agentfuzzyp2ptools.MainKt"
+        attributes["Main-Class"] = "org.coralprotocol.coralserver.MainKt"
     }
     from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
