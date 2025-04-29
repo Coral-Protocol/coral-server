@@ -31,12 +31,11 @@ fun CoralAgentIndividualMcp.addWaitForMentionsTool() {
             required = listOf("timeoutMs")
         )
     ) { request: CallToolRequest ->
-
         try {
-
             val json = Json { ignoreUnknownKeys = true }
             val input = json.decodeFromString<WaitForMentionsInput>(request.arguments.toString())
             logger.info { "Waiting for mentions for agent ${connectedAgentId} with timeout ${input.timeoutMs}ms" }
+
 
             // Use the session to wait for mentions
             val messages = coralAgentGraphSession.waitForMentions(
@@ -45,7 +44,6 @@ fun CoralAgentIndividualMcp.addWaitForMentionsTool() {
             )
 
             if (messages.isNotEmpty()) {
-                // Format messages in XML-like structure using the session
                 val formattedMessages = ThreadTools.formatMessagesAsXml(messages, coralAgentGraphSession)
                 CallToolResult(
                     content = listOf(TextContent(formattedMessages))

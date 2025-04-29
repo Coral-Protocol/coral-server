@@ -29,16 +29,16 @@ class CoralAgentGraphSession(
 
     private val lastReadMessageIndex = ConcurrentHashMap<Pair<String, String>, Int>()
 
-    private val registeredAgentsCount = AtomicInteger(0)
+    private var registeredAgentsCount = 0
 
-    private val agentCountNotifications = ConcurrentHashMap<Int, CompletableDeferred<Boolean>>()
+    val agentCountNotifications = ConcurrentHashMap<Int, MutableList<CompletableDeferred<Boolean>>>()
 
     fun clearAll() {
         agents.clear()
         threads.clear()
         agentNotifications.clear()
         lastReadMessageIndex.clear()
-        registeredAgentsCount.set(0)
+//        registeredAgentsCount = 0
         agentCountNotifications.clear()
     }
 
@@ -48,14 +48,26 @@ class CoralAgentGraphSession(
         }
         agents[agent.id] = agent
 
-        val newCount = registeredAgentsCount.incrementAndGet()
+        registeredAgentsCount++
 
-        agentCountNotifications.entries.removeIf { (targetCount, deferred) ->
-            if (newCount >= targetCount && !deferred.isCompleted) {
-                deferred.complete(true)
-                true
-            } else {
-                false
+        // Create a copy of the keys to avoid ConcurrentModificationException
+        val targetCounts = agentCountNotifications.keys.toList()
+
+//        // For each target count that has been reached
+        for (targetCount in targetCounts) {
+            if (registeredAgentsCount >= targetCount) {
+                // Get the list of deferreds for this target count
+                val deferreds = agentCountNotifications[targetCount]
+                if (deferreds != null) {
+                    // Complete all deferreds that are not already completed
+                    for (deferred in deferreds) {
+                        if (!deferred.isCompleted) {
+                            deferred.complete(true)
+                        }
+                    }
+                    // Remove this target count from the map
+                    agentCountNotifications.remove(targetCount)
+                }
             }
         }
 
@@ -63,23 +75,36 @@ class CoralAgentGraphSession(
     }
 
     fun getRegisteredAgentsCount(): Int {
-        return registeredAgentsCount.get()
+        return registeredAgentsCount
     }
 
     suspend fun waitForAgentCount(targetCount: Int, timeoutMs: Long): Boolean {
-        if (registeredAgentsCount.get() >= targetCount) {
+        if (registeredAgentsCount >= targetCount) {
             return true
         }
 
         val deferred = CompletableDeferred<Boolean>()
-        agentCountNotifications[targetCount] = deferred
+
+        // Get or create the list of deferreds for this target count
+        val deferreds = agentCountNotifications.computeIfAbsent(targetCount) { mutableListOf() }
+
+        // Add the new deferred to the list
+        deferreds.add(deferred)
 
         val result = withTimeoutOrNull(timeoutMs) {
             deferred.await()
         } ?: false
 
         if (!result) {
-            agentCountNotifications.remove(targetCount)
+            // If the wait timed out, remove this deferred from the list
+            val deferredsList = agentCountNotifications[targetCount]
+            if (deferredsList != null) {
+                deferredsList.remove(deferred)
+                // If the list is now empty, remove the target count from the map
+                if (deferredsList.isEmpty()) {
+                    agentCountNotifications.remove(targetCount)
+                }
+            }
         }
 
         return result
@@ -262,4 +287,3 @@ class CoralAgentGraphSession(
         }
     }
 }
-

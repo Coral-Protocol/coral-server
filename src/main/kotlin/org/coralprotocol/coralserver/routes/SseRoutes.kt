@@ -8,6 +8,7 @@ import io.ktor.server.sse.*
 import io.ktor.util.collections.*
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
+import org.coralprotocol.coralserver.models.Agent
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import org.coralprotocol.coralserver.session.SessionManager
 
@@ -53,6 +54,8 @@ private suspend fun handleSseConnection(
     val privacyKey = parameters["privacyKey"]
     val sessionId = parameters["coralSessionId"]
     val agentId = parameters["agentId"]
+    val agentDescription: String = parameters["agentDescription"] ?: agentId ?: "no description"
+
     if (agentId == null) {
         sseProducer.call.respond(HttpStatusCode.BadRequest, "Missing agentId parameter")
         return false
@@ -87,20 +90,46 @@ private suspend fun handleSseConnection(
 
         existingSession
     }
+    val currentCount = session.getRegisteredAgentsCount()
+    logger.info { "DevMode: Current agent count for session ${session.id} (object id: ${session}) (from sessionmanager: ${SessionManager}): $currentCount, waiting for: ${session.devRequiredAgentStartCount}" }
+    // Create the agent object
+    val agent = Agent(
+        id = agentId,
+        name = agentId,
+        description = agentDescription
+    )
+    // Register the agent
+    session.registerAgent(agent)
+    val newCount = session.getRegisteredAgentsCount()
+    logger.info { "DevMode: New agent count for session ${session.id} (object id: ${session})after registering: $newCount" }
 
     val routePrefix = if (isDevMode) "/devmode" else ""
     val transport = SseServerTransport("$routePrefix/$applicationId/$privacyKey/$sessionId/message", sseProducer)
 
-    val individualServer = CoralAgentIndividualMcp(transport,session, agentId)
+    val individualServer = CoralAgentIndividualMcp(transport, session, agentId)
     session.coralAgentConnections.add(individualServer)
 
     val transportSessionId = transport.sessionId
     servers[transportSessionId] = individualServer
-    individualServer.connect(transport)
 
     if (isDevMode) {
         logger.info { "DevMode: Connected to session $sessionId with application $applicationId (waitForAgents=${session.devRequiredAgentStartCount})" }
+
+        if (session.devRequiredAgentStartCount > 0) {
+            if (newCount < session.devRequiredAgentStartCount) {
+
+                val success = session.waitForAgentCount(session.devRequiredAgentStartCount, 60000)
+                if (success) {
+                    logger.info { "DevMode: Successfully waited for ${session.devRequiredAgentStartCount} agents to connect" }
+                } else {
+                    logger.warn { "DevMode: Timeout waiting for ${session.devRequiredAgentStartCount} agents to connect, proceeding anyway" }
+                }
+            } else {
+                logger.info { "DevMode: Required agent count already reached" }
+            }
+        }
     }
 
+    individualServer.connect(transport)
     return true
 }

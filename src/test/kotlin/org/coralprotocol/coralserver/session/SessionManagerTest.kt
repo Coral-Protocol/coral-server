@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.session
 
+import kotlinx.coroutines.runBlocking
 import org.coralprotocol.coralserver.models.Agent
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
@@ -50,7 +51,7 @@ class SessionManagerTest {
     }
 
     @Test
-    fun `test get or create session - existing session`() {
+    fun `test get or create session - existing session`() = runBlocking {
         // Create a session first
         SessionManager.createSessionWithId("session2", "app1", "key1")
 
@@ -64,7 +65,7 @@ class SessionManagerTest {
     }
 
     @Test
-    fun `test get or create session - new session`() {
+    fun `test get or create session - new session`() = runBlocking {
         // Get or create a new session
         val session = SessionManager.getOrCreateSession("session3", "app3", "key3")
 

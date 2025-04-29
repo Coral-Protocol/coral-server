@@ -1,5 +1,7 @@
 package org.coralprotocol.coralserver.session
 
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -7,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 object SessionManager {
     private val sessions = ConcurrentHashMap<String, CoralAgentGraphSession>()
+    private val sessionSemaphore = Semaphore(1)
 
     /**
      * Create a new session with a random ID.
@@ -31,8 +34,14 @@ object SessionManager {
      * Get or create a session with a specific ID.
      * If the session exists, return it. Otherwise, create a new one.
      */
-    fun getOrCreateSession(sessionId: String, applicationId: String, privacyKey: String): CoralAgentGraphSession {
-        return sessions[sessionId] ?: createSessionWithId(sessionId, applicationId, privacyKey)
+    suspend fun getOrCreateSession(
+        sessionId: String,
+        applicationId: String,
+        privacyKey: String
+    ): CoralAgentGraphSession {
+        sessionSemaphore.withPermit {
+            return sessions[sessionId] ?: createSessionWithId(sessionId, applicationId, privacyKey)
+        }
     }
 
     /**

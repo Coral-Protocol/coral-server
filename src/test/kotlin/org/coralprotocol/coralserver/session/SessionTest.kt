@@ -8,6 +8,7 @@ import org.coralprotocol.coralserver.models.Agent
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.util.concurrent.atomic.AtomicBoolean
 
 class SessionTest {
     private lateinit var session: CoralAgentGraphSession
@@ -260,99 +261,166 @@ class SessionTest {
         // Register some agents
         val agent1 = Agent(id = "agent1", name = "Agent 1")
         val agent2 = Agent(id = "agent2", name = "Agent 2")
-        
+
         session.registerAgent(agent1)
         session.registerAgent(agent2)
-        
+
         // Verify current count
         assertEquals(2, session.getRegisteredAgentsCount())
-        
+
         // Launch a coroutine to wait for more agents
         val waitJob = launch(Dispatchers.Default) {
             val result = session.waitForAgentCount(
                 targetCount = 3,
                 timeoutMs = 5000
             )
-            
+
             // Verify wait was successful
             assertTrue(result)
             assertEquals(3, session.getRegisteredAgentsCount())
         }
-        
+
         // Wait a bit to ensure the wait operation has started
         delay(100)
-        
+
         // Register another agent
         val agent3 = Agent(id = "agent3", name = "Agent 3")
         session.registerAgent(agent3)
-        
+
         // Wait for the job to complete
         waitJob.join()
     }
-    
+
     @Test
     fun `test waiting for agent count with timeout`() = runBlocking {
         // Register some agents
         val agent1 = Agent(id = "agent1", name = "Agent 1")
         session.registerAgent(agent1)
-        
+
         // Wait for more agents with a short timeout
         val result = session.waitForAgentCount(
             targetCount = 3,
             timeoutMs = 100
         )
-        
+
         // Verify wait timed out
         assertFalse(result)
         assertEquals(1, session.getRegisteredAgentsCount())
     }
-    
+
     @Test
     fun `test get threads for agent`() {
         // Register agents
         val creator = Agent(id = "creator", name = "Creator Agent")
         val participant1 = Agent(id = "participant1", name = "Participant 1")
         val participant2 = Agent(id = "participant2", name = "Participant 2")
-        
+
         session.registerAgent(creator)
         session.registerAgent(participant1)
         session.registerAgent(participant2)
-        
+
         // Create threads
         val thread1 = session.createThread(
             name = "Thread 1",
             creatorId = "creator",
             participantIds = listOf("participant1")
         )
-        
+
         val thread2 = session.createThread(
             name = "Thread 2",
             creatorId = "creator",
             participantIds = listOf("participant1", "participant2")
         )
-        
+
         val thread3 = session.createThread(
             name = "Thread 3",
             creatorId = "participant2",
             participantIds = listOf("creator")
         )
-        
+
         // Get threads for participant1
         val threadsForParticipant1 = session.getThreadsForAgent("participant1")
-        
+
         // Verify correct threads are returned
         assertEquals(2, threadsForParticipant1.size)
         assertTrue(threadsForParticipant1.contains(thread1))
         assertTrue(threadsForParticipant1.contains(thread2))
         assertFalse(threadsForParticipant1.contains(thread3))
-        
+
         // Get threads for participant2
         val threadsForParticipant2 = session.getThreadsForAgent("participant2")
-        
+
         // Verify correct threads are returned
         assertEquals(2, threadsForParticipant2.size)
         assertTrue(threadsForParticipant2.contains(thread2))
         assertTrue(threadsForParticipant2.contains(thread3))
         assertFalse(threadsForParticipant2.contains(thread1))
+    }
+
+    @Test
+    fun `test multiple connections from same client with waitForAgents`() = runBlocking {
+        // Set the required agent count
+        session.devRequiredAgentStartCount = 3
+
+        // Create flags to track when each agent is registered
+        val agent1Registered = AtomicBoolean(false)
+        val agent2Registered = AtomicBoolean(false)
+        val agent3Registered = AtomicBoolean(false)
+
+        // Launch 3 coroutines to simulate 3 concurrent connections
+        val connectionJobs = List(3) { index ->
+            launch(Dispatchers.IO) {
+                // Simulate a delay between connections
+                delay(100L * index)
+
+                // Create an agent for this connection
+                val agentId = "agent-${index + 1}"
+                val agent = Agent(id = agentId, name = "Agent $agentId")
+
+                println("[DEBUG_LOG] Registering agent $agentId")
+
+                // Register the agent
+                session.registerAgent(agent)
+
+                // Set the flag for this agent
+                when (index) {
+                    0 -> agent1Registered.set(true)
+                    1 -> agent2Registered.set(true)
+                    2 -> agent3Registered.set(true)
+                }
+
+                // If this is the first or second agent, wait for all agents to be registered
+                if (index < 2) {
+                    println("[DEBUG_LOG] Agent $agentId waiting for all agents to be registered")
+                    val result = session.waitForAgentCount(
+                        targetCount = 3,
+                        timeoutMs = 5000
+                    )
+                    println("[DEBUG_LOG] Agent $agentId wait result: $result")
+
+                    // Verify wait was successful
+                    assertTrue(result, "Agent $agentId wait should succeed")
+                    assertEquals(3, session.getRegisteredAgentsCount(), "All 3 agents should be registered")
+
+                    // Verify all agents are registered
+                    assertTrue(agent1Registered.get(), "Agent 1 should be registered")
+                    assertTrue(agent2Registered.get(), "Agent 2 should be registered")
+                    assertTrue(agent3Registered.get(), "Agent 3 should be registered")
+                }
+            }
+        }
+
+        // Wait for all connections to complete
+        connectionJobs.forEach { it.join() }
+
+        // Verify that all 3 agents are registered
+        assertEquals(3, session.getRegisteredAgentsCount(), "All 3 agents should be registered")
+
+        // Verify that all 3 agents are in the session
+        val agents = session.getAllAgents()
+        assertEquals(3, agents.size, "Session should have 3 registered agents")
+        assertTrue(agents.any { it.id == "agent-1" }, "Agent 1 should be registered")
+        assertTrue(agents.any { it.id == "agent-2" }, "Agent 2 should be registered")
+        assertTrue(agents.any { it.id == "agent-3" }, "Agent 3 should be registered")
     }
 }
