@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.tools
+package org.coralprotocol.coralserver.mcptools
 
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 

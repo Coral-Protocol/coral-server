@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.tools
+package org.coralprotocol.coralserver.mcptools
 
 import io.modelcontextprotocol.kotlin.sdk.*
 import kotlinx.serialization.json.Json
@@ -10,54 +10,54 @@ import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 private val logger = KotlinLogging.logger {}
 
 /**
- * Extension function to add the remove participant tool to a server.
+ * Extension function to add the close thread tool to a server.
  */
-fun CoralAgentIndividualMcp.addRemoveParticipantTool() {
+fun CoralAgentIndividualMcp.addCloseThreadTool() {
     addTool(
-        name = "remove_participant",
-        description = "Remove a participant from a thread",
+        name = "close_thread",
+        description = "Close a thread with a summary",
         inputSchema = Tool.Input(
             properties = JsonObject(
                 mapOf(
                     "threadId" to JsonObject(
                         mapOf(
                             "type" to JsonPrimitive("string"),
-                            "description" to JsonPrimitive("ID of the thread")
+                            "description" to JsonPrimitive("ID of the thread to close")
                         )
                     ),
-                    "participantId" to JsonObject(
+                    "summary" to JsonObject(
                         mapOf(
                             "type" to JsonPrimitive("string"),
-                            "description" to JsonPrimitive("ID of the agent to remove")
+                            "description" to JsonPrimitive("Summary of the thread")
                         )
                     )
                 )
             ),
-            required = listOf("threadId", "participantId")
+            required = listOf("threadId", "summary")
         )
     ) { request ->
         try {
 
             val json = Json { ignoreUnknownKeys = true }
-            val input = json.decodeFromString<RemoveParticipantInput>(request.arguments.toString())
-            val success = coralAgentGraphSession.removeParticipantFromThread(
+            val input = json.decodeFromString<CloseThreadInput>(request.arguments.toString())
+            val success = coralAgentGraphSession.closeThread(
                 threadId = input.threadId,
-                participantId = input.participantId
+                summary = input.summary
             )
 
             if (success) {
                 CallToolResult(
-                    content = listOf(TextContent("Participant removed successfully from thread ${input.threadId}"))
+                    content = listOf(TextContent("Thread closed successfully with summary: ${input.summary}"))
                 )
             } else {
-                val errorMessage = "Failed to remove participant: Thread not found, participant not found, or thread is closed"
+                val errorMessage = "Failed to close thread: Thread not found"
                 logger.error { errorMessage }
                 CallToolResult(
                     content = listOf(TextContent(errorMessage))
                 )
             }
         } catch (e: Exception) {
-            val errorMessage = "Error removing participant: ${e.message}"
+            val errorMessage = "Error closing thread: ${e.message}"
             logger.error(e) { errorMessage }
             CallToolResult(
                 content = listOf(TextContent(errorMessage))

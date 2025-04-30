@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.tools
+package org.coralprotocol.coralserver.mcptools
 
 import io.modelcontextprotocol.kotlin.sdk.*
 import kotlinx.serialization.json.Json

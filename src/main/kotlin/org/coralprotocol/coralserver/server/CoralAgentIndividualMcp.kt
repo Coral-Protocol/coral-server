@@ -6,8 +6,7 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import org.coralprotocol.coralserver.session.CoralAgentGraphSession
-import org.coralprotocol.coralserver.tools.addThreadTools
-import kotlin.time.Duration.Companion.minutes
+import org.coralprotocol.coralserver.mcptools.addThreadTools
 
 /**
  * Represents a persistent connection to a Coral agent.
