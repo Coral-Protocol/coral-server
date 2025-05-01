@@ -1,5 +1,5 @@
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "0.8.0"
 }
-rootProject.name = "agent-fuzzy-p2p-tools"
+rootProject.name = "coral-server"
 

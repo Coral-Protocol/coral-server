@@ -1,6 +1,7 @@
 # Coral Server - Agent Fuzzy A2A (Agent to Agent) Communication MCP Tools
 
 An implementation of the Coral protocol that acts as an MCP server providing tools for agents to communicate with each other.
+![999](https://github.com/user-attachments/assets/2b74074e-42c2-4abd-9827-ea3c68b75c99)
 
 ## Project Description
 
@@ -17,7 +18,28 @@ Currently, it provides a set of tools that allow agents to:
 
 The server can be run in different modes (stdio, SSE) to support various integration scenarios.
 
+![0000](https://github.com/user-attachments/assets/a5227d18-8c57-48b9-877f-97859b176957)
+
+### Status / future direction
+This project is in its early stages and is not yet production-ready. The current focus is on building a robust foundation for agent communication, with plans to add more features and improve performance in the future.
+
+Right now, this is "Local-mode" only, but we are working on a "Remote-mode" that will allow agents to communicate over the internet.
+
+For remote mode, we will mostly preserve the interface provided by these MCP tools, but add server configuration options to allow for communicating with remote coral servers to add their agents to the society graph.
+
+We don't want to re-invent the wheel, so we will reuse existing protocols and standards as much as possible.
+Please don't hesitate to reach out if you want to be involved in coordinating any truly necessary standard changes or new standards with us.
+
 ## How to Run
+
+### Quick example
+This repo is a server that enables agents to communicate with each other, for an example of a full multi-agent system using this, check out
+[the example here](/examples/camel-search-maths).
+
+### Demo Video
+
+[![Coral Server Demo](images/thumnail2.png)](https://youtu.be/MyokByTzY90)
+*Click the image above to watch the demo video*
 
 The project can be run in several modes:
 
@@ -29,8 +51,7 @@ The project can be run in several modes:
 
 # Run with custom arguments
 ./gradlew run --args="--stdio"
-./gradlew run --args="--sse-server-ktor 8080"
-./gradlew run --args="--sse-server 8080"
+./gradlew run --args="--sse-server 3001"
 ```
 
 ### Using Java
@@ -40,7 +61,7 @@ The project can be run in several modes:
 ./gradlew build
 
 # Run the JAR file
-java -jar build/libs/agent-fuzzy-p2p-tools-1.0-SNAPSHOT.jar
+java -jar build/libs/coral-server-1.0-SNAPSHOT.jar
 ```
 
 ### Run Modes
@@ -89,3 +110,15 @@ We theorize that not only will this fix many problems with the composability of 
 We welcome contributions! Email us at [hello@coralprotocol.org](mailto:hello@coralprotocol.org) or join our Discord [here](https://discord.gg/rMQc2uWXhj) to connect with the developer team. Feel free to open issues or submit pull requests.
 
 Thanks for checking out the project, we hope you like it!
+
+### Development
+IntelliJ IDEA is recommended for development. The project uses Gradle as the build system.
+
+To clone and import the project:
+Go to File > New > Project from Version Control > Git.
+enter `git@github.com:Coral-Protocol/coral-server.git`
+Click Clone.
+
+### Running from IntelliJ IDEA
+You can click the play button next to the main method in the `Main.kt` file to run the server directly from IntelliJ IDEA.
+
