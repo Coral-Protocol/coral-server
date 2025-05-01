@@ -46,12 +46,12 @@ The project can be run in several modes:
 ### Using Gradle
 
 ```bash
-# Run with SSE server using Ktor plugin (default, port 3001)
+# Run with SSE server using Ktor plugin (default, port 5555)
 ./gradlew run
 
 # Run with custom arguments
 ./gradlew run --args="--stdio"
-./gradlew run --args="--sse-server 3001"
+./gradlew run --args="--sse-server 5555"
 ```
 
 ### Using Java

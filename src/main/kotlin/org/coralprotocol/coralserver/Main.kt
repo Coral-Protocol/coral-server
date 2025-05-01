@@ -6,7 +6,7 @@ import org.coralprotocol.coralserver.server.runSseMcpServerWithPlainConfiguratio
 private val logger = KotlinLogging.logger {}
 
 /**
- * Start sse-server mcp on port 3001.
+ * Start sse-server mcp on port 5555.
  *
  * @param args
  * - "--stdio": Runs an MCP server using standard input/output.
@@ -17,7 +17,7 @@ fun main(args: Array<String>) {
 //    System.setProperty("io.ktor.development", "true")
 
     val command = args.firstOrNull() ?: "--sse-server"
-    val port = args.getOrNull(1)?.toIntOrNull() ?: 3001
+    val port = args.getOrNull(1)?.toIntOrNull() ?: 5555
     when (command) {
 //        "--stdio" -> runMcpServerUsingStdio()
         "--sse-server" -> runSseMcpServerWithPlainConfiguration(port)

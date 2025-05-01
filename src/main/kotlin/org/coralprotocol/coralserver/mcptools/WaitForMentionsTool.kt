@@ -1,10 +1,14 @@
 package org.coralprotocol.coralserver.mcptools
 
-import io.modelcontextprotocol.kotlin.sdk.*
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.modelcontextprotocol.kotlin.sdk.CallToolRequest
+import io.modelcontextprotocol.kotlin.sdk.CallToolResult
+import io.modelcontextprotocol.kotlin.sdk.TextContent
+import io.modelcontextprotocol.kotlin.sdk.Tool
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonObject
 import org.coralprotocol.coralserver.ThreadTools
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
@@ -18,47 +22,49 @@ fun CoralAgentIndividualMcp.addWaitForMentionsTool() {
         name = "wait_for_mentions",
         description = "Wait until mentioned. Call this tool when you're done or want to wait for another agent to respond. This will block until a message is received. You will see all unread messages.",
         inputSchema = Tool.Input(
-            properties = JsonObject(
-                mapOf(
-                    "timeoutMs" to JsonObject(
-                        mapOf(
-                            "type" to JsonPrimitive("number"),
-                            "description" to JsonPrimitive("Timeout in milliseconds (default: 30000)")
-                        )
-                    )
-                )
-            ),
+            properties = buildJsonObject {
+                putJsonObject("timeoutMs") {
+                    put("type", "number")
+                    put("description", "Timeout in milliseconds (default: 30000)")
+                }
+            },
             required = listOf("timeoutMs")
         )
     ) { request: CallToolRequest ->
-        try {
-            val json = Json { ignoreUnknownKeys = true }
-            val input = json.decodeFromString<WaitForMentionsInput>(request.arguments.toString())
-            logger.info { "Waiting for mentions for agent ${connectedAgentId} with timeout ${input.timeoutMs}ms" }
+        handleWaitForMentions(request)
+    }
+}
 
+/**
+ * Handles the wait for mentions tool request.
+ */
+private suspend fun CoralAgentIndividualMcp.handleWaitForMentions(request: CallToolRequest): CallToolResult {
+    try {
+        val json = Json { ignoreUnknownKeys = true }
+        val input = json.decodeFromString<WaitForMentionsInput>(request.arguments.toString())
+        logger.info { "Waiting for mentions for agent ${connectedAgentId} with timeout ${input.timeoutMs}ms" }
 
-            // Use the session to wait for mentions
-            val messages = coralAgentGraphSession.waitForMentions(
-                agentId = connectedAgentId,
-                timeoutMs = input.timeoutMs
+        // Use the session to wait for mentions
+        val messages = coralAgentGraphSession.waitForMentions(
+            agentId = connectedAgentId,
+            timeoutMs = input.timeoutMs
+        )
+
+        if (messages.isNotEmpty()) {
+            val formattedMessages = ThreadTools.formatMessagesAsXml(messages, coralAgentGraphSession)
+            return CallToolResult(
+                content = listOf(TextContent(formattedMessages))
             )
-
-            if (messages.isNotEmpty()) {
-                val formattedMessages = ThreadTools.formatMessagesAsXml(messages, coralAgentGraphSession)
-                CallToolResult(
-                    content = listOf(TextContent(formattedMessages))
-                )
-            } else {
-                CallToolResult(
-                    content = listOf(TextContent("No new messages received within the timeout period"))
-                )
-            }
-        } catch (e: Exception) {
-            val errorMessage = "Error waiting for mentions: ${e.message}"
-            logger.error(e) { errorMessage }
-            CallToolResult(
-                content = listOf(TextContent(errorMessage))
+        } else {
+            return CallToolResult(
+                content = listOf(TextContent("No new messages received within the timeout period"))
             )
         }
+    } catch (e: Exception) {
+        val errorMessage = "Error waiting for mentions: ${e.message}"
+        logger.error(e) { errorMessage }
+        return CallToolResult(
+            content = listOf(TextContent(errorMessage))
+        )
     }
 }

@@ -4,6 +4,10 @@ import io.modelcontextprotocol.kotlin.sdk.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonObject
+import kotlinx.serialization.json.putJsonArray
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
@@ -18,59 +22,57 @@ fun CoralAgentIndividualMcp.addCreateThreadTool() {
         name = "create_thread",
         description = "Create a new thread with a list of participants",
         inputSchema = Tool.Input(
-            properties = JsonObject(
-                mapOf(
-                    "threadName" to JsonObject(
-                        mapOf(
-                            "type" to JsonPrimitive("string"),
-                            "description" to JsonPrimitive("Name of the thread")
-                        )
-                    ),
-                    "participantIds" to JsonObject(
-                        mapOf(
-                            "type" to JsonPrimitive("array"),
-                            "description" to JsonPrimitive("List of agent IDs to include as participants"),
-                            "items" to JsonObject(
-                                mapOf(
-                                    "type" to JsonPrimitive("string")
-                                )
-                            )
-                        )
-                    )
-                )
-            ),
+            properties = buildJsonObject {
+                putJsonObject("threadName") {
+                    put("type", "string")
+                    put("description", "Name of the thread")
+                }
+                putJsonObject("participantIds") {
+                    put("type", "array")
+                    put("description", "List of agent IDs to include as participants")
+                    putJsonObject("items") {
+                        put("type", "string")
+                    }
+                }
+            },
             required = listOf("threadName", "participantIds")
         )
     ) { request ->
-        try {
+        handleCreateThread(request)
+    }
+}
 
-            val json = Json { ignoreUnknownKeys = true }
-            val input = json.decodeFromString<CreateThreadInput>(request.arguments.toString())
-            val thread = coralAgentGraphSession.createThread(
-                name = input.threadName,
-                creatorId = connectedAgentId,
-                participantIds = input.participantIds
-            )
+/**
+ * Handles the create thread tool request.
+ */
+private suspend fun CoralAgentIndividualMcp.handleCreateThread(request: CallToolRequest): CallToolResult {
+    try {
+        val json = Json { ignoreUnknownKeys = true }
+        val input = json.decodeFromString<CreateThreadInput>(request.arguments.toString())
+        val thread = coralAgentGraphSession.createThread(
+            name = input.threadName,
+            creatorId = connectedAgentId,
+            participantIds = input.participantIds
+        )
 
-            CallToolResult(
-                content = listOf(
-                    TextContent(
-                        """
-                        Thread created successfully:
-                        ID: ${thread.id}
-                        Name: ${thread.name}
-                        Creator: ${thread.creatorId}
-                        Participants: ${thread.participants.joinToString(", ")}
-                        """.trimIndent()
-                    )
+        return CallToolResult(
+            content = listOf(
+                TextContent(
+                    """
+                    Thread created successfully:
+                    ID: ${thread.id}
+                    Name: ${thread.name}
+                    Creator: ${thread.creatorId}
+                    Participants: ${thread.participants.joinToString(", ")}
+                    """.trimIndent()
                 )
             )
-        } catch (e: Exception) {
-            val errorMessage = "Error creating thread: ${e.message}"
-            logger.error(e) { errorMessage }
-            CallToolResult(
-                content = listOf(TextContent(errorMessage))
-            )
-        }
+        )
+    } catch (e: Exception) {
+        val errorMessage = "Error creating thread: ${e.message}"
+        logger.error(e) { errorMessage }
+        return CallToolResult(
+            content = listOf(TextContent(errorMessage))
+        )
     }
 }
