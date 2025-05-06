@@ -55,6 +55,7 @@ private suspend fun handleSseConnection(
     val sessionId = parameters["coralSessionId"]
     val agentId = parameters["agentId"]
     val agentDescription: String = parameters["agentDescription"] ?: agentId ?: "no description"
+    val maxWaitForMentionsTimeout = parameters["maxWaitForMentionsTimeout"]?.toLongOrNull() ?: 8000L
 
     if (agentId == null) {
         sseProducer.call.respond(HttpStatusCode.BadRequest, "Missing agentId parameter")
@@ -106,7 +107,8 @@ private suspend fun handleSseConnection(
     val routePrefix = if (isDevMode) "/devmode" else ""
     val transport = SseServerTransport("$routePrefix/$applicationId/$privacyKey/$sessionId/message", sseProducer)
 
-    val individualServer = CoralAgentIndividualMcp(transport, session, agentId)
+    val individualServer =
+        CoralAgentIndividualMcp(transport, session, agentId, maxWaitForMentionsTimeout)
     session.coralAgentConnections.add(individualServer)
 
     val transportSessionId = transport.sessionId

@@ -23,6 +23,11 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
+    implementation("io.github.pdvrieze.xmlutil:core:0.91.0") // XML serialization
+    implementation("io.github.pdvrieze.xmlutil:serialization:0.91.0")
+    implementation("io.github.pdvrieze.xmlutil:core-jdk:0.91.0")
+    implementation("io.github.pdvrieze.xmlutil:serialization-jvm:0.91.0")
+
 
     // Hoplite for configuration
     implementation("com.sksamuel.hoplite:hoplite-core:2.7.5")
@@ -45,6 +50,10 @@ dependencies {
     // Ktor testing dependencies
     testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
     testImplementation("io.ktor:ktor-client-mock:$ktorVersion")
+    // Arc agents for E2E tests
+    testImplementation("org.eclipse.lmos:arc-agents:0.125.0")
+    testImplementation("org.eclipse.lmos:arc-mcp:0.125.0")
+    testImplementation("org.eclipse.lmos:arc-server:0.125.0")
 }
 
 tasks.test {

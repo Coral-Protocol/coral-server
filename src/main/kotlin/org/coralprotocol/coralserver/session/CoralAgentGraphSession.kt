@@ -7,7 +7,9 @@ import org.coralprotocol.coralserver.models.Message
 import org.coralprotocol.coralserver.models.Thread
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.atomic.AtomicInteger
+import kotlin.concurrent.atomics.AtomicInt
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.concurrent.atomics.incrementAndFetch
 
 /**
  * Session class to hold stateful information for a specific application and privacy key.
@@ -29,9 +31,14 @@ class CoralAgentGraphSession(
 
     private val lastReadMessageIndex = ConcurrentHashMap<Pair<String, String>, Int>()
 
-    private var registeredAgentsCount = 0
+    @OptIn(ExperimentalAtomicApi::class)
+    private var registeredAgentsCount = AtomicInt(0)
 
     val agentCountNotifications = ConcurrentHashMap<Int, MutableList<CompletableDeferred<Boolean>>>()
+
+    fun getAllThreadsAgentParticipatesIn(agentId: String): List<Thread> {
+        return threads.values.filter { it.participants.contains(agentId) }
+    }
 
     fun clearAll() {
         agents.clear()
@@ -42,20 +49,21 @@ class CoralAgentGraphSession(
         agentCountNotifications.clear()
     }
 
+    @OptIn(ExperimentalAtomicApi::class)
     fun registerAgent(agent: Agent): Boolean {
         if (agents.containsKey(agent.id)) {
             return false
         }
         agents[agent.id] = agent
 
-        registeredAgentsCount++
+        registeredAgentsCount.incrementAndFetch()
 
         // Create a copy of the keys to avoid ConcurrentModificationException
         val targetCounts = agentCountNotifications.keys.toList()
 
 //        // For each target count that has been reached
         for (targetCount in targetCounts) {
-            if (registeredAgentsCount >= targetCount) {
+            if (registeredAgentsCount.load() >= targetCount) {
                 // Get the list of deferreds for this target count
                 val deferreds = agentCountNotifications[targetCount]
                 if (deferreds != null) {
@@ -74,12 +82,14 @@ class CoralAgentGraphSession(
         return true
     }
 
+    @OptIn(ExperimentalAtomicApi::class)
     fun getRegisteredAgentsCount(): Int {
-        return registeredAgentsCount
+        return registeredAgentsCount.load()
     }
 
+    @OptIn(ExperimentalAtomicApi::class)
     suspend fun waitForAgentCount(targetCount: Int, timeoutMs: Long): Boolean {
-        if (registeredAgentsCount >= targetCount) {
+        if (registeredAgentsCount.load() >= targetCount) {
             return true
         }
 
@@ -232,6 +242,10 @@ class CoralAgentGraphSession(
     }
 
     suspend fun waitForMentions(agentId: String, timeoutMs: Long): List<Message> {
+        if(timeoutMs <= 0) {
+            throw IllegalArgumentException("Timeout must be greater than 0")
+        }
+
         val agent = agents[agentId] ?: return emptyList()
 
         val unreadMessages = getUnreadMessagesForAgent(agentId)

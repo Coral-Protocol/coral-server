@@ -25,13 +25,14 @@ fun CoralAgentIndividualMcp.addWaitForMentionsTool() {
             properties = buildJsonObject {
                 putJsonObject("timeoutMs") {
                     put("type", "number")
-                    put("description", "Timeout in milliseconds (default: 30000)")
+                    put("description", "Timeout in milliseconds (default: $maxWaitForMentionsTimeoutMs ms)")
                 }
             },
             required = listOf("timeoutMs")
         )
     ) { request: CallToolRequest ->
         handleWaitForMentions(request)
+//        delay(10000)
     }
 }
 
@@ -42,8 +43,17 @@ private suspend fun CoralAgentIndividualMcp.handleWaitForMentions(request: CallT
     try {
         val json = Json { ignoreUnknownKeys = true }
         val input = json.decodeFromString<WaitForMentionsInput>(request.arguments.toString())
-        logger.info { "Waiting for mentions for agent ${connectedAgentId} with timeout ${input.timeoutMs}ms" }
-
+        logger.info { "Waiting for mentions for agent $connectedAgentId with timeout ${input.timeoutMs}ms" }
+        if(input.timeoutMs < 0) {
+            return CallToolResult(
+                content = listOf(TextContent("Timeout must be greater than 0"))
+            )
+        }
+        if(input.timeoutMs > maxWaitForMentionsTimeoutMs) {
+            return CallToolResult(
+                content = listOf(TextContent("Timeout must not exceed the maximum of $maxWaitForMentionsTimeoutMs ms"))
+            )
+        }
         // Use the session to wait for mentions
         val messages = coralAgentGraphSession.waitForMentions(
             agentId = connectedAgentId,
@@ -51,6 +61,7 @@ private suspend fun CoralAgentIndividualMcp.handleWaitForMentions(request: CallT
         )
 
         if (messages.isNotEmpty()) {
+            logger.info { "Received ${messages.size} messages for agent $connectedAgentId" }
             val formattedMessages = ThreadTools.formatMessagesAsXml(messages, coralAgentGraphSession)
             return CallToolResult(
                 content = listOf(TextContent(formattedMessages))
