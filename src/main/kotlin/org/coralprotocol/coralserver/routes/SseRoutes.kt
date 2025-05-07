@@ -55,7 +55,7 @@ private suspend fun handleSseConnection(
     val sessionId = parameters["coralSessionId"]
     val agentId = parameters["agentId"]
     val agentDescription: String = parameters["agentDescription"] ?: agentId ?: "no description"
-    val maxWaitForMentionsTimeout = parameters["maxWaitForMentionsTimeout"]?.toLongOrNull() ?: 8000L
+    val maxWaitForMentionsTimeout = parameters["maxWaitForMentionsTimeout"]?.toLongOrNull() ?: 29000
 
     if (agentId == null) {
         sseProducer.call.respond(HttpStatusCode.BadRequest, "Missing agentId parameter")
