@@ -45,6 +45,7 @@ async def create_agent_file(agent_name: str, mcp_server_url: str):
 
 
 if __name__ == "__main__":
+    os.environ["FC_API_KEY"] = "fc-ea3085565d724f98804d08538d3f5511"
     agent_name = input("Enter the agent name: ").strip()
     mcp_server_url = input("Enter the MCP server URL: ").strip()
     asyncio.run(create_agent_file(agent_name, mcp_server_url))
