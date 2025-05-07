@@ -1,30 +1,18 @@
-# This workflow uses TruffleHog to scan for secrets in the repository
-# It will block merges to master if secrets are found
-# Only scans commits included in the PR
-name: TruffleHog Security Scan
-
 on:
-  pull_request:
-    branches: [ master ]
   push:
-    branches: [ master ]
+    branches:
+      - main
+  pull_request:
 
 jobs:
-  trufflehog-scan:
-    name: TruffleHog Secret Scanner
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: TruffleHog OSS
+      - name: Secret Scanning
         uses: trufflesecurity/trufflehog@main
         with:
-          path: ./
-          # For PRs, this scans from the PR base to the PR head (only commits in the PR)
-          # For pushes, this scans from the previous commit to the current commit
-          base: ${{ github.event.pull_request.base.sha || github.event.before }}
-          head: ${{ github.event.pull_request.head.sha || github.sha }}
-          extra_args: --debug --only-verified
+          extra_args: --results=verified,unknown
