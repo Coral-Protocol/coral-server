@@ -54,7 +54,7 @@ async def create_interface_agent(client, tools):
             5. Once you have the right agent, use `create_thread` to create a thread with the selected agent. If no agent is available, use the `ask_human` tool to specify the agent you want to use.
             6. Use your logic to determine the task you want that agent to perform and create a message for them which instructs the agent to perform the task called "instruction". 
             7. Use `send_message` to send a message in the thread, mentioning the selected agent, with content: "instructions".
-            8. Use `wait_for_mentions` with a 8 seconds timeout to wait for a response from the agent you mentioned.
+            8. Use `wait_for_mentions` with a 30 seconds timeout to wait for a response from the agent you mentioned.
             9. Show the entire conversation in the thread to the user.
             10. Wait for 3 seconds and then use `ask_human` to ask the user if they need anything else and keep waiting for their response.
             11. If the user asks for something else, repeat the process from step 1.

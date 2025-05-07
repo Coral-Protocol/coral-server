@@ -28,7 +28,7 @@ class AgentGenerator:
             for tool in tools
         )
 
-    def get_mcp_description(self):
+    def get_mcp_description(self, agent_name):
         formatted_tools = self.get_tools_description()
         system_prompt = (
             "You are an AI system tasked with summarizing the purpose and capabilities of an agent, "
@@ -38,6 +38,7 @@ class AgentGenerator:
             "Using this information, write a concise 1-2 sentence description of what this agent is capable of doing. "
             "Focus on the agent's core functionality as inferred from the tools. "
             "Your response must be a valid JSON object in the following format:\n"
+            f"The description must always start with `You are an {agent_name} agent capable of...`"
             "{\"description\": \"<insert your concise summary here>\"}"
         )
         openai_helper = ChatOpenAI(
