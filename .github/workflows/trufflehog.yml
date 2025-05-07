@@ -22,8 +22,4 @@ jobs:
       - name: TruffleHog OSS
         uses: trufflesecurity/trufflehog@main
         with:
-          # For PRs, this scans from the PR base to the PR head (only commits in the PR)
-          # For pushes, this scans from the previous commit to the current commit
-          base: ${{ github.event.pull_request.base.sha || github.event.before }}
-          head: ${{ github.event.pull_request.head.sha || github.sha }}
           extra_args: --log-level=2 --results=verified,unknown
