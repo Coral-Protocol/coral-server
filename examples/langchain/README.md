@@ -54,20 +54,6 @@ export OPENAI_API_KEY='your-openai-api-key-here'  # On Windows, use: set OPENAI_
 export WORLD_NEWS_API_KEY='your-world-news-api-key-here'  # On Windows, use: set WORLD_NEWS_API_KEY=your-world-news-api-key-here
 ```
 
-Optionally, configure model settings in a `config.py` file (create it in the project root):
-
-```python
-# Model Configuration
-PLATFORM_TYPE = "OPENAI"
-MODEL_TYPE = "gpt-4o"
-
-# Model Settings
-MODEL_CONFIG = {
-    "temperature": 0.3,
-    "max_tokens": 4096,
-}
-```
-
 ### 4. Start the Coral Server
 
 The agents communicate via a Coral Server, which provides tools for agent registration, discovery, and messaging. To start the server:
@@ -122,7 +108,7 @@ Both agents register with the Coral Server upon startup, using the provided conf
 - **Agent Parameters**: Each agent provides:
   - `agentId`: A unique identifier (`user_interface_agent` or `world_news_agent`).
   - `agentDescription`: A description of its role (e.g., "You are user_interaction_agent, responsible for engaging with users...").
-  - `waitForAgents`: Set to `1`, indicating the agent waits for at least one other agent to be available.
+  - `waitForAgents`: Set to `2`, indicating the agent waits for both agents to be available. If you want to run just one agent set this to 1 and run the single agent.
 - **Server-Side Registration**: The Coral Server assigns the agent a unique decentralized identifier (DID) and registers it in its agent registry, enabling discovery by other agents. This is facilitated by Coral's tooling for cryptographically verified identities.
 
 ### Agent Communication
