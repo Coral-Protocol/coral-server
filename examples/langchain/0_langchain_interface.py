@@ -4,7 +4,7 @@ import json
 import logging
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
+from langchain.chat_models import init_chat_model
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain.tools import Tool
 from dotenv import load_dotenv
@@ -64,12 +64,13 @@ async def create_interface_agent(client, tools):
                 ("placeholder", "{agent_scratchpad}")
     ])
 
-    model = ChatOpenAI(
-        model="gpt-4o-mini",
-        api_key=os.getenv("OPENAI_API_KEY"),
-        temperature=0.3,
-        max_tokens=4096
-    )
+    model = init_chat_model(
+            model="gpt-4o-mini",
+            model_provider="openai",
+            api_key=os.getenv("OPENAI_API_KEY"),
+            temperature=0.3,
+            max_tokens=16000
+        )
 
     agent = create_tool_calling_agent(model, tools, prompt)
     return AgentExecutor(agent=agent, tools=tools, verbose=True)
@@ -83,7 +84,7 @@ async def main():
                     "coral": {
                         "transport": "sse",
                         "url": MCP_SERVER_URL,
-                        "timeout": 5,
+                        "timeout": 300,
                         "sse_read_timeout": 300,
                     }
                 }

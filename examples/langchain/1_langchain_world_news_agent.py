@@ -5,7 +5,7 @@ import logging
 import re
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
+from langchain.chat_models import init_chat_model
 from langchain.agents import create_tool_calling_agent, AgentExecutor
 from langchain_core.tools import tool
 import worldnewsapi
@@ -143,7 +143,13 @@ async def create_world_news_agent(client, tools, agent_tool):
 
     ])
 
-    model = ChatOpenAI(model="gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY"), temperature=0.3, max_tokens=4096)
+    model = init_chat_model(
+            model="gpt-4o-mini",
+            model_provider="openai",
+            api_key=os.getenv("OPENAI_API_KEY"),
+            temperature=0.3,
+            max_tokens=16000
+        )
     agent = create_tool_calling_agent(model, tools, prompt)
     return AgentExecutor(agent=agent, tools=tools, verbose=True)
 
@@ -154,8 +160,8 @@ async def main():
             "coral": {
                 "transport": "sse",
                 "url": MCP_SERVER_URL,
-                "timeout": 30,
-                "sse_read_timeout": 60,
+                "timeout": 300,
+                "sse_read_timeout": 300,
             }
         }
     ) as client:
@@ -170,10 +176,10 @@ async def main():
                 logger.info("Starting new agent invocation")
                 await agent_executor.ainvoke({"agent_scratchpad": []})
                 logger.info("Completed agent invocation, restarting loop")
-                await asyncio.sleep(1)  # Prevent tight looping
+                await asyncio.sleep(1)
             except Exception as e:
                 logger.error(f"Error in agent loop: {str(e)}")
-                await asyncio.sleep(5)  # Wait before retrying
+                await asyncio.sleep(5)
 
 if __name__ == "__main__":
     asyncio.run(main())
