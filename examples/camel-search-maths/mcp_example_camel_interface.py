@@ -24,13 +24,9 @@ async def main():
     async with mcp_toolkit.connection() as connected_mcp_toolkit:
         camel_agent = await create_interface_agent(connected_mcp_toolkit)
 
-
-
         await camel_agent.astep("Check in with the other agents to introduce yourself, before we start answering user queries.")
-
-        # Add the HumanToolkit now that the agent is ready to receive user input
-        await add_human_tools(camel_agent)
-        await camel_agent.astep("Ask the user for a request to work with the other agents to fulfill by calling the ask human tool.")
+        sleep(3)
+        await camel_agent.astep("Ask the user for a request to work with the other agents to fulfill by calling the ask human tool. ONlY call the ask human tool, don't call any other tools this time.")
 
         # Step the agent continuously
         for i in range(20):  #This should be infinite, but for testing we limit it to 20 to avoid accidental API fees
@@ -40,15 +36,8 @@ async def main():
             print(msgzerojson)
             sleep(10)
 
-#TODO: Include this from the start when the race condition is fixed
-async def add_human_tools(camel_agent):
-    sleep(1)
-    camel_agent.add_tool(HumanToolkit().get_tools()[0])  # Add the ask_user tool to the agent
-    camel_agent.add_tool(HumanToolkit().get_tools()[1])  # Add the ask_user tool to the agent
-
-
 async def create_interface_agent(connected_mcp_toolkit):
-    tools = connected_mcp_toolkit.get_tools()# + HumanToolkit().get_tools() TODO: Re-enable when race condition is fixed
+    tools = connected_mcp_toolkit.get_tools() + HumanToolkit().get_tools()
     sys_msg = (
         f"""
             You are a helpful assistant responsible for interacting with the user and working with other agents to meet the user's requests. You can interact with other agents using the chat tools.
