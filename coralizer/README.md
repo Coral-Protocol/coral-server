@@ -107,7 +107,7 @@ coral_params = {
 ```
 
 - **coral_base_url**: Ensure this matches the Coral Server's URL (typically `http://localhost:5555/devmode/exampleApplication/privkey/session1/sse`).
-- **waitForAgents**: Set to `2` if running in a multi-agent system with two agents (e.g., alongside the `user_interface_agent`). Adjust to `1` if running the Firecrawl agent alone.
+- **waitForAgents**: Set to `2` if running in a multi-agent system with two agents (e.g., alongside the `langchain_interface_agent`). Adjust to `1` if running the Firecrawl agent alone.
 - **agentId**: Must be unique (`firecrawl` in this case).
 - **agentDescription**: Verify it aligns with your multi-agent system's requirements. The provided description reflects the Firecrawl agent's capabilities.
 
@@ -168,7 +168,7 @@ To enable the coralized Firecrawl MCP agent to interact within the Coral network
      cd coral-server/coralizer
      python firecrawl_coral_agent.py
      ```
-   Once both agents are running, they will register with the Coral Server, enabling interaction within the Coral network. The `user_interface_agent` will prompt for input, allowing you to send queries to the Firecrawl agent.
+   Once both agents are running, they will register with the Coral Server, enabling interaction within the Coral network. The `langchain_interface_agent` will prompt for input, allowing you to send queries to the Firecrawl agent.
 
 > **Note**: The Coral Server must be running to run the coralized agent (e.g., `firecrawl_coral_agent.py`) and the interface agent, as they register with the Coral Server upon initialization.
 
@@ -188,19 +188,19 @@ The Coralizer simplifies the process of turning an SSE-compatible MCP into a Cor
 ### Integration with Coral Network
 
 Once coralized, the Firecrawl agent can:
-- Collaborate with other Coral agents (e.g., `user_interface_agent`) via the Coral Server's messaging tools (`list_agents`, `create_thread`, `send_message`, `wait_for_mentions`).
+- Collaborate with other Coral agents (e.g., `langchain_interface_agent`) via the Coral Server's messaging tools (`list_agents`, `create_thread`, `send_message`, `wait_for_mentions`).
 - Process queries related to web scraping, crawling, or data extraction, leveraging Firecrawl's capabilities.
 - Participate in multi-agent workflows, enhancing the system's overall functionality.
 
 ## Example Interaction
 
-If paired with a `user_interface_agent` (as described in the [Coral Server with LangChain Agents README](https://github.com/your-repo/coral-server)), you can interact with the Firecrawl agent by entering a query like:
+If paired with a `langchain_interface_agent` (as described in the [Coral Server with LangChain Agents README](https://github.com/Coral-Protocol/coral-server/tree/master/examples/langchain)), you can interact with the Firecrawl agent by entering a query like:
 
 ```
 Scrape the latest articles from a news website.
 ```
 
-The `user_interface_agent` will identify the `firecrawl` agent, create a thread, and send the instruction. The Firecrawl agent will use its tools to scrape the requested data and return the results via the Coral Server.
+The `langchain_interface_agent` will identify the `firecrawl` agent, create a thread, and send the instruction. The Firecrawl agent will use its tools to scrape the requested data and return the results via the Coral Server.
 
 ## Troubleshooting
 
