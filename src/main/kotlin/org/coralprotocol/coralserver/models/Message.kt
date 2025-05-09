@@ -35,7 +35,7 @@ class Message private constructor (
     }
 }
 
-fun Message.resolve(session: CoralAgentGraphSession): ResolvedMessage = ResolvedMessage(
+fun Message.resolve(): ResolvedMessage = ResolvedMessage(
     id = id,
     threadName = this.thread.name,
     senderId = this.sender.id,

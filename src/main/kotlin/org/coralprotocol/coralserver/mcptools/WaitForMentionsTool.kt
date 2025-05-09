@@ -10,6 +10,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 import nl.adaptivity.xmlutil.serialization.XML
+import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
@@ -62,7 +63,7 @@ private suspend fun CoralAgentIndividualMcp.handleWaitForMentions(request: CallT
 
         if (messages.isNotEmpty()) {
             logger.info { "Received ${messages.size} messages for agent $connectedAgentId" }
-            val formattedMessages = XML.encodeToString (messages)
+            val formattedMessages = XML.encodeToString (messages.map { message -> message.resolve() })
             return CallToolResult(
                 content = listOf(TextContent(formattedMessages))
             )
