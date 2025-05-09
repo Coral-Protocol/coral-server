@@ -8,6 +8,7 @@ import org.coralprotocol.coralserver.models.Agent
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.util.concurrent.atomic.AtomicBoolean
 
 class SessionTest {
@@ -164,15 +165,14 @@ class SessionTest {
         assertEquals("Thread completed", closedThread?.summary)
 
         // Try to send a message to a closed thread
-        val failedMessage = session.sendMessage(
-            threadId = thread.id ?: "",
-            senderId = "creator",
-            content = "This should fail",
-            mentions = listOf()
-        )
-
-        // Verify message was not sent
-        assertNull(failedMessage)
+        assertThrows<IllegalArgumentException> {
+            val failedMessage = session.sendMessage(
+                threadId = thread.id ?: "",
+                senderId = "creator",
+                content = "This should fail",
+                mentions = listOf()
+            )
+        }
     }
 
     @Test
