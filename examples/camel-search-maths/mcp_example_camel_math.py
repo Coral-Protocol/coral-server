@@ -11,6 +11,7 @@ from prompts import get_tools_description, get_user_message
 from dotenv import load_dotenv
 from config import PLATFORM_TYPE, MODEL_TYPE, MODEL_CONFIG, MESSAGE_WINDOW_SIZE, TOKEN_LIMIT
 
+
 load_dotenv()
 
 async def main():
