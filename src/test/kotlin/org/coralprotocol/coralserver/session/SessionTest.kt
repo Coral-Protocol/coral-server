@@ -24,7 +24,7 @@ class SessionTest {
     @Test
     fun `test agent registration`() {
         // Register a new agent
-        val agent = Agent(id = "agent1", name = "Test Agent 1")
+        val agent = Agent(id = "agent1")
         val success = session.registerAgent(agent)
 
         // Verify agent was registered
@@ -39,7 +39,7 @@ class SessionTest {
     @Test
     fun `test agent registration with description`() {
         // Register a new agent with description
-        val agent = Agent(id = "agent2", name = "Test Agent 2", description = "This agent is responsible for testing")
+        val agent = Agent(id = "agent2", description = "This agent is responsible for testing")
         val success = session.registerAgent(agent)
 
         // Verify agent was registered with description
@@ -52,9 +52,9 @@ class SessionTest {
     @Test
     fun `test thread creation`() {
         // Register agents
-        val creator = Agent(id = "creator", name = "Creator Agent")
-        val participant1 = Agent(id = "participant1", name = "Participant 1")
-        val participant2 = Agent(id = "participant2", name = "Participant 2")
+        val creator = Agent(id = "creator")
+        val participant1 = Agent(id = "participant1")
+        val participant2 = Agent(id = "participant2")
 
         session.registerAgent(creator)
         session.registerAgent(participant1)
@@ -80,10 +80,10 @@ class SessionTest {
     @Test
     fun `test adding and removing participants`() {
         // Register agents
-        val creator = Agent(id = "creator", name = "Creator Agent")
-        val participant1 = Agent(id = "participant1", name = "Participant 1")
-        val participant2 = Agent(id = "participant2", name = "Participant 2")
-        val participant3 = Agent(id = "participant3", name = "Participant 3")
+        val creator = Agent(id = "creator")
+        val participant1 = Agent(id = "participant1")
+        val participant2 = Agent(id = "participant2")
+        val participant3 = Agent(id = "participant3")
 
         session.registerAgent(creator)
         session.registerAgent(participant1)
@@ -99,32 +99,32 @@ class SessionTest {
 
         // Add a participant
         val addSuccess = session.addParticipantToThread(
-            threadId = thread?.id ?: "",
+            threadId = thread.id ?: "",
             participantId = "participant2"
         )
 
         // Verify participant was added
         assertTrue(addSuccess)
-        val updatedThread = session.getThread(thread?.id ?: "")
+        val updatedThread = session.getThread(thread.id ?: "")
         assertTrue(updatedThread?.participants?.contains("participant2") ?: false)
 
         // Remove a participant
         val removeSuccess = session.removeParticipantFromThread(
-            threadId = thread?.id ?: "",
+            threadId = thread.id ?: "",
             participantId = "participant1"
         )
 
         // Verify participant was removed
         assertTrue(removeSuccess)
-        val finalThread = session.getThread(thread?.id ?: "")
+        val finalThread = session.getThread(thread.id ?: "")
         assertFalse(finalThread?.participants?.contains("participant1") ?: true)
     }
 
     @Test
     fun `test sending messages and closing thread`() {
         // Register agents
-        val creator = Agent(id = "creator", name = "Creator Agent")
-        val participant = Agent(id = "participant", name = "Participant")
+        val creator = Agent(id = "creator")
+        val participant = Agent(id = "participant")
 
         session.registerAgent(creator)
         session.registerAgent(participant)
@@ -138,7 +138,7 @@ class SessionTest {
 
         // Send a message
         val message = session.sendMessage(
-            threadId = thread?.id ?: "",
+            threadId = thread.id ?: "",
             senderId = "creator",
             content = "Hello, world!",
             mentions = listOf("participant")
@@ -146,26 +146,26 @@ class SessionTest {
 
         // Verify message was sent
         assertNotNull(message)
-        assertEquals("Hello, world!", message?.content)
-        assertEquals("creator", message?.senderId)
-        assertEquals(thread?.id, message?.threadId)
-        assertTrue(message?.mentions?.contains("participant") ?: false)
+        assertEquals("Hello, world!", message.content)
+        assertEquals("creator", message.sender.id)
+        assertEquals(thread.id, message.thread.id)
+        assertTrue(message.mentions.contains("participant") ?: false)
 
         // Close the thread
         val closeSuccess = session.closeThread(
-            threadId = thread?.id ?: "",
+            threadId = thread.id ?: "",
             summary = "Thread completed"
         )
 
         // Verify thread was closed
         assertTrue(closeSuccess)
-        val closedThread = session.getThread(thread?.id ?: "")
+        val closedThread = session.getThread(thread.id ?: "")
         assertTrue(closedThread?.isClosed ?: false)
         assertEquals("Thread completed", closedThread?.summary)
 
         // Try to send a message to a closed thread
         val failedMessage = session.sendMessage(
-            threadId = thread?.id ?: "",
+            threadId = thread.id ?: "",
             senderId = "creator",
             content = "This should fail",
             mentions = listOf()
@@ -178,8 +178,8 @@ class SessionTest {
     @Test
     fun `test waiting for mentions`() = runBlocking {
         // Register agents
-        val creator = Agent(id = "creator", name = "Creator Agent")
-        val participant = Agent(id = "participant", name = "Participant")
+        val creator = Agent(id = "creator")
+        val participant = Agent(id = "participant")
 
         session.registerAgent(creator)
         session.registerAgent(participant)
@@ -222,7 +222,7 @@ class SessionTest {
     @Test
     fun `test waiting for mentions with timeout`() = runBlocking {
         // Register an agent
-        val agent = Agent(id = "agent", name = "Test Agent")
+        val agent = Agent(id = "agent")
         session.registerAgent(agent)
 
         // Wait for mentions with a short timeout
@@ -238,9 +238,9 @@ class SessionTest {
     @Test
     fun `test listing all agents`() {
         // Register multiple agents
-        val agent1 = Agent(id = "agent1", name = "Agent 1")
-        val agent2 = Agent(id = "agent2", name = "Agent 2")
-        val agent3 = Agent(id = "agent3", name = "Agent 3")
+        val agent1 = Agent(id = "agent1")
+        val agent2 = Agent(id = "agent2")
+        val agent3 = Agent(id = "agent3")
 
         session.registerAgent(agent1)
         session.registerAgent(agent2)
@@ -259,8 +259,8 @@ class SessionTest {
     @Test
     fun `test waiting for agent count`() = runBlocking {
         // Register some agents
-        val agent1 = Agent(id = "agent1", name = "Agent 1")
-        val agent2 = Agent(id = "agent2", name = "Agent 2")
+        val agent1 = Agent(id = "agent1")
+        val agent2 = Agent(id = "agent2")
 
         session.registerAgent(agent1)
         session.registerAgent(agent2)
@@ -284,7 +284,7 @@ class SessionTest {
         delay(100)
 
         // Register another agent
-        val agent3 = Agent(id = "agent3", name = "Agent 3")
+        val agent3 = Agent(id = "agent3")
         session.registerAgent(agent3)
 
         // Wait for the job to complete
@@ -294,7 +294,7 @@ class SessionTest {
     @Test
     fun `test waiting for agent count with timeout`() = runBlocking {
         // Register some agents
-        val agent1 = Agent(id = "agent1", name = "Agent 1")
+        val agent1 = Agent(id = "agent1")
         session.registerAgent(agent1)
 
         // Wait for more agents with a short timeout
@@ -311,9 +311,9 @@ class SessionTest {
     @Test
     fun `test get threads for agent`() {
         // Register agents
-        val creator = Agent(id = "creator", name = "Creator Agent")
-        val participant1 = Agent(id = "participant1", name = "Participant 1")
-        val participant2 = Agent(id = "participant2", name = "Participant 2")
+        val creator = Agent(id = "creator")
+        val participant1 = Agent(id = "participant1")
+        val participant2 = Agent(id = "participant2")
 
         session.registerAgent(creator)
         session.registerAgent(participant1)
@@ -375,7 +375,7 @@ class SessionTest {
 
                 // Create an agent for this connection
                 val agentId = "agent-${index + 1}"
-                val agent = Agent(id = agentId, name = "Agent $agentId")
+                val agent = Agent(id = agentId)
 
                 println("[DEBUG_LOG] Registering agent $agentId")
 

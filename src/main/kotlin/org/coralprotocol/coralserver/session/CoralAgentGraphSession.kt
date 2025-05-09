@@ -175,14 +175,6 @@ class CoralAgentGraphSession(
         thread.isClosed = true
         thread.summary = summary
 
-        val closeMessage = Message(
-            threadId = threadId,
-            senderId = "system",
-            content = "Thread closed: $summary"
-        )
-        thread.messages.add(closeMessage)
-        notifyMentionedAgents(closeMessage)
-
         return true
     }
 
@@ -196,34 +188,19 @@ class CoralAgentGraphSession(
         return colors[index]
     }
 
-    fun sendMessage(threadId: String, senderId: String, content: String, mentions: List<String> = emptyList()): Message? {
-        val thread = threads[threadId] ?: return null
-        val sender = agents[senderId] ?: return null
+    fun sendMessage(threadId: String, senderId: String, content: String, mentions: List<String> = emptyList()): Message {
+        val thread = getThread(threadId) ?: throw IllegalArgumentException("Thread with id $threadId not found")
+        val sender = getAgent(senderId) ?: throw IllegalArgumentException("Agent with id $senderId not found")
 
-        if (thread.isClosed) return null
-
-        if (!thread.participants.contains(senderId)) {
-            return null
-        }
-
-        val validMentions = mentions.filter { thread.participants.contains(it) }
-
-        val message = Message(
-            threadId = threadId,
-            senderId = senderId,
-            content = content,
-            mentions = validMentions
-        )
+        val message = Message.create(thread, sender, content, mentions)
         thread.messages.add(message)
-
         notifyMentionedAgents(message)
-
         return message
     }
 
-    fun notifyMentionedAgents(message: Message) {
-        if (message.senderId == "system") {
-            val thread = threads[message.threadId] ?: return
+    private fun notifyMentionedAgents(message: Message) {
+        if (message.sender.id == "system") {
+            val thread = threads[message.thread.id] ?: return
             thread.participants.forEach { participantId ->
                 val deferred = agentNotifications[participantId]
                 if (deferred != null && !deferred.isCompleted) {
@@ -281,7 +258,7 @@ class CoralAgentGraphSession(
             val unreadMessages = thread.messages.subList(lastReadIndex, thread.messages.size)
 
             result.addAll(unreadMessages.filter {
-                it.mentions.contains(agentId) || it.senderId == "system" 
+                it.mentions.contains(agentId) || it.sender.id == "system"
             })
         }
 
@@ -289,14 +266,13 @@ class CoralAgentGraphSession(
     }
 
     fun updateLastReadIndices(agentId: String, messages: List<Message>) {
-        val messagesByThread = messages.groupBy { it.threadId }
+        val messagesByThread = messages.groupBy { it.thread }
 
-        for ((threadId, threadMessages) in messagesByThread) {
-            val thread = threads[threadId] ?: continue
+        for ((thread, threadMessages) in messagesByThread) {
             val messageIndices = threadMessages.map { thread.messages.indexOf(it) }
             if (messageIndices.isNotEmpty()) {
                 val maxIndex = messageIndices.maxOrNull() ?: continue
-                lastReadMessageIndex[Pair(agentId, threadId)] = maxIndex + 1
+                lastReadMessageIndex[Pair(agentId, thread.id)] = maxIndex + 1
             }
         }
     }

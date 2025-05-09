@@ -60,14 +60,16 @@ private suspend fun CoralAgentIndividualMcp.handleSendMessage(request: CallToolR
         )
 
         if (message != null) {
+            logger.info { message }
+
             return CallToolResult(
                 content = listOf(
                     TextContent(
                         """
                         Message sent successfully:
                         ID: ${message.id}
-                        Thread: ${message.threadId}
-                        Sender: ${message.senderId}
+                        Thread: ${message.thread.id}
+                        Sender: ${message.sender.id}
                         Content: ${message.content}
                         Mentions: ${message.mentions.joinToString(", ")}
                         """.trimIndent()

@@ -112,14 +112,14 @@ class SessionManagerTest {
         val session2 = SessionManager.createSessionWithId("session2", "app1", "key2")
 
         // Register agents in both sessions
-        val creator1 = Agent(id = "creator1", name = "Creator 1")
-        val participant1 = Agent(id = "participant1", name = "Participant 1")
+        val creator1 = Agent(id = "creator1")
+        val participant1 = Agent(id = "participant1")
 
         session1.registerAgent(creator1)
         session1.registerAgent(participant1)
 
-        val creator2 = Agent(id = "creator2", name = "Creator 2")
-        val participant2 = Agent(id = "participant2", name = "Participant 2")
+        val creator2 = Agent(id = "creator2")
+        val participant2 = Agent(id = "participant2")
 
         session2.registerAgent(creator2)
         session2.registerAgent(participant2)
@@ -168,14 +168,14 @@ class SessionManagerTest {
         val session2 = SessionManager.createSessionWithId("session2", "app1", "key2")
 
         // Register agents in both sessions with the same IDs
-        val agent1 = Agent(id = "agent1", name = "Agent 1 in Session 1")
-        val agent2 = Agent(id = "agent2", name = "Agent 2 in Session 1")
+        val agent1 = Agent(id = "agent1")
+        val agent2 = Agent(id = "agent2")
 
         session1.registerAgent(agent1)
         session1.registerAgent(agent2)
 
-        val agent1InSession2 = Agent(id = "agent1", name = "Agent 1 in Session 2")
-        val agent2InSession2 = Agent(id = "agent2", name = "Agent 2 in Session 2")
+        val agent1InSession2 = Agent(id = "agent1")
+        val agent2InSession2 = Agent(id = "agent2")
 
         session2.registerAgent(agent1InSession2)
         session2.registerAgent(agent2InSession2)
@@ -183,11 +183,9 @@ class SessionManagerTest {
         // Verify agents were registered in their respective sessions
         val retrievedAgent1InSession1 = session1.getAgent("agent1")
         assertNotNull(retrievedAgent1InSession1)
-        assertEquals("Agent 1 in Session 1", retrievedAgent1InSession1?.name)
 
         val retrievedAgent1InSession2 = session2.getAgent("agent1")
         assertNotNull(retrievedAgent1InSession2)
-        assertEquals("Agent 1 in Session 2", retrievedAgent1InSession2?.name)
 
         // Verify agents in different sessions with the same ID are different objects
         assertNotEquals(retrievedAgent1InSession1, retrievedAgent1InSession2)
