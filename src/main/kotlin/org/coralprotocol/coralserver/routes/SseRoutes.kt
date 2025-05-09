@@ -96,7 +96,6 @@ private suspend fun handleSseConnection(
     // Create the agent object
     val agent = Agent(
         id = agentId,
-        name = agentId,
         description = agentDescription
     )
     // Register the agent

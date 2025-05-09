@@ -51,7 +51,7 @@ private suspend fun CoralAgentIndividualMcp.handleListAgents(request: CallToolRe
                     } else {
                         ""
                     }
-                    "ID: ${agent.id}, Name: ${agent.name}${description}" 
+                    "ID: ${agent.id}, $description"
                 }
             } else {
                 agents.joinToString(", ") { agent -> agent.id }

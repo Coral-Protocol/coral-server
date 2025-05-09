@@ -11,6 +11,8 @@ build/
 .idea/compiler.xml
 .idea/libraries/
 .idea/misc.xml
+.idea/gradle.xml
+.idea/codeStyles/
 *.iws
 *.iml
 *.ipr
@@ -46,6 +48,10 @@ bin/
 ### Mac OS ###
 .DS_Store
 
+### Python ###
+**/*.venv
+
+**/*.env
 
 ### Example directories ###
 examples/camel-search-maths/__pycache__/
