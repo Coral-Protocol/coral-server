@@ -5,6 +5,7 @@ import io.modelcontextprotocol.kotlin.sdk.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
+import org.coralprotocol.coralserver.mcpresources.addMessageResource
 import org.coralprotocol.coralserver.session.CoralAgentGraphSession
 import org.coralprotocol.coralserver.mcptools.addThreadTools
 
@@ -45,6 +46,7 @@ class CoralAgentIndividualMcp(
 ) {
     init {
         addThreadTools()
+        addMessageResource()
     }
 
     suspend fun closeTransport() {

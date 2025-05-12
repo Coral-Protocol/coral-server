@@ -7,13 +7,13 @@ import nl.adaptivity.xmlutil.serialization.XML
 import org.coralprotocol.coralserver.models.Thread
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
-private suspend fun CoralAgentIndividualMcp.handler(request: ReadResourceRequest): ReadResourceResult {
+private fun CoralAgentIndividualMcp.handler(request: ReadResourceRequest): ReadResourceResult {
     val threadsAgentPrivyIn: List<Thread> = this.coralAgentGraphSession.getAllThreadsAgentParticipatesIn(this.connectedAgentId)
     val renderedThreads: String = XML.encodeToString(threadsAgentPrivyIn)
     return ReadResourceResult(
         contents = listOf(
             TextResourceContents(
-                text = "Message resource content",
+                text = renderedThreads,
                 uri = request.uri,
                 mimeType = "application/xml",
             )
