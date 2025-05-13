@@ -64,9 +64,11 @@ class CoralServer(
             }
         }
 
-        server?.start(wait)
+        server?.monitor?.subscribe(ApplicationStarted) {
+            logger.info { "Server started on $host:$port" }
+        }
 
-        logger.info { "Server started on $host:$port" }
+        server?.start(wait)
     }
 
     /**
