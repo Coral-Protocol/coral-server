@@ -15,7 +15,7 @@ private val logger = KotlinLogging.logger {}
 /**
  * Configures session-related routes.
  */
-fun Routing.sessionRoutes(sessionManager: SessionManager) {
+fun Routing.sessionRoutes(sessionManager: SessionManager, devMode: Boolean) {
     // Session creation endpoint
 
     post("/sessions") {
@@ -23,7 +23,7 @@ fun Routing.sessionRoutes(sessionManager: SessionManager) {
             val request = call.receive<CreateSessionRequest>()
 
             // Validate application and privacy key
-            if (!AppConfigLoader.isValidApplication(request.applicationId, request.privacyKey)) {
+            if (!devMode && !AppConfigLoader.isValidApplication(request.applicationId, request.privacyKey)) {
                 call.respond(HttpStatusCode.BadRequest, "Invalid application ID or privacy key")
                 return@post
             }
