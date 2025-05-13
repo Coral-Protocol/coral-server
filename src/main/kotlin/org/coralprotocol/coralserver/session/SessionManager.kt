@@ -1,7 +1,10 @@
 package org.coralprotocol.coralserver.session
 
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import org.coralprotocol.coralserver.models.AgentGraph
 import org.coralprotocol.coralserver.orchestrator.Orchestrator
 import java.util.concurrent.ConcurrentHashMap
 
@@ -15,10 +18,19 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator()) {
     /**
      * Create a new session with a random ID.
      */
-    fun createSession(applicationId: String, privacyKey: String): CoralAgentGraphSession {
+    fun createSession(applicationId: String, privacyKey: String, agentGraph: AgentGraph?): CoralAgentGraphSession {
         val sessionId = java.util.UUID.randomUUID().toString()
         val session = CoralAgentGraphSession(sessionId, applicationId, privacyKey)
         sessions[sessionId] = session
+
+        runBlocking {
+            agentGraph?.let {
+                it.agents.forEach { agent ->
+                    orchestrator.spawn(agent.value)
+                }
+            }
+        }
+
         return session
     }
 

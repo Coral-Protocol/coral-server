@@ -29,7 +29,7 @@ fun Routing.sessionRoutes(sessionManager: SessionManager) {
             }
 
             // Create a new session
-            val session = sessionManager.createSession(request.applicationId, request.privacyKey)
+            val session = sessionManager.createSession(request.applicationId, request.privacyKey, request.agentGraph)
 
             // Return the session details
             call.respond(
