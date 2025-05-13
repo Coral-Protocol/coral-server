@@ -1,9 +1,11 @@
 package org.coralprotocol.coralserver.server
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
+import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import io.ktor.util.collections.*
@@ -31,15 +33,19 @@ class CoralServer(
     val sessionManager: SessionManager = SessionManager(),
 ) {
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
-    private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> = embeddedServer(CIO, host = host, port = port, watchPaths = listOf("classes")) {
-        install(SSE)
-        routing {
-            // Configure all routes
-            sessionRoutes(sessionManager)
-            sseRoutes(mcpServersByTransportId, sessionManager)
-            messageRoutes(mcpServersByTransportId, sessionManager)
+    private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
+        embeddedServer(CIO, host = host, port = port, watchPaths = listOf("classes")) {
+            install(SSE)
+            install(ContentNegotiation) {
+                json()
+            }
+            routing {
+                // Configure all routes
+                sessionRoutes(sessionManager, devmode)
+                sseRoutes(mcpServersByTransportId, sessionManager)
+                messageRoutes(mcpServersByTransportId, sessionManager)
+            }
         }
-    }
     val monitor get() = server.monitor
     private var serverJob: Job? = null
 
