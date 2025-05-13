@@ -31,7 +31,16 @@ class CoralServer(
     val sessionManager: SessionManager = SessionManager(),
 ) {
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
-    private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>? = null
+    private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> = embeddedServer(CIO, host = host, port = port, watchPaths = listOf("classes")) {
+        install(SSE)
+        routing {
+            // Configure all routes
+            sessionRoutes(sessionManager)
+            sseRoutes(mcpServersByTransportId, sessionManager)
+            messageRoutes(mcpServersByTransportId, sessionManager)
+        }
+    }
+    val monitor get() = server.monitor
     private var serverJob: Job? = null
 
     /**
@@ -53,22 +62,10 @@ class CoralServer(
                         "http://localhost:$port/devmode/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=inspector"
             }
         }
-
-        server = embeddedServer(CIO, host = host, port = port, watchPaths = listOf("classes")) {
-            install(SSE)
-            routing {
-                // Configure all routes
-                sessionRoutes(sessionManager)
-                sseRoutes(mcpServersByTransportId, sessionManager)
-                messageRoutes(mcpServersByTransportId, sessionManager)
-            }
-        }
-
-        server?.monitor?.subscribe(ApplicationStarted) {
+        server.monitor.subscribe(ApplicationStarted) {
             logger.info { "Server started on $host:$port" }
         }
-
-        server?.start(wait)
+        server.start(wait)
     }
 
     /**
@@ -77,8 +74,7 @@ class CoralServer(
     fun stop() {
         logger.info { "Stopping server..." }
         serverJob?.cancel()
-        server?.stop(1000, 2000)
-        server = null
+        server.stop(1000, 2000)
         serverJob = null
         logger.info { "Server stopped" }
     }
