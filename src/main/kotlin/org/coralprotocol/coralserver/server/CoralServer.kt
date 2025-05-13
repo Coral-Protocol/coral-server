@@ -1,0 +1,83 @@
+package org.coralprotocol.coralserver.server
+
+import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.server.application.*
+import io.ktor.server.cio.*
+import io.ktor.server.engine.*
+import io.ktor.server.routing.*
+import io.ktor.server.sse.*
+import io.ktor.util.collections.*
+import io.modelcontextprotocol.kotlin.sdk.server.Server
+import kotlinx.coroutines.Job
+import org.coralprotocol.coralserver.config.AppConfigLoader
+import org.coralprotocol.coralserver.routes.messageRoutes
+import org.coralprotocol.coralserver.routes.sessionRoutes
+import org.coralprotocol.coralserver.routes.sseRoutes
+import org.coralprotocol.coralserver.session.SessionManager
+
+private val logger = KotlinLogging.logger {}
+
+/**
+ * CoralServer class that encapsulates the SSE MCP server functionality.
+ *
+ * @param host The host to run the server on
+ * @param port The port to run the server on
+ * @param devmode Whether the server is running in development mode
+ */
+class CoralServer(
+    val host: String = "0.0.0.0",
+    val port: Int = 5555,
+    val devmode: Boolean = false,
+    val sessionManager: SessionManager = SessionManager(),
+) {
+    private val mcpServersByTransportId = ConcurrentMap<String, Server>()
+    private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration>? = null
+    private var serverJob: Job? = null
+
+    /**
+     * Starts the server.
+     */
+    fun start(wait: Boolean = false) {
+        // Load application configuration
+        val appConfig = AppConfigLoader.loadConfig()
+        logger.info { "Starting sse server on port $port with ${appConfig.applications.size} configured applications" }
+        System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "trace");
+
+        if (devmode) {
+            logger.info {
+                "In development, agents can connect to " +
+                        "http://localhost:$port/devmode/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=exampleAgent"
+            }
+            logger.info {
+                "Connect the inspector to " +
+                        "http://localhost:$port/devmode/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=inspector"
+            }
+        }
+
+        server = embeddedServer(CIO, host = host, port = port, watchPaths = listOf("classes")) {
+            install(SSE)
+            routing {
+                // Configure all routes
+                sessionRoutes(sessionManager)
+                sseRoutes(mcpServersByTransportId, sessionManager)
+                messageRoutes(mcpServersByTransportId, sessionManager)
+            }
+        }
+
+        server?.start(wait)
+
+        logger.info { "Server started on $host:$port" }
+    }
+
+    /**
+     * Stops the server.
+     */
+    fun stop() {
+        logger.info { "Stopping server..." }
+        serverJob?.cancel()
+        server?.stop(1000, 2000)
+        server = null
+        serverJob = null
+        logger.info { "Server stopped" }
+    }
+}

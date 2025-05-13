@@ -15,7 +15,7 @@ private val logger = KotlinLogging.logger {}
 /**
  * Configures session-related routes.
  */
-fun Routing.sessionRoutes() {
+fun Routing.sessionRoutes(sessionManager: SessionManager) {
     // Session creation endpoint
 
     post("/sessions") {
@@ -29,7 +29,7 @@ fun Routing.sessionRoutes() {
             }
 
             // Create a new session
-            val session = SessionManager.createSession(request.applicationId, request.privacyKey)
+            val session = sessionManager.createSession(request.applicationId, request.privacyKey)
 
             // Return the session details
             call.respond(

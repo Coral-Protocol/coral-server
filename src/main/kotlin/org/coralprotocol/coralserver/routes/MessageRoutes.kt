@@ -16,23 +16,23 @@ private val logger = KotlinLogging.logger {}
  * 
  * @param servers A concurrent map to store server instances by transport session ID
  */
-fun Routing.messageRoutes(servers: ConcurrentMap<String, Server>) {
+fun Routing.messageRoutes(servers: ConcurrentMap<String, Server>, sessionManager: SessionManager) {
     // Message endpoint with application, privacy key, and session parameters
     post("/{applicationId}/{privacyKey}/{coralSessionId}/message") {
         logger.debug { "Received Message" }
 
         val applicationId = call.parameters["applicationId"]
         val privacyKey = call.parameters["privacyKey"]
-        val sessionId = call.parameters["coralSessionId"]
+        val coralSessionId = call.parameters["coralSessionId"]
         val transportSessionId = call.request.queryParameters["sessionId"]
 
-        if (applicationId == null || privacyKey == null || sessionId == null || transportSessionId == null) {
+        if (applicationId == null || privacyKey == null || coralSessionId == null || transportSessionId == null) {
             call.respond(HttpStatusCode.BadRequest, "Missing required parameters")
             return@post
         }
 
         // Get the session
-        val session = SessionManager.getSession(sessionId)
+        val session = sessionManager.getSession(coralSessionId)
         if (session == null) {
             call.respond(HttpStatusCode.NotFound, "Session not found")
             return@post
@@ -75,7 +75,7 @@ fun Routing.messageRoutes(servers: ConcurrentMap<String, Server>) {
         }
 
         // Get the session. It should exist even in dev mode as it was created in the sse endpoint
-        val session = SessionManager.getSession(sessionId)
+        val session = sessionManager.getSession(sessionId)
         if (session == null) {
             call.respond(HttpStatusCode.NotFound, "Session not found")
             return@post
