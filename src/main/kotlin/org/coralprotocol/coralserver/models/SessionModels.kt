@@ -1,6 +1,11 @@
 package org.coralprotocol.coralserver.models
 
+import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.orchestrator.Orchestrate
+import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
+import java.util.concurrent.TimeUnit
 
 /**
  * Data class for session creation request.
@@ -8,8 +13,82 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class CreateSessionRequest(
     val applicationId: String,
-    val privacyKey: String
+    val privacyKey: String,
+    val agentGraph: AgentGraph,
 )
+
+@JvmInline
+@Serializable
+value class AgentName(private val name: String)
+@JvmInline
+@Serializable
+value class AgentType(private val type: String)
+
+@Serializable
+data class AgentGraph(
+    val agents: HashMap<AgentName, Provider>,
+    val links: Set<Set<String>>,
+)
+
+
+private val logger = KotlinLogging.logger {}
+
+@Serializable
+sealed class Provider: Orchestrate {
+    data class Remote(
+        val host: String,
+        val agentType: String,
+        val appId: String,
+        val privacyKey: String,
+    ) : Provider() {
+        override suspend fun spawn(): OrchestratorHandle {
+            TODO("request agent from remote server")
+        }
+    }
+
+    data class Docker(val container: String) : Provider() {
+        override suspend fun spawn(): OrchestratorHandle {
+            TODO("Not yet implemented")
+        }
+    }
+    data class Executable(
+        val command: List<String>,
+        val environment: HashMap<String, String> = hashMapOf()
+    ) : Provider() {
+        override suspend fun spawn(): OrchestratorHandle {
+            val processBuilder = ProcessBuilder().redirectErrorStream(true)
+            val environment = processBuilder.environment()
+            for ((key, value) in environment) {
+                environment[key] = value
+            }
+            processBuilder.command(command)
+
+            logger.info{"spawning process..."}
+            val process = withContext(processContext) {
+                processBuilder.start()
+            }
+
+            val reader = process.inputStream.bufferedReader()
+            reader.forEachLine { line -> logger.info{"process: $line"} }
+
+            return object: OrchestratorHandle {
+                override suspend fun destroy() {
+                    withContext(processContext) {
+                        process.destroy()
+                        process.waitFor(30, TimeUnit.SECONDS)
+                        process.destroyForcibly()
+                        logger.info{"Process exited"}
+                    }
+                }
+            }
+
+        }
+    }
+}
+
+@OptIn(DelicateCoroutinesApi::class)
+val processContext = newFixedThreadPoolContext(10, "processContext")
+
 
 /**
  * Data class for session creation response.
