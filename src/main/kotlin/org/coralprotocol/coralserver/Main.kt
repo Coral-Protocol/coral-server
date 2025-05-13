@@ -32,6 +32,7 @@ fun main(args: Array<String>) {
                 logger.info { "Shutting down server..." }
                 server.stop()
             })
+            server.start(true)
         }
         else -> {
             logger.error { "Unknown command: $command" }
