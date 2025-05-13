@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.models
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.orchestrator.Orchestrate
 import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
@@ -15,7 +16,7 @@ import kotlin.concurrent.thread
 data class CreateSessionRequest(
     val applicationId: String,
     val privacyKey: String,
-    val agentGraph: AgentGraph,
+    val agentGraph: AgentGraph?,
 )
 
 @JvmInline
@@ -27,15 +28,26 @@ value class AgentType(private val type: String)
 
 @Serializable
 data class AgentGraph(
-    val agents: HashMap<AgentName, Provider>,
+    val agents: HashMap<AgentName, GraphAgent>,
     val links: Set<Set<String>>,
 )
 
+@Serializable
+sealed interface GraphAgent {
+    @Serializable
+    @SerialName("remote")
+    @JvmInline
+    value class Remote(val provider: Provider.Remote): GraphAgent
+    @Serializable
+    @SerialName("local")
+    data class Local(val agentType: AgentType): GraphAgent
+}
 
 private val logger = KotlinLogging.logger {}
 
 @Serializable
 sealed class Provider: Orchestrate {
+    @Serializable
     data class Remote(
         val host: String,
         val agentType: String,
@@ -47,11 +59,13 @@ sealed class Provider: Orchestrate {
         }
     }
 
+    @Serializable
     data class Docker(val container: String) : Provider() {
         override fun spawn(): OrchestratorHandle {
             TODO("Not yet implemented")
         }
     }
+    @Serializable
     data class Executable(
         val command: List<String>,
         val environment: HashMap<String, String> = hashMapOf()
