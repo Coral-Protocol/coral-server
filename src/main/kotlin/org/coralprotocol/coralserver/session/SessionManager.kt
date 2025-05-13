@@ -2,12 +2,13 @@ package org.coralprotocol.coralserver.session
 
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import org.coralprotocol.coralserver.orchestrator.Orchestrator
 import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Session manager to create and retrieve sessions.
  */
-class SessionManager {
+class SessionManager(val orchestrator: Orchestrator = Orchestrator()) {
     private val sessions = ConcurrentHashMap<String, CoralAgentGraphSession>()
     private val sessionSemaphore = Semaphore(1)
 
