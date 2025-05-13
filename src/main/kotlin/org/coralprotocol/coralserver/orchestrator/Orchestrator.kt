@@ -5,7 +5,7 @@ import org.coralprotocol.coralserver.models.AgentType
 import kotlin.coroutines.coroutineContext
 
 interface Orchestrate {
-    suspend fun spawn(): OrchestratorHandle
+    fun spawn(): OrchestratorHandle
 }
 
 interface OrchestratorHandle {

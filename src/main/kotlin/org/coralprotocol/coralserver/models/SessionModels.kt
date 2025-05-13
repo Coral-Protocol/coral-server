@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.orchestrator.Orchestrate
 import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
 import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 
 /**
  * Data class for session creation request.
@@ -41,13 +42,13 @@ sealed class Provider: Orchestrate {
         val appId: String,
         val privacyKey: String,
     ) : Provider() {
-        override suspend fun spawn(): OrchestratorHandle {
+        override fun spawn(): OrchestratorHandle {
             TODO("request agent from remote server")
         }
     }
 
     data class Docker(val container: String) : Provider() {
-        override suspend fun spawn(): OrchestratorHandle {
+        override fun spawn(): OrchestratorHandle {
             TODO("Not yet implemented")
         }
     }
@@ -55,7 +56,7 @@ sealed class Provider: Orchestrate {
         val command: List<String>,
         val environment: HashMap<String, String> = hashMapOf()
     ) : Provider() {
-        override suspend fun spawn(): OrchestratorHandle {
+        override fun spawn(): OrchestratorHandle {
             val processBuilder = ProcessBuilder().redirectErrorStream(true)
             val environment = processBuilder.environment()
             for ((key, value) in environment) {
@@ -64,12 +65,12 @@ sealed class Provider: Orchestrate {
             processBuilder.command(command)
 
             logger.info{"spawning process..."}
-            val process = withContext(processContext) {
-                processBuilder.start()
-            }
+            val process = processBuilder.start()
 
-            val reader = process.inputStream.bufferedReader()
-            reader.forEachLine { line -> logger.info{"process: $line"} }
+            thread(isDaemon = true) {
+                val reader = process.inputStream.bufferedReader()
+                reader.forEachLine { line -> logger.info { "process: $line" } }
+            }
 
             return object: OrchestratorHandle {
                 override suspend fun destroy() {
