@@ -29,7 +29,7 @@ class E2EResourceTest {
             server.start()
         }
         patchMcpJavaContentType()
-        patchMcpJavaContentType()
+        patchMcpJavaEndpointResolution()
     }
 
 
