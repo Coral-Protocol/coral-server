@@ -13,7 +13,12 @@ version = "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
+    maven {
+        url = uri("https://central.sonatype.com/repository/maven-snapshots/")
+        name = "sonatypeSnapshots"
+    }
 }
+
 
 dependencies {
     testImplementation(kotlin("test"))
@@ -33,27 +38,34 @@ dependencies {
     implementation("com.sksamuel.hoplite:hoplite-core:2.7.5")
     implementation("com.sksamuel.hoplite:hoplite-yaml:2.7.5")
 
-    // Ktor server dependencies
-    val ktorVersion = "2.3.9"
-    implementation("io.ktor:ktor-server-core:$ktorVersion")
-    implementation("io.ktor:ktor-server-cio:$ktorVersion")
-    implementation("io.ktor:ktor-server-sse:$ktorVersion")
-
-    // Ktor client dependencies
-    implementation("io.ktor:ktor-client-core:$ktorVersion")
-    implementation("io.ktor:ktor-client-cio:$ktorVersion")
-    implementation("io.ktor:ktor-client-logging:$ktorVersion")
-    implementation("io.ktor:ktor-client-content-negotiation:$ktorVersion")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:$ktorVersion")
-    implementation("io.ktor:ktor-client-plugins:$ktorVersion")
+    val ktorVersion = "3.0.2"
+    implementation(enforcedPlatform("io.ktor:ktor-bom:$ktorVersion"))
 
     // Ktor testing dependencies
-    testImplementation("io.ktor:ktor-server-test-host:$ktorVersion")
-    testImplementation("io.ktor:ktor-client-mock:$ktorVersion")
+    testImplementation("io.ktor:ktor-server-test-host")
+    testImplementation("io.ktor:ktor-client-mock")
+    val arcVersion = "0.126.0"
     // Arc agents for E2E tests
-    testImplementation("org.eclipse.lmos:arc-agents:0.125.0")
-    testImplementation("org.eclipse.lmos:arc-mcp:0.125.0")
-    testImplementation("org.eclipse.lmos:arc-server:0.125.0")
+    testImplementation("org.eclipse.lmos:arc-agents:$arcVersion")
+    testImplementation("org.eclipse.lmos:arc-mcp:$arcVersion")
+    testImplementation("org.eclipse.lmos:arc-server:$arcVersion")
+    testImplementation("org.eclipse.lmos:arc-azure-client:$arcVersion")
+    testImplementation("org.eclipse.lmos:arc-langchain4j-client:$arcVersion")
+    testImplementation("io.modelcontextprotocol.sdk:mcp:0.11.0-SNAPSHOT") // Override MCP Java client for Arc 0.126.0
+    testImplementation("io.mockk:mockk:1.14.2")
+    // Ktor client dependencies
+    implementation("io.ktor:ktor-client-logging")
+    implementation("io.ktor:ktor-client-content-negotiation")
+    implementation("io.ktor:ktor-serialization-kotlinx-json")
+    implementation("io.ktor:ktor-client-plugins")
+
+    // Ktor server dependencies
+    implementation("io.ktor:ktor-server-core")
+    implementation("io.ktor:ktor-server-cio")
+    implementation("io.ktor:ktor-server-sse")
+    testImplementation("io.ktor:ktor-server-core")
+    testImplementation("io.ktor:ktor-server-cio")
+    testImplementation("io.ktor:ktor-server-sse")
 }
 
 tasks.test {
