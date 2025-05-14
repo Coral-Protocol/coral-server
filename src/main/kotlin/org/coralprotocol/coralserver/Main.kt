@@ -25,13 +25,14 @@ fun main(args: Array<String>) {
 //        "--stdio" -> runMcpServerUsingStdio()
         "--sse-server" -> {
             val server = CoralServer(port = port, devmode = devMode)
-            server.start()
 
             // Add shutdown hook to stop the server gracefully
             Runtime.getRuntime().addShutdownHook(Thread {
                 logger.info { "Shutting down server..." }
                 server.stop()
             })
+
+            server.start(wait = true)
         }
         else -> {
             logger.error { "Unknown command: $command" }
