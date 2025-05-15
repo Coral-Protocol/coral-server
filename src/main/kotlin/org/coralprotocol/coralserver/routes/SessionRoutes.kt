@@ -6,8 +6,8 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.config.AppConfigLoader
-import org.coralprotocol.coralserver.models.CreateSessionRequest
-import org.coralprotocol.coralserver.models.CreateSessionResponse
+import org.coralprotocol.coralserver.models.*
+import org.coralprotocol.coralserver.orchestrator.AgentOptionValue
 import org.coralprotocol.coralserver.session.SessionManager
 
 private val logger = KotlinLogging.logger {}
@@ -28,8 +28,41 @@ fun Routing.sessionRoutes(sessionManager: SessionManager, devMode: Boolean) {
                 return@post
             }
 
+
+            val agentGraph = request.agentGraph?.let {
+                val agents = it.agents;
+                val registry =
+                    sessionManager.orchestrator.registry
+
+                AgentGraph(
+                    agents = agents.mapValues { agent ->
+                        when (val agentReq = agent.value) {
+                            is GraphAgentRequest.Local -> {
+                                GraphAgent.Local(
+                                    agentType = agentReq.agentType,
+                                    options = agentReq.options.mapValues { option ->
+                                        val realOption = registry.get(agentReq.agentType).options[option.key]
+                                            ?: throw IllegalArgumentException("Unknown option '${option.key}'")
+                                        val value = AgentOptionValue.tryFromJson(option.value)
+                                            ?: throw IllegalArgumentException("Invalid option type for '${option.key} - expected ${realOption.type}'")
+                                        if (value.type != realOption.type) {
+                                            throw IllegalArgumentException("Invalid option type for '${option.key}' - expected ${realOption.type}")
+                                        }
+                                        value
+                                    }
+                                )
+                            }
+
+                            else -> TODO("(alan) remote agent option resolution")
+                        }
+
+                    },
+                    links = it.links // TODO (alan): link validation
+                )
+            }
+
             // Create a new session
-            val session = sessionManager.createSession(request.applicationId, request.privacyKey, request.agentGraph)
+            val session = sessionManager.createSession(request.applicationId, request.privacyKey, agentGraph)
 
             // Return the session details
             call.respond(

@@ -8,6 +8,8 @@ import kotlinx.serialization.Transient
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.doubleOrNull
 import org.coralprotocol.coralserver.models.AgentType
 import org.coralprotocol.coralserver.models.AgentRuntime
 
@@ -42,13 +44,16 @@ fun <K, V> List<Pair<K, V>>.toMapOnDuplicate(onDuplicates: (duplicates: List<K>)
 
 @Serializable
 sealed interface AgentOption {
+    abstract val type: String
     val name: String
     val description: String?
 
     @Serializable
     @SerialName("string")
     data class Str(override val name: String, override val description: String? = null, val default: String? = null) :
-        AgentOption
+        AgentOption {
+        override val type get(): String = "string"
+    }
 
     @Serializable
     @SerialName("number")
@@ -56,5 +61,28 @@ sealed interface AgentOption {
         override val name: String,
         override val description: String? = null,
         val default: Double? = null
-    ) : AgentOption
+    ) : AgentOption {
+        override val type get(): String = "number"
+    }
+}
+
+sealed interface AgentOptionValue {
+    abstract val type: String
+
+    data class Str(val value: String) : AgentOptionValue {
+        override val type get(): String = "string"
+    }
+
+    data class Num(val value: Double) : AgentOptionValue {
+        override val type get(): String = "number"
+    }
+
+    companion object {
+        fun tryFromJson(value: JsonPrimitive): AgentOptionValue? {
+            if (value.isString) {
+                return Str(value.content)
+            }
+            return value.doubleOrNull?.let { Num(it) }
+        }
+    }
 }
