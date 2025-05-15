@@ -1,9 +1,8 @@
 package org.coralprotocol.coralserver.config
 
 import kotlinx.serialization.Serializable
-import org.coralprotocol.coralserver.models.AgentType
-import org.coralprotocol.coralserver.orchestrator.AgentDefinition
-import org.coralprotocol.coralserver.orchestrator.AgentRegistry
+import org.coralprotocol.coralserver.orchestrator.AgentType
+import org.coralprotocol.coralserver.orchestrator.RegistryAgent
 
 // TODO: Applications are a work in progress. This is safe to ignore for now.
 
@@ -14,7 +13,7 @@ import org.coralprotocol.coralserver.orchestrator.AgentRegistry
 data class AppConfig(
     val applications: List<ApplicationConfig> = emptyList(),
     val applicationSource: ApplicationSourceConfig? = null,
-    val registry: Map<AgentType, AgentDefinition>? = null,
+    val registry: Map<AgentType, RegistryAgent>? = null,
 )
 
 /**

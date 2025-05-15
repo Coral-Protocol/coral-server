@@ -6,9 +6,14 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.config.AppConfigLoader
-import org.coralprotocol.coralserver.models.*
-import org.coralprotocol.coralserver.orchestrator.AgentOptionValue
+import org.coralprotocol.coralserver.orchestrator.ConfigValue
+import org.coralprotocol.coralserver.session.AgentGraph
+import org.coralprotocol.coralserver.session.AgentName
+import org.coralprotocol.coralserver.session.GraphAgent
 import org.coralprotocol.coralserver.session.SessionManager
+import org.coralprotocol.coralserver.session.CreateSessionRequest
+import org.coralprotocol.coralserver.session.CreateSessionResponse
+import org.coralprotocol.coralserver.session.GraphAgentRequest
 
 private val logger = KotlinLogging.logger {}
 
@@ -59,7 +64,7 @@ fun Routing.sessionRoutes(sessionManager: SessionManager, devMode: Boolean) {
                                 val setOptions = agentReq.options.mapValues { option ->
                                     val realOption = agentDef.options[option.key]
                                         ?: throw IllegalArgumentException("Unknown option '${option.key}'")
-                                    val value = AgentOptionValue.tryFromJson(option.value)
+                                    val value = ConfigValue.tryFromJson(option.value)
                                         ?: throw IllegalArgumentException("Agent '${agent.key}' given invalid type for option '${option.key} - expected ${realOption.type}'")
                                     if (value.type != realOption.type) {
                                         throw IllegalArgumentException("Agent '${agent.key}' given invalid type for option '${option.key}' - expected ${realOption.type}")

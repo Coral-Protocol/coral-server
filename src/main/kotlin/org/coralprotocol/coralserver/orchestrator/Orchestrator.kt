@@ -1,12 +1,11 @@
 package org.coralprotocol.coralserver.orchestrator
 
 import kotlinx.coroutines.*
-import org.coralprotocol.coralserver.models.AgentType
-import org.coralprotocol.coralserver.models.GraphAgent
-import org.coralprotocol.coralserver.models.AgentRuntime
+import org.coralprotocol.coralserver.session.GraphAgent
+import org.coralprotocol.coralserver.orchestrator.runtime.AgentRuntime
 
 interface Orchestrate {
-    fun spawn(options: Map<String, AgentOptionValue>): OrchestratorHandle
+    fun spawn(options: Map<String, ConfigValue>): OrchestratorHandle
 }
 
 interface OrchestratorHandle {
@@ -18,15 +17,15 @@ class Orchestrator(
 ) {
     private val handles: MutableList<OrchestratorHandle> = mutableListOf()
 
-    fun spawn(type: AgentType, options: Map<String, AgentOptionValue>) {
+    fun spawn(type: AgentType, options: Map<String, ConfigValue>) {
         spawn(registry.get(type), options)
     }
 
-    fun spawn(agent: AgentDefinition, options: Map<String, AgentOptionValue>) {
+    fun spawn(agent: RegistryAgent, options: Map<String, ConfigValue>) {
         handles.add(agent.runtime.spawn(options))
     }
 
-    fun spawn(runtime: AgentRuntime, options: Map<String, AgentOptionValue>) {
+    fun spawn(runtime: AgentRuntime, options: Map<String, ConfigValue>) {
         handles.add(runtime.spawn(options))
     }
 
