@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.models
 
+import com.sksamuel.hoplite.ConfigAlias
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import kotlinx.serialization.SerialName
@@ -37,7 +38,7 @@ sealed interface GraphAgent {
     @Serializable
     @SerialName("remote")
     @JvmInline
-    value class Remote(val provider: Provider.Remote): GraphAgent
+    value class Remote(val remote: AgentRuntime.Remote): GraphAgent
     @Serializable
     @SerialName("local")
     data class Local(val agentType: AgentType): GraphAgent
@@ -46,30 +47,33 @@ sealed interface GraphAgent {
 private val logger = KotlinLogging.logger {}
 
 @Serializable
-sealed class Provider: Orchestrate {
+sealed class AgentRuntime: Orchestrate {
     @Serializable
+    @SerialName("remote")
     data class Remote(
         val host: String,
         val agentType: String,
         val appId: String,
         val privacyKey: String,
-    ) : Provider() {
+    ) : AgentRuntime() {
         override fun spawn(): OrchestratorHandle {
             TODO("request agent from remote server")
         }
     }
 
     @Serializable
-    data class Docker(val container: String) : Provider() {
+    @SerialName("docker")
+    data class Docker(val container: String) : AgentRuntime() {
         override fun spawn(): OrchestratorHandle {
             TODO("Not yet implemented")
         }
     }
     @Serializable
+    @SerialName("executable")
     data class Executable(
         val command: List<String>,
-        val environment: HashMap<String, String> = hashMapOf()
-    ) : Provider() {
+        val environment: List<EnvVar> = listOf()
+    ) : AgentRuntime() {
         override fun spawn(): OrchestratorHandle {
             val processBuilder = ProcessBuilder().redirectErrorStream(true)
             val environment = processBuilder.environment()
@@ -99,6 +103,34 @@ sealed class Provider: Orchestrate {
 
         }
     }
+}
+
+@Serializable
+data class EnvVar (
+    val name: String?,
+    val value: String?,
+    val from: String?,
+
+    val option: String?,
+) {
+    // TODO (alan): bake this validation into the type system
+    //              EnvVar should be a sum type of 'name/from', 'option' & 'name/value'
+    fun validate() {
+        if (option != null && (from != null || value != null || name != null)) {
+            throw IllegalArgumentException("'option' key is shorthand for 'name' & 'from', it must be used on its own")
+        }
+        if (name != null && (value == null && from == null)) {
+            throw IllegalArgumentException("'value' or 'from' must be provided")
+        }
+        if (from != null && value != null) {
+            throw IllegalArgumentException("'from' and 'value' are mutually exclusive")
+        }
+        if(name == null && value == null && from == null && option == null) {
+            throw IllegalArgumentException("Invalid environment variable definition")
+        }
+    }
+//    fun resolve(options: Map<String, String>, optionsDef: List<>) {
+
 }
 
 @OptIn(DelicateCoroutinesApi::class)
