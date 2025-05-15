@@ -12,6 +12,10 @@ import org.coralprotocol.coralserver.session.SessionManager
 
 private val logger = KotlinLogging.logger {}
 
+@Suppress("UNCHECKED_CAST")
+fun <K, V> Map<K, V?>.filterNotNullValues(): Map<K, V> =
+    filterValues { it != null } as Map<K, V>
+
 /**
  * Configures session-related routes.
  */
@@ -29,7 +33,7 @@ fun Routing.sessionRoutes(sessionManager: SessionManager, devMode: Boolean) {
             }
 
 
-            val agentGraph = request.agentGraph?.let {
+            val agentGraph = request.agentGraph?.let { it ->
                 val agents = it.agents;
                 val registry =
                     sessionManager.orchestrator.registry
@@ -38,18 +42,29 @@ fun Routing.sessionRoutes(sessionManager: SessionManager, devMode: Boolean) {
                     agents = agents.mapValues { agent ->
                         when (val agentReq = agent.value) {
                             is GraphAgentRequest.Local -> {
+                                val agentDef = registry.get(agentReq.agentType)
+
+                                val missing = agentDef.options.filter { option -> option.value.required && !agentReq.options.containsKey(option.key)}
+                                if (missing.isNotEmpty()) {
+                                    throw IllegalArgumentException("Agent '${agent.key}' Missing required options: ${missing.keys.joinToString()}")
+                                }
+
+                                val defaultOptions = agentDef.options.mapValues { option -> option.value.defaultAsValue }.filterNotNullValues()
+
+                                val setOptions = agentReq.options.mapValues { option ->
+                                    val realOption = agentDef.options[option.key]
+                                        ?: throw IllegalArgumentException("Unknown option '${option.key}'")
+                                    val value = AgentOptionValue.tryFromJson(option.value)
+                                        ?: throw IllegalArgumentException("Agent '${agent.key}' given invalid type for option '${option.key} - expected ${realOption.type}'")
+                                    if (value.type != realOption.type) {
+                                        throw IllegalArgumentException("Agent '${agent.key}' given invalid type for option '${option.key}' - expected ${realOption.type}")
+                                    }
+                                    value
+                                }
+
                                 GraphAgent.Local(
                                     agentType = agentReq.agentType,
-                                    options = agentReq.options.mapValues { option ->
-                                        val realOption = registry.get(agentReq.agentType).options[option.key]
-                                            ?: throw IllegalArgumentException("Unknown option '${option.key}'")
-                                        val value = AgentOptionValue.tryFromJson(option.value)
-                                            ?: throw IllegalArgumentException("Invalid option type for '${option.key} - expected ${realOption.type}'")
-                                        if (value.type != realOption.type) {
-                                            throw IllegalArgumentException("Invalid option type for '${option.key}' - expected ${realOption.type}")
-                                        }
-                                        value
-                                    }
+                                    options = defaultOptions + setOptions
                                 )
                             }
 
