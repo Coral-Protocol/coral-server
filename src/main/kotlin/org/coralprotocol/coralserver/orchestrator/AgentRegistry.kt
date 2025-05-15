@@ -64,6 +64,18 @@ sealed interface AgentOption {
     ) : AgentOption {
         override val type get(): String = "number"
     }
+
+    val required: Boolean get() = when (val o = this) {
+        is Str -> o.default == null
+        is Number -> o.default == null
+    }
+
+    val defaultAsValue: AgentOptionValue? get() =
+        when (val o = this) {
+            is Str -> o.default?.let { AgentOptionValue.Str(it) }
+            is Number -> o.default?.let { AgentOptionValue.Num(it) }
+        }
+
 }
 
 sealed interface AgentOptionValue {
