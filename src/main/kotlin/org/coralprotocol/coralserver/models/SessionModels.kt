@@ -5,6 +5,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonPrimitive
+import org.coralprotocol.coralserver.orchestrator.AgentOptionValue
 import org.coralprotocol.coralserver.orchestrator.Orchestrate
 import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
 import java.util.concurrent.TimeUnit
@@ -17,37 +19,59 @@ import kotlin.concurrent.thread
 data class CreateSessionRequest(
     val applicationId: String,
     val privacyKey: String,
-    val agentGraph: AgentGraph?,
+    val agentGraph: AgentGraphRequest?,
 )
 
-@JvmInline
 @Serializable
-value class AgentName(private val name: String)
-@JvmInline
-@Serializable
-value class AgentType(private val type: String)
-
-@Serializable
-data class AgentGraph(
-    val agents: HashMap<AgentName, GraphAgent>,
+data class AgentGraphRequest(
+    val agents: HashMap<AgentName, GraphAgentRequest>,
     val links: Set<Set<String>>,
 )
 
 @Serializable
-sealed interface GraphAgent {
+sealed interface GraphAgentRequest {
+    val options: Map<String, JsonPrimitive>
+
     @Serializable
     @SerialName("remote")
-    @JvmInline
-    value class Remote(val remote: AgentRuntime.Remote): GraphAgent
+    data class Remote(val remote: AgentRuntime.Remote, override val options: Map<String, JsonPrimitive> = mapOf()) :
+        GraphAgentRequest
+
     @Serializable
     @SerialName("local")
-    data class Local(val agentType: AgentType): GraphAgent
+    data class Local(val agentType: AgentType, override val options: Map<String, JsonPrimitive> = mapOf()) :
+        GraphAgentRequest
+}
+
+@JvmInline
+@Serializable
+value class AgentName(private val name: String)
+
+@JvmInline
+@Serializable
+value class AgentType(private val type: String)
+
+
+@Serializable
+data class AgentGraph(
+    val agents: Map<AgentName, GraphAgent>,
+    val links: Set<Set<String>>,
+)
+
+sealed interface GraphAgent {
+    val options: Map<String, AgentOptionValue>
+
+    data class Remote(val remote: AgentRuntime.Remote, override val options: Map<String, AgentOptionValue> = mapOf()) :
+        GraphAgent
+
+    data class Local(val agentType: AgentType, override val options: Map<String, AgentOptionValue> = mapOf()) :
+        GraphAgent
 }
 
 private val logger = KotlinLogging.logger {}
 
 @Serializable
-sealed class AgentRuntime: Orchestrate {
+sealed class AgentRuntime : Orchestrate {
     @Serializable
     @SerialName("remote")
     data class Remote(
@@ -68,6 +92,7 @@ sealed class AgentRuntime: Orchestrate {
             TODO("Not yet implemented")
         }
     }
+
     @Serializable
     @SerialName("executable")
     data class Executable(
@@ -82,7 +107,7 @@ sealed class AgentRuntime: Orchestrate {
             }
             processBuilder.command(command)
 
-            logger.info{"spawning process..."}
+            logger.info { "spawning process..." }
             val process = processBuilder.start()
 
             thread(isDaemon = true) {
@@ -90,13 +115,13 @@ sealed class AgentRuntime: Orchestrate {
                 reader.forEachLine { line -> logger.info { "process: $line" } }
             }
 
-            return object: OrchestratorHandle {
+            return object : OrchestratorHandle {
                 override suspend fun destroy() {
                     withContext(processContext) {
                         process.destroy()
                         process.waitFor(30, TimeUnit.SECONDS)
                         process.destroyForcibly()
-                        logger.info{"Process exited"}
+                        logger.info { "Process exited" }
                     }
                 }
             }
@@ -106,7 +131,7 @@ sealed class AgentRuntime: Orchestrate {
 }
 
 @Serializable
-data class EnvVar (
+data class EnvVar(
     val name: String?,
     val value: String?,
     val from: String?,
@@ -125,7 +150,7 @@ data class EnvVar (
         if (from != null && value != null) {
             throw IllegalArgumentException("'from' and 'value' are mutually exclusive")
         }
-        if(name == null && value == null && from == null && option == null) {
+        if (name == null && value == null && from == null && option == null) {
             throw IllegalArgumentException("Invalid environment variable definition")
         }
     }
