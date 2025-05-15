@@ -80,7 +80,7 @@ sealed class AgentRuntime : Orchestrate {
         val appId: String,
         val privacyKey: String,
     ) : AgentRuntime() {
-        override fun spawn(): OrchestratorHandle {
+        override fun spawn(options: Map<String, AgentOptionValue>): OrchestratorHandle {
             TODO("request agent from remote server")
         }
     }
@@ -88,7 +88,7 @@ sealed class AgentRuntime : Orchestrate {
     @Serializable
     @SerialName("docker")
     data class Docker(val container: String) : AgentRuntime() {
-        override fun spawn(): OrchestratorHandle {
+        override fun spawn(options: Map<String, AgentOptionValue>): OrchestratorHandle {
             TODO("Not yet implemented")
         }
     }
@@ -99,10 +99,12 @@ sealed class AgentRuntime : Orchestrate {
         val command: List<String>,
         val environment: List<EnvVar> = listOf()
     ) : AgentRuntime() {
-        override fun spawn(): OrchestratorHandle {
+        override fun spawn(options: Map<String, AgentOptionValue>): OrchestratorHandle {
             val processBuilder = ProcessBuilder().redirectErrorStream(true)
             val environment = processBuilder.environment()
-            for ((key, value) in environment) {
+            environment.clear()
+            for (env in this.environment) {
+                val (key, value) = env.resolve(options)
                 environment[key] = value
             }
             processBuilder.command(command)
@@ -154,8 +156,22 @@ data class EnvVar(
             throw IllegalArgumentException("Invalid environment variable definition")
         }
     }
-//    fun resolve(options: Map<String, String>, optionsDef: List<>) {
 
+    fun resolve(options: Map<String, AgentOptionValue>): Pair<String, String?> {
+        if (option != null) {
+            val opt = options[name] ?: throw IllegalArgumentException("Undefined option '$name'")
+            return Pair(option, opt.toString())
+        }
+        val name = name ?: throw IllegalArgumentException("name not provided")
+        if(from != null) {
+            val opt = options[from] ?: throw IllegalArgumentException("Undefined option '$from'")
+            return Pair(from, opt.toString())
+        }
+        if(value != null) {
+            return Pair(name, value)
+        }
+        throw IllegalArgumentException("Invalid environment variable definition")
+    }
 }
 
 @OptIn(DelicateCoroutinesApi::class)
