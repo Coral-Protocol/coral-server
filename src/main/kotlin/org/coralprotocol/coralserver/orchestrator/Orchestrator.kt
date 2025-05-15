@@ -3,7 +3,7 @@ package org.coralprotocol.coralserver.orchestrator
 import kotlinx.coroutines.*
 import org.coralprotocol.coralserver.models.AgentType
 import org.coralprotocol.coralserver.models.GraphAgent
-import org.coralprotocol.coralserver.models.Provider
+import org.coralprotocol.coralserver.models.AgentRuntime
 
 interface Orchestrate {
     fun spawn(): OrchestratorHandle
@@ -21,8 +21,11 @@ class Orchestrator(
     fun spawn(type: AgentType) {
         spawn(registry.get(type))
     }
-    fun spawn(provider: Provider) {
-        handles.add(provider.spawn())
+    fun spawn(agent: AgentDefinition) {
+        handles.add(agent.runtime.spawn())
+    }
+    fun spawn(runtime: AgentRuntime) {
+        handles.add(runtime.spawn())
     }
     fun spawn(type: GraphAgent) {
         when (type) {
@@ -30,7 +33,7 @@ class Orchestrator(
                spawn(type.agentType)
            }
             is GraphAgent.Remote -> {
-                spawn(type.provider)
+                spawn(type.remote)
             }
         }
     }
