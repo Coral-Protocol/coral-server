@@ -134,11 +134,11 @@ sealed class AgentRuntime : Orchestrate {
 
 @Serializable
 data class EnvVar(
-    val name: String?,
-    val value: String?,
-    val from: String?,
+    val name: String? = null,
+    val value: String? = null,
+    val from: String? = null,
 
-    val option: String?,
+    val option: String? = null,
 ) {
     // TODO (alan): bake this validation into the type system
     //              EnvVar should be a sum type of 'name/from', 'option' & 'name/value'
@@ -159,7 +159,7 @@ data class EnvVar(
 
     fun resolve(options: Map<String, AgentOptionValue>): Pair<String, String?> {
         if (option != null) {
-            val opt = options[name] ?: throw IllegalArgumentException("Undefined option '$name'")
+            val opt = options[option] ?: throw IllegalArgumentException("Undefined option '$option'")
             return Pair(option, opt.toString())
         }
         val name = name ?: throw IllegalArgumentException("name not provided")
