@@ -1,10 +1,8 @@
 package org.coralprotocol.coralserver.session
 
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
-import org.coralprotocol.coralserver.models.AgentGraph
 import org.coralprotocol.coralserver.orchestrator.Orchestrator
 import java.util.concurrent.ConcurrentHashMap
 
