@@ -6,7 +6,7 @@ import org.coralprotocol.coralserver.models.GraphAgent
 import org.coralprotocol.coralserver.models.AgentRuntime
 
 interface Orchestrate {
-    fun spawn(): OrchestratorHandle
+    fun spawn(options: Map<String, AgentOptionValue>): OrchestratorHandle
 }
 
 interface OrchestratorHandle {
@@ -18,22 +18,26 @@ class Orchestrator(
 ) {
     private val handles: MutableList<OrchestratorHandle> = mutableListOf()
 
-    fun spawn(type: AgentType) {
-        spawn(registry.get(type))
+    fun spawn(type: AgentType, options: Map<String, AgentOptionValue>) {
+        spawn(registry.get(type), options)
     }
-    fun spawn(agent: AgentDefinition) {
-        handles.add(agent.runtime.spawn())
+
+    fun spawn(agent: AgentDefinition, options: Map<String, AgentOptionValue>) {
+        handles.add(agent.runtime.spawn(options))
     }
-    fun spawn(runtime: AgentRuntime) {
-        handles.add(runtime.spawn())
+
+    fun spawn(runtime: AgentRuntime, options: Map<String, AgentOptionValue>) {
+        handles.add(runtime.spawn(options))
     }
+
     fun spawn(type: GraphAgent) {
         when (type) {
-           is GraphAgent.Local -> {
-               spawn(type.agentType)
-           }
+            is GraphAgent.Local -> {
+                spawn(type.agentType, type.options)
+            }
+
             is GraphAgent.Remote -> {
-                spawn(type.remote)
+                spawn(type.remote, type.options)
             }
         }
     }
