@@ -11,7 +11,7 @@ import io.ktor.server.sse.*
 import io.ktor.util.collections.*
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.coroutines.Job
-import org.coralprotocol.coralserver.config.AppConfigLoader
+import org.coralprotocol.coralserver.config.AppConfig
 import org.coralprotocol.coralserver.routes.messageRoutes
 import org.coralprotocol.coralserver.routes.sessionRoutes
 import org.coralprotocol.coralserver.routes.sseRoutes
@@ -29,6 +29,7 @@ private val logger = KotlinLogging.logger {}
 class CoralServer(
     val host: String = "0.0.0.0",
     val port: Int = 5555,
+    val appConfig: AppConfig,
     val devmode: Boolean = false,
     val sessionManager: SessionManager = SessionManager(),
 ) {
@@ -53,8 +54,6 @@ class CoralServer(
      * Starts the server.
      */
     fun start(wait: Boolean = false) {
-        // Load application configuration
-        val appConfig = AppConfigLoader.loadConfig()
         logger.info { "Starting sse server on port $port with ${appConfig.applications.size} configured applications" }
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "trace");
 
