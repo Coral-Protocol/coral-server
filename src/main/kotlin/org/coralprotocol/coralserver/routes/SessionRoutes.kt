@@ -38,6 +38,11 @@ fun Routing.sessionRoutes(sessionManager: SessionManager, devMode: Boolean) {
                 val registry =
                     sessionManager.orchestrator.registry
 
+                val unknownAgents = it.links.map { set -> set.filter { agent -> !it.agents.containsKey(AgentName(agent)) } }.flatten()
+                if (unknownAgents.isNotEmpty()) {
+                    throw IllegalArgumentException("Unknown agent names in links: ${unknownAgents.joinToString()}")
+                }
+
                 AgentGraph(
                     agents = agents.mapValues { agent ->
                         when (val agentReq = agent.value) {
@@ -72,10 +77,11 @@ fun Routing.sessionRoutes(sessionManager: SessionManager, devMode: Boolean) {
                         }
 
                     },
-                    links = it.links // TODO (alan): link validation
+                    links = it.links
                 )
             }
 
+            // TODO(alan): actually limit agent communicating using AgentGraph.links
             // Create a new session
             val session = sessionManager.createSession(request.applicationId, request.privacyKey, agentGraph)
 
