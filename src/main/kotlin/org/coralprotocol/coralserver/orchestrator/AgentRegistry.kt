@@ -71,10 +71,16 @@ sealed interface AgentOptionValue {
 
     data class Str(val value: String) : AgentOptionValue {
         override val type get(): String = "string"
+        override fun toString(): String {
+            return value
+        }
     }
 
     data class Num(val value: Double) : AgentOptionValue {
         override val type get(): String = "number"
+        override fun toString(): String {
+            return value.toString()
+        }
     }
 
     companion object {
