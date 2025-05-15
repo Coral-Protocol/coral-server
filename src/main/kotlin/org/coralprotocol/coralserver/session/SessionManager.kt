@@ -1,23 +1,34 @@
 package org.coralprotocol.coralserver.session
 
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import org.coralprotocol.coralserver.orchestrator.Orchestrator
 import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Session manager to create and retrieve sessions.
  */
-class SessionManager {
+class SessionManager(val orchestrator: Orchestrator = Orchestrator()) {
     private val sessions = ConcurrentHashMap<String, CoralAgentGraphSession>()
     private val sessionSemaphore = Semaphore(1)
 
     /**
      * Create a new session with a random ID.
      */
-    fun createSession(applicationId: String, privacyKey: String): CoralAgentGraphSession {
+    fun createSession(applicationId: String, privacyKey: String, agentGraph: AgentGraph?): CoralAgentGraphSession {
         val sessionId = java.util.UUID.randomUUID().toString()
         val session = CoralAgentGraphSession(sessionId, applicationId, privacyKey)
         sessions[sessionId] = session
+
+        runBlocking {
+            agentGraph?.let {
+                it.agents.forEach { agent ->
+                    orchestrator.spawn(agent.value)
+                }
+            }
+        }
+
         return session
     }
 

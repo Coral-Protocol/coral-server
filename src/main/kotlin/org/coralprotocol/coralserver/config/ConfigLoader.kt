@@ -1,7 +1,13 @@
 package org.coralprotocol.coralserver.config
 
+import com.charleskorn.kaml.PolymorphismStyle
+import com.charleskorn.kaml.Yaml
+import com.charleskorn.kaml.YamlConfiguration
+import com.charleskorn.kaml.decodeFromStream
 import com.sksamuel.hoplite.ConfigLoader
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.io.files.FileNotFoundException
+import java.io.File
 
 private val logger = KotlinLogging.logger {}
 
@@ -16,33 +22,47 @@ object AppConfigLoader {
      * If the configuration is already loaded, returns the cached instance.
      */
     fun loadConfig(): AppConfig {
-        if (config == null) {
-            try {
-                // Try to load from resources
-                val resourcePath = "application.yaml"
-                val resource = AppConfigLoader::class.java.classLoader.getResource(resourcePath)
-
-                if (resource != null) {
-                    config = ConfigLoader().loadConfigOrThrow<AppConfig>(resource.path)
-                    logger.info { "Loaded configuration with ${config?.applications?.size ?: 0} applications" }
-                } else {
-                    throw Exception("Resource not found: $resourcePath")
+        // TODO (alan): redo all this
+        val _c = config
+        if (_c != null) {
+            return _c
+        }
+        val config = try {
+            // Try to load from resources
+            val resourcePath = "application.yaml"
+            val resource = AppConfigLoader::class.java.classLoader.getResource(resourcePath)
+            if (resource != null) {
+                val file = File(resource.path)
+                if (!file.exists()) {
+                    throw FileNotFoundException(file.absolutePath)
                 }
-            } catch (e: Exception) {
-                logger.error(e) { "Failed to load configuration, using default" }
-                config = AppConfig(
-                    applications = listOf(
-                        ApplicationConfig(
-                            id = "default-app",
-                            name = "Default Application",
-                            description = "Default application (fallback)",
-                            privacyKeys = listOf("default-key", "public")
-                        )
+
+                val c =
+                    Yaml(configuration = YamlConfiguration(polymorphismStyle = PolymorphismStyle.Property)).decodeFromStream<AppConfig>(
+                        file.inputStream()
+                    )
+                config = c
+
+                logger.info { "Loaded configuration with ${c.applications.size ?: 0} applications & ${c.registry?.size ?: 0} registry agents" }
+                c
+            } else {
+                throw Exception("Resource not found: $resourcePath")
+            }
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to load configuration, using default" }
+            AppConfig(
+                applications = listOf(
+                    ApplicationConfig(
+                        id = "default-app",
+                        name = "Default Application",
+                        description = "Default application (fallback)",
+                        privacyKeys = listOf("default-key", "public")
                     )
                 )
-            }
+            )
         }
-        return config!!
+        this.config = config
+        return config
     }
 
     /**
