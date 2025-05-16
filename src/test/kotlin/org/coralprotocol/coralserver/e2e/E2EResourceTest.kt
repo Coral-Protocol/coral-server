@@ -1,76 +1,53 @@
 package org.coralprotocol.coralserver.e2e
 
-import io.mockk.every
-import io.mockk.mockkStatic
-import io.modelcontextprotocol.util.Utils.resolveUri
 import kotlinx.coroutines.*
-import org.coralprotocol.coralserver.server.CoralServer
-import org.coralprotocol.coralserver.session.SessionManager
 import org.eclipse.lmos.arc.agents.agent.ask
+import org.eclipse.lmos.arc.core.Success
 import org.junit.jupiter.api.BeforeEach
-import java.net.URI
-import java.net.http.HttpRequest
 import kotlin.test.Test
 
 
 class E2EResourceTest {
     val port = 14391
-    var server = CoralServer(port = port, devmode = true)
-
-    @OptIn(DelicateCoroutinesApi::class)
-    val serverContext = newFixedThreadPoolContext(1, "E2EResourceTest")
+    var server = TestCoralServer(port = port, devmode = true)
 
     @OptIn(DelicateCoroutinesApi::class)
     @BeforeEach
     fun setup() {
-        server.stop()
-        server = CoralServer(port = port, sessionManager = SessionManager(), devmode = true)
-        GlobalScope.launch(serverContext) {
-            server.start()
-        }
-        patchMcpJavaContentType()
-        patchMcpJavaEndpointResolution()
+        server.setup()
     }
-
 
     @Test
-    fun testE2EResource() {
-        val agent1 = createConnectedCoralAgent(server, "testAgent", "testAgentDescription", "testSystemPrompt")
+    fun testCreateThreadAndPostMessage(): Unit = runBlocking {
+        var allAssertsCompleted = false
+        createSessionWithConnectedAgents(server.server!!, sessionId =  "test", privacyKey = "aaa", applicationId = "aaa", noAgentsOptional = true) {
+            val agent1 = agent("testAgent1", "testAgent1")
+            val agent2 = agent("testAgent2", "testAgent2")
 
-        runBlocking {
-            val response = agent1.ask("Create a thread and post a message in it")
-            println("Agent name: ${agent1.name}")
-            val sessions = server.sessionManager.getAllSessions()
-            assert(sessions.size == 1) { "There should be one session" }
-            println("Response: $response")
+            onAgentsCreated = {
+                agent1.getConnected().ask("Say hello to testAgent2 in a new thread. Tell it the passcode 3243")
+                val sessions = server.sessionManager.getAllSessions()
+                assert(sessions.size == 1) { "There should be one session" }
+                val session = sessions.first()
+                val threads = session.getThreads()
+                assert(threads.size == 1) { "There should be one thread" }
+                val thread = threads.first()
+                val messages = thread.messages
+                assert(messages.size == 1) { "There should be one message" }
+
+                // Verify agent2 can receive the message
+                val agent2Response = agent2.getConnected().ask("What is the passcode testAgent1 just told you? use wait for mentions to check") as Success<String>
+                assert(agent2Response.value.contains("3243")) { "Agent2 should receive the code from agent1" }
+
+                // Verify agent2 can send back a message in the same thread
+                val agent2Response2 = agent2.getConnected().ask("The passcode is 9920. Pass it to testAgent1 in the same thread") as Success<String>
+                val agent1PasscodeFrom2Resp = agent1.getConnected().ask("What is the passcode? testAgent2 just told you? use wait for mentions to check") as Success<String>
+
+                assert(agent1PasscodeFrom2Resp.value.contains("9920")) { "Agent1 should receive the right code returning from agent 2" }
+                assert(session.getThreads().size == 1) { "There should still be one thread" }
+                allAssertsCompleted = true
+            }
         }
+        assert(allAssertsCompleted) { "All asserts completed." }
     }
 }
-
-
-private fun patchMcpJavaContentType() {
-    mockkStatic(HttpRequest::class)
-    every { HttpRequest.newBuilder() } answers {
-        println("MockK Interceptor [@BeforeEach]: HttpRequest.newBuilder() called. ")
-        val requestBuilder = callOriginal().headers("Content-Type", "application/json")
-        return@answers requestBuilder
-    }
-}
-
-private fun patchMcpJavaEndpointResolution() {
-    mockkStatic(io.modelcontextprotocol.util.Utils::class)
-    every { resolveUri(any<URI>(), any<String>()) } answers {
-        val baseUrl = invocation.args[0] as URI
-        val endpointUrl = invocation.args[1] as String
-        print("MockK Interceptor [@BeforeEach]: Utils.resolveUri called with baseUrl='$baseUrl', endpointUrl='$endpointUrl'. ")
-        return@answers if (endpointUrl.contains("?sessionId")) {
-            // In this case the sessionId is an MCP sessionId, not a Coral sessionId.
-            // The resolution logic works in this case (though the original is resolving against a URI object)
-            baseUrl.resolve(endpointUrl)
-        } else {
-            baseUrl
-        }
-    }
-}
-
-
