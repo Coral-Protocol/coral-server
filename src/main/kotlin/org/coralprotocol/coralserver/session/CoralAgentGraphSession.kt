@@ -40,6 +40,10 @@ class CoralAgentGraphSession(
         return threads.values.filter { it.participants.contains(agentId) }
     }
 
+    fun getThreads(): List<Thread> {
+        return threads.values.toList()
+    }
+
     fun clearAll() {
         agents.clear()
         threads.clear()
