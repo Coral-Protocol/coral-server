@@ -20,7 +20,7 @@ data class Executable(
     val command: List<String>,
     val environment: List<EnvVar> = listOf()
 ) : AgentRuntime() {
-    override fun spawn(options: Map<String, ConfigValue>): OrchestratorHandle {
+    override fun spawn(connectionUrl: String, options: Map<String, ConfigValue>): OrchestratorHandle {
         val processBuilder = ProcessBuilder().redirectErrorStream(true)
         val environment = processBuilder.environment()
         environment.clear()
@@ -28,6 +28,8 @@ data class Executable(
             val (key, value) = env.resolve(options)
             environment[key] = value
         }
+        // TODO: error if someone tries passing 'CORAL_CONNECTION_URL' themselves
+        environment["CORAL_CONNECTION_URL"] = connectionUrl
         processBuilder.command(command)
 
         logger.info { "spawning process..." }

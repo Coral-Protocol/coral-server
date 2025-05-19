@@ -31,7 +31,7 @@ fun main(args: Array<String>) {
                 port = port,
                 devmode = devMode,
                 appConfig = appConfig,
-                sessionManager = SessionManager(orchestrator)
+                sessionManager = SessionManager(orchestrator, port = port)
             )
 
             // Add shutdown hook to stop the server gracefully

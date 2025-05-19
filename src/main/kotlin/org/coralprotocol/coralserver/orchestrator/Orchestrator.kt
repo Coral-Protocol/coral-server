@@ -5,7 +5,7 @@ import org.coralprotocol.coralserver.session.GraphAgent
 import org.coralprotocol.coralserver.orchestrator.runtime.AgentRuntime
 
 interface Orchestrate {
-    fun spawn(options: Map<String, ConfigValue>): OrchestratorHandle
+    fun spawn(connectionUrl: String, options: Map<String, ConfigValue>): OrchestratorHandle
 }
 
 interface OrchestratorHandle {
@@ -17,26 +17,26 @@ class Orchestrator(
 ) {
     private val handles: MutableList<OrchestratorHandle> = mutableListOf()
 
-    fun spawn(type: AgentType, options: Map<String, ConfigValue>) {
-        spawn(registry.get(type), options)
+    fun spawn(type: AgentType, connectionUrl: String, options: Map<String, ConfigValue>) {
+        spawn(registry.get(type), connectionUrl, options)
     }
 
-    fun spawn(agent: RegistryAgent, options: Map<String, ConfigValue>) {
-        handles.add(agent.runtime.spawn(options))
+    fun spawn(agent: RegistryAgent, connectionUrl: String, options: Map<String, ConfigValue>) {
+        handles.add(agent.runtime.spawn(connectionUrl, options))
     }
 
-    fun spawn(runtime: AgentRuntime, options: Map<String, ConfigValue>) {
-        handles.add(runtime.spawn(options))
+    fun spawn(runtime: AgentRuntime, connectionUrl: String, options: Map<String, ConfigValue>) {
+        handles.add(runtime.spawn(connectionUrl, options))
     }
 
-    fun spawn(type: GraphAgent) {
+    fun spawn(type: GraphAgent, connectionUrl: String) {
         when (type) {
             is GraphAgent.Local -> {
-                spawn(type.agentType, type.options)
+                spawn(type.agentType, connectionUrl, type.options)
             }
 
             is GraphAgent.Remote -> {
-                spawn(type.remote, type.options)
+                spawn(type.remote, connectionUrl, type.options)
             }
         }
     }
