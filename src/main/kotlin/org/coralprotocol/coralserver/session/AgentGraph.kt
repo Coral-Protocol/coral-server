@@ -7,7 +7,9 @@ import org.coralprotocol.coralserver.orchestrator.runtime.AgentRuntime
 
 @JvmInline
 @Serializable
-value class AgentName(private val name: String)
+value class AgentName(private val name: String) {
+    override fun toString() = name
+}
 
 @Serializable
 data class AgentGraph(

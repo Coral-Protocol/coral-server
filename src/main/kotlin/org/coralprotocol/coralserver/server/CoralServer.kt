@@ -31,7 +31,7 @@ class CoralServer(
     val port: UShort = 5555u,
     val appConfig: AppConfig,
     val devmode: Boolean = false,
-    val sessionManager: SessionManager = SessionManager(),
+    val sessionManager: SessionManager = SessionManager(port = port),
 ) {
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
