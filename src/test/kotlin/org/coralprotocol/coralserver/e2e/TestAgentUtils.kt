@@ -2,36 +2,32 @@ package org.coralprotocol.coralserver.e2e
 
 import com.azure.ai.openai.OpenAIClientBuilder
 import com.azure.core.credential.KeyCredential
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.every
 import io.mockk.mockkStatic
 import io.modelcontextprotocol.util.Utils.resolveUri
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.newFixedThreadPoolContext
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import org.coralprotocol.coralserver.server.CoralServer
 import org.coralprotocol.coralserver.session.CoralAgentGraphSession
 import org.coralprotocol.coralserver.session.SessionManager
+import org.eclipse.lmos.arc.agents.AgentFailedException
 import org.eclipse.lmos.arc.agents.ChatAgent
+import org.eclipse.lmos.arc.agents.User
 import org.eclipse.lmos.arc.agents.agent.ask
 import org.eclipse.lmos.arc.agents.agents
 import org.eclipse.lmos.arc.agents.dsl.AllTools
 import org.eclipse.lmos.arc.agents.llm.AIClientConfig
 import org.eclipse.lmos.arc.agents.llm.MapChatCompleterProvider
 import org.eclipse.lmos.arc.client.azure.AzureAIClient
+import org.eclipse.lmos.arc.core.Failure
+import org.eclipse.lmos.arc.core.Success
 import org.eclipse.lmos.arc.mcp.McpTools
 import java.net.URI
 import java.net.http.HttpRequest
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
+
+private val logger = KotlinLogging.logger {}
 
 suspend fun createSessionWithConnectedAgents(
     server: CoralServer,
@@ -71,7 +67,19 @@ interface SessionCoralAgentDefinitionContext {
         // TODO: Consider using a more specific type than Deferred<ChatAgent>
         // TODO: Consider using more guaranteed invokeCompleted
         @OptIn(ExperimentalCoroutinesApi::class)
-        suspend fun Deferred<ChatAgent>.getConnected() = this.getCompleted()
+        fun Deferred<ChatAgent>.getConnected() = this.getCompleted()
+
+        suspend fun Deferred<ChatAgent>.askC(question: String, user: User? = null): String {
+            val agent = this.getConnected()
+            val response =  agent.ask(question, user)
+            return when (response) {
+                is Success -> {
+                    logger.info { "${agent.name} -> [User]: ${response.value}" }
+                    response.value
+                }
+                is Failure -> throw AgentFailedException("Agent failed to respond: ${response.reason}")
+            }
+        }
     }
 
     var onAgentsCreated: suspend AgentsCreatedContext.() -> Unit
@@ -166,11 +174,12 @@ fun createConnectedCoralAgent(
     sessionId: String = "session1",
     privacyKey: String = "privkey",
     applicationId: String = "exampleApplication",
+    maxWaitForMentionsTimeout: Long = 3000L,
 ): ChatAgent {
     val agent = agents(
         functionLoaders = listOf(
             McpTools(
-                "$protocol://$host:$port/devmode/$applicationId/$privacyKey/$sessionId/sse?agentId=$namePassedToServer",
+                "$protocol://$host:$port/devmode/$applicationId/$privacyKey/$sessionId/sse?agentId=$namePassedToServer&maxWaitForMentionsTimeout=$maxWaitForMentionsTimeout",
                 5000.seconds.toJavaDuration()
             )
         ),

@@ -40,7 +40,7 @@ dependencies {
 
     val ktorVersion = "3.0.2"
     implementation(enforcedPlatform("io.ktor:ktor-bom:$ktorVersion"))
-
+    implementation("io.ktor:ktor-server-status-pages")
     // Ktor testing dependencies
     testImplementation("io.ktor:ktor-server-test-host")
     testImplementation("io.ktor:ktor-client-mock")

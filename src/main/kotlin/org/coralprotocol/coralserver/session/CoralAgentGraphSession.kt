@@ -238,7 +238,7 @@ class CoralAgentGraphSession(
         val deferred = CompletableDeferred<List<Message>>()
         agentNotifications[agentId] = deferred
 
-        val result = kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
+        val result = withTimeoutOrNull(timeoutMs) {
             deferred.await()
         } ?: emptyList()
 
