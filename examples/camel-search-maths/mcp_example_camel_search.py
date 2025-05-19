@@ -14,7 +14,7 @@ from tools import JinaBrowsingToolkit
 from dotenv import load_dotenv
 from config import PLATFORM_TYPE, MODEL_TYPE, MODEL_CONFIG, MESSAGE_WINDOW_SIZE, TOKEN_LIMIT
 
-load_dotenv()
+# load_dotenv()
 
 async def main():
     # Simply add the Coral server address as a tool
