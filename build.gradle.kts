@@ -29,6 +29,9 @@ dependencies {
     implementation("io.github.pdvrieze.xmlutil:serialization-jvm:0.91.0")
 
 
+    implementation("net.java.dev.jna:jna:5.13.0")        // JNA itself
+    implementation("net.java.dev.jna:jna-platform:5.13.0") // some extras
+
     // Hoplite for configuration
     implementation("com.sksamuel.hoplite:hoplite-core:2.7.5")
     implementation("com.sksamuel.hoplite:hoplite-yaml:2.7.5")
