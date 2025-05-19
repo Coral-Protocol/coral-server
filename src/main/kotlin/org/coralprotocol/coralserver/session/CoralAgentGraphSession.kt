@@ -1,27 +1,23 @@
 package org.coralprotocol.coralserver.session
 
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.withTimeoutOrNull
 import org.coralprotocol.coralserver.models.Agent
 import org.coralprotocol.coralserver.models.Message
 import org.coralprotocol.coralserver.models.Thread
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.concurrent.atomics.AtomicInt
-import kotlin.concurrent.atomics.ExperimentalAtomicApi
-import kotlin.concurrent.atomics.incrementAndFetch
 
 /**
  * Session class to hold stateful information for a specific application and privacy key.
  * [devRequiredAgentStartCount] is the number of agents that need to register before the session can proceed. This is for devmode only.
- * TODO: Implement a mechanism for waiting for specific agents to register for production mode.
  */
 class CoralAgentGraphSession(
     val id: String,
     val applicationId: String,
     val privacyKey: String,
     val coralAgentConnections: MutableList<CoralAgentIndividualMcp> = mutableListOf(),
-    var devRequiredAgentStartCount: Int = 0
+    val groups: List<Set<String>> = listOf(),
+    var devRequiredAgentStartCount: Int = 0,
 ) {
     private val agents = ConcurrentHashMap<String, Agent>()
 
@@ -31,10 +27,7 @@ class CoralAgentGraphSession(
 
     private val lastReadMessageIndex = ConcurrentHashMap<Pair<String, String>, Int>()
 
-    @OptIn(ExperimentalAtomicApi::class)
-    private var registeredAgentsCount = AtomicInt(0)
-
-    val agentCountNotifications = ConcurrentHashMap<Int, MutableList<CompletableDeferred<Boolean>>>()
+    private val agentGroupScheduler = GroupScheduler(groups)
     private val countBasedScheduler = CountBasedScheduler()
 
     fun getAllThreadsAgentParticipatesIn(agentId: String): List<Thread> {
@@ -46,48 +39,25 @@ class CoralAgentGraphSession(
         threads.clear()
         agentNotifications.clear()
         lastReadMessageIndex.clear()
-//        registeredAgentsCount = 0
-        agentCountNotifications.clear()
         countBasedScheduler.clear()
+        agentGroupScheduler.clear()
     }
 
-    @OptIn(ExperimentalAtomicApi::class)
     fun registerAgent(agent: Agent): Boolean {
         if (agents.containsKey(agent.id)) {
             return false
         }
         agents[agent.id] = agent
 
-        registeredAgentsCount.incrementAndFetch()
-
-        // Create a copy of the keys to avoid ConcurrentModificationException
-        val targetCounts = agentCountNotifications.keys.toList()
-
-//        // For each target count that has been reached
-        for (targetCount in targetCounts) {
-            if (registeredAgentsCount.load() >= targetCount) {
-                // Get the list of deferreds for this target count
-                val deferreds = agentCountNotifications[targetCount]
-                if (deferreds != null) {
-                    // Complete all deferreds that are not already completed
-                    for (deferred in deferreds) {
-                        if (!deferred.isCompleted) {
-                            deferred.complete(true)
-                        }
-                    }
-                    // Remove this target count from the map
-                    agentCountNotifications.remove(targetCount)
-                }
-            }
-        }
-
+        agentGroupScheduler.registerAgent(agent.id)
         countBasedScheduler.registerAgent(agent.id)
         return true
     }
 
     fun getRegisteredAgentsCount(): Int = countBasedScheduler.getRegisteredAgentsCount()
 
-        val deferred = CompletableDeferred<Boolean>()
+    suspend fun waitForGroup(agentId: String, timeoutMs: Long): Boolean =
+        agentGroupScheduler.waitForGroup(agentId, timeoutMs)
 
     suspend fun waitForAgentCount(targetCount: Int, timeoutMs: Long): Boolean = countBasedScheduler.waitForAgentCount(targetCount, timeoutMs)
 
