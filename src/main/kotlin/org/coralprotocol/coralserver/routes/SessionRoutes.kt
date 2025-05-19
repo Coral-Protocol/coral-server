@@ -73,6 +73,7 @@ fun Routing.sessionRoutes(sessionManager: SessionManager, devMode: Boolean) {
                                 }
 
                                 GraphAgent.Local(
+                                    blocking = agentReq.blocking ?: true,
                                     agentType = agentReq.agentType,
                                     options = defaultOptions + setOptions
                                 )

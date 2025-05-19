@@ -25,15 +25,16 @@ data class AgentGraphRequest(
 @Serializable
 sealed interface GraphAgentRequest {
     val options: Map<String, JsonPrimitive>
+    val blocking: Boolean?
 
     @Serializable
     @SerialName("remote")
-    data class Remote(val remote: AgentRuntime.Remote, override val options: Map<String, JsonPrimitive> = mapOf()) :
+    data class Remote(val remote: AgentRuntime.Remote, override val options: Map<String, JsonPrimitive> = mapOf(), override val blocking: Boolean? = true) :
         GraphAgentRequest
 
     @Serializable
     @SerialName("local")
-    data class Local(val agentType: AgentType, override val options: Map<String, JsonPrimitive> = mapOf()) :
+    data class Local(val agentType: AgentType, override val options: Map<String, JsonPrimitive> = mapOf(), override val blocking: Boolean? = true) :
         GraphAgentRequest
 }
 
