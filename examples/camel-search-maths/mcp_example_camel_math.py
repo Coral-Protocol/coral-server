@@ -11,13 +11,12 @@ from prompts import get_tools_description, get_user_message
 from dotenv import load_dotenv
 from config import PLATFORM_TYPE, MODEL_TYPE, MODEL_CONFIG, MESSAGE_WINDOW_SIZE, TOKEN_LIMIT
 
-load_dotenv()
+# load_dotenv()
 
 async def main():
     # Simply add the Coral server address as a tool
+    print("Starting MCP client...")
     server = MCPClient("http://localhost:5555/devmode/exampleApplication/privkey/session1/sse?agentId=math_agent", timeout=300.0)
-
-
     mcp_toolkit = MCPToolkit([server])
 
     async with mcp_toolkit.connection() as connected_mcp_toolkit:
