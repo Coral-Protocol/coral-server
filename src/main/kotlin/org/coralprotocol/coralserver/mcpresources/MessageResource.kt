@@ -26,7 +26,7 @@ fun CoralAgentIndividualMcp.addMessageResource() {
     addResource(
         name = "message",
         description = "Message resource",
-        uri = "/message",
+        uri = "./message",
         mimeType = "application/json",
         readHandler = { request: ReadResourceRequest ->
             handler(request)
