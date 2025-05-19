@@ -28,14 +28,14 @@ private val logger = KotlinLogging.logger {}
  */
 class CoralServer(
     val host: String = "0.0.0.0",
-    val port: Int = 5555,
+    val port: UShort = 5555u,
     val appConfig: AppConfig,
     val devmode: Boolean = false,
     val sessionManager: SessionManager = SessionManager(),
 ) {
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
-        embeddedServer(CIO, host = host, port = port, watchPaths = listOf("classes")) {
+        embeddedServer(CIO, host = host, port = port.toInt(), watchPaths = listOf("classes")) {
             install(SSE)
             install(ContentNegotiation) {
                 json()

@@ -18,7 +18,7 @@ fun main(args: Array<String>) {
 //    System.setProperty("io.ktor.development", "true")
 
     val command = args.firstOrNull() ?: "--sse-server"
-    val port = args.getOrNull(1)?.toIntOrNull() ?: 5555
+    val port = args.getOrNull(1)?.toUShortOrNull() ?: 5555u
     val devMode = args.contains("--dev")
 
     when (command) {
