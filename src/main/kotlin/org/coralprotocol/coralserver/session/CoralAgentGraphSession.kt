@@ -35,6 +35,7 @@ class CoralAgentGraphSession(
     private var registeredAgentsCount = AtomicInt(0)
 
     val agentCountNotifications = ConcurrentHashMap<Int, MutableList<CompletableDeferred<Boolean>>>()
+    private val countBasedScheduler = CountBasedScheduler()
 
     fun getAllThreadsAgentParticipatesIn(agentId: String): List<Thread> {
         return threads.values.filter { it.participants.contains(agentId) }
@@ -51,6 +52,7 @@ class CoralAgentGraphSession(
         lastReadMessageIndex.clear()
 //        registeredAgentsCount = 0
         agentCountNotifications.clear()
+        countBasedScheduler.clear()
     }
 
     @OptIn(ExperimentalAtomicApi::class)
@@ -83,46 +85,15 @@ class CoralAgentGraphSession(
             }
         }
 
+        countBasedScheduler.registerAgent(agent.id)
         return true
     }
 
-    @OptIn(ExperimentalAtomicApi::class)
-    fun getRegisteredAgentsCount(): Int {
-        return registeredAgentsCount.load()
-    }
-
-    @OptIn(ExperimentalAtomicApi::class)
-    suspend fun waitForAgentCount(targetCount: Int, timeoutMs: Long): Boolean {
-        if (registeredAgentsCount.load() >= targetCount) {
-            return true
-        }
+    fun getRegisteredAgentsCount(): Int = countBasedScheduler.getRegisteredAgentsCount()
 
         val deferred = CompletableDeferred<Boolean>()
 
-        // Get or create the list of deferreds for this target count
-        val deferreds = agentCountNotifications.computeIfAbsent(targetCount) { mutableListOf() }
-
-        // Add the new deferred to the list
-        deferreds.add(deferred)
-
-        val result = withTimeoutOrNull(timeoutMs) {
-            deferred.await()
-        } ?: false
-
-        if (!result) {
-            // If the wait timed out, remove this deferred from the list
-            val deferredsList = agentCountNotifications[targetCount]
-            if (deferredsList != null) {
-                deferredsList.remove(deferred)
-                // If the list is now empty, remove the target count from the map
-                if (deferredsList.isEmpty()) {
-                    agentCountNotifications.remove(targetCount)
-                }
-            }
-        }
-
-        return result
-    }
+    suspend fun waitForAgentCount(targetCount: Int, timeoutMs: Long): Boolean = countBasedScheduler.waitForAgentCount(targetCount, timeoutMs)
 
     fun getAgent(agentId: String): Agent? = agents[agentId]
 
@@ -192,7 +163,12 @@ class CoralAgentGraphSession(
         return colors[index]
     }
 
-    fun sendMessage(threadId: String, senderId: String, content: String, mentions: List<String> = emptyList()): Message {
+    fun sendMessage(
+        threadId: String,
+        senderId: String,
+        content: String,
+        mentions: List<String> = emptyList()
+    ): Message {
         val thread = getThread(threadId) ?: throw IllegalArgumentException("Thread with id $threadId not found")
         val sender = getAgent(senderId) ?: throw IllegalArgumentException("Agent with id $senderId not found")
 
@@ -223,7 +199,7 @@ class CoralAgentGraphSession(
     }
 
     suspend fun waitForMentions(agentId: String, timeoutMs: Long): List<Message> {
-        if(timeoutMs <= 0) {
+        if (timeoutMs <= 0) {
             throw IllegalArgumentException("Timeout must be greater than 0")
         }
 
