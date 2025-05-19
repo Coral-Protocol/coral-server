@@ -18,6 +18,7 @@ import org.coralprotocol.coralserver.mcptools.addThreadTools
  * This [CoralAgentIndividualMcp] should persist even if the agent reconnects via a different transport.
  */
 class CoralAgentIndividualMcp(
+    val connectedUri: String,
     /**
      * The latest transport used by the agent to connect to the server. It might change if the agent reconnects.
      */
