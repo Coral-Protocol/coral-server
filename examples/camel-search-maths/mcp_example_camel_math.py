@@ -39,6 +39,8 @@ async def create_math_agent(tools):
             operations. You can interact with other agents using the chat tools.
             Mathematics are your speciality.  You identify as "math_agent".
             
+            Make sure to mention agents you intend to communicate with.
+            
             Here are the guidelines for using the communication tools:
             ${get_tools_description()}
             """

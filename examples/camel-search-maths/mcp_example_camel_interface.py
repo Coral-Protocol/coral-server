@@ -22,11 +22,11 @@ async def main():
     mcp_toolkit = MCPToolkit([server])
 
     async with mcp_toolkit.connection() as connected_mcp_toolkit:
+        print("Connected to coral server.")
         camel_agent = await create_interface_agent(connected_mcp_toolkit)
 
-        await camel_agent.astep("Check in with the other agents to introduce yourself, before we start answering user queries.")
-        sleep(3)
-        await camel_agent.astep("Ask the user for a request to work with the other agents to fulfill by calling the ask human tool. ONlY call the ask human tool, don't call any other tools this time.")
+        await camel_agent.astep("Check in with the other agents to introduce yourself. Make sure to mention the other agents, and don't wait for responses.")
+        await camel_agent.astep("Ask the user for a request to work with the other agents to fulfill by calling the ask human tool. ONlY call the ask human tool, don't call any other tools or message any other agent this time.")
 
         # Step the agent continuously
         for i in range(20):  #This should be infinite, but for testing we limit it to 20 to avoid accidental API fees
@@ -48,6 +48,8 @@ async def create_interface_agent(connected_mcp_toolkit):
             If you are yet to receive any instructions from the user, use the ask_user tool to ask the user for input.
             
             Make sure that all information comes from reliable sources and that all calculations are done using the appropriate tools by the appropriate agents. Make sure your responses are much more reliable than guesses! You should make sure no agents are guessing too, by suggesting the relevant agents to do each part of a task to the agents you are working with. Do a refresh of the available agents and new messages before asking the user for input.
+            
+            Make sure to put the name of the agent you are talking to in the mentions field of the send message tool.
             
             After working with other agents, when you are confident that you have all the information for a final answer/response, use the send_message_to_user tool to send the final response to the user. Only do this when you are confident you have the FINAL response. Do not attempt to give the user their response directly, they won't see it, use this tool.
             
