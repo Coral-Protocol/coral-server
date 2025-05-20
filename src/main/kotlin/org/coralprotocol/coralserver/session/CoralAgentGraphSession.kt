@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver.session
 
 import kotlinx.coroutines.CompletableDeferred
+import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.models.Agent
 import org.coralprotocol.coralserver.models.Message
 import org.coralprotocol.coralserver.models.Thread
