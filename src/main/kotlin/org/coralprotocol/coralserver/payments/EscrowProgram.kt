@@ -19,6 +19,7 @@ interface EscrowProgram : Library {
     fun coral_deposit(mint: String, amount: ULong): Byte
     fun coral_claim(agentAta: String,mint: String, amount: ULong): Byte
     fun coral_string_free(ptr: Pointer)
+    fun coral_refund_leftover(mint: String)
 }
 
 data class AgentPayCtx(
@@ -72,25 +73,19 @@ object EscrowProgramLib {
         escrow.coral_claim(ctx.agentsToAtas[id]?.ata ?: error("Call initAndDeposit"), ctx.mint, amount)
     }
 
-    fun claimDelay(id: String, amount: ULong) {
-        CoroutineScope(Dispatchers.Default).launch {
-            delay(5.seconds)
-            println("CLAIM")
-            claim(id, amount)
-        }
-    }
-
     fun createDemoEscrow(agentsToAmounts: Map<String, ULong>) {
-        println("Demo escrow flow")
         CoroutineScope(Dispatchers.Default).launch {
-            //delay(1.minutes)
+            delay(1.minutes)
 
             initAndDeposit(agentsToAmounts)
 
+            delay(1.minutes)
 
             ctx.agentsToAtas.forEach { (id, agentCtx) ->
-                claimDelay(id, (agentCtx.amount.toDouble() * Random.nextDouble(from = 0.5, until = 1.0)).toULong())
+                claim(id, (agentCtx.amount.toDouble() * Random.nextDouble(from = 0.5, until = 1.0)).toULong())
             }
+
+            //escrow.coral_refund_leftover(ctx.mint)
         }
     }
 }
