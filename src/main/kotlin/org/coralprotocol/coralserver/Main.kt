@@ -42,7 +42,7 @@ fun main(args: Array<String>) {
 private fun coralEscrowProgramDemo() {
     val escrow = CoralLib.INSTANCE
 
-    require(escrow.coral_setup("/Users/andri/.config/solana/id.json").toInt()==0)
+    require(escrow.coral_setup("/Users/andri/Projects/coral-server/src/main/resources/master.json").toInt()==0)
 
     // 2) create mint
     val mintPtr = escrow.coral_generate_mint()
