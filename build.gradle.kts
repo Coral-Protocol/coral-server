@@ -49,6 +49,9 @@ dependencies {
     implementation("com.chrynan.uri.core:uri-core:$uriVersion")
     implementation("com.chrynan.uri.core:uri-ktor-client:$uriVersion")
 
+    implementation("net.java.dev.jna:jna:5.13.0")        // JNA itself
+    implementation("net.java.dev.jna:jna-platform:5.13.0") // some extras
+
     // Ktor testing dependencies
     testImplementation("io.ktor:ktor-server-test-host")
     testImplementation("io.ktor:ktor-client-mock")
