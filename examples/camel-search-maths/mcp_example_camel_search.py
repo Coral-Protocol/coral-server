@@ -24,8 +24,6 @@ async def main():
     async with mcp_toolkit.connection() as connected_mcp_toolkit:
         camel_agent = await create_search_agent(connected_mcp_toolkit)
 
-        await camel_agent.astep("Register as search_agent")
-
         # Step the agent continuously
         for i in range(20):  #This should be infinite, but for testing we limit it to 20 to avoid accidental API fees
             resp = await camel_agent.astep(get_user_message())
@@ -48,6 +46,8 @@ async def create_search_agent(connected_mcp_toolkit):
         f"""
             You are a helpful assistant responsible for doing search operations. You can interact with other agents using the chat tools.
             Search is your speciality. You identify as "search_agent".
+            
+            Make sure to mention other agents when you intend to communicate with them.
 
             Here are the guidelines for using the communication tools:
             ${get_tools_description()}
