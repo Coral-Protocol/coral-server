@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.session
 
+import io.ktor.util.collections.*
 import kotlinx.coroutines.CompletableDeferred
 import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.models.Agent
@@ -22,6 +23,7 @@ class CoralAgentGraphSession(
     var devRequiredAgentStartCount: Int = 0,
 ) {
     private val agents = ConcurrentHashMap<String, Agent>()
+    private val debugAgents = ConcurrentSet<String>()
 
     private val threads = ConcurrentHashMap<String, Thread>()
 
@@ -71,7 +73,10 @@ class CoralAgentGraphSession(
 
     fun getAgent(agentId: String): Agent? = agents[agentId]
 
-    fun getAllAgents(): List<Agent> = agents.values.toList()
+    fun getAllAgents(includeDebug: Boolean = false): List<Agent> = when (includeDebug) {
+        true -> agents.values.toList()
+        false -> agents.values.filter { !debugAgents.contains(it.id) }
+    }
 
     fun getAllThreads(): List<Thread> = threads.values.toList()
 
@@ -80,6 +85,7 @@ class CoralAgentGraphSession(
         if (agents[id] !== null) throw AssertionError("Debug agent id collision")
         val agent = Agent(id = id, description = "")
         agents[id] = agent
+        debugAgents.add(id)
         return agent
     }
 
