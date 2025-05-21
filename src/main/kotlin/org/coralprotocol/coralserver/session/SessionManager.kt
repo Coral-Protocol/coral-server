@@ -35,7 +35,7 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
     private val sessionListeners = ConcurrentHashMap<String, MutableList<CompletableDeferred<Boolean>>>()
 
     suspend fun waitForSession(id: String, timeoutMs: Long = 10000): CoralAgentGraphSession? {
-        if (sessions.contains(id)) return sessions[id]
+        if (sessions.containsKey(id)) return sessions[id]
         val deferred = CompletableDeferred<Boolean>()
         sessionListeners.computeIfAbsent(id) { mutableListOf() }.add(deferred)
 
