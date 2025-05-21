@@ -103,7 +103,8 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
                 it.agents.forEach { agent ->
                     orchestrator.spawn(
                         agent.value,
-                        "http://localhost:${port}/${applicationId}/${privacyKey}/${sessionId}/sse?agentId=${agent.key}"
+                        agentName = agent.key.toString(),
+                        connectionUrl = "http://localhost:${port}/${applicationId}/${privacyKey}/${sessionId}/sse?agentId=${agent.key}"
                     )
                 }
             }
