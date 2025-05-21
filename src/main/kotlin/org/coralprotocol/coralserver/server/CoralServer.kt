@@ -1,12 +1,14 @@
 package org.coralprotocol.coralserver.server
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.http.*
 import io.ktor.serialization.kotlinx.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import io.ktor.server.websocket.*
@@ -51,6 +53,14 @@ class CoralServer(
                 timeout = 15.seconds
                 maxFrameSize = Long.MAX_VALUE
                 masking = false
+            }
+            install(CORS) {
+                allowMethod(HttpMethod.Options)
+                allowMethod(HttpMethod.Post)
+                allowMethod(HttpMethod.Get)
+                allowHeader(HttpHeaders.AccessControlAllowOrigin)
+                allowHeader(HttpHeaders.ContentType)
+                anyHost()
             }
             routing {
                 // Configure all routes

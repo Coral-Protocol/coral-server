@@ -6,6 +6,7 @@ import org.coralprotocol.coralserver.models.Agent
 import org.coralprotocol.coralserver.models.Message
 import org.coralprotocol.coralserver.models.Thread
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -72,8 +73,20 @@ class CoralAgentGraphSession(
 
     fun getAllAgents(): List<Agent> = agents.values.toList()
 
+    fun getAllThreads(): List<Thread> = threads.values.toList()
+
+    fun registerDebugAgent(): Agent {
+        val id = UUID.randomUUID().toString()
+        if (agents[id] !== null) throw AssertionError("Debug agent id collision")
+        val agent = Agent(id = id, description = "")
+        agents[id] = agent
+        return agent
+    }
+
     suspend fun createThread(name: String, creatorId: String, participantIds: List<String>): Thread {
-        val creator = agents[creatorId] ?: throw IllegalArgumentException("Creator agent not found")
+        if (creatorId != "debug" && !agents.containsKey(creatorId)) {
+            throw IllegalArgumentException("Creator agent $creatorId not found")
+        }
 
         val validParticipants = participantIds.filter { agents.containsKey(it) }.toMutableList()
 
