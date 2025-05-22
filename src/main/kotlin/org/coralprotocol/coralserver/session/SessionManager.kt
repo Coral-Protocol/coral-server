@@ -1,7 +1,6 @@
 package org.coralprotocol.coralserver.session
 
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withTimeoutOrNull
@@ -99,14 +98,12 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
                 visited.add(node)
             }
 
-            runBlocking {
-                it.agents.forEach { agent ->
-                    orchestrator.spawn(
-                        agent.value,
-                        agentName = agent.key.toString(),
-                        connectionUrl = "http://localhost:${port}/${applicationId}/${privacyKey}/${sessionId}/sse?agentId=${agent.key}"
-                    )
-                }
+            it.agents.forEach { agent ->
+                orchestrator.spawn(
+                    agent.value,
+                    agentName = agent.key.toString(),
+                    connectionUrl = "http://localhost:${port}/${applicationId}/${privacyKey}/${sessionId}/sse?agentId=${agent.key}"
+                )
             }
             subgraphs
         }

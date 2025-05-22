@@ -61,6 +61,14 @@ dependencies {
     testImplementation("org.eclipse.lmos:arc-langchain4j-client:$arcVersion")
     testImplementation("io.modelcontextprotocol.sdk:mcp:0.11.0-SNAPSHOT") // Override MCP Java client for Arc 0.126.0
     testImplementation("io.mockk:mockk:1.14.2")
+
+    // kotest
+    // TODO: Use kotest for some or all tests
+//    val kotestVersion = "5.9.1"
+//    testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
+//    testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
+//    testImplementation("io.kotest:kotest-property:$kotestVersion")
+
     // Ktor client dependencies
     implementation("io.ktor:ktor-client-logging")
     implementation("io.ktor:ktor-client-content-negotiation")
@@ -72,7 +80,6 @@ dependencies {
     implementation("io.ktor:ktor-server-cio")
     implementation("io.ktor:ktor-server-sse")
     implementation("io.ktor:ktor-server-cors")
-    implementation("io.ktor:ktor-server-content-negotiation")
     implementation("io.ktor:ktor-server-content-negotiation")
     testImplementation("io.ktor:ktor-server-core")
     testImplementation("io.ktor:ktor-server-cio")
