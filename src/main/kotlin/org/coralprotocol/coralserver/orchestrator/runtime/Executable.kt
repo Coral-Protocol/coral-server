@@ -35,6 +35,7 @@ data class Executable(
         logger.info { "spawning process..." }
         val process = processBuilder.start()
 
+        // TODO (alan): re-evaluate this when it becomes a bottleneck
         thread(isDaemon = true) {
             val reader = process.inputStream.bufferedReader()
             reader.forEachLine { line -> logger.info { "process: $line" } }
