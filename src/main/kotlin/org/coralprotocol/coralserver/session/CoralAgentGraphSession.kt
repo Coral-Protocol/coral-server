@@ -1,27 +1,23 @@
 package org.coralprotocol.coralserver.session
 
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.withTimeoutOrNull
 import org.coralprotocol.coralserver.models.Agent
 import org.coralprotocol.coralserver.models.Message
 import org.coralprotocol.coralserver.models.Thread
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.concurrent.atomics.AtomicInt
-import kotlin.concurrent.atomics.ExperimentalAtomicApi
-import kotlin.concurrent.atomics.incrementAndFetch
 
 /**
  * Session class to hold stateful information for a specific application and privacy key.
  * [devRequiredAgentStartCount] is the number of agents that need to register before the session can proceed. This is for devmode only.
- * TODO: Implement a mechanism for waiting for specific agents to register for production mode.
  */
 class CoralAgentGraphSession(
     val id: String,
     val applicationId: String,
     val privacyKey: String,
     val coralAgentConnections: MutableList<CoralAgentIndividualMcp> = mutableListOf(),
-    var devRequiredAgentStartCount: Int = 0
+    val groups: List<Set<String>> = listOf(),
+    var devRequiredAgentStartCount: Int = 0,
 ) {
     private val agents = ConcurrentHashMap<String, Agent>()
 
@@ -31,10 +27,8 @@ class CoralAgentGraphSession(
 
     private val lastReadMessageIndex = ConcurrentHashMap<Pair<String, String>, Int>()
 
-    @OptIn(ExperimentalAtomicApi::class)
-    private var registeredAgentsCount = AtomicInt(0)
-
-    val agentCountNotifications = ConcurrentHashMap<Int, MutableList<CompletableDeferred<Boolean>>>()
+    private val agentGroupScheduler = GroupScheduler(groups)
+    private val countBasedScheduler = CountBasedScheduler()
 
     fun getAllThreadsAgentParticipatesIn(agentId: String): List<Thread> {
         return threads.values.filter { it.participants.contains(agentId) }
@@ -49,80 +43,27 @@ class CoralAgentGraphSession(
         threads.clear()
         agentNotifications.clear()
         lastReadMessageIndex.clear()
-//        registeredAgentsCount = 0
-        agentCountNotifications.clear()
+        countBasedScheduler.clear()
+        agentGroupScheduler.clear()
     }
 
-    @OptIn(ExperimentalAtomicApi::class)
     fun registerAgent(agent: Agent): Boolean {
         if (agents.containsKey(agent.id)) {
             return false
         }
         agents[agent.id] = agent
 
-        registeredAgentsCount.incrementAndFetch()
-
-        // Create a copy of the keys to avoid ConcurrentModificationException
-        val targetCounts = agentCountNotifications.keys.toList()
-
-//        // For each target count that has been reached
-        for (targetCount in targetCounts) {
-            if (registeredAgentsCount.load() >= targetCount) {
-                // Get the list of deferreds for this target count
-                val deferreds = agentCountNotifications[targetCount]
-                if (deferreds != null) {
-                    // Complete all deferreds that are not already completed
-                    for (deferred in deferreds) {
-                        if (!deferred.isCompleted) {
-                            deferred.complete(true)
-                        }
-                    }
-                    // Remove this target count from the map
-                    agentCountNotifications.remove(targetCount)
-                }
-            }
-        }
-
+        agentGroupScheduler.registerAgent(agent.id)
+        countBasedScheduler.registerAgent(agent.id)
         return true
     }
 
-    @OptIn(ExperimentalAtomicApi::class)
-    fun getRegisteredAgentsCount(): Int {
-        return registeredAgentsCount.load()
-    }
+    fun getRegisteredAgentsCount(): Int = countBasedScheduler.getRegisteredAgentsCount()
 
-    @OptIn(ExperimentalAtomicApi::class)
-    suspend fun waitForAgentCount(targetCount: Int, timeoutMs: Long): Boolean {
-        if (registeredAgentsCount.load() >= targetCount) {
-            return true
-        }
+    suspend fun waitForGroup(agentId: String, timeoutMs: Long): Boolean =
+        agentGroupScheduler.waitForGroup(agentId, timeoutMs)
 
-        val deferred = CompletableDeferred<Boolean>()
-
-        // Get or create the list of deferreds for this target count
-        val deferreds = agentCountNotifications.computeIfAbsent(targetCount) { mutableListOf() }
-
-        // Add the new deferred to the list
-        deferreds.add(deferred)
-
-        val result = withTimeoutOrNull(timeoutMs) {
-            deferred.await()
-        } ?: false
-
-        if (!result) {
-            // If the wait timed out, remove this deferred from the list
-            val deferredsList = agentCountNotifications[targetCount]
-            if (deferredsList != null) {
-                deferredsList.remove(deferred)
-                // If the list is now empty, remove the target count from the map
-                if (deferredsList.isEmpty()) {
-                    agentCountNotifications.remove(targetCount)
-                }
-            }
-        }
-
-        return result
-    }
+    suspend fun waitForAgentCount(targetCount: Int, timeoutMs: Long): Boolean = countBasedScheduler.waitForAgentCount(targetCount, timeoutMs)
 
     fun getAgent(agentId: String): Agent? = agents[agentId]
 
@@ -192,7 +133,12 @@ class CoralAgentGraphSession(
         return colors[index]
     }
 
-    fun sendMessage(threadId: String, senderId: String, content: String, mentions: List<String> = emptyList()): Message {
+    fun sendMessage(
+        threadId: String,
+        senderId: String,
+        content: String,
+        mentions: List<String> = emptyList()
+    ): Message {
         val thread = getThread(threadId) ?: throw IllegalArgumentException("Thread with id $threadId not found")
         val sender = getAgent(senderId) ?: throw IllegalArgumentException("Agent with id $senderId not found")
 
@@ -223,7 +169,7 @@ class CoralAgentGraphSession(
     }
 
     suspend fun waitForMentions(agentId: String, timeoutMs: Long): List<Message> {
-        if(timeoutMs <= 0) {
+        if (timeoutMs <= 0) {
             throw IllegalArgumentException("Timeout must be greater than 0")
         }
 

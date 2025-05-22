@@ -18,13 +18,21 @@ fun main(args: Array<String>) {
 //    System.setProperty("io.ktor.development", "true")
 
     val command = args.firstOrNull() ?: "--sse-server"
-    val port = args.getOrNull(1)?.toIntOrNull() ?: 5555
+    val port = args.getOrNull(1)?.toUShortOrNull() ?: 5555u
     val devMode = args.contains("--dev")
 
     when (command) {
 //        "--stdio" -> runMcpServerUsingStdio()
         "--sse-server" -> {
-            val server = CoralServer(port = port, devmode = devMode)
+            val appConfig = AppConfigLoader.loadConfig()
+
+            val orchestrator = Orchestrator(AgentRegistry(appConfig.registry ?: mapOf()))
+            val server = CoralServer(
+                port = port,
+                devmode = devMode,
+                appConfig = appConfig,
+                sessionManager = SessionManager(orchestrator, port = port)
+            )
 
             // Add shutdown hook to stop the server gracefully
             Runtime.getRuntime().addShutdownHook(Thread {

@@ -116,6 +116,13 @@ private suspend fun handleSseConnection(
     val transportSessionId = transport.sessionId
     servers[transportSessionId] = individualServer
 
+    val success = session.waitForGroup(agentId, 60000)
+    if (success) {
+        logger.info { "Agent $agentId successfully waited for group" }
+    } else {
+        logger.warn { "Agent $agentId failed waiting for group, proceeding anyway.." }
+    }
+
     if (isDevMode) {
         logger.info { "DevMode: Connected to session $sessionId with application $applicationId (waitForAgents=${session.devRequiredAgentStartCount})" }
 
