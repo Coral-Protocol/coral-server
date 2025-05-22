@@ -123,23 +123,23 @@ private suspend fun handleSseConnection(
         logger.warn { "Agent $agentId failed waiting for group, proceeding anyway.." }
     }
 
-//    if (isDevMode) {
-//        logger.info { "DevMode: Connected to session $sessionId with application $applicationId (waitForAgents=${session.devRequiredAgentStartCount})" }
-//
-//        if (session.devRequiredAgentStartCount > 0) {
-//            if (newCount < session.devRequiredAgentStartCount) {
-//
-//                val success = session.waitForAgentCount(session.devRequiredAgentStartCount, 60000)
-//                if (success) {
-//                    logger.info { "DevMode: Successfully waited for ${session.devRequiredAgentStartCount} agents to connect" }
-//                } else {
-//                    logger.warn { "DevMode: Timeout waiting for ${session.devRequiredAgentStartCount} agents to connect, proceeding anyway" }
-//                }
-//            } else {
-//                logger.info { "DevMode: Required agent count already reached" }
-//            }
-//        }
-//    }
+    if (isDevMode) {
+        logger.info { "DevMode: Connected to session $sessionId with application $applicationId (waitForAgents=${session.devRequiredAgentStartCount})" }
+
+        if (session.devRequiredAgentStartCount > 0) {
+            if (newCount < session.devRequiredAgentStartCount) {
+
+                val success = session.waitForAgentCount(session.devRequiredAgentStartCount, 60000)
+                if (success) {
+                    logger.info { "DevMode: Successfully waited for ${session.devRequiredAgentStartCount} agents to connect" }
+                } else {
+                    logger.warn { "DevMode: Timeout waiting for ${session.devRequiredAgentStartCount} agents to connect, proceeding anyway" }
+                }
+            } else {
+                logger.info { "DevMode: Required agent count already reached" }
+            }
+        }
+    }
 
     individualServer.connect(transport)
     return true
