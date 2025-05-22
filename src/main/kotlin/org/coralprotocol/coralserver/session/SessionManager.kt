@@ -63,10 +63,8 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
                 visited.add(node)
             }
 
-            runBlocking {
-                it.agents.forEach { agent ->
-                    orchestrator.spawn(agent.value, "http://localhost:${port}/${applicationId}/${privacyKey}/${sessionId}/sse?agentId=${agent.key}")
-                }
+            it.agents.forEach { agent ->
+                orchestrator.spawn(agent.value, "http://localhost:${port}/${applicationId}/${privacyKey}/${sessionId}/sse?agentId=${agent.key}")
             }
             subgraphs
         }
