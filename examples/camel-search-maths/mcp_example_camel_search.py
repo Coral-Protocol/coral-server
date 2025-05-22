@@ -48,7 +48,7 @@ async def create_search_agent(connected_mcp_toolkit):
             You are a helpful assistant responsible for doing search operations. You can interact with other agents using the chat tools.
             Search is your speciality. You identify as "search_agent".
             
-            Make sure to mention other agents when you intend to communicate with them.
+            If you have no tasks yet, call the wait for mentions tool. Don't ask agents for tasks, wait for them to ask you.
 
             Here are the guidelines for using the communication tools:
             ${get_tools_description()}
