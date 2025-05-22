@@ -16,7 +16,8 @@ from config import PLATFORM_TYPE, MODEL_TYPE, MODEL_CONFIG, MESSAGE_WINDOW_SIZE,
 async def main():
     # Simply add the Coral server address as a tool
     print("Starting MCP client...")
-    server = MCPClient("http://localhost:5555/devmode/exampleApplication/privkey/session1/sse?agentId=math_agent", timeout=300.0)
+    coral_url = os.getenv("CORAL_CONNECTION_URL", default = "http://localhost:5555/devmode/exampleApplication/privkey/session1/sse?agentId=math_agent")
+    server = MCPClient(coral_url, timeout=300.0)
     mcp_toolkit = MCPToolkit([server])
 
     async with mcp_toolkit.connection() as connected_mcp_toolkit:
