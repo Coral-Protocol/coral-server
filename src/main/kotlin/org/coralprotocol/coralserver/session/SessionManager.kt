@@ -1,8 +1,9 @@
 package org.coralprotocol.coralserver.session
 
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withTimeoutOrNull
 import org.coralprotocol.coralserver.orchestrator.Orchestrator
 import java.util.concurrent.ConcurrentHashMap
 
@@ -30,12 +31,46 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
     private val sessions = ConcurrentHashMap<String, CoralAgentGraphSession>()
     private val sessionSemaphore = Semaphore(1)
 
+    private val sessionListeners = ConcurrentHashMap<String, MutableList<CompletableDeferred<Boolean>>>()
+
+    suspend fun waitForSession(id: String, timeoutMs: Long = 10000): CoralAgentGraphSession? {
+        if (sessions.containsKey(id)) return sessions[id]
+        val deferred = CompletableDeferred<Boolean>()
+        sessionListeners.computeIfAbsent(id) { mutableListOf() }.add(deferred)
+
+        val result = withTimeoutOrNull(timeoutMs) {
+            deferred.await()
+        } ?: false
+
+        if (!result) {
+            // If the wait timed out, remove this deferred from the list
+            sessionListeners[id]?.let {
+                it.remove(deferred)
+                // If the list is now empty, remove the target count from the map
+                if (it.isEmpty()) {
+                    sessionListeners.remove(id)
+                }
+            }
+        }
+
+        return sessions[id]
+    }
+
     /**
      * Create a new session with a random ID.
      */
-    fun createSession(applicationId: String, privacyKey: String, agentGraph: AgentGraph?): CoralAgentGraphSession {
-        val sessionId = java.util.UUID.randomUUID().toString()
+    fun createSession(applicationId: String, privacyKey: String, agentGraph: AgentGraph?): CoralAgentGraphSession =
+        createSessionWithId(java.util.UUID.randomUUID().toString(), applicationId, privacyKey, agentGraph)
 
+    /**
+     * Create a new session with a specific ID.
+     */
+    fun createSessionWithId(
+        sessionId: String,
+        applicationId: String,
+        privacyKey: String,
+        agentGraph: AgentGraph?
+    ): CoralAgentGraphSession {
         val subgraphs = agentGraph?.let { it ->
 
             val adj = it.adjacencyMap()
@@ -46,15 +81,15 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
             for (node in adj.keys) {
                 if (visited.contains(node)) continue
                 // non-blocking agents should not be considered part of any subgraph
-                if(it.agents[AgentName(node)]?.blocking == false) continue
+                if (it.agents[AgentName(node)]?.blocking == false) continue
 
                 val subgraph = mutableSetOf(node)
                 val toVisit = adj[node]?.toMutableList()
                 while (toVisit?.isNotEmpty() == true) {
                     val next = toVisit.removeLast()
-                    if(visited.contains(next)) continue
+                    if (visited.contains(next)) continue
                     // non-blocking agents should not be considered part of any subgraph
-                    if(it.agents[AgentName(next)]?.blocking == false) continue
+                    if (it.agents[AgentName(next)]?.blocking == false) continue
                     subgraph.add(next)
                     visited.add(next)
                     adj[next]?.let { n -> toVisit.addAll(n) }
@@ -64,23 +99,23 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
             }
 
             it.agents.forEach { agent ->
-                orchestrator.spawn(agent.value, "http://localhost:${port}/${applicationId}/${privacyKey}/${sessionId}/sse?agentId=${agent.key}")
+                orchestrator.spawn(
+                    agent.value,
+                    agentName = agent.key.toString(),
+                    connectionUrl = "http://localhost:${port}/${applicationId}/${privacyKey}/${sessionId}/sse?agentId=${agent.key}"
+                )
             }
             subgraphs
         }
-
-        val session = CoralAgentGraphSession(sessionId, applicationId, privacyKey, groups = subgraphs?.toList() ?: emptyList())
-        sessions[sessionId] = session
-
-        return session
-    }
-
-    /**
-     * Create a new session with a specific ID.
-     */
-    fun createSessionWithId(sessionId: String, applicationId: String, privacyKey: String): CoralAgentGraphSession {
         val session = CoralAgentGraphSession(sessionId, applicationId, privacyKey)
         sessions[sessionId] = session
+        sessionListeners[sessionId]?.let { it ->
+            it.forEach {
+                if (!it.isCompleted) {
+                    it.complete(true)
+                }
+            }
+        }
         return session
     }
 
@@ -91,10 +126,11 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
     suspend fun getOrCreateSession(
         sessionId: String,
         applicationId: String,
-        privacyKey: String
+        privacyKey: String,
+        agentGraph: AgentGraph?
     ): CoralAgentGraphSession {
         sessionSemaphore.withPermit {
-            return sessions[sessionId] ?: createSessionWithId(sessionId, applicationId, privacyKey)
+            return sessions[sessionId] ?: createSessionWithId(sessionId, applicationId, privacyKey, agentGraph)
         }
     }
 

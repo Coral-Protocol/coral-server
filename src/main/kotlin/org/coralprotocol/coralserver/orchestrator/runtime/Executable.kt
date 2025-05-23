@@ -20,7 +20,7 @@ data class Executable(
     val command: List<String>,
     val environment: List<EnvVar> = listOf()
 ) : AgentRuntime() {
-    override fun spawn(connectionUrl: String, options: Map<String, ConfigValue>): OrchestratorHandle {
+    override fun spawn(agentName: String, connectionUrl: String, options: Map<String, ConfigValue>): OrchestratorHandle {
         val processBuilder = ProcessBuilder().redirectErrorStream(true)
         val environment = processBuilder.environment()
         environment.clear()
@@ -38,7 +38,7 @@ data class Executable(
         // TODO (alan): re-evaluate this when it becomes a bottleneck
         thread(isDaemon = true) {
             val reader = process.inputStream.bufferedReader()
-            reader.forEachLine { line -> logger.info { "process: $line" } }
+            reader.forEachLine { line -> logger.info { "[STDOUT] $agentName: $line" } }
         }
 
         return object : OrchestratorHandle {
