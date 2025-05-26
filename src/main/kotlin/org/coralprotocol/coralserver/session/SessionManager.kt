@@ -1,8 +1,7 @@
 package org.coralprotocol.coralserver.session
 
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.coralprotocol.coralserver.orchestrator.Orchestrator
 import java.util.concurrent.ConcurrentHashMap
 
@@ -25,10 +24,11 @@ fun AgentGraph.adjacencyMap(): Map<String, Set<String>> {
 
 /**
  * Session manager to create and retrieve sessions.
+ * Now uses proper Mutex instead of Semaphore for thread-safe session creation.
  */
 class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: UShort) {
     private val sessions = ConcurrentHashMap<String, CoralAgentGraphSession>()
-    private val sessionSemaphore = Semaphore(1)
+    private val mutex = Mutex()
 
     /**
      * Create a new session with a random ID.
@@ -93,8 +93,10 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
         applicationId: String,
         privacyKey: String
     ): CoralAgentGraphSession {
-        sessionSemaphore.withPermit {
-            return sessions[sessionId] ?: createSessionWithId(sessionId, applicationId, privacyKey)
+        return sessions[sessionId] ?: mutex.withLock {
+            sessions[sessionId] ?: createSessionWithId(sessionId, applicationId, privacyKey).also {
+                sessions[sessionId] = it
+            }
         }
     }
 
