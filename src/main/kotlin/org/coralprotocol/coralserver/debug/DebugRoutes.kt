@@ -6,20 +6,14 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
-import io.ktor.util.collections.*
 import io.ktor.websocket.*
-import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.mcptools.CreateThreadInput
 import org.coralprotocol.coralserver.mcptools.SendMessageInput
 import org.coralprotocol.coralserver.models.Agent
 import org.coralprotocol.coralserver.models.ResolvedThread
-import org.coralprotocol.coralserver.models.Thread
 import org.coralprotocol.coralserver.models.resolve
-import org.coralprotocol.coralserver.session.AgentName
-import org.coralprotocol.coralserver.session.Event
-import org.coralprotocol.coralserver.session.EventMessage
 import org.coralprotocol.coralserver.session.SessionManager
 
 

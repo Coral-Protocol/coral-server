@@ -6,6 +6,7 @@ import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.models.Agent
 import org.coralprotocol.coralserver.models.Message
 import org.coralprotocol.coralserver.models.Thread
+import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -176,7 +177,7 @@ class CoralAgentGraphSession(
 
         val message = Message.create(thread, sender, content, mentions)
         thread.messages.add(message)
-        eventBus.emit(Event.MessageSent(threadId, message.toEventMessage()))
+        eventBus.emit(Event.MessageSent(threadId, message.resolve()))
         notifyMentionedAgents(message)
         return message
     }
