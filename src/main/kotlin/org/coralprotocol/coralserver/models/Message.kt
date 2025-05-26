@@ -1,7 +1,6 @@
 package org.coralprotocol.coralserver.models
 
 import kotlinx.serialization.Serializable
-import org.coralprotocol.coralserver.session.CoralAgentGraphSession
 import java.util.*
 
 /**
@@ -37,7 +36,7 @@ class Message private constructor (
 
 fun Message.resolve(): ResolvedMessage = ResolvedMessage(
     id = id,
-    threadName = this.thread.name,
+    threadId = this.thread.id,
     senderId = this.sender.id,
     content = content,
     timestamp = timestamp,
