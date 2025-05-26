@@ -7,7 +7,7 @@ import kotlin.test.Test
 
 
 class E2EResourceTest {
-    val port = 14391
+    val port: UShort = 14391u
     var server = TestCoralServer(port = port, devmode = true)
 
     @OptIn(DelicateCoroutinesApi::class)

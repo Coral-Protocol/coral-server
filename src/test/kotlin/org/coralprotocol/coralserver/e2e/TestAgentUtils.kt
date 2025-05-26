@@ -7,6 +7,7 @@ import io.mockk.every
 import io.mockk.mockkStatic
 import io.modelcontextprotocol.util.Utils.resolveUri
 import kotlinx.coroutines.*
+import org.coralprotocol.coralserver.config.AppConfig
 import org.coralprotocol.coralserver.server.CoralServer
 import org.coralprotocol.coralserver.session.CoralAgentGraphSession
 import org.coralprotocol.coralserver.session.SessionManager
@@ -165,7 +166,7 @@ fun createConnectedCoralAgent(
 fun createConnectedCoralAgent(
     protocol: String = "http",
     host: String = "localhost",
-    port: Int,
+    port: UShort,
     namePassedToServer: String,
     descriptionPassedToServer: String = namePassedToServer,
     systemPrompt: String = "You are a helpful assistant.",
@@ -226,9 +227,9 @@ fun createTestAIClient(): AzureAIClient {
 
 class TestCoralServer(
     val host: String = "0.0.0.0",
-    val port: Int = 5555,
+    val port: UShort = 5555u,
     val devmode: Boolean = false,
-    val sessionManager: SessionManager = SessionManager(),
+    val sessionManager: SessionManager = SessionManager(port = port),
 ) {
     var server: CoralServer? = null
 
@@ -242,7 +243,8 @@ class TestCoralServer(
             host = host,
             port = port,
             devmode = devmode,
-            sessionManager = sessionManager
+            sessionManager = sessionManager,
+            appConfig = AppConfig(emptyList())
         )
         GlobalScope.launch(serverContext) {
             server!!.start()

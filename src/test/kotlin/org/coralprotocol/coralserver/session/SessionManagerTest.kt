@@ -9,16 +9,16 @@ import java.util.concurrent.ConcurrentHashMap
 
 class SessionManagerTest {
 
-    var sessionManager = SessionManager()
+    var sessionManager = SessionManager(port = 5555u)
     @BeforeEach
     fun setup() {
-        sessionManager = SessionManager()
+        sessionManager = SessionManager(port = 5555u)
     }
 
     @Test
     fun `test create session with random ID`() {
         // Create a session with a random ID
-        val session = sessionManager.createSession("app1", "key1")
+        val session = sessionManager.createSession("app1", "key1", null)
 
         // Verify session was created with correct properties
         assertNotNull(session)
