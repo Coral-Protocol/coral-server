@@ -1,7 +1,11 @@
 package org.coralprotocol.coralserver
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.coralprotocol.coralserver.config.AppConfigLoader
+import org.coralprotocol.coralserver.orchestrator.AgentRegistry
+import org.coralprotocol.coralserver.orchestrator.Orchestrator
 import org.coralprotocol.coralserver.server.CoralServer
+import org.coralprotocol.coralserver.session.SessionManager
 
 private val logger = KotlinLogging.logger {}
 
@@ -18,13 +22,21 @@ fun main(args: Array<String>) {
 //    System.setProperty("io.ktor.development", "true")
 
     val command = args.firstOrNull() ?: "--sse-server"
-    val port = args.getOrNull(1)?.toIntOrNull() ?: 5555
+    val port = args.getOrNull(1)?.toUShortOrNull() ?: 5555u
     val devMode = args.contains("--dev")
 
     when (command) {
 //        "--stdio" -> runMcpServerUsingStdio()
         "--sse-server" -> {
-            val server = CoralServer(port = port, devmode = devMode)
+            val appConfig = AppConfigLoader.loadConfig()
+
+            val orchestrator = Orchestrator(AgentRegistry(appConfig.registry ?: mapOf()))
+            val server = CoralServer(
+                port = port,
+                devmode = devMode,
+                appConfig = appConfig,
+                sessionManager = SessionManager(orchestrator, port = port)
+            )
 
             // Add shutdown hook to stop the server gracefully
             Runtime.getRuntime().addShutdownHook(Thread {

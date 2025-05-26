@@ -17,6 +17,9 @@ repositories {
         url = uri("https://central.sonatype.com/repository/maven-snapshots/")
         name = "sonatypeSnapshots"
     }
+
+    maven("https://repo.repsy.io/mvn/chrynan/public")
+
 }
 
 
@@ -28,6 +31,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
+    implementation("com.charleskorn.kaml:kaml:0.78.0") // YAML serialization
     implementation("io.github.pdvrieze.xmlutil:core:0.91.0") // XML serialization
     implementation("io.github.pdvrieze.xmlutil:serialization:0.91.0")
     implementation("io.github.pdvrieze.xmlutil:core-jdk:0.91.0")
@@ -35,12 +39,16 @@ dependencies {
 
 
     // Hoplite for configuration
-    implementation("com.sksamuel.hoplite:hoplite-core:2.7.5")
-    implementation("com.sksamuel.hoplite:hoplite-yaml:2.7.5")
+    implementation("com.sksamuel.hoplite:hoplite-core:2.9.0")
+    implementation("com.sksamuel.hoplite:hoplite-yaml:2.9.0")
 
     val ktorVersion = "3.0.2"
     implementation(enforcedPlatform("io.ktor:ktor-bom:$ktorVersion"))
-    implementation("io.ktor:ktor-server-status-pages")
+
+    val uriVersion="0.5.0"
+    implementation("com.chrynan.uri.core:uri-core:$uriVersion")
+    implementation("com.chrynan.uri.core:uri-ktor-client:$uriVersion")
+
     // Ktor testing dependencies
     testImplementation("io.ktor:ktor-server-test-host")
     testImplementation("io.ktor:ktor-client-mock")
@@ -71,6 +79,7 @@ dependencies {
     implementation("io.ktor:ktor-server-core")
     implementation("io.ktor:ktor-server-cio")
     implementation("io.ktor:ktor-server-sse")
+    implementation("io.ktor:ktor-server-content-negotiation")
     testImplementation("io.ktor:ktor-server-core")
     testImplementation("io.ktor:ktor-server-cio")
     testImplementation("io.ktor:ktor-server-sse")

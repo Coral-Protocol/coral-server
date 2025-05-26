@@ -14,17 +14,16 @@ from tools import JinaBrowsingToolkit
 from dotenv import load_dotenv
 from config import PLATFORM_TYPE, MODEL_TYPE, MODEL_CONFIG, MESSAGE_WINDOW_SIZE, TOKEN_LIMIT
 
-load_dotenv()
+# load_dotenv()
 
 async def main():
     # Simply add the Coral server address as a tool
-    server = MCPClient("http://localhost:5555/devmode/exampleApplication/privkey/session1/sse?waitForAgents=3&agentId=search_agent", timeout=300.0)
+    coral_url = os.getenv("CORAL_CONNECTION_URL", default = "http://localhost:5555/devmode/exampleApplication/privkey/session1/sse?waitForAgents=3&agentId=search_agent")
+    server = MCPClient(coral_url, timeout=300.0)
     mcp_toolkit = MCPToolkit([server])
 
     async with mcp_toolkit.connection() as connected_mcp_toolkit:
         camel_agent = await create_search_agent(connected_mcp_toolkit)
-
-        await camel_agent.astep("Register as search_agent")
 
         # Step the agent continuously
         for i in range(20):  #This should be infinite, but for testing we limit it to 20 to avoid accidental API fees
@@ -48,6 +47,8 @@ async def create_search_agent(connected_mcp_toolkit):
         f"""
             You are a helpful assistant responsible for doing search operations. You can interact with other agents using the chat tools.
             Search is your speciality. You identify as "search_agent".
+            
+            If you have no tasks yet, call the wait for mentions tool. Don't ask agents for tasks, wait for them to ask you.
 
             Here are the guidelines for using the communication tools:
             ${get_tools_description()}
