@@ -38,6 +38,7 @@ fun Routing.debugRoutes(sessionManager: SessionManager) {
     webSocket("/debug/{applicationId}/{privacyKey}/{coralSessionId}/") {
         val applicationId = call.parameters["applicationId"]
         val privacyKey = call.parameters["privacyKey"]
+        // TODO (alan): proper appId/privacyKey based lookups when session manager is updated
         val sessionId = call.parameters["coralSessionId"] ?: throw IllegalArgumentException("Missing sessionId")
 
         val timeout = call.parameters["timeout"]?.toLongOrNull() ?: 1000
@@ -62,6 +63,7 @@ fun Routing.debugRoutes(sessionManager: SessionManager) {
     }
 
     post("/debug/{applicationId}/{privacyKey}/{coralSessionId}/{debugAgentId}/thread/") {
+        // TODO (alan): proper appId/privacyKey based lookups when session manager is updated
         val applicationId = call.parameters["applicationId"]
         val privacyKey = call.parameters["privacyKey"]
         val sessionId = call.parameters["coralSessionId"] ?: throw IllegalArgumentException("Missing sessionId")
@@ -88,6 +90,7 @@ fun Routing.debugRoutes(sessionManager: SessionManager) {
         }
     }
     post("/debug/{applicationId}/{privacyKey}/{coralSessionId}/{debugAgentId}/thread/sendMessage/") {
+        // TODO (alan): proper appId/privacyKey based lookups when session manager is updated
         val applicationId = call.parameters["applicationId"]
         val privacyKey = call.parameters["privacyKey"]
         val sessionId = call.parameters["coralSessionId"] ?: throw IllegalArgumentException("Missing sessionId")
