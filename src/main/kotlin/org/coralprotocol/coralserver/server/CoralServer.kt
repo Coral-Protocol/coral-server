@@ -54,6 +54,7 @@ class CoralServer(
                 maxFrameSize = Long.MAX_VALUE
                 masking = false
             }
+            // TODO: probably restrict this down the line
             install(CORS) {
                 allowMethod(HttpMethod.Options)
                 allowMethod(HttpMethod.Post)
