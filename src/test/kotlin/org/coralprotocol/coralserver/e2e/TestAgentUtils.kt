@@ -5,6 +5,7 @@ import com.azure.core.credential.KeyCredential
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.mockk.every
 import io.mockk.mockkStatic
+import io.modelcontextprotocol.util.Utils
 import io.modelcontextprotocol.util.Utils.resolveUri
 import kotlinx.coroutines.*
 import org.coralprotocol.coralserver.config.AppConfig
@@ -13,14 +14,18 @@ import org.coralprotocol.coralserver.session.CoralAgentGraphSession
 import org.coralprotocol.coralserver.session.SessionManager
 import org.eclipse.lmos.arc.agents.AgentFailedException
 import org.eclipse.lmos.arc.agents.ChatAgent
+import org.eclipse.lmos.arc.agents.ConversationAgent
 import org.eclipse.lmos.arc.agents.User
 import org.eclipse.lmos.arc.agents.agent.ask
 import org.eclipse.lmos.arc.agents.agents
+import org.eclipse.lmos.arc.agents.conversation.Conversation
+import org.eclipse.lmos.arc.agents.conversation.ConversationMessage
 import org.eclipse.lmos.arc.agents.dsl.AllTools
 import org.eclipse.lmos.arc.agents.llm.AIClientConfig
 import org.eclipse.lmos.arc.agents.llm.MapChatCompleterProvider
 import org.eclipse.lmos.arc.client.azure.AzureAIClient
 import org.eclipse.lmos.arc.core.Failure
+import org.eclipse.lmos.arc.core.Result
 import org.eclipse.lmos.arc.core.Success
 import org.eclipse.lmos.arc.mcp.McpTools
 import java.net.URI
@@ -61,23 +66,30 @@ interface SessionCoralAgentDefinitionContext {
         description: String = name,
         systemPrompt: String = defaultSystemPrompt,
         modelName: String = "gpt-4o",
-        agentClient: AzureAIClient = createTestAIClient(),
-    ): Deferred<ChatAgent>
+        clientBuilder: OpenAIClientBuilder = getDefaultOpenAIClientBuilder(),
+        clientConfiguration: AIClientConfig = AIClientConfig(
+            modelName = modelName,
+            apiKey = System.getenv("OPENAI_API_KEY"),
+            endpoint = "https://api.openai.com/v1",
+            client = "?"
+        ),
+    ): Deferred<ActuallyAgenticAgent>
 
     class AgentsCreatedContext {
         // TODO: Consider using a more specific type than Deferred<ChatAgent>
         // TODO: Consider using more guaranteed invokeCompleted
         @OptIn(ExperimentalCoroutinesApi::class)
-        fun Deferred<ChatAgent>.getConnected() = this.getCompleted()
+        fun Deferred<ActuallyAgenticAgent>.getConnected() = this.getCompleted()
 
-        suspend fun Deferred<ChatAgent>.askC(question: String, user: User? = null): String {
+        suspend fun Deferred<ActuallyAgenticAgent>.askC(question: String, user: User? = null): String {
             val agent = this.getConnected()
-            val response =  agent.ask(question, user)
+            val response = agent.ask(question, user)
             return when (response) {
                 is Success -> {
                     logger.info { "${agent.name} -> [User]: ${response.value}" }
                     response.value
                 }
+
                 is Failure -> throw AgentFailedException("Agent failed to respond: ${response.reason}")
             }
         }
@@ -86,26 +98,55 @@ interface SessionCoralAgentDefinitionContext {
     var onAgentsCreated: suspend AgentsCreatedContext.() -> Unit
 }
 
+class ActuallyAgenticAgent (
+    val wrappedLmosChatAgent: ChatAgent,
+    val rememberedTranscript: MutableList<ConversationMessage> = mutableListOf()
+) : ConversationAgent by wrappedLmosChatAgent {
+    // TODO: Have the events sent here so the memory can be updated
+
+    override suspend fun execute(
+        input: Conversation,
+        context: Set<Any>
+    ): Result<Conversation, AgentFailedException> {
+        val combinedConversation = input.copy(transcript = rememberedTranscript + input.transcript)
+        // Ensure there are no duplicated messages in case a future version of lmos remembers conversations internally
+        val messagesAreDuplicated = combinedConversation.transcript
+            .filterNot { it.turnId == null }
+            .groupBy { it.turnId }
+            .any { it.value.size != 1 }
+        if (messagesAreDuplicated) {
+            throw IllegalStateException("Conversation contains duplicated messages. Probably underlying behaviour has changed away from expected")
+        }
+
+        val result: Success<Conversation> =
+            wrappedLmosChatAgent.execute(combinedConversation, context) as Success<Conversation>
+
+        rememberedTranscript.addAll(result.value.transcript)
+        return result
+    }
+}
+
 private class BasicSessionCoralAgentDefinitionContext(override val server: CoralServer) :
     SessionCoralAgentDefinitionContext {
     override var onAgentsCreated: suspend SessionCoralAgentDefinitionContext.AgentsCreatedContext.() -> Unit = { }
-    private val agentsToAdd = mutableListOf<suspend (CoralAgentGraphSession) -> ChatAgent>()
+    private val agentsToAdd = mutableListOf<suspend (CoralAgentGraphSession) -> ActuallyAgenticAgent>()
     override fun agent(
         name: String,
         description: String,
         systemPrompt: String,
         modelName: String,
-        agentClient: AzureAIClient,
-    ): Deferred<ChatAgent> {
-        val deferrable = CompletableDeferred<ChatAgent>()
+        clientBuilder: OpenAIClientBuilder,
+        clientConfiguration: AIClientConfig
+    ): Deferred<ActuallyAgenticAgent> {
+        val deferrable = CompletableDeferred<ActuallyAgenticAgent>()
         agentsToAdd.add { session ->
             val createConnectedCoralAgent = createConnectedCoralAgent(
                 server = server,
                 namePassedToServer = name,
                 descriptionPassedToServer = description,
                 systemPrompt = systemPrompt,
-                agentClient = agentClient,
-                modelName = modelName,
+                agentClientConfiguration = clientConfiguration,
+                agentClientBuilder = clientBuilder,
                 sessionId = session.id,
                 privacyKey = session.privacyKey,
                 applicationId = session.applicationId
@@ -117,7 +158,7 @@ private class BasicSessionCoralAgentDefinitionContext(override val server: Coral
     }
 
     val context = newFixedThreadPoolContext(5, "E2EResourceTest")
-    suspend fun buildChatAgents(session: CoralAgentGraphSession): List<ChatAgent> = coroutineScope {
+    suspend fun buildChatAgents(session: CoralAgentGraphSession): List<ActuallyAgenticAgent> = coroutineScope {
         return@coroutineScope agentsToAdd.map {
             async(context) { it(session) }
         }.awaitAll()
@@ -130,20 +171,25 @@ fun createConnectedCoralAgent(
     namePassedToServer: String,
     descriptionPassedToServer: String = namePassedToServer,
     systemPrompt: String = "You are a helpful assistant.",
-    agentClient: AzureAIClient = createTestAIClient(),
-    modelName: String = "gpt-4o",
+    agentClientConfiguration: AIClientConfig = AIClientConfig(
+        modelName = "gpt-4o",
+        apiKey = System.getenv("OPENAI_API_KEY"),
+        endpoint = "https://api.openai.com/v1",
+        client = "?"
+    ),
+    agentClientBuilder: OpenAIClientBuilder = getDefaultOpenAIClientBuilder(),
     sessionId: String = "session1",
     privacyKey: String = "privkey",
     applicationId: String = "exampleApplication",
-): ChatAgent = createConnectedCoralAgent(
+): ActuallyAgenticAgent = createConnectedCoralAgent(
     "http",
     server.host,
     server.port,
     namePassedToServer,
     descriptionPassedToServer,
     systemPrompt,
-    agentClient,
-    modelName,
+    agentClientConfiguration,
+    agentClientBuilder,
     sessionId,
     privacyKey,
     applicationId
@@ -170,28 +216,36 @@ fun createConnectedCoralAgent(
     namePassedToServer: String,
     descriptionPassedToServer: String = namePassedToServer,
     systemPrompt: String = "You are a helpful assistant.",
-    agentClient: AzureAIClient = createTestAIClient(),
-    modelName: String = "gpt-4o",
+    agentClientConfiguration: AIClientConfig = AIClientConfig(
+        modelName = "gpt-4o",
+        apiKey = System.getenv("OPENAI_API_KEY"),
+        endpoint = "https://api.openai.com/v1",
+        client = "?"
+    ),
+    agentClientBuilder: OpenAIClientBuilder = getDefaultOpenAIClientBuilder(),
     sessionId: String = "session1",
     privacyKey: String = "privkey",
     applicationId: String = "exampleApplication",
     maxWaitForMentionsTimeout: Long = 3000L,
-): ChatAgent {
-    val agent = agents(
+): ActuallyAgenticAgent {
+    val openAiClient = agentClientBuilder.buildAsyncClient()
+    val azureAIClient = AzureAIClient(agentClientConfiguration, openAiClient)
+
+    val forgetfulLmosAgent = agents(
         functionLoaders = listOf(
             McpTools(
                 "$protocol://$host:$port/devmode/$applicationId/$privacyKey/$sessionId/sse?agentId=$namePassedToServer&maxWaitForMentionsTimeout=$maxWaitForMentionsTimeout",
                 5000.seconds.toJavaDuration()
             )
         ),
-        chatCompleterProvider = MapChatCompleterProvider(mapOf(modelName to agentClient)),
+        chatCompleterProvider = MapChatCompleterProvider(mapOf(agentClientConfiguration.modelName!! to azureAIClient)),
     ) {
         agent {
             this@agent.name = namePassedToServer
             this@agent.description = descriptionPassedToServer
 
             model {
-                modelName
+                agentClientConfiguration.modelName!!
             }
 
             prompt { systemPrompt }
@@ -199,30 +253,40 @@ fun createConnectedCoralAgent(
         }
     }.getAgents().first() as ChatAgent
     runBlocking {
-        agent.ask("hi") // TODO: This is a hack to make sure the agent is connected.
+        forgetfulLmosAgent.ask("hi") // TODO: This is a hack to make sure the agent is connected.
         //TODO: Make arc connect to MCP servers eagerly.
     }
-    return agent
+    val actuallyAgenticAgent = ActuallyAgenticAgent(
+        forgetfulLmosAgent
+        return actuallyAgenticAgent
 }
 
-/**
- * Creates an AzureAIClient for testing.
- *
- * @return An AzureAIClient configured for testing.
- */
-fun createTestAIClient(): AzureAIClient {
-    val config = AIClientConfig(
-        modelName = "gpt-4o",
-        apiKey = System.getenv("OPENAI_API_KEY"),
-        endpoint = "https://api.openai.com/v1",
-        client = "?"
-    )
-    val azureOpenAIClient = OpenAIClientBuilder()
-        .endpoint(config.endpoint)
-        .credential(KeyCredential(config.apiKey))
-        .buildAsyncClient()
+///**
+// * Creates an AzureAIClient for testing.
+// *
+// * @return An AzureAIClient configured for testing.
+// */
+//fun createTestAIClient(): AzureAIClient {
+//    val config = AIClientConfig(
+//        modelName = "gpt-4o",
+//        apiKey = System.getenv("OPENAI_API_KEY"),
+//        endpoint = "https://api.openai.com/v1",
+//        client = "?"
+//    )
+//    val azureOpenAIClient: OpenAIClientBuilder = OpenAIClientBuilder()
+//        .endpoint(config.endpoint)
+//        .credential(KeyCredential(config.apiKey))
+//
+//    return AzureAIClient(config, azureOpenAIClient, eventHandler = {
+//        logger.info { "AzureAIClient event: $it" }
+//    })
+//}
 
-    return AzureAIClient(config, azureOpenAIClient)
+fun getDefaultOpenAIClientBuilder(): OpenAIClientBuilder {
+    return OpenAIClientBuilder()
+
+        .endpoint("https://api.openai.com/v1")
+        .credential(KeyCredential(System.getenv("OPENAI_API_KEY")))
 }
 
 class TestCoralServer(
@@ -259,13 +323,14 @@ private fun patchMcpJavaContentType() {
     mockkStatic(HttpRequest::class)
     every { HttpRequest.newBuilder() } answers {
         println("MockK Interceptor [@BeforeEach]: HttpRequest.newBuilder() called. ")
-        val requestBuilder = callOriginal().headers("Content-Type", "application/json").timeout(40.seconds.toJavaDuration())
+        val requestBuilder =
+            callOriginal().headers("Content-Type", "application/json").timeout(40.seconds.toJavaDuration())
         return@answers requestBuilder
     }
 }
 
 private fun patchMcpJavaEndpointResolution() {
-    mockkStatic(io.modelcontextprotocol.util.Utils::class)
+    mockkStatic(Utils::class)
     every { resolveUri(any<URI>(), any<String>()) } answers {
         val baseUrl = invocation.args[0] as URI
         val endpointUrl = invocation.args[1] as String
