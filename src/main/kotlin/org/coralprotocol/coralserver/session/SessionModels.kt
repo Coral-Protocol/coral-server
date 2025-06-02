@@ -12,6 +12,7 @@ import org.coralprotocol.coralserver.orchestrator.runtime.AgentRuntime
 @Serializable
 data class CreateSessionRequest(
     val applicationId: String,
+    val sessionId: String?,
     val privacyKey: String,
     val agentGraph: AgentGraphRequest?,
 )

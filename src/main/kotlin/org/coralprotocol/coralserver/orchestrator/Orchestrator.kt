@@ -5,7 +5,7 @@ import org.coralprotocol.coralserver.session.GraphAgent
 import org.coralprotocol.coralserver.orchestrator.runtime.AgentRuntime
 
 interface Orchestrate {
-    fun spawn(connectionUrl: String, options: Map<String, ConfigValue>): OrchestratorHandle
+    fun spawn(agentName: String, connectionUrl: String, options: Map<String, ConfigValue>): OrchestratorHandle
 }
 
 interface OrchestratorHandle {
@@ -17,26 +17,26 @@ class Orchestrator(
 ) {
     private val handles: MutableList<OrchestratorHandle> = mutableListOf()
 
-    fun spawn(type: AgentType, connectionUrl: String, options: Map<String, ConfigValue>) {
-        spawn(registry.get(type), connectionUrl, options)
+    fun spawn(type: AgentType, agentName: String, connectionUrl: String, options: Map<String, ConfigValue>) {
+        spawn(registry.get(type), agentName = agentName, connectionUrl = connectionUrl, options = options)
     }
 
-    fun spawn(agent: RegistryAgent, connectionUrl: String, options: Map<String, ConfigValue>) {
-        handles.add(agent.runtime.spawn(connectionUrl, options))
+    fun spawn(agent: RegistryAgent, agentName: String, connectionUrl: String, options: Map<String, ConfigValue>) {
+        handles.add(agent.runtime.spawn(agentName = agentName, connectionUrl = connectionUrl, options = options))
     }
 
-    fun spawn(runtime: AgentRuntime, connectionUrl: String, options: Map<String, ConfigValue>) {
-        handles.add(runtime.spawn(connectionUrl, options))
+    fun spawn(runtime: AgentRuntime, agentName: String, connectionUrl: String, options: Map<String, ConfigValue>) {
+        handles.add(runtime.spawn(agentName = agentName, connectionUrl = connectionUrl, options = options))
     }
 
-    fun spawn(type: GraphAgent, connectionUrl: String) {
+    fun spawn(type: GraphAgent, agentName: String, connectionUrl: String) {
         when (type) {
             is GraphAgent.Local -> {
-                spawn(type.agentType, connectionUrl, type.options)
+                spawn(type.agentType, agentName = agentName, connectionUrl = connectionUrl, options = type.options)
             }
 
             is GraphAgent.Remote -> {
-                spawn(type.remote, connectionUrl, type.options)
+                spawn(type.remote, agentName = agentName, connectionUrl = connectionUrl, options = type.options)
             }
         }
     }

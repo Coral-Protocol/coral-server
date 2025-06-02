@@ -72,7 +72,7 @@ private suspend fun handleSseConnection(
 
     val session = if (isDevMode) {
         val waitForAgents = sseProducer.call.request.queryParameters["waitForAgents"]?.toIntOrNull() ?: 0
-        val createdSession = sessionManager.getOrCreateSession(sessionId, applicationId, privacyKey)
+        val createdSession = sessionManager.getOrCreateSession(sessionId, applicationId, privacyKey, null)
 
         if (waitForAgents > 0) {
             createdSession.devRequiredAgentStartCount = waitForAgents
