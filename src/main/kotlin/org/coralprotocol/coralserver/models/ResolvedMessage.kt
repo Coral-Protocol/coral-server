@@ -9,6 +9,7 @@ import java.util.*
 @Serializable
 data class ResolvedMessage(
     val id: String = UUID.randomUUID().toString(),
+    val threadName: String,
     val threadId: String,
     val senderId: String,
     val content: String,

@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.session
 
 import io.ktor.util.collections.*
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.withTimeoutOrNull
 import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.models.Agent
 import org.coralprotocol.coralserver.models.Message
@@ -218,7 +219,7 @@ class CoralAgentGraphSession(
         val deferred = CompletableDeferred<List<Message>>()
         agentNotifications[agentId] = deferred
 
-        val result = kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
+        val result = withTimeoutOrNull(timeoutMs) {
             deferred.await()
         } ?: emptyList()
 

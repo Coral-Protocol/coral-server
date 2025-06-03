@@ -1,230 +1,213 @@
 package org.coralprotocol.coralserver.e2e
 
-import com.azure.ai.openai.OpenAIClientBuilder
-import com.azure.core.credential.KeyCredential
-import io.mockk.every
-import io.mockk.mockkStatic
-import io.modelcontextprotocol.util.Utils.resolveUri
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.newFixedThreadPoolContext
-import kotlinx.coroutines.runBlocking
+import ai.koog.agents.core.agent.AIAgent
+import ai.koog.agents.core.agent.config.AIAgentConfig
+import ai.koog.agents.core.agent.config.MissingToolsConversionStrategy
+import ai.koog.agents.core.agent.config.ToolCallDescriber
+import ai.koog.agents.core.dsl.builder.forwardTo
+import ai.koog.agents.core.dsl.builder.strategy
+import ai.koog.agents.core.dsl.extension.onAssistantMessage
+import ai.koog.agents.core.dsl.extension.onToolCall
+import ai.koog.agents.mcp.McpToolRegistryProvider
+import ai.koog.prompt.dsl.Prompt
+import ai.koog.prompt.dsl.prompt
+import ai.koog.prompt.executor.clients.openai.OpenAIModels
+import ai.koog.prompt.executor.llms.all.simpleOpenAIExecutor
+import ai.koog.prompt.message.Message
+import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.client.*
+import io.ktor.client.plugins.sse.*
+import kotlinx.coroutines.*
+import org.coralprotocol.coralserver.config.AppConfig
 import org.coralprotocol.coralserver.server.CoralServer
 import org.coralprotocol.coralserver.session.CoralAgentGraphSession
 import org.coralprotocol.coralserver.session.SessionManager
-import org.eclipse.lmos.arc.agents.ChatAgent
-import org.eclipse.lmos.arc.agents.agent.ask
-import org.eclipse.lmos.arc.agents.agents
-import org.eclipse.lmos.arc.agents.dsl.AllTools
-import org.eclipse.lmos.arc.agents.llm.AIClientConfig
-import org.eclipse.lmos.arc.agents.llm.MapChatCompleterProvider
-import org.eclipse.lmos.arc.client.azure.AzureAIClient
-import org.eclipse.lmos.arc.mcp.McpTools
-import java.net.URI
-import java.net.http.HttpRequest
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
-import kotlin.time.toJavaDuration
 
+private val logger = KotlinLogging.logger {}
+
+/**
+ * Creates a session with connected agents using koog's AIAgent framework.
+ */
 suspend fun createSessionWithConnectedAgents(
     server: CoralServer,
     sessionId: String,
     privacyKey: String,
     applicationId: String,
     noAgentsOptional: Boolean = true,
-    agentsInSessionBlock: SessionCoralAgentDefinitionContext.() -> Unit,
+    agentsInSessionBlock: suspend MultiAgentDefinitionContext.() -> Unit,
 ): CoralAgentGraphSession {
     val session = server.sessionManager.getOrCreateSession(
         sessionId = sessionId,
         applicationId = applicationId,
         privacyKey = privacyKey
     )
-
-    val context = BasicSessionCoralAgentDefinitionContext(server)
+    val context = MultiAgentDefinitionContext(server, session)
     agentsInSessionBlock(context)
+
     if (noAgentsOptional) {
-        session.devRequiredAgentStartCount = context.buildChatAgents(session).size
+        session.devRequiredAgentStartCount = context.agents.size
     }
-    context.buildChatAgents(session)
-    context.onAgentsCreated(SessionCoralAgentDefinitionContext.AgentsCreatedContext())
+    context.initializeAgents()
     return session
 }
 
-interface SessionCoralAgentDefinitionContext {
-    val server: CoralServer
+
+class TestAgentDefinition(val deferredAgent: Deferred<TestCoralAgent>)
+
+@OptIn(ExperimentalCoroutinesApi::class)
+interface AgentsCreatedContext {
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun TestAgentDefinition.get(): TestCoralAgent {
+        return deferredAgent.getCompleted()
+    }
+
+    suspend fun TestAgentDefinition.ask(message: String): String {
+        return deferredAgent.getCompleted().ask(message)
+    }
+}
+
+/**
+ * Context for defining agents in a session.
+ */
+class MultiAgentDefinitionContext(
+    val server: CoralServer,
+    val session: CoralAgentGraphSession,
+
+    ) {
+    var onAgentsCreated: suspend AgentsCreatedContext.() -> Unit = {}
+
+    val agents = mutableListOf<Deferred<TestCoralAgent>>()
+    private val coroutineScope = CoroutineScope(Dispatchers.IO)
+
+    /**
+     * Define an agent that will be connected to the Coral server.
+     */
     fun agent(
         name: String,
         description: String = name,
         systemPrompt: String = defaultSystemPrompt,
         modelName: String = "gpt-4o",
-        agentClient: AzureAIClient = createTestAIClient(),
-    ): Deferred<ChatAgent>
+        openAiApiKey: String = System.getenv("OPENAI_API_KEY") ?: error("OPENAI_API_KEY not set"),
+    ): TestAgentDefinition {
+        val config = TestCoralAgentConfig(
+            name = name,
+            description = description,
+            systemPrompt = systemPrompt,
+            modelName = modelName,
+            openAiApiKey = openAiApiKey
+        )
+        val deferred = coroutineScope.async { createConnectedAgent(config) }
+        agents.add(deferred)
 
-    class AgentsCreatedContext {
-        // TODO: Consider using a more specific type than Deferred<ChatAgent>
-        // TODO: Consider using more guaranteed invokeCompleted
-        @OptIn(ExperimentalCoroutinesApi::class)
-        suspend fun Deferred<ChatAgent>.getConnected() = this.getCompleted()
+        return TestAgentDefinition(deferred)
     }
 
-    var onAgentsCreated: suspend AgentsCreatedContext.() -> Unit
-}
 
-private class BasicSessionCoralAgentDefinitionContext(override val server: CoralServer) :
-    SessionCoralAgentDefinitionContext {
-    override var onAgentsCreated: suspend SessionCoralAgentDefinitionContext.AgentsCreatedContext.() -> Unit = { }
-    private val agentsToAdd = mutableListOf<suspend (CoralAgentGraphSession) -> ChatAgent>()
-    override fun agent(
-        name: String,
-        description: String,
-        systemPrompt: String,
-        modelName: String,
-        agentClient: AzureAIClient,
-    ): Deferred<ChatAgent> {
-        val deferrable = CompletableDeferred<ChatAgent>()
-        agentsToAdd.add { session ->
-            val createConnectedCoralAgent = createConnectedCoralAgent(
-                server = server,
-                namePassedToServer = name,
-                descriptionPassedToServer = description,
-                systemPrompt = systemPrompt,
-                agentClient = agentClient,
-                modelName = modelName,
-                sessionId = session.id,
-                privacyKey = session.privacyKey,
-                applicationId = session.applicationId
+    /**
+     * Initialize all agents and wait for them to connect.
+     */
+    suspend fun initializeAgents() {
+        agents.awaitAll()
+        onAgentsCreated(object : AgentsCreatedContext {})
+    }
+
+    private fun defaultSseTransport(urlString: String): PatchedSseClientTransport {
+        // Setup SSE transport using the HTTP client
+        return PatchedSseClientTransport(
+            client = HttpClient {
+                install(SSE)
+            },
+            urlString = urlString,
+        )
+    }
+
+    private suspend fun createConnectedAgent(config: TestCoralAgentConfig): TestCoralAgent {
+        // Create MCP SSE URL for this agent
+        val mcpUrl = buildMcpUrl(
+            server = server,
+            sessionId = session.id,
+            privacyKey = session.privacyKey,
+            applicationId = session.applicationId,
+            agentId = config.name
+        )
+
+        logger.info { "Connecting agent ${config.name} to MCP at: $mcpUrl" }
+
+        // Create tool registry from MCP connection
+        val toolRegistry = try {
+            McpToolRegistryProvider.fromTransport(
+                transport = defaultSseTransport(mcpUrl),
+                name = config.name,
+                version = "1.0.0"
             )
-            deferrable.complete(createConnectedCoralAgent)
-            return@add createConnectedCoralAgent
+        } catch (e: Exception) {
+            logger.error { "Failed to connect agent ${config.name} to MCP: ${e.message}" }
+            throw e
         }
-        return deferrable
-    }
 
-    val context = newFixedThreadPoolContext(5, "E2EResourceTest")
-    suspend fun buildChatAgents(session: CoralAgentGraphSession): List<ChatAgent> = coroutineScope {
-        return@coroutineScope agentsToAdd.map {
-            async(context) { it(session) }
-        }.awaitAll()
+        val executor = simpleOpenAIExecutor(config.openAiApiKey)
+        val conversation = mutableListOf<Message>()
+        val loopingChatStrategy = strategy("my-strategy") {
+            val nodeCallLLM by nodeChatLLMRequest(conversation = conversation)
+            val executeToolCall by loggedToolCall(config, conversation = conversation)
+            val sendToolResult by nodeLLMSendToolResult(conversation = conversation)
+
+            edge(nodeStart forwardTo nodeCallLLM)
+            edge(nodeCallLLM forwardTo executeToolCall onToolCall { true })
+            edge(nodeCallLLM forwardTo nodeFinish onAssistantMessage { true })
+
+            edge(executeToolCall forwardTo sendToolResult)
+            edge(sendToolResult forwardTo executeToolCall onToolCall { true })
+            edge(sendToolResult forwardTo nodeFinish onAssistantMessage { true })
+        }
+
+        val agent = AIAgent(
+            executor,
+            strategy = loopingChatStrategy,
+            agentConfig = AIAgentConfig(
+                prompt = prompt(Prompt.Empty) {
+                    system(config.systemPrompt)
+                },
+                model = OpenAIModels.Chat.GPT4o,
+                maxAgentIterations = 20,
+                missingToolsConversionStrategy = MissingToolsConversionStrategy.All(format = ToolCallDescriber.JSON)
+            ),
+            toolRegistry = toolRegistry,
+        )
+
+        return TestCoralAgent(config, agent, conversation)
     }
 }
 
-
-fun createConnectedCoralAgent(
+/**
+ * Build the MCP SSE URL for an agent.
+ */
+private fun buildMcpUrl(
     server: CoralServer,
-    namePassedToServer: String,
-    descriptionPassedToServer: String = namePassedToServer,
-    systemPrompt: String = "You are a helpful assistant.",
-    agentClient: AzureAIClient = createTestAIClient(),
-    modelName: String = "gpt-4o",
-    sessionId: String = "session1",
-    privacyKey: String = "privkey",
-    applicationId: String = "exampleApplication",
-): ChatAgent = createConnectedCoralAgent(
-    "http",
-    server.host,
-    server.port,
-    namePassedToServer,
-    descriptionPassedToServer,
-    systemPrompt,
-    agentClient,
-    modelName,
-    sessionId,
-    privacyKey,
-    applicationId
-)
-
-/**
- * Creates a connected Coral agent.
- *
- * @param port The port to connect to.
- * @param namePassedToServer The name of the agent passed to the server.
- * @param descriptionPassedToServer The description of the agent passed to the server.
- * @param systemPrompt The system prompt for the agent.
- * @param agentClient The AzureAIClient to use.
- * @param sessionId The session ID for the agent.
- * @param privacyKey The privacy key for the agent.
- * @param applicationId The application ID for the agent.
- * @return The created agent.
- */
-
-fun createConnectedCoralAgent(
+    sessionId: String,
+    privacyKey: String,
+    applicationId: String,
+    agentId: String,
     protocol: String = "http",
-    host: String = "localhost",
-    port: Int,
-    namePassedToServer: String,
-    descriptionPassedToServer: String = namePassedToServer,
-    systemPrompt: String = "You are a helpful assistant.",
-    agentClient: AzureAIClient = createTestAIClient(),
-    modelName: String = "gpt-4o",
-    sessionId: String = "session1",
-    privacyKey: String = "privkey",
-    applicationId: String = "exampleApplication",
-): ChatAgent {
-    val agent = agents(
-        functionLoaders = listOf(
-            McpTools(
-                "$protocol://$host:$port/devmode/$applicationId/$privacyKey/$sessionId/sse?agentId=$namePassedToServer",
-                5000.seconds.toJavaDuration()
-            )
-        ),
-        chatCompleterProvider = MapChatCompleterProvider(mapOf(modelName to agentClient)),
-    ) {
-        agent {
-            this@agent.name = namePassedToServer
-            this@agent.description = descriptionPassedToServer
-
-            model {
-                modelName
-            }
-
-            prompt { systemPrompt }
-            tools = AllTools
-        }
-    }.getAgents().first() as ChatAgent
-    runBlocking {
-        agent.ask("hi") // TODO: This is a hack to make sure the agent is connected.
-        //TODO: Make arc connect to MCP servers eagerly.
-    }
-    return agent
+    maxWaitForMentionsTimeout: Long = 3000L,
+): String {
+    return "$protocol://${server.host}:${server.port}/devmode/$applicationId/$privacyKey/$sessionId/sse?agentId=$agentId&maxWaitForMentionsTimeout=$maxWaitForMentionsTimeout"
 }
 
 /**
- * Creates an AzureAIClient for testing.
- *
- * @return An AzureAIClient configured for testing.
+ * Test server configuration for Coral.
  */
-fun createTestAIClient(): AzureAIClient {
-    val config = AIClientConfig(
-        modelName = "gpt-4o",
-        apiKey = System.getenv("OPENAI_API_KEY"),
-        endpoint = "https://api.openai.com/v1",
-        client = "?"
-    )
-    val azureOpenAIClient = OpenAIClientBuilder()
-        .endpoint(config.endpoint)
-        .credential(KeyCredential(config.apiKey))
-        .buildAsyncClient()
-
-    return AzureAIClient(config, azureOpenAIClient)
-}
-
 class TestCoralServer(
     val host: String = "0.0.0.0",
-    val port: Int = 5555,
-    val devmode: Boolean = false,
-    val sessionManager: SessionManager = SessionManager(),
+    val port: UShort = 5555u,
+    val devmode: Boolean = true,
+    val sessionManager: SessionManager =
+        SessionManager(port = port),
 ) {
     var server: CoralServer? = null
 
     @OptIn(DelicateCoroutinesApi::class)
-    val serverContext = newFixedThreadPoolContext(1, "E2EResourceTest")
+    val serverContext = newFixedThreadPoolContext(1, "TestCoralServer")
 
     @OptIn(DelicateCoroutinesApi::class)
     fun setup() {
@@ -233,56 +216,15 @@ class TestCoralServer(
             host = host,
             port = port,
             devmode = devmode,
-            sessionManager = sessionManager
+            sessionManager = sessionManager,
+            appConfig = AppConfig(emptyList())
         )
         GlobalScope.launch(serverContext) {
             server!!.start()
         }
-        patchMcpJavaContentType()
-        patchMcpJavaEndpointResolution()
+    }
+
+    fun stop() {
+        server?.stop()
     }
 }
-
-
-private fun patchMcpJavaContentType() {
-    mockkStatic(HttpRequest::class)
-    every { HttpRequest.newBuilder() } answers {
-        println("MockK Interceptor [@BeforeEach]: HttpRequest.newBuilder() called. ")
-        val requestBuilder = callOriginal().headers("Content-Type", "application/json").timeout(40.seconds.toJavaDuration())
-        return@answers requestBuilder
-    }
-}
-
-private fun patchMcpJavaEndpointResolution() {
-    mockkStatic(io.modelcontextprotocol.util.Utils::class)
-    every { resolveUri(any<URI>(), any<String>()) } answers {
-        val baseUrl = invocation.args[0] as URI
-        val endpointUrl = invocation.args[1] as String
-        println("MockK Interceptor [@BeforeEach]: Utils.resolveUri called with baseUrl='$baseUrl', endpointUrl='$endpointUrl'. ")
-        return@answers if (endpointUrl.contains("?sessionId")) {
-            // In this case the sessionId is an MCP sessionId, not a Coral sessionId.
-            // The resolution logic works in this case (though the original is resolving against a URI object)
-            baseUrl.resolve(endpointUrl)
-        } else {
-            baseUrl
-        }
-    }
-}
-
-private val defaultSystemPrompt = """
-You have access to communication tools to interact with other agents.
-
-If there are no other agents, remember to re-list the agents periodically using the list tool.
-
-You should know that the user can't see any messages you send, you are expected to be autonomous and respond to the user only when you have finished working with other agents, using tools specifically for that.
-
-You can emit as many messages as you like before using that tool when you are finished or absolutely need user input. You are on a loop and will see a "user" message every 4 seconds, but it's not really from the user.
-
-Run the wait for mention tool when you are ready to receive a message from another agent. This is the preferred way to wait for messages from other agents.
-
-You'll only see messages from other agents since you last called the wait for mention tool. Remember to call this periodically. Also call this when you're waiting with nothing to do.
-
-Don't try to guess any numbers or facts, only use reliable sources. If you are unsure, ask other agents for help.
-
-If you have been given a simple task by the user, you can use the wait for mention tool once with a short timeout and then return the result to the user in a timely fashion.
-""".trimIndent()

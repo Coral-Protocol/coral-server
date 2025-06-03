@@ -37,6 +37,7 @@ class Message private constructor (
 fun Message.resolve(): ResolvedMessage = ResolvedMessage(
     id = id,
     threadId = this.thread.id,
+    threadName = this.thread.name,
     senderId = this.sender.id,
     content = content,
     timestamp = timestamp,
