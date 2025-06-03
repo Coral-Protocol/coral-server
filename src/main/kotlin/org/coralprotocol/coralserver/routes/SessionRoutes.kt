@@ -43,7 +43,8 @@ fun Routing.sessionRoutes(sessionManager: SessionManager, devMode: Boolean) {
                 val registry =
                     sessionManager.orchestrator.registry
 
-                val unknownAgents = it.links.map { set -> set.filter { agent -> !it.agents.containsKey(AgentName(agent)) } }.flatten()
+                val unknownAgents =
+                    it.links.map { set -> set.filter { agent -> !it.agents.containsKey(AgentName(agent)) } }.flatten()
                 if (unknownAgents.isNotEmpty()) {
                     throw IllegalArgumentException("Unknown agent names in links: ${unknownAgents.joinToString()}")
                 }
@@ -54,12 +55,16 @@ fun Routing.sessionRoutes(sessionManager: SessionManager, devMode: Boolean) {
                             is GraphAgentRequest.Local -> {
                                 val agentDef = registry.get(agentReq.agentType)
 
-                                val missing = agentDef.options.filter { option -> option.value.required && !agentReq.options.containsKey(option.key)}
+                                val missing = agentDef.options.filter { option ->
+                                    option.value.required && !agentReq.options.containsKey(option.key)
+                                }
                                 if (missing.isNotEmpty()) {
                                     throw IllegalArgumentException("Agent '${agent.key}' Missing required options: ${missing.keys.joinToString()}")
                                 }
 
-                                val defaultOptions = agentDef.options.mapValues { option -> option.value.defaultAsValue }.filterNotNullValues()
+                                val defaultOptions =
+                                    agentDef.options.mapValues { option -> option.value.defaultAsValue }
+                                        .filterNotNullValues()
 
                                 val setOptions = agentReq.options.mapValues { option ->
                                     val realOption = agentDef.options[option.key]
@@ -89,7 +94,19 @@ fun Routing.sessionRoutes(sessionManager: SessionManager, devMode: Boolean) {
 
             // TODO(alan): actually limit agent communicating using AgentGraph.links
             // Create a new session
-            val session = sessionManager.createSession(request.applicationId, request.privacyKey, agentGraph)
+            val session = when (request.sessionId != null && devMode) {
+                true -> {
+                    sessionManager.createSessionWithId(
+                        request.sessionId,
+                        request.applicationId,
+                        request.privacyKey,
+                        agentGraph
+                    )
+                }
+                false -> {
+                    sessionManager.createSession(request.applicationId, request.privacyKey, agentGraph)
+                }
+            }
 
             // Return the session details
             call.respond(

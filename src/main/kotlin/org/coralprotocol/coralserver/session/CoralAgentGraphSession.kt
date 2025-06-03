@@ -1,11 +1,15 @@
 package org.coralprotocol.coralserver.session
 
+import io.ktor.util.collections.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.withTimeoutOrNull
+import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.models.Agent
 import org.coralprotocol.coralserver.models.Message
 import org.coralprotocol.coralserver.models.Thread
+import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
+import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -21,6 +25,7 @@ class CoralAgentGraphSession(
     var devRequiredAgentStartCount: Int = 0,
 ) {
     private val agents = ConcurrentHashMap<String, Agent>()
+    private val debugAgents = ConcurrentSet<String>()
 
     private val threads = ConcurrentHashMap<String, Thread>()
 
@@ -31,12 +36,12 @@ class CoralAgentGraphSession(
     private val agentGroupScheduler = GroupScheduler(groups)
     private val countBasedScheduler = CountBasedScheduler()
 
+    private val eventBus = EventBus<Event>()
+    val events get() = eventBus.events
+
+
     fun getAllThreadsAgentParticipatesIn(agentId: String): List<Thread> {
         return threads.values.filter { it.participants.contains(agentId) }
-    }
-
-    fun getThreads(): List<Thread> {
-        return threads.values.toList()
     }
 
     fun clearAll() {
@@ -48,7 +53,7 @@ class CoralAgentGraphSession(
         agentGroupScheduler.clear()
     }
 
-    fun registerAgent(agent: Agent): Boolean {
+    suspend fun registerAgent(agent: Agent): Boolean {
         if (agents.containsKey(agent.id)) {
             return false
         }
@@ -56,6 +61,7 @@ class CoralAgentGraphSession(
 
         agentGroupScheduler.registerAgent(agent.id)
         countBasedScheduler.registerAgent(agent.id)
+        eventBus.emit(Event.AgentRegistered(agent))
         return true
     }
 
@@ -64,14 +70,31 @@ class CoralAgentGraphSession(
     suspend fun waitForGroup(agentId: String, timeoutMs: Long): Boolean =
         agentGroupScheduler.waitForGroup(agentId, timeoutMs)
 
-    suspend fun waitForAgentCount(targetCount: Int, timeoutMs: Long): Boolean = countBasedScheduler.waitForAgentCount(targetCount, timeoutMs)
+    suspend fun waitForAgentCount(targetCount: Int, timeoutMs: Long): Boolean =
+        countBasedScheduler.waitForAgentCount(targetCount, timeoutMs)
 
     fun getAgent(agentId: String): Agent? = agents[agentId]
 
-    fun getAllAgents(): List<Agent> = agents.values.toList()
+    fun getAllAgents(includeDebug: Boolean = false): List<Agent> = when (includeDebug) {
+        true -> agents.values.toList()
+        false -> agents.values.filter { !debugAgents.contains(it.id) }
+    }
 
-    fun createThread(name: String, creatorId: String, participantIds: List<String>): Thread {
-        val creator = agents[creatorId] ?: throw IllegalArgumentException("Creator agent not found")
+    fun getAllThreads(): List<Thread> = threads.values.toList()
+
+    fun registerDebugAgent(): Agent {
+        val id = UUID.randomUUID().toString()
+        if (agents[id] !== null) throw AssertionError("Debug agent id collision")
+        val agent = Agent(id = id, description = "")
+        agents[id] = agent
+        debugAgents.add(id)
+        return agent
+    }
+
+    suspend fun createThread(name: String, creatorId: String, participantIds: List<String>): Thread {
+        if (creatorId != "debug" && !agents.containsKey(creatorId)) {
+            throw IllegalArgumentException("Creator agent $creatorId not found")
+        }
 
         val validParticipants = participantIds.filter { agents.containsKey(it) }.toMutableList()
 
@@ -85,6 +108,16 @@ class CoralAgentGraphSession(
             participants = validParticipants
         )
         threads[thread.id] = thread
+
+        eventBus.emit(
+            Event.ThreadCreated(
+                id = thread.id,
+                name = name,
+                creatorId = creatorId,
+                participants = validParticipants,
+                summary = null
+            )
+        )
         return thread
     }
 
@@ -134,7 +167,7 @@ class CoralAgentGraphSession(
         return colors[index]
     }
 
-    fun sendMessage(
+    suspend fun sendMessage(
         threadId: String,
         senderId: String,
         content: String,
@@ -145,6 +178,7 @@ class CoralAgentGraphSession(
 
         val message = Message.create(thread, sender, content, mentions)
         thread.messages.add(message)
+        eventBus.emit(Event.MessageSent(threadId, message.resolve()))
         notifyMentionedAgents(message)
         return message
     }

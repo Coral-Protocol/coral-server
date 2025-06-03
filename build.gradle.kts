@@ -77,6 +77,7 @@ dependencies {
     implementation("io.ktor:ktor-server-core")
     implementation("io.ktor:ktor-server-cio")
     implementation("io.ktor:ktor-server-sse")
+    implementation("io.ktor:ktor-server-cors")
     implementation("io.ktor:ktor-server-content-negotiation")
     testImplementation("io.ktor:ktor-server-core")
     testImplementation("io.ktor:ktor-server-cio")

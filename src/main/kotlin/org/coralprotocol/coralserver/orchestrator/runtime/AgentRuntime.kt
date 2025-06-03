@@ -17,7 +17,7 @@ sealed class AgentRuntime : Orchestrate {
         val appId: String,
         val privacyKey: String,
     ) : AgentRuntime() {
-        override fun spawn(connectionUrl: String, options: Map<String, ConfigValue>): OrchestratorHandle {
+        override fun spawn(agentName: String, connectionUrl: String, options: Map<String, ConfigValue>): OrchestratorHandle {
             TODO("request agent from remote server")
         }
     }
@@ -25,7 +25,7 @@ sealed class AgentRuntime : Orchestrate {
     @Serializable
     @SerialName("docker")
     data class Docker(val container: String) : AgentRuntime() {
-        override fun spawn(connectionUrl: String, options: Map<String, ConfigValue>): OrchestratorHandle {
+        override fun spawn(agentName: String, connectionUrl: String, options: Map<String, ConfigValue>): OrchestratorHandle {
             TODO("Not yet implemented")
         }
     }
