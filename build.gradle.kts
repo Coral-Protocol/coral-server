@@ -44,6 +44,7 @@ dependencies {
 
     val ktorVersion = "3.0.2"
     implementation(enforcedPlatform("io.ktor:ktor-bom:$ktorVersion"))
+    
 
     val uriVersion="0.5.0"
     implementation("com.chrynan.uri.core:uri-core:$uriVersion")
@@ -52,15 +53,12 @@ dependencies {
     // Ktor testing dependencies
     testImplementation("io.ktor:ktor-server-test-host")
     testImplementation("io.ktor:ktor-client-mock")
-    val arcVersion = "0.126.0"
-    // Arc agents for E2E tests
-    testImplementation("org.eclipse.lmos:arc-agents:$arcVersion")
-    testImplementation("org.eclipse.lmos:arc-mcp:$arcVersion")
-    testImplementation("org.eclipse.lmos:arc-server:$arcVersion")
-    testImplementation("org.eclipse.lmos:arc-azure-client:$arcVersion")
-    testImplementation("org.eclipse.lmos:arc-langchain4j-client:$arcVersion")
-    testImplementation("io.modelcontextprotocol.sdk:mcp:0.11.0-SNAPSHOT") // Override MCP Java client for Arc 0.126.0
-    testImplementation("io.mockk:mockk:1.14.2")
+    testImplementation("ai.koog:koog-agents:0.1.0")
+    testImplementation("ai.koog:agents-mcp:0.1.0")
+    testImplementation("ai.koog:agents-ext:0.1.0")
+    testImplementation("ai.koog:agents-core:0.1.0")
+    testImplementation("ai.koog:prompt-executor-llms-all:0.1.0")
+    testImplementation("ai.koog:agents-mcp:0.1.0")
 
     // kotest
     // TODO: Use kotest for some or all tests

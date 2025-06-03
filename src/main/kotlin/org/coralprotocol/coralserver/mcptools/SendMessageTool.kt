@@ -32,7 +32,7 @@ fun CoralAgentIndividualMcp.addSendMessageTool() {
                 }
                 putJsonObject("mentions") {
                     put("type", "array")
-                    put("description", "List of agent IDs to mention in the message")
+                    put("description", "List of agent IDs to mention in the message ")
                     putJsonObject("items") {
                         put("type", "string")
                     }
