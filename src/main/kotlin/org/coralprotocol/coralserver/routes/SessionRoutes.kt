@@ -103,6 +103,7 @@ fun Routing.sessionRoutes(sessionManager: SessionManager, devMode: Boolean) {
                         agentGraph
                     )
                 }
+
                 false -> {
                     sessionManager.createSession(request.applicationId, request.privacyKey, agentGraph)
                 }

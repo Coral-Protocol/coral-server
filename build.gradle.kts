@@ -24,6 +24,8 @@ repositories {
 
 
 dependencies {
+    implementation("io.ktor:ktor-client-core-jvm:3.0.2")
+    implementation("io.ktor:ktor-client-apache:3.0.2")
     testImplementation(kotlin("test"))
     implementation("io.modelcontextprotocol:kotlin-sdk:0.5.0")
     implementation("org.slf4j:slf4j-simple:2.0.9")
