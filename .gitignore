@@ -55,3 +55,15 @@ bin/
 
 ### Example directories ###
 examples/camel-search-maths/__pycache__/
+/coral-GAIA/.idea/.gitignore
+/coral-GAIA/.idea/coral-GAIA.iml
+/coral-GAIA/.idea/misc.xml
+/coral-GAIA/.idea/modules.xml
+/coral-GAIA/.idea/inspectionProfiles/profiles_settings.xml
+/coral-GAIA/.idea/inspectionProfiles/Project_Default.xml
+/coral-GAIA/.idea/vcs.xml
+/examples/camel-search-maths/.idea/misc.xml
+/examples/camel-search-maths/.idea/inspectionProfiles/profiles_settings.xml
+/examples/camel-search-maths/.idea/inspectionProfiles/Project_Default.xml
+/examples/camel-search-maths/.idea/vcs.xml
+/examples/camel-search-maths/.idea/workspace.xml

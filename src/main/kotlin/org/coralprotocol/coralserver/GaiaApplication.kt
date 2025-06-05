@@ -1,49 +1,55 @@
 package org.coralprotocol.coralserver
 
-import io.ktor.client.HttpClient
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.http.ContentType
-import io.ktor.http.contentType
-import io.ktor.serialization.kotlinx.json.json
+import io.ktor.client.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.request.*
+import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.delay
+import kotlinx.serialization.json.JsonPrimitive
 import org.coralprotocol.coralserver.config.AppConfig
 import org.coralprotocol.coralserver.orchestrator.AgentRegistry
 import org.coralprotocol.coralserver.orchestrator.AgentType
+import org.coralprotocol.coralserver.orchestrator.ConfigEntry
 import org.coralprotocol.coralserver.orchestrator.Orchestrator
 import org.coralprotocol.coralserver.orchestrator.RegistryAgent
-import org.coralprotocol.coralserver.orchestrator.runtime.AgentRuntime
 import org.coralprotocol.coralserver.orchestrator.runtime.Executable
+import org.coralprotocol.coralserver.orchestrator.runtime.executable.EnvVar
 import org.coralprotocol.coralserver.server.CoralServer
-import org.coralprotocol.coralserver.session.AgentGraph
-import org.coralprotocol.coralserver.session.AgentGraphRequest
-import org.coralprotocol.coralserver.session.AgentName
-import org.coralprotocol.coralserver.session.CreateSessionRequest
-import org.coralprotocol.coralserver.session.GraphAgent
-import org.coralprotocol.coralserver.session.GraphAgentRequest
-import org.coralprotocol.coralserver.session.SessionManager
+import org.coralprotocol.coralserver.session.*
 
 class GaiaApplication {
     val searchAgent = AgentType("search")
     val planningAgent = AgentType("planning")
-    val serverPort: UShort = 12080u
 
-    val registry = AgentRegistry(
-        mapOf(
-            searchAgent to RegistryAgent(
-                Executable(listOf("bash", "coral-GAIA/venv.sh", "coral-GAIA/agents/search_agent.py"), listOf()),
-                optionsList = listOf()
-            ),
-            planningAgent to RegistryAgent(
-                Executable(listOf("bash", "coral-GAIA/venv.sh", "coral-GAIA/agents/planning_agent.py"), listOf()),
-                optionsList = listOf()
-            )
+    val serverPort: UShort = 5555u
+    val openAiApiKey: String = System.getenv("OPENAI_API_KEY")
+    val commonRegistryEnvList = listOf(
+        EnvVar(
+            "OPENAI_API_KEY",
+            from = "OPENAI_API_KEY",
+            value = openAiApiKey,
+            option = "OPENAI_API_KEY"
         )
     )
+    val commonRegistryOptionsList = listOf(ConfigEntry.Str("OPENAI_API_KEY", "OpenAI API Key", null))
+    val registry = AgentRegistry(
+        mapOf(
+            searchAgent to registerGaiaAgent("coral-GAIA/agents/search_agent.py"),
+            planningAgent to registerGaiaAgent("coral-GAIA/agents/planning_agent.py"),
+        )
+    )
+
+    private fun registerGaiaAgent(agentPath: String): RegistryAgent = RegistryAgent(
+        Executable(
+            listOf("bash", "coral-GAIA/venv.sh", agentPath),
+            commonRegistryEnvList
+        ),
+        optionsList = commonRegistryOptionsList
+    )
+
     val orchestrator = Orchestrator(registry)
 
-    //      command: ["bash", "examples/camel-search-maths/venv.sh", "examples/camel-search-maths/test.py"]
     val server = CoralServer(
         devmode = false,
         sessionManager = SessionManager(
@@ -51,11 +57,7 @@ class GaiaApplication {
             serverPort,
         ),
         appConfig = AppConfig(
-            registry = mapOf(
-                searchAgent to RegistryAgent(
-                    Executable(listOf("python coral-GAIA/agents/search_agent.py"), listOf()), listOf()
-                )
-            )
+            registry = registry.agents
         )
     )
 
@@ -72,23 +74,34 @@ class GaiaApplication {
         client.post("$address/sessions") {
             contentType(ContentType.Application.Json)
             setBody(
-                CreateSessionRequest(
-                    "gaia", "gaia-1", "public", AgentGraphRequest(
-                        agents = hashMapOf(
-                            AgentName("search") to GraphAgentRequest.Local(searchAgent),
-                            AgentName("planning") to GraphAgentRequest.Local(planningAgent)
-                        ),
-                        links = setOf(setOf("search", "planning"))
-                    )
-                )
+                creationSessionRequest()
             )
         }
 
-        delay(10000)
-
+        delay(100000)
         println(server.host)
     }
 
+    private fun creationSessionRequest(): CreateSessionRequest {
+        val commonOptions = mapOf("OPENAI_API_KEY" to JsonPrimitive(openAiApiKey))
+        return CreateSessionRequest(
+            "gaia", "gaia-1", "public", AgentGraphRequest(
+                agents = hashMapOf(
+                    AgentName("search") to GraphAgentRequest.Local(
+                        searchAgent,
+                        blocking = true,
+                        options = commonOptions
+                    ),
+                    AgentName("planning") to GraphAgentRequest.Local(
+                        planningAgent,
+                        blocking = true,
+                        options = commonOptions
+                    )
+                ),
+                links = setOf(setOf("search", "planning"))
+            )
+        )
+    }
 }
 
 suspend fun main(args: Array<String>) {
