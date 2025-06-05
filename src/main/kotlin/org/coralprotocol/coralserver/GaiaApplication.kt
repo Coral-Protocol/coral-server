@@ -19,8 +19,13 @@ import org.coralprotocol.coralserver.server.CoralServer
 import org.coralprotocol.coralserver.session.*
 
 class GaiaApplication {
-    val searchAgent = AgentType("search")
+    val assistantAgent = AgentType("assistant")
+    val imageAgent = AgentType("image")
     val planningAgent = AgentType("planning")
+    val searchAgent = AgentType("search")
+    val videoAgent = AgentType("video")
+    val webAgent = AgentType("web")
+
 
     val serverPort: UShort = 5555u
     val openAiApiKey: String = System.getenv("OPENAI_API_KEY")
@@ -37,6 +42,10 @@ class GaiaApplication {
         mapOf(
             searchAgent to registerGaiaAgent("coral-GAIA/agents/search_agent.py"),
             planningAgent to registerGaiaAgent("coral-GAIA/agents/planning_agent.py"),
+            assistantAgent to registerGaiaAgent("coral-GAIA/agents/assistant_agent.py"),
+            imageAgent to registerGaiaAgent("coral-GAIA/agents/image_agent.py"),
+            videoAgent to registerGaiaAgent("coral-GAIA/agents/video_agent.py"),
+            webAgent to registerGaiaAgent("coral-GAIA/agents/web_agent.py")
         )
     )
 
@@ -87,21 +96,26 @@ class GaiaApplication {
         return CreateSessionRequest(
             "gaia", "gaia-1", "public", AgentGraphRequest(
                 agents = hashMapOf(
-                    AgentName("search") to GraphAgentRequest.Local(
-                        searchAgent,
-                        blocking = true,
-                        options = commonOptions
-                    ),
-                    AgentName("planning") to GraphAgentRequest.Local(
-                        planningAgent,
-                        blocking = true,
-                        options = commonOptions
-                    )
+                    getAgentInstanceReference(commonOptions, "search", searchAgent),
+                    getAgentInstanceReference(commonOptions, "planning", planningAgent),
+                    getAgentInstanceReference(commonOptions, "assistant", assistantAgent),
+                    getAgentInstanceReference(commonOptions, "image", imageAgent),
+                    getAgentInstanceReference(commonOptions, "video", videoAgent),
+                    getAgentInstanceReference(commonOptions, "web", webAgent)
                 ),
-                links = setOf(setOf("search", "planning"))
+                links = setOf(setOf("search", "planning", "assistant", "image", "video", "web")),
             )
         )
     }
+
+    private fun getAgentInstanceReference(
+        commonOptions: Map<String, JsonPrimitive>, name: String, agentType: AgentType, blocking: Boolean = true
+    ): Pair<AgentName, GraphAgentRequest.Local> =
+        AgentName(name) to GraphAgentRequest.Local(
+            agentType,
+            blocking = blocking,
+            options = commonOptions
+        )
 }
 
 suspend fun main(args: Array<String>) {
