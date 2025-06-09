@@ -42,10 +42,14 @@ val webAgent = AgentType("web")
 val answerFindingAgent = AgentType("answer_finding")
 val commonRegistryOptionsList = listOf(
     ConfigEntry.Str("OPENAI_API_KEY", "OpenAI API Key", null),
+    ConfigEntry.Str("GOOGLE_API_KEY", "Google API Key", null),
+    ConfigEntry.Str("SEARCH_ENGINE_ID", "Search Engine ID", null),
     ConfigEntry.Str("TASK_INSTRUCTION", "The task to instruct the", null),
     ConfigEntry.Str("TASK_ID", "The gaia question ID", null),
 )
 val openAiApiKey: String = System.getenv("OPENAI_API_KEY")
+val googleApiKey: String = System.getenv("GOOGLE_API_KEY")
+val searchEngineId: String = System.getenv("SEARCH_ENGINE_ID")
 
 val commonRegistryEnvList = listOf(
     EnvVar(
@@ -54,7 +58,18 @@ val commonRegistryEnvList = listOf(
         value = openAiApiKey,
         option = "OPENAI_API_KEY"
     ),
-
+    EnvVar(
+        "GOOGLE_API_KEY",
+        from = "GOOGLE_API_KEY",
+        value = googleApiKey,
+        option = "GOOGLE_API_KEY"
+    ),
+    EnvVar(
+        "SEARCH_ENGINE_ID",
+        from = "SEARCH_ENGINE_ID",
+        value = searchEngineId,
+        option = "SEARCH_ENGINE_ID"
+    ),
     EnvVar(
         "TASK_INSTRUCTION",
         from = "TASK_INSTRUCTION",
@@ -168,7 +183,10 @@ class GaiaApplication(val server: CoralServer) {
 
 
     private fun creationSessionRequest(question: GaiaQuestion): CreateSessionRequest {
-        val commonOptions = mapOf("OPENAI_API_KEY" to JsonPrimitive(openAiApiKey),
+        val commonOptions = mapOf(
+            "OPENAI_API_KEY" to JsonPrimitive(openAiApiKey),
+            "GOOGLE_API_KEY" to JsonPrimitive(googleApiKey),
+            "SEARCH_ENGINE_ID" to JsonPrimitive(searchEngineId),
             "TASK_INSTRUCTION" to JsonPrimitive(question.question),
             "TASK_ID" to JsonPrimitive(question.taskId)
         )
@@ -242,14 +260,26 @@ suspend fun main(args: Array<String>) {
     GaiaApplication(server).apply {
         server.start()
         startAnswerServer(wait = false)
-        val firstAnswer = findAnswer(questions.first())
-        println("Waiting for answer to question: ${questions.first().question}")
-        val answerAttempt = firstAnswer.await()
-        println("Received answer attempt: $answerAttempt")
-        if(questions.first().finalAnswer != answerAttempt.answer) {
-            println("The answer attempt is incorrect! Expected: ${questions.first().finalAnswer}, got: ${answerAttempt.answer}")
-        } else {
-            println("The answer attempt is correct!")
+
+        var correctAnswersCount = 0
+        var allAnswersCount = 0
+        // Same as above but for all questions
+
+        questions.forEach { question ->
+            withTimeout(300 * 1000) {
+                val answerDeferred = findAnswer(question)
+                println("Waiting for answer to question: ${question.question}")
+                val answerAttempt = answerDeferred.await()
+                println("Received answer attempt: $answerAttempt")
+                if (question.finalAnswer != answerAttempt.answer) {
+                    println("The answer attempt is incorrect! Expected: ${question.finalAnswer}, got: ${answerAttempt.answer}")
+                } else {
+                    println("The answer attempt is correct!")
+                    correctAnswersCount++
+                }
+            }
+            allAnswersCount++
+            println("So far, correct answers: $correctAnswersCount, all answers: $allAnswersCount, total questions: ${questions.size}")
         }
 
 
