@@ -37,7 +37,7 @@ fun CoralAgentIndividualMcp.addListAgentsTool() {
 /**
  * Handles the list agents tool request.
  */
-private suspend fun CoralAgentIndividualMcp.handleListAgents(request: CallToolRequest): CallToolResult {
+private fun CoralAgentIndividualMcp.handleListAgents(request: CallToolRequest): CallToolResult {
     try {
         val json = Json { ignoreUnknownKeys = true }
         val input = json.decodeFromString<ListAgentsInput>(request.arguments.toString())
