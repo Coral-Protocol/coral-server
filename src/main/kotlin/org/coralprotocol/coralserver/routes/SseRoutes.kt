@@ -96,13 +96,13 @@ private suspend fun handleSseConnection(
     }
     val currentCount = session.getRegisteredAgentsCount()
     logger.info { "DevMode: Current agent count for session ${session.id} (object id: ${session}) (from sessionmanager: ${sessionManager}): $currentCount, waiting for: ${session.devRequiredAgentStartCount}" }
-    // Create the agent object
-    val agent = Agent(
-        id = agentId,
-        description = agentDescription
-    )
     // Register the agent
-    session.registerAgent(agent)
+    val agent = session.registerAgent(agentId, agentDescription)
+    if (agent == null) {
+        sseProducer.call.respond(HttpStatusCode.BadRequest, "Agent ID already exists")
+        return false
+    }
+
     val newCount = session.getRegisteredAgentsCount()
     logger.info { "DevMode: New agent count for session ${session.id} (object id: ${session})after registering: $newCount" }
 

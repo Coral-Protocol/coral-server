@@ -107,7 +107,7 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
             }
             subgraphs
         }
-        val session = CoralAgentGraphSession(sessionId, applicationId, privacyKey)
+        val session = CoralAgentGraphSession(sessionId, applicationId, privacyKey, agentGraph = agentGraph, groups = subgraphs?.toList() ?: emptyList())
         sessions[sessionId] = session
         sessionListeners[sessionId]?.let { it ->
             it.forEach {
