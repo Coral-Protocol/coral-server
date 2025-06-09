@@ -17,6 +17,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import org.coralprotocol.coralserver.config.AppConfig
 import org.coralprotocol.coralserver.orchestrator.AgentRegistry
@@ -28,6 +29,7 @@ import org.coralprotocol.coralserver.orchestrator.runtime.Executable
 import org.coralprotocol.coralserver.orchestrator.runtime.executable.EnvVar
 import org.coralprotocol.coralserver.server.CoralServer
 import org.coralprotocol.coralserver.session.*
+import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentMap
 
@@ -183,11 +185,17 @@ class GaiaApplication(val server: CoralServer) {
 
 
     private fun creationSessionRequest(question: GaiaQuestion): CreateSessionRequest {
+
+        val questionWithFile = if (question.file != null) {
+            "${question.question}\n relevant file: ${question.file.absolutePath}"
+        } else {
+            question.question
+        }
         val commonOptions = mapOf(
             "OPENAI_API_KEY" to JsonPrimitive(openAiApiKey),
             "GOOGLE_API_KEY" to JsonPrimitive(googleApiKey),
             "SEARCH_ENGINE_ID" to JsonPrimitive(searchEngineId),
-            "TASK_INSTRUCTION" to JsonPrimitive(question.question),
+            "TASK_INSTRUCTION" to JsonPrimitive(questionWithFile),
             "TASK_ID" to JsonPrimitive(question.taskId)
         )
         return CreateSessionRequest(
@@ -263,26 +271,36 @@ suspend fun main(args: Array<String>) {
 
         var correctAnswersCount = 0
         var allAnswersCount = 0
-        // Same as above but for all questions
-
+        val questionAnswerPairs = mutableListOf<Pair<GaiaQuestion, Deferred<GaiaAnswerAttempt>>>()
         questions.forEach { question ->
-            withTimeout(300 * 1000) {
-                val answerDeferred = findAnswer(question)
-                println("Waiting for answer to question: ${question.question}")
-                val answerAttempt = answerDeferred.await()
-                println("Received answer attempt: $answerAttempt")
-                if (question.finalAnswer != answerAttempt.answer) {
-                    println("The answer attempt is incorrect! Expected: ${question.finalAnswer}, got: ${answerAttempt.answer}")
-                } else {
-                    println("The answer attempt is correct!")
-                    correctAnswersCount++
+            try {
+                withTimeout(300 * 1000) {
+                    val answerDeferred = findAnswer(question)
+                    println("Waiting for answer to question: ${question.question}")
+                    val answerAttempt = answerDeferred.await()
+                    println("Received answer attempt: $answerAttempt")
+                    if (question.finalAnswer != answerAttempt.answer) {
+                        println("The answer attempt is incorrect! Expected: ${question.finalAnswer}, got: ${answerAttempt.answer}")
+                    } else {
+                        println("The answer attempt is correct!")
+                        correctAnswersCount++
+                    }
+                    questionAnswerPairs.add(question to answerDeferred)
                 }
+            } catch (e: TimeoutCancellationException) {
+                println("Timeout while waiting for answer to question: ${question.question}")
+                e.printStackTrace()
+            } catch (e: Exception) {
+                println("Error while waiting for answer to question: ${question.question}")
+                e.printStackTrace()
             }
+
             allAnswersCount++
             println("So far, correct answers: $correctAnswersCount, all answers: $allAnswersCount, total questions: ${questions.size}")
         }
 
-
+        val json = Json.encodeToString(questionAnswerPairs)
+        File("coral-GAIA/answers.json").writeText(json)
         server.stop()
     }
 }
