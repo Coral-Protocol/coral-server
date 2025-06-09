@@ -2,7 +2,7 @@ import asyncio
 import os
 import json
 from camel.toolkits.mcp_toolkit import MCPClient
-from camel.toolkits import HumanToolkit, MCPToolkit 
+from camel.toolkits import MCPToolkit, MathToolkit
 from camel.models import ModelFactory
 from camel.types import ModelPlatformType, ModelType
 from camel.agents import ChatAgent
@@ -107,8 +107,8 @@ async def main():
     base_url_1 = "http://localhost:5555/devmode/exampleApplication/privkey/session1/sse"
     params_1 = {
         "waitForAgents": 1,
-        "agentId": "user_interface_agent",
-        "agentDescription": "You are user_interaction_agent, responsible for engaging with users, processing instructions, and coordinating with other agents"
+        "agentId": "math_agent",
+        "agentDescription": "Agent responsible for performing mathematical operations",
     }
     query_string = urllib.parse.urlencode(params_1)
     MCP_SERVER_URL_1 = f"{base_url_1}?{query_string}"
@@ -134,27 +134,28 @@ async def main():
 
     # Initialize ChatAgent
     mcp_toolkit = MCPToolkit([coral_server])
-    tools = mcp_toolkit.get_tools() + HumanToolkit().get_tools()
+    tools = mcp_toolkit.get_tools() + MathToolkit().get_tools()
     tools_description = await get_tools_description(tools)
     resource_sys_message = agent_resorces
+
     sys_msg = (
-        f"""You are an agent interacting with the tools from Coral Server and having your own Human Tool to ask have a conversation with Human. 
+        f"""You are an math agent interacting with the tools from Coral Server and having your own math capabilities.
         Follow these steps in order:
-        1. Use `list_agents` to list all connected agents and get their descriptions.
-        2. Use `ask_human_via_console` to ask, "How can I assist you today?" and capture expect response.
-        3. Take 2 seconds to think and understand the user's intent and decide the right agent to handle the request based on list of agents. 
-        4. If the user wants any information about the coral server, use the tools to get the information and pass it to the user. Do not send any message to any other agent, just give the information and go to Step 1.
-        5. Once you have the right agent, use `create_thread` to create a thread with the selected agent. If no agent is available, use the `ask_human` tool to specify the agent you want to use.
-        6. Use your logic to determine the task you want that agent to perform and create a message for them which instructs the agent to perform the task called "instruction". 
-        7. Use `send_message` to send a message in the thread, mentioning the selected agent, with content: "instructions".
-        8. Use `wait_for_mentions` with a 30 seconds timeout to wait for a response from the agent you mentioned.
-        9. Show the entire conversation in the thread to the user.
-        10. Wait for 3 seconds and then use `ask_human` to ask the user if they need anything else and keep waiting for their response.
-        11. If the user asks for something else, repeat the process from step 1.
+        1. Call wait_for_mentions from coral tools (timeoutMs: 30000) to receive mentions from other agents.
+        2. When you receive a mention, keep the thread ID and the sender ID.
+        3. Take 2 seconds to think about the content (instruction) of the message and check only from the list of your tools available for you to action.
+        4. Check the tool schema and make a plan in steps for the task you want to perform.
+        5. Only call the tools you need to perform for each step of the plan to complete the instruction in the content.
+        6. Take 3 seconds and think about the content and see if you have executed the instruction to the best of your ability and the tools. Make this your response as "answer".
+        7. Use `send_message` from coral tools to send a message in the same thread ID to the sender Id you received the mention from, with content: "answer".
+        8. If any error occurs, use `send_message` to send a message in the same thread ID to the sender Id you received the mention from, with content: "error".
+        9. Always respond back to the sender agent even if you have no answer or error.
+        10. Wait for 2 seconds and repeat the process from step 1.
 
         Use only listed tools: {tools_description}
         Your resources are: {resource_sys_message}"""
     )
+            
     model = ModelFactory.create(
         model_platform=ModelPlatformType.OPENAI,
         model_type=ModelType.GPT_4O_MINI,
