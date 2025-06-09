@@ -24,9 +24,10 @@ data class GaiaQuestion(
     @SerialName("Annotator Metadata")
     val annotatorMetadata: AnnotatorMetadata
 ) {
+    // TODO: Change to /test/ or /validation/ based on the context
     @Transient
     val file: VerifiedExistingFile? =
-        if (fileName.isNotEmpty()) File("coral-GAIA/data/gaia/2023/test/$fileName")
+        if (fileName.isNotEmpty()) File("coral-GAIA/data/gaia/2023/validation/$fileName")
             .takeIf { it.exists() }
             ?: throw IllegalArgumentException("File does not exist: $fileName") else null
 }

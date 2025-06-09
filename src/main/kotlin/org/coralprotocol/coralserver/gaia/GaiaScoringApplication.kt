@@ -72,6 +72,7 @@ val commonRegistryEnvList = listOf(
 data class GaiaAnswerAttempt(
     val questionId: String,
     val answer: String,
+    val sessionId: String,
 ) {
 //    val correctAnswer: String
 //        get() = question.finalAnswer
@@ -104,6 +105,11 @@ class GaiaApplication(val server: CoralServer) {
                     val answerAttempt = call.receive<GaiaAnswerAttempt>()
                     val questionId = answerAttempt.questionId
 
+                    // end the session if it exists
+                    server.sessionManager.getSession(questionId)?.coralAgentConnections?.forEach {
+                        it.closeTransport()
+                        println("Closed transport for session: $questionId for agent: ${it.connectedAgentId}")
+                    }
                     // Store the answer attempt in the channel
                     val channel = answerChannels.computeIfAbsent(questionId) {
                         MutableSharedFlow(extraBufferCapacity = 1)
@@ -232,7 +238,7 @@ fun createServerWithRegisteredAgents(): CoralServer {
 suspend fun main(args: Array<String>) {
 
     val server = createServerWithRegisteredAgents()
-    val questions = loadGaiaQuestions(MetadataFiles.testMetadata)
+    val questions = loadGaiaQuestions(MetadataFiles.validationMetadata)
     GaiaApplication(server).apply {
         server.start()
         startAnswerServer(wait = false)
@@ -240,6 +246,12 @@ suspend fun main(args: Array<String>) {
         println("Waiting for answer to question: ${questions.first().question}")
         val answerAttempt = firstAnswer.await()
         println("Received answer attempt: $answerAttempt")
+        if(questions.first().finalAnswer != answerAttempt.answer) {
+            println("The answer attempt is incorrect! Expected: ${questions.first().finalAnswer}, got: ${answerAttempt.answer}")
+        } else {
+            println("The answer attempt is correct!")
+        }
+
 
         server.stop()
     }
