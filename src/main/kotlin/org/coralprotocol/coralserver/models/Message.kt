@@ -9,6 +9,7 @@ import java.util.*
 @Serializable
 class Message private constructor (
     val id: String = UUID.randomUUID().toString(),
+    @Transient
     val thread: Thread,
     val sender: Agent,
     val content: String,
