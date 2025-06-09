@@ -16,6 +16,7 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonPrimitive
 import org.coralprotocol.coralserver.config.AppConfig
 import org.coralprotocol.coralserver.orchestrator.AgentRegistry
@@ -67,8 +68,9 @@ val commonRegistryEnvList = listOf(
 )
 
 
+@Serializable
 data class GaiaAnswerAttempt(
-    val questionId: GaiaQuestionId,
+    val questionId: String,
     val answer: String,
 ) {
 //    val correctAnswer: String
