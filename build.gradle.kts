@@ -75,6 +75,8 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json")
     implementation("io.ktor:ktor-client-plugins")
 
+    implementation("net.pwall.json:json-kotlin-schema:0.56")
+
     // Ktor server dependencies
     implementation("io.ktor:ktor-server-core")
     implementation("io.ktor:ktor-server-cio")
