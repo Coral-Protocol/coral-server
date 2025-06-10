@@ -25,7 +25,7 @@ fun CoralAgentIndividualMcp.addWaitForMentionsTool() {
         inputSchema = Tool.Input(
             properties = buildJsonObject {
                 putJsonObject("timeoutMs") {
-                    put("type", "number")
+                    put("type", "integer")
                     put("description", "Timeout in milliseconds (default: $maxWaitForMentionsTimeoutMs ms)")
                 }
             },
