@@ -52,7 +52,7 @@ class CoralAgentGraphSession(
         agentGroupScheduler.clear()
     }
 
-    suspend fun registerAgent(agent: Agent): Boolean {
+    fun registerAgent(agent: Agent): Boolean {
         if (agents.containsKey(agent.id)) {
             return false
         }
