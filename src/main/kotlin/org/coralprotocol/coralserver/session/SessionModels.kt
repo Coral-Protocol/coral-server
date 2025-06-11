@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver.session
 
 import com.chrynan.uri.core.UriString
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.modelcontextprotocol.kotlin.sdk.CallToolRequest
 import io.modelcontextprotocol.kotlin.sdk.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.TextContent
@@ -27,6 +28,8 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * Data class for session creation request.
@@ -100,22 +103,30 @@ sealed interface ToolTransport {
     @Serializable
     data class Http(val url: UriString): ToolTransport {
         override suspend fun handleRequest(agentId: String, request: CallToolRequest, toolSchema: Tool): CallToolResult {
-            val client = HttpClient.newBuilder().build();
-            // TODO (alan): maybe validate body schema before passing it on,
-            // probably not worth double validating though
-            val req = HttpRequest.newBuilder()
-                .POST(HttpRequest.BodyPublishers.ofString(Json.encodeToString(request.arguments)))
-                .uri(appendUri(url.value, "agentName=$agentId"))
-                .build();
+            try {
+                val client = HttpClient.newBuilder().build();
+                // TODO (alan): maybe validate body schema before passing it on,
+                // probably not worth double validating though
+                val req = HttpRequest.newBuilder()
+                    .POST(HttpRequest.BodyPublishers.ofString(Json.encodeToString(request.arguments)))
+                    .uri(appendUri(url.value, "agentName=$agentId"))
+                    .build();
 
-            // TODO: better thread context
-            val response = withContext(Dispatchers.IO) {
-                client.send(req, HttpResponse.BodyHandlers.ofString())
-            };
-            val body = response.body()
-            return CallToolResult(
-                content = listOf(TextContent(body))
-            )
+                // TODO: better thread context
+                val response = withContext(Dispatchers.IO) {
+                    client.send(req, HttpResponse.BodyHandlers.ofString())
+                };
+                val body = response.body()
+                return CallToolResult(
+                    content = listOf(TextContent(body))
+                )
+            } catch (ex: Exception) {
+                logger.error { ex }
+                return CallToolResult(
+                    isError = true,
+                    content = listOf(TextContent("Error: $ex"))
+                )
+            }
         }
     }
 
