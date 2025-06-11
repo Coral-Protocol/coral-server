@@ -26,14 +26,13 @@ fun CoralAgentIndividualMcp.addWaitForMentionsTool() {
             properties = buildJsonObject {
                 putJsonObject("timeoutMs") {
                     put("type", "number")
-                    put("description", "Timeout in milliseconds (default: $maxWaitForMentionsTimeoutMs ms)")
+                    put("description", "Timeout in milliseconds (default: $maxWaitForMentionsTimeoutMs ms). Must be between 0 and $maxWaitForMentionsTimeoutMs ms.")
                 }
             },
             required = listOf("timeoutMs")
         )
     ) { request: CallToolRequest ->
         handleWaitForMentions(request)
-//        delay(10000)
     }
 }
 

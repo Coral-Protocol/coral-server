@@ -8,7 +8,7 @@ import kotlin.test.Test
 
 
 class E2EResourceTest {
-    val port = 14391
+    val port: UShort = 14391u
     var server = TestCoralServer(port = port, devmode = true)
 
     @OptIn(DelicateCoroutinesApi::class)
@@ -29,7 +29,7 @@ class E2EResourceTest {
                 val sessions = server.sessionManager.getAllSessions()
                 assert(sessions.size == 1) { "There should be one session" }
                 val session = sessions.first()
-                val threads = session.getThreads()
+                val threads = session.getAllThreads()
                 assert(threads.size == 1) { "There should be one thread" }
                 val thread = threads.first()
                 val messages = thread.messages
@@ -44,7 +44,7 @@ class E2EResourceTest {
                 val agent1PasscodeFrom2Resp = agent1.getConnected().ask("What is the passcode? testAgent2 just told you? use wait for mentions to check") as Success<String>
 
                 assert(agent1PasscodeFrom2Resp.value.contains("9920")) { "Agent1 should receive the right code returning from agent 2" }
-                assert(session.getThreads().size == 1) { "There should still be one thread" }
+                assert(session.getAllThreads().size == 1) { "There should still be one thread" }
                 allAssertsCompleted = true
             }
         }

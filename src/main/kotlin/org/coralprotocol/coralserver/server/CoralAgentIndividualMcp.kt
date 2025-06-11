@@ -5,6 +5,7 @@ import io.modelcontextprotocol.kotlin.sdk.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
+import org.coralprotocol.coralserver.mcpresources.addMessageResource
 import org.coralprotocol.coralserver.session.CoralAgentGraphSession
 import org.coralprotocol.coralserver.mcptools.addThreadTools
 import org.coralprotocol.coralserver.session.CustomTool
@@ -19,6 +20,7 @@ import org.coralprotocol.coralserver.session.addExtraTool
  * This [CoralAgentIndividualMcp] should persist even if the agent reconnects via a different transport.
  */
 class CoralAgentIndividualMcp(
+    val connectedUri: String,
     /**
      * The latest transport used by the agent to connect to the server. It might change if the agent reconnects.
      */
@@ -48,6 +50,7 @@ class CoralAgentIndividualMcp(
 ) {
     init {
         addThreadTools()
+        addMessageResource()
         extraTools.forEach {
             addExtraTool(it)
         }

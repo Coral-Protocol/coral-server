@@ -41,7 +41,7 @@ fun CoralAgentIndividualMcp.addCloseThreadTool() {
 /**
  * Handles the close thread tool request.
  */
-private suspend fun CoralAgentIndividualMcp.handleCloseThread(request: CallToolRequest): CallToolResult {
+private fun CoralAgentIndividualMcp.handleCloseThread(request: CallToolRequest): CallToolResult {
     try {
         val json = Json { ignoreUnknownKeys = true }
         val input = json.decodeFromString<CloseThreadInput>(request.arguments.toString())
