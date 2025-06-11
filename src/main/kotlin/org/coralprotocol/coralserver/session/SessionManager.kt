@@ -59,7 +59,7 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
     /**
      * Create a new session with a random ID.
      */
-    fun createSession(applicationId: String, privacyKey: String, agentGraph: AgentGraph?): CoralAgentGraphSession =
+    fun createSession(applicationId: String, privacyKey: String, agentGraph: AgentGraph? = null): CoralAgentGraphSession =
         createSessionWithId(java.util.UUID.randomUUID().toString(), applicationId, privacyKey, agentGraph)
 
     /**
@@ -69,7 +69,7 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
         sessionId: String,
         applicationId: String,
         privacyKey: String,
-        agentGraph: AgentGraph?
+        agentGraph: AgentGraph? = null
     ): CoralAgentGraphSession {
         val subgraphs = agentGraph?.let { it ->
 
@@ -127,7 +127,7 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
         sessionId: String,
         applicationId: String,
         privacyKey: String,
-        agentGraph: AgentGraph?
+        agentGraph: AgentGraph? = null
     ): CoralAgentGraphSession {
         sessionSemaphore.withPermit {
             return sessions[sessionId] ?: createSessionWithId(sessionId, applicationId, privacyKey, agentGraph)

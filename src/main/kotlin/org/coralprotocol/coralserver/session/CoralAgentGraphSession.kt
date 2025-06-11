@@ -53,7 +53,7 @@ class CoralAgentGraphSession(
         agentGroupScheduler.clear()
     }
 
-    suspend fun registerAgent(agentId: String, agentDescription: String?): Agent? {
+    fun registerAgent(agentId: String, agentDescription: String?): Agent? {
         if (agents.containsKey(agentId)) {
             return null
         }
@@ -98,7 +98,7 @@ class CoralAgentGraphSession(
         return agent
     }
 
-    suspend fun createThread(name: String, creatorId: String, participantIds: List<String>): Thread {
+    fun createThread(name: String, creatorId: String, participantIds: List<String>): Thread {
         if (creatorId != "debug" && !agents.containsKey(creatorId)) {
             throw IllegalArgumentException("Creator agent $creatorId not found")
         }
@@ -174,7 +174,7 @@ class CoralAgentGraphSession(
         return colors[index]
     }
 
-    suspend fun sendMessage(
+    fun sendMessage(
         threadId: String,
         senderId: String,
         content: String,
