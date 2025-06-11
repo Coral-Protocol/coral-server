@@ -1,16 +1,16 @@
 package org.coralprotocol.coralserver.session
 
-import com.chrynan.uri.core.Uri
 import com.chrynan.uri.core.UriString
-import io.ktor.http.*
-import io.modelcontextprotocol.kotlin.sdk.*
-import io.modelcontextprotocol.kotlin.sdk.server.Server
+import io.modelcontextprotocol.kotlin.sdk.CallToolRequest
+import io.modelcontextprotocol.kotlin.sdk.CallToolResult
+import io.modelcontextprotocol.kotlin.sdk.TextContent
+import io.modelcontextprotocol.kotlin.sdk.Tool
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
-import kotlinx.serialization.descriptors.PrimitiveKind
-import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
@@ -20,6 +20,10 @@ import net.pwall.json.schema.JSONSchema
 import org.coralprotocol.coralserver.orchestrator.AgentType
 import org.coralprotocol.coralserver.orchestrator.runtime.AgentRuntime
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
+import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
 
 /**
  * Data class for session creation request.
@@ -74,7 +78,7 @@ fun CoralAgentIndividualMcp.addExtraTool(tool: CustomTool) {
         description = tool.toolSchema.description ?: "",
         inputSchema = tool.toolSchema.inputSchema,
     ) {
-        request -> tool.transport.handleRequest(request)
+        request -> tool.transport.handleRequest(request, tool.toolSchema)
     }
 }
 
@@ -83,14 +87,25 @@ sealed interface ToolTransport {
     @SerialName("http")
     @Serializable
     data class Http(val url: UriString): ToolTransport {
-        override suspend fun handleRequest(request: CallToolRequest): CallToolResult {
+        override suspend fun handleRequest(request: CallToolRequest, toolSchema: Tool): CallToolResult {
+            val client = HttpClient.newBuilder().build();
+            val req = HttpRequest.newBuilder()
+                .uri(URI.create(url.value))
+                .method("POST", HttpRequest.BodyPublishers.noBody())
+                .build();
+
+            // TODO: better thread context
+            val response = withContext(Dispatchers.IO) {
+                client.send(req, HttpResponse.BodyHandlers.ofString())
+            };
+            val body = response.body()
             return CallToolResult(
-                content = listOf(TextContent("the weather is a sunny 18 degrees, with light showers throughout"))
+                content = listOf(TextContent(body))
             )
         }
     }
 
-    suspend fun handleRequest(request: CallToolRequest): CallToolResult
+    suspend fun handleRequest(request: CallToolRequest, toolSchema: Tool): CallToolResult
 }
 
 @Serializable
