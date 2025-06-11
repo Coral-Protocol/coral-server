@@ -17,13 +17,16 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.*
 import net.pwall.json.schema.JSONSchema
+import org.coralprotocol.coralserver.models.Agent
 import org.coralprotocol.coralserver.orchestrator.AgentType
 import org.coralprotocol.coralserver.orchestrator.runtime.AgentRuntime
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import java.net.URI
+import java.net.URISyntaxException
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+
 
 /**
  * Data class for session creation request.
@@ -72,14 +75,23 @@ data class CustomTool(
     val toolSchema: Tool,
 )
 
-fun CoralAgentIndividualMcp.addExtraTool(tool: CustomTool) {
+fun CoralAgentIndividualMcp.addExtraTool(agentId: String, tool: CustomTool) {
     addTool(
         name = tool.toolSchema.name,
         description = tool.toolSchema.description ?: "",
         inputSchema = tool.toolSchema.inputSchema,
     ) {
-        request -> tool.transport.handleRequest(request, tool.toolSchema)
+        request -> tool.transport.handleRequest(agentId, request, tool.toolSchema)
     }
+}
+
+@Throws(URISyntaxException::class)
+fun appendUri(uri: String, appendQuery: String): URI {
+    val oldUri = URI(uri)
+    return URI(
+        oldUri.scheme, oldUri.authority, oldUri.path,
+        if (oldUri.query == null) appendQuery else oldUri.query + "&" + appendQuery, oldUri.fragment
+    )
 }
 
 @Serializable
@@ -87,11 +99,13 @@ sealed interface ToolTransport {
     @SerialName("http")
     @Serializable
     data class Http(val url: UriString): ToolTransport {
-        override suspend fun handleRequest(request: CallToolRequest, toolSchema: Tool): CallToolResult {
+        override suspend fun handleRequest(agentId: String, request: CallToolRequest, toolSchema: Tool): CallToolResult {
             val client = HttpClient.newBuilder().build();
+            // TODO (alan): maybe validate body schema before passing it on,
+            // probably not worth double validating though
             val req = HttpRequest.newBuilder()
-                .uri(URI.create(url.value))
-                .method("POST", HttpRequest.BodyPublishers.noBody())
+                .POST(HttpRequest.BodyPublishers.ofString(Json.encodeToString(request.arguments)))
+                .uri(appendUri(url.value, "agentName=$agentId"))
                 .build();
 
             // TODO: better thread context
@@ -105,7 +119,7 @@ sealed interface ToolTransport {
         }
     }
 
-    suspend fun handleRequest(request: CallToolRequest, toolSchema: Tool): CallToolResult
+    suspend fun handleRequest(agentId: String, request: CallToolRequest, toolSchema: Tool): CallToolResult
 }
 
 @Serializable
