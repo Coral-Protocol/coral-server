@@ -52,7 +52,7 @@ class CoralAgentIndividualMcp(
         addThreadTools()
         addMessageResource()
         extraTools.forEach {
-            addExtraTool(it)
+            addExtraTool(coralAgentGraphSession.id, connectedAgentId, it)
         }
     }
 

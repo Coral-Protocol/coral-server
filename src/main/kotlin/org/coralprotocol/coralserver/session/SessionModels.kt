@@ -78,38 +78,30 @@ data class CustomTool(
     val toolSchema: Tool,
 )
 
-fun CoralAgentIndividualMcp.addExtraTool(agentId: String, tool: CustomTool) {
+fun CoralAgentIndividualMcp.addExtraTool(sessionId: String, agentId: String, tool: CustomTool) {
     addTool(
         name = tool.toolSchema.name,
         description = tool.toolSchema.description ?: "",
         inputSchema = tool.toolSchema.inputSchema,
     ) {
-        request -> tool.transport.handleRequest(agentId, request, tool.toolSchema)
+        request -> tool.transport.handleRequest(sessionId, agentId, request, tool.toolSchema)
     }
 }
 
-@Throws(URISyntaxException::class)
-fun appendUri(uri: String, appendQuery: String): URI {
-    val oldUri = URI(uri)
-    return URI(
-        oldUri.scheme, oldUri.authority, oldUri.path,
-        if (oldUri.query == null) appendQuery else oldUri.query + "&" + appendQuery, oldUri.fragment
-    )
-}
 
 @Serializable
 sealed interface ToolTransport {
     @SerialName("http")
     @Serializable
     data class Http(val url: UriString): ToolTransport {
-        override suspend fun handleRequest(agentId: String, request: CallToolRequest, toolSchema: Tool): CallToolResult {
+        override suspend fun handleRequest(sessionId: String, agentId: String, request: CallToolRequest, toolSchema: Tool): CallToolResult {
             try {
                 val client = HttpClient.newBuilder().build();
                 // TODO (alan): maybe validate body schema before passing it on,
                 // probably not worth double validating though
                 val req = HttpRequest.newBuilder()
                     .POST(HttpRequest.BodyPublishers.ofString(Json.encodeToString(request.arguments)))
-                    .uri(appendUri(url.value, "agentName=$agentId"))
+                    .uri(URI(url.value).resolve("./$sessionId/$agentId"))
                     .header("Content-Type", "application/json")
                     .build();
 
@@ -131,7 +123,7 @@ sealed interface ToolTransport {
         }
     }
 
-    suspend fun handleRequest(agentId: String, request: CallToolRequest, toolSchema: Tool): CallToolResult
+    suspend fun handleRequest(sessionId: String, agentId: String, request: CallToolRequest, toolSchema: Tool): CallToolResult
 }
 
 @Serializable
