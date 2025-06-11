@@ -110,6 +110,7 @@ sealed interface ToolTransport {
                 val req = HttpRequest.newBuilder()
                     .POST(HttpRequest.BodyPublishers.ofString(Json.encodeToString(request.arguments)))
                     .uri(appendUri(url.value, "agentName=$agentId"))
+                    .header("Content-Type", "application/json")
                     .build();
 
                 // TODO: better thread context
