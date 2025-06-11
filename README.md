@@ -63,6 +63,17 @@ The project can be run in several modes:
 # Run the JAR file
 java -jar build/libs/coral-server-1.0-SNAPSHOT.jar
 ```
+### Using Docker
+
+Install [Docker](https://docs.docker.com/desktop/)
+
+```bash
+# Build the Docker Image
+docker build -t coral-server .
+
+# Run the Docker Container
+docker run -p 5555:5555 -v /path/to/your/coral-server/src/main/resources:/config coral-server
+```
 
 ### Run Modes
 
