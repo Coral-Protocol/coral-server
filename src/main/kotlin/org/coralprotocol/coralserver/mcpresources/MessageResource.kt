@@ -5,11 +5,12 @@ import io.modelcontextprotocol.kotlin.sdk.ReadResourceResult
 import io.modelcontextprotocol.kotlin.sdk.TextResourceContents
 import nl.adaptivity.xmlutil.QName
 import nl.adaptivity.xmlutil.serialization.XML
-import org.coralprotocol.coralserver.models.Thread
+import org.coralprotocol.coralserver.models.ResolvedThread
+import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private fun CoralAgentIndividualMcp.handler(request: ReadResourceRequest): ReadResourceResult {
-    val threadsAgentPrivyIn: List<Thread> = this.coralAgentGraphSession.getAllThreadsAgentParticipatesIn(this.connectedAgentId)
+    val threadsAgentPrivyIn: List<ResolvedThread> = this.coralAgentGraphSession.getAllThreadsAgentParticipatesIn(this.connectedAgentId).map { it -> it.resolve() }
     val renderedThreads: String = XML.encodeToString(threadsAgentPrivyIn, rootName = QName("threads"))
     return ReadResourceResult(
         contents = listOf(
