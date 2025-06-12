@@ -99,15 +99,15 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
             }
 
             it.agents.forEach { agent ->
-                orchestrator.spawn(
-                    agent.value,
-                    agentName = agent.key.toString(),
-                    connectionUrl = "http://localhost:${port}/${applicationId}/${privacyKey}/${sessionId}/sse?agentId=${agent.key}"
-                )
+//                orchestrator.spawn(
+//                    agent.value,
+//                    agentName = agent.key.toString(),
+//                    connectionUrl = "http://localhost:${port}/${applicationId}/${privacyKey}/${sessionId}/sse?agentId=${agent.key}"
+//                )
             }
             subgraphs
         }
-        val session = CoralAgentGraphSession(sessionId, applicationId, privacyKey)
+        val session = CoralAgentGraphSession(sessionId, applicationId, privacyKey, agentGraph = agentGraph, groups = subgraphs?.toList() ?: emptyList())
         sessions[sessionId] = session
         sessionListeners[sessionId]?.let { it ->
             it.forEach {
