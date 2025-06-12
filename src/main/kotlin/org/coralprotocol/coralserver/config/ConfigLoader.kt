@@ -8,6 +8,7 @@ import com.sksamuel.hoplite.ConfigLoader
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.io.files.FileNotFoundException
 import java.io.File
+import kotlin.io.path.Path
 
 private val logger = KotlinLogging.logger {}
 
@@ -28,11 +29,14 @@ object AppConfigLoader {
             return _c
         }
         val config = try {
-            // Try to load from resources
+            val configPath = System.getenv("CONFIG_PATH")
             val resourcePath = "application.yaml"
-            val resource = AppConfigLoader::class.java.classLoader.getResource(resourcePath)
-            if (resource != null) {
-                val file = File(resource.path)
+            // Try to load from resources, if no config path set
+            val file = when (configPath) {
+                null -> AppConfigLoader::class.java.classLoader.getResource(resourcePath)?.let { File(it.path) }
+                else -> File((Path(configPath,resourcePath)).toString())
+            }
+            if (file != null) {
                 if (!file.exists()) {
                     throw FileNotFoundException(file.absolutePath)
                 }
