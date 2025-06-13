@@ -37,7 +37,7 @@ class SimpleBlob:
         """Create a SimpleBlob from data."""
         return cls(data=data, mime_type=mime_type, metadata=metadata or {})
     
-def convert_mcp_resource_to_langchain_blob(
+def convert_mcp_resource_to_blob(
     resource_uri: str,
     contents: ResourceContents,
 ) -> SimpleBlob:
@@ -58,7 +58,7 @@ async def get_mcp_resource(session: ClientSession, uri: str) -> List[SimpleBlob]
     if not contents_result.contents or len(contents_result.contents) == 0:
         return []
     return [
-        convert_mcp_resource_to_langchain_blob(uri, content) for content in contents_result.contents
+        convert_mcp_resource_to_blob(uri, content) for content in contents_result.contents
     ]
 
 async def load_mcp_resources(
