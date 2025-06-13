@@ -135,8 +135,8 @@ async def main():
             else:
                 agent_resources = "\n".join(str(blob.data) for blob in resources)
                 print("Resources fetched:")
-                for blob in resources:
-                    print(blob.data)
+                # for blob in resources:
+                #     print(blob.data)
         except Exception as e:
             print(f"Error retrieving resources: {e}")
             agent_resources = "NA"
@@ -176,6 +176,8 @@ async def main():
             tools=tools,
         )
         print("ChatAgent initialized with updated resources!")
+        print("Resource System Message before agent question:")
+        print(resource_sys_message)
 
         prompt = "As the user_interaction_agent on the Coral Server, initiate your workflow by listing all connected agents and asking the user how you can assist them."
         try:
