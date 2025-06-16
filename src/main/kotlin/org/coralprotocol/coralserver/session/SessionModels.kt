@@ -37,7 +37,7 @@ private val logger = KotlinLogging.logger {}
 @Serializable
 data class CreateSessionRequest(
     val applicationId: String,
-    val sessionId: String?,
+    val sessionId: String? = null,
     val privacyKey: String,
     val agentGraph: AgentGraphRequest?,
 )
@@ -46,7 +46,7 @@ data class CreateSessionRequest(
 data class AgentGraphRequest(
     val agents: HashMap<AgentName, GraphAgentRequest>,
     val links: Set<Set<String>>,
-    val tools: HashMap<String, CustomTool>,
+    val tools: Map<String, CustomTool> = emptyMap(),
 )
 
 object JSONSchemaSerializer : KSerializer<JSONSchemaWithRaw> {
