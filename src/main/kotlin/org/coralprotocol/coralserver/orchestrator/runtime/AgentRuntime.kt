@@ -21,13 +21,4 @@ sealed class AgentRuntime : Orchestrate {
             TODO("request agent from remote server")
         }
     }
-
-    @Serializable
-    @SerialName("docker")
-    data class Docker(val container: String) : AgentRuntime() {
-        override fun spawn(agentName: String, connectionUrl: String, options: Map<String, ConfigValue>): OrchestratorHandle {
-            TODO("Not yet implemented")
-        }
-    }
-
 }
