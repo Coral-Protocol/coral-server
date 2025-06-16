@@ -46,12 +46,14 @@ val commonRegistryOptionsList = listOf(
     ConfigEntry.Str("OPENAI_API_KEY", "OpenAI API Key", null),
     ConfigEntry.Str("GOOGLE_API_KEY", "Google API Key", null),
     ConfigEntry.Str("SEARCH_ENGINE_ID", "Search Engine ID", null),
+    ConfigEntry.Str("OPENROUTER_API_KEY", "OpenRouter API Key", null),
     ConfigEntry.Str("TASK_INSTRUCTION", "The task to instruct the", null),
     ConfigEntry.Str("TASK_ID", "The gaia question ID", null),
 )
 val openAiApiKey: String = System.getenv("OPENAI_API_KEY")
 val googleApiKey: String = System.getenv("GOOGLE_API_KEY")
 val searchEngineId: String = System.getenv("SEARCH_ENGINE_ID")
+val openRouterApiKey: String = System.getenv("OPENROUTER_API_KEY")
 
 val commonRegistryEnvList = listOf(
     EnvVar(
@@ -71,6 +73,12 @@ val commonRegistryEnvList = listOf(
         from = "SEARCH_ENGINE_ID",
         value = searchEngineId,
         option = "SEARCH_ENGINE_ID"
+    ),
+    EnvVar(
+        "OPENROUTER_API_KEY",
+        from = "OPENROUTER_API_KEY",
+        value = openRouterApiKey,
+        option = "OPENROUTER_API_KEY"
     ),
     EnvVar(
         "TASK_INSTRUCTION",
@@ -195,6 +203,7 @@ class GaiaApplication(val server: CoralServer) {
             "OPENAI_API_KEY" to JsonPrimitive(openAiApiKey),
             "GOOGLE_API_KEY" to JsonPrimitive(googleApiKey),
             "SEARCH_ENGINE_ID" to JsonPrimitive(searchEngineId),
+            "OPENROUTER_API_KEY" to JsonPrimitive(openRouterApiKey),
             "TASK_INSTRUCTION" to JsonPrimitive(questionWithFile),
             "TASK_ID" to JsonPrimitive(question.taskId)
         )
