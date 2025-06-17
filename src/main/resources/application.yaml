@@ -31,7 +31,7 @@ registry:
         description: "OpenAI API Key"
       - name: "GITHUB_ACCESS_TOKEN"
         type: "string"
-        description: "GitHub Access Token. Can be blank if you're ok with unauthed rate limits."
+        description: "GitHub Access Token"
 
     # How this agent is actually orchestrated locally
     runtime:
