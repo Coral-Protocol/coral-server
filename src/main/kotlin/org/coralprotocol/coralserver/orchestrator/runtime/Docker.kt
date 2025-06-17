@@ -1,6 +1,10 @@
 package org.coralprotocol.coralserver.orchestrator.runtime
 
+import com.chrynan.uri.core.Uri
+import com.github.dockerjava.api.async.ResultCallback
 import com.github.dockerjava.api.exception.NotModifiedException
+import com.github.dockerjava.api.model.Frame
+import com.github.dockerjava.api.model.StreamType
 import com.github.dockerjava.core.DefaultDockerClientConfig
 import com.github.dockerjava.core.DockerClientBuilder
 import com.github.dockerjava.core.DockerClientConfig
@@ -11,35 +15,91 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.orchestrator.ConfigValue
 import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
+import org.coralprotocol.coralserver.orchestrator.runtime.executable.EnvVar
 import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 
 @Serializable
 @SerialName("docker")
-data class Docker(val container: String) : AgentRuntime() {
+data class Docker(
+    val container: String,
+    val environment: List<EnvVar> = listOf()
+) : AgentRuntime() {
     private val dockerClientConfig: DockerClientConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
-        .withDockerHost("unix:///var/run/docker.sock") // TODO: make this configurable
+        .withDockerHost(getDockerSocket())
         .build()
     private val dockerClient = DockerClientBuilder.getInstance(dockerClientConfig).build()
 
     override fun spawn(
         agentName: String,
-        connectionUrl: String,
+        port: UShort,
+        relativeMcpServerUri: Uri,
         options: Map<String, ConfigValue>
     ): OrchestratorHandle {
         logger.info { "Spawning Docker container: $container" }
 
+        // Build environment variables consistently with executable version
+        val environmentVars = mutableListOf<String>()
+
+        // Add user-defined environment variables
+        for (env in this.environment) {
+            val (key, value) = env.resolve(options)
+            environmentVars.add("$key=$value")
+        }
+
+        // Add the coral connection URL
+        val fullConnectionUrl =
+            "http://host.docker.internal:$port/${relativeMcpServerUri.path}${relativeMcpServerUri.query?.let { "?$it" } ?: ""}"
+        environmentVars.add("CORAL_CONNECTION_URL=$fullConnectionUrl")
+
         val containerCreation = dockerClient.createContainerCmd(container)
-            .withName(agentName)
-            .withEnv(options.map { "${it.key}=${it.value}" })
+            .withName(getDockerContainerName(relativeMcpServerUri, agentName))
+            .withEnv(environmentVars)
+            .withAttachStdout(true)
+            .withAttachStderr(true)
+            .withAttachStdin(false) // Don't attach stdin as requested
             .exec()
 
         dockerClient.startContainerCmd(containerCreation.id).exec()
 
+        // Attach to container streams for output redirection
+        val attachCmd = dockerClient.attachContainerCmd(containerCreation.id)
+            .withStdOut(true)
+            .withStdErr(true)
+            .withFollowStream(true)
+            .withLogs(true)
+
+        // Start stream handling in a daemon thread (consistent with executable version)
+        val streamCallback = attachCmd.exec(object : ResultCallback.Adapter<Frame>() {
+            override fun onNext(frame: Frame) {
+                val message = String(frame.payload).trimEnd('\n')
+                when (frame.streamType) {
+                    StreamType.STDOUT -> {
+                        logger.info { "[STDOUT] $agentName: $message" }
+                    }
+
+                    StreamType.STDERR -> {
+                        logger.info { "[STDERR] $agentName: $message" }
+                    }
+
+                    else -> {
+                        logger.warn { "[UNKNOWN] $agentName: $message" }
+                    }
+                }
+            }
+        })
+
         return object : OrchestratorHandle {
             override suspend fun destroy() {
                 withContext(processContext) {
+                    // Close the stream callback first
+                    try {
+                        streamCallback.close()
+                    } catch (e: Exception) {
+                        logger.warn { "Failed to close stream callback: ${e.message}" }
+                    }
+
                     warnOnNotModifiedExceptions { dockerClient.stopContainerCmd(containerCreation.id).exec() }
                     warnOnNotModifiedExceptions {
                         withTimeoutOrNull(30.seconds) {
@@ -69,5 +129,33 @@ private suspend fun warnOnNotModifiedExceptions(block: suspend () -> Unit): Unit
         logger.warn { "Docker operation was not modified: ${e.message}" }
     } catch (e: Exception) {
         throw e
+    }
+}
+
+private fun String.asDockerContainerName(): String {
+    return this.replace(Regex("[^a-zA-Z0-9_]"), "_")
+        .take(63) // Network-resolvable name limit
+        .trim('_') // Remove trailing underscores
+}
+
+private fun getDockerContainerName(relativeMcpServerUri: Uri, agentName: String): String {
+    // Return the agent id up to 52 characters, then append random characters with mcp server uri as seed to ensure uniqueness among the same connection
+    val randomSuffix = relativeMcpServerUri.toUriString().hashCode().toString(16).take(11)
+    return "${agentName.take(52)}_$randomSuffix".asDockerContainerName()
+}
+
+private fun getDockerSocket(): String {
+    val specifiedSocket = System.getenv("CORAL_DOCKER_SOCKET")
+    if (specifiedSocket != null) {
+        return specifiedSocket
+    }
+
+    // Check whether colima is installed and use its socket
+    val homeDir = System.getProperty("user.home")
+    val colimaSocket = "$homeDir/.colima/default/docker.sock"
+    return if (java.io.File(colimaSocket).exists()) {
+        "unix://$colimaSocket"
+    } else {
+        "unix:///var/run/docker.sock" // Default Docker socket
     }
 }
