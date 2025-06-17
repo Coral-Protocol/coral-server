@@ -38,27 +38,21 @@ data class Docker(
         options: Map<String, ConfigValue>
     ): OrchestratorHandle {
         logger.info { "Spawning Docker container: $container" }
-
-        // Build environment variables consistently with executable version
-        val environmentVars = mutableListOf<String>()
-
-        // Add user-defined environment variables
-        for (env in this.environment) {
-            val (key, value) = env.resolve(options)
-            environmentVars.add("$key=$value")
-        }
-
-        // Add the coral connection URL
         val fullConnectionUrl =
             "http://host.docker.internal:$port/${relativeMcpServerUri.path}${relativeMcpServerUri.query?.let { "?$it" } ?: ""}"
-        environmentVars.add("CORAL_CONNECTION_URL=$fullConnectionUrl")
+
+        val resolvedEnvs = this.environment.map {
+            val (key, value) = it.resolve(options)
+            "$key=$value"
+        }
+        val allEnvs = resolvedEnvs + "CORAL_CONNECTION_URL=$fullConnectionUrl"
 
         val containerCreation = dockerClient.createContainerCmd(container)
             .withName(getDockerContainerName(relativeMcpServerUri, agentName))
-            .withEnv(environmentVars)
+            .withEnv(allEnvs)
             .withAttachStdout(true)
             .withAttachStderr(true)
-            .withAttachStdin(false) // Don't attach stdin as requested
+            .withAttachStdin(false) // Stdin makes no sense with orchestration
             .exec()
 
         dockerClient.startContainerCmd(containerCreation.id).exec()
@@ -70,7 +64,6 @@ data class Docker(
             .withFollowStream(true)
             .withLogs(true)
 
-        // Start stream handling in a daemon thread (consistent with executable version)
         val streamCallback = attachCmd.exec(object : ResultCallback.Adapter<Frame>() {
             override fun onNext(frame: Frame) {
                 val message = String(frame.payload).trimEnd('\n')
@@ -93,7 +86,6 @@ data class Docker(
         return object : OrchestratorHandle {
             override suspend fun destroy() {
                 withContext(processContext) {
-                    // Close the stream callback first
                     try {
                         streamCallback.close()
                     } catch (e: Exception) {
@@ -135,11 +127,11 @@ private suspend fun warnOnNotModifiedExceptions(block: suspend () -> Unit): Unit
 private fun String.asDockerContainerName(): String {
     return this.replace(Regex("[^a-zA-Z0-9_]"), "_")
         .take(63) // Network-resolvable name limit
-        .trim('_') // Remove trailing underscores
+        .trim('_')
 }
 
 private fun getDockerContainerName(relativeMcpServerUri: Uri, agentName: String): String {
-    // Return the agent id up to 52 characters, then append random characters with mcp server uri as seed to ensure uniqueness among the same connection
+    // SessionID is too long for Docker container names, so we use a hash of the URI for deduplication.
     val randomSuffix = relativeMcpServerUri.toUriString().hashCode().toString(16).take(11)
     return "${agentName.take(52)}_$randomSuffix".asDockerContainerName()
 }
@@ -150,7 +142,7 @@ private fun getDockerSocket(): String {
         return specifiedSocket
     }
 
-    // Check whether colima is installed and use its socket
+    // Check whether colima is installed and use its socket if available
     val homeDir = System.getProperty("user.home")
     val colimaSocket = "$homeDir/.colima/default/docker.sock"
     return if (java.io.File(colimaSocket).exists()) {
