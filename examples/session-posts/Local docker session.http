@@ -6,32 +6,33 @@ Content-Type: application/json
   "privacyKey": "priv",
   "agentGraph": {
     "agents": {
-      "my-search": {
+      "my-deepresearch": {
         "type": "local",
-        "agentType": "search",
+        "agentType": "deepresearch",
         "options": {
           "OPENAI_API_KEY": "{{OPENAI_API_KEY}}",
-          "GOOGLE_API_KEY": "{{GOOGLE_API_KEY}}",
-          "SEARCH_ENGINE_ID": "{{SEARCH_ENGINE_ID}}"
+          "LINKUP_API_KEY": "{{LINKUP_API_KEY}}"
         }
       },
-      "my-math": {
+      "my-repounderstanding": {
         "type": "local",
-        "agentType": "math",
+        "agentType": "repounderstanding",
         "options": {
-          "OPENAI_API_KEY": "{{OPENAI_API_KEY}}"
+          "OPENAI_API_KEY": "{{OPENAI_API_KEY}}",
+          "GITHUB_ACCESS_TOKEN": "{{GITHUB_ACCESS_TOKEN}}"
         }
       },
       "my-interface": {
         "type": "local",
         "agentType": "interface",
         "options": {
-          "OPENAI_API_KEY": "{{OPENAI_API_KEY}}"
+          "OPENAI_API_KEY": "{{OPENAI_API_KEY}}",
+          "HUMAN_RESPONSE": "Please give me a comprehensive instruction of the master branch of Coral-Protocol/coral-server."
         }
       }
     },
     "links": [
-      ["my-math", "my-search", "my-interface"]
+      ["my-repounderstanding", "my-deepresearch", "my-interface"]
     ]
   }
 }
