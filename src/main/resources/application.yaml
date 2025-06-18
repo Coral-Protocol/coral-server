@@ -41,7 +41,7 @@ registry:
           from: "OPENAI_API_KEY"
         - name: "GITHUB_ACCESS_TOKEN"
           from: "GITHUB_ACCESS_TOKEN"
-      container: "sd2879/coral-repounderstanding:latest"
+      image: "sd2879/coral-repounderstanding:latest"
 
   deepresearch:
     options:
@@ -57,7 +57,7 @@ registry:
       environment:
         - name: "API_KEY"
           from: "OPENAI_API_KEY"
-      container: "sd2879/coral-opendeepresearch:latest"
+      image: "sd2879/coral-opendeepresearch:latest"
 
   interface:
     options:
@@ -70,7 +70,7 @@ registry:
 
     runtime:
       type: "docker"
-      container: "sd2879/coral-interface-agent:latest"
+      image: "sd2879/coral-interface-agent:latest"
       environment:
         - name: "API_KEY"
           from: "OPENAI_API_KEY"
