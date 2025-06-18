@@ -1,5 +1,7 @@
 package org.coralprotocol.coralserver.session
 
+import com.chrynan.uri.core.Uri
+import com.chrynan.uri.core.fromParts
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -100,9 +102,10 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
 
             it.agents.forEach { agent ->
                 orchestrator.spawn(
-                    agent.value,
+                    type = agent.value,
+                    port = port,
                     agentName = agent.key.toString(),
-                    connectionUrl = "http://localhost:${port}/${applicationId}/${privacyKey}/${sessionId}/sse?agentId=${agent.key}"
+                    relativeMcpServerUri = Uri.fromParts(scheme = "http", path = "${applicationId}/${privacyKey}/${sessionId}/sse", query = "agentId=${agent.key}")
                 )
             }
             subgraphs
