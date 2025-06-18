@@ -23,7 +23,7 @@ private val logger = KotlinLogging.logger {}
 @Serializable
 @SerialName("docker")
 data class Docker(
-    val container: String,
+    val image: String,
     val environment: List<EnvVar> = listOf()
 ) : AgentRuntime() {
     private val dockerClientConfig: DockerClientConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
