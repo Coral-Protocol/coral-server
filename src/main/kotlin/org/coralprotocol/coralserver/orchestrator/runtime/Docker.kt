@@ -37,7 +37,7 @@ data class Docker(
         relativeMcpServerUri: Uri,
         options: Map<String, ConfigValue>
     ): OrchestratorHandle {
-        logger.info { "Spawning Docker container: $container" }
+        logger.info { "Spawning Docker container with image: $image" }
         val fullConnectionUrl =
             "http://host.docker.internal:$port/${relativeMcpServerUri.path}${relativeMcpServerUri.query?.let { "?$it" } ?: ""}"
 
@@ -47,7 +47,7 @@ data class Docker(
         }
         val allEnvs = resolvedEnvs + "CORAL_CONNECTION_URL=$fullConnectionUrl"
 
-        val containerCreation = dockerClient.createContainerCmd(container)
+        val containerCreation = dockerClient.createContainerCmd(image)
             .withName(getDockerContainerName(relativeMcpServerUri, agentName))
             .withEnv(allEnvs)
             .withAttachStdout(true)
