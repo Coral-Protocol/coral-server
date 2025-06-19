@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.session
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.util.collections.*
 import kotlinx.coroutines.CompletableDeferred
 import org.coralprotocol.coralserver.EventBus
@@ -10,6 +11,8 @@ import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
+
+private val logger = KotlinLogging.logger {}
 
 /**
  * Session class to hold stateful information for a specific application and privacy key.
@@ -55,6 +58,7 @@ class CoralAgentGraphSession(
 
     fun registerAgent(agentId: String, agentDescription: String?): Agent? {
         if (agents.containsKey(agentId)) {
+            logger.warn { "$agentId has already been registered" }
             return null
         }
         val agent = Agent(

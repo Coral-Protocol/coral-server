@@ -16,3 +16,14 @@ data class RegistryAgent(
     val options = optionsList.map { it.name to it }
         .toMapOnDuplicate { throw IllegalArgumentException("Duplicate options ${it.joinToString(",")}") }
 }
+
+@Serializable
+data class PublicRegistryAgent(
+    val id: String,
+    val options: Map<String, ConfigEntry>
+)
+
+fun RegistryAgent.toPublic(id: String): PublicRegistryAgent = PublicRegistryAgent(
+    id = id,
+    options = options
+)
