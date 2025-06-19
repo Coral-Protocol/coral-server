@@ -43,7 +43,6 @@ fun Routing.debugRoutes(sessionManager: SessionManager) {
 
         val timeout = call.parameters["timeout"]?.toLongOrNull() ?: 1000
 
-        send("waiting")
         val session = sessionManager.waitForSession(sessionId, timeout);
         if (session == null) {
             call.respond(HttpStatusCode.NotFound, "Session not found")

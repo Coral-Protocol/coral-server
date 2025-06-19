@@ -4,7 +4,9 @@ import kotlinx.serialization.Serializable
 
 @JvmInline
 @Serializable
-value class AgentType(private val type: String)
+value class AgentType(private val type: String) {
+    override fun toString(): String = type
+}
 
 @Serializable
 data class AgentRegistry(

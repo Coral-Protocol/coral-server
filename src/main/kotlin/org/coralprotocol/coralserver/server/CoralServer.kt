@@ -19,6 +19,7 @@ import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.config.AppConfig
 import org.coralprotocol.coralserver.debug.debugRoutes
 import org.coralprotocol.coralserver.routes.messageRoutes
+import org.coralprotocol.coralserver.routes.publicRoutes
 import org.coralprotocol.coralserver.routes.sessionRoutes
 import org.coralprotocol.coralserver.routes.sseRoutes
 import org.coralprotocol.coralserver.session.SessionManager
@@ -65,6 +66,7 @@ class CoralServer(
             }
             routing {
                 // Configure all routes
+                publicRoutes(appConfig, sessionManager)
                 debugRoutes(sessionManager)
                 sessionRoutes(sessionManager, devmode)
                 sseRoutes(mcpServersByTransportId, sessionManager)
