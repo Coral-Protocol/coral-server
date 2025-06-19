@@ -8,10 +8,11 @@ import java.util.*
  */
 @Serializable
 data class ResolvedMessage(
-    val id: String = UUID.randomUUID().toString(),
+    val id: String,
+    val threadName: String,
     val threadId: String,
     val senderId: String,
     val content: String,
-    val timestamp: Long = System.currentTimeMillis(),
-    val mentions: List<String> = emptyList()
+    val timestamp: Long,
+    val mentions: List<String>
 )
