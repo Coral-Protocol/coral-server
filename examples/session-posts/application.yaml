@@ -1,0 +1,84 @@
+# Default application configuration
+# TODO: Applications are a work in progress. This is safe to ignore for now.
+applications:
+  - id: "app"
+    name: "Default Application"
+    description: "Default application for testing"
+    privacyKeys:
+      - "default-key"
+      - "public"
+      - "priv"
+
+# NOTE: this will almost certainly *not* work on your machine without some tweaking of the `command`'s for each agent
+
+# Registry of agents we can orchestrate
+registry:
+  #  test:
+  #    options:
+  #      - name: "NAME"
+  #        type: "string"
+  #        description: "Test agent name"
+  #    runtime:
+  #      type: "executable"
+  #      command: ["bash", "examples/camel-search-maths/venv.sh", "examples/camel-search-maths/test.py"]
+  #      environment:
+  #        - option: "NAME"
+  repounderstanding:
+    # Exposed configuration for consumers of this agent
+    options:
+      - name: "OPENAI_API_KEY"
+        type: "string"
+        description: "OpenAI API Key"
+      - name: "GITHUB_ACCESS_TOKEN"
+        type: "string"
+        description: "GitHub Access Token"
+
+    # How this agent is actually orchestrated locally
+    runtime:
+      type: "docker"
+      environment:
+        - name: "API_KEY"
+          from: "OPENAI_API_KEY"
+        - name: "GITHUB_ACCESS_TOKEN"
+          from: "GITHUB_ACCESS_TOKEN"
+      image: "sd2879/coral-repounderstanding:latest"
+
+  deepresearch:
+    options:
+      - name: "OPENAI_API_KEY"
+        type: "string"
+        description: "OpenAI API Key"
+      - name: "LINKUP_API_KEY"
+        type: "string"
+        description: "LinkUp API Key. Get from https://linkup.so/"
+
+    runtime:
+      type: "docker"
+      environment:
+        - name: "API_KEY"
+          from: "OPENAI_API_KEY"
+      image: "sd2879/coral-opendeepresearch:latest"
+
+  interface:
+    options:
+      - name: "OPENAI_API_KEY"
+        type: "string"
+        description: "OpenAI API Key"
+      - name: "HUMAN_RESPONSE"
+        type: "string"
+        description: "Human response to be used in the interface agent"
+
+    runtime:
+      type: "docker"
+      image: "sd2879/coral-interface-agent:latest"
+      environment:
+        - name: "API_KEY"
+          from: "OPENAI_API_KEY"
+        - name: "HUMAN_RESPONSE"
+          from: "HUMAN_RESPONSE"
+
+# Uncomment to configure an external application source
+# applicationSource:
+#   type: "http"
+#   url: "https://example.com/applications"
+#   refreshIntervalSeconds: 3600
