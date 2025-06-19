@@ -1,5 +1,7 @@
 package org.coralprotocol.coralserver.orchestrator.runtime
 
+import com.chrynan.uri.core.Uri
+import com.chrynan.uri.core.fromParts
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.newFixedThreadPoolContext
@@ -20,16 +22,33 @@ data class Executable(
     val command: List<String>,
     val environment: List<EnvVar> = listOf()
 ) : AgentRuntime() {
-    override fun spawn(agentName: String, connectionUrl: String, options: Map<String, ConfigValue>): OrchestratorHandle {
+    override fun spawn(
+        agentName: String,
+        port: UShort,
+        relativeMcpServerUri: Uri,
+        options: Map<String, ConfigValue>
+    ): OrchestratorHandle {
         val processBuilder = ProcessBuilder().redirectErrorStream(true)
-        val environment = processBuilder.environment()
-        environment.clear()
-        for (env in this.environment) {
-            val (key, value) = env.resolve(options)
-            environment[key] = value
+        val processEnvironment = processBuilder.environment()
+        processEnvironment.clear()
+        // TODO: error if someone tries passing coral system envs themselves
+        val coralConnectionUrl = Uri.fromParts(
+            scheme = "http",
+            host = "localhost", // Executables run on the same host as the Coral server
+            port = port.toInt(),
+            path = relativeMcpServerUri.path,
+            query = relativeMcpServerUri.query
+        )
+
+        val resolvedOptions = this.environment.associate {
+            val (key, value) = it.resolve(options);
+            key to (value ?: "")
         }
-        // TODO: error if someone tries passing 'CORAL_CONNECTION_URL' themselves
-        environment["CORAL_CONNECTION_URL"] = connectionUrl
+        val envsToSet = resolvedOptions + getCoralSystemEnvs(coralConnectionUrl, agentName, "executable")
+        for (env in envsToSet) {
+            processEnvironment[env.key] = env.value
+        }
+
         processBuilder.command(command)
 
         logger.info { "spawning process..." }

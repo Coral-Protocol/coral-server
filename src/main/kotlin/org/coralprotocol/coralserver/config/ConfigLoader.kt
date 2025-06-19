@@ -6,70 +6,144 @@ import com.charleskorn.kaml.YamlConfiguration
 import com.charleskorn.kaml.decodeFromStream
 import com.sksamuel.hoplite.ConfigLoader
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import kotlinx.io.files.FileNotFoundException
 import java.io.File
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
+import java.nio.file.*
+import kotlin.io.path.listDirectoryEntries
 
 private val logger = KotlinLogging.logger {}
 
 /**
+ * Creates a flow WatchEvent from a watchService
+ */
+fun WatchService.eventFlow(): Flow<List<WatchEvent<out Any>>> = flow {
+    while (currentCoroutineContext().isActive) {
+        coroutineScope {
+            var key: WatchKey? = null
+            val job = launch {
+                runInterruptible(Dispatchers.IO) {
+                    key = take()
+                }
+            }
+            job.join()
+            val currentKey = key
+            if (currentKey != null) {
+                emit(currentKey.pollEvents())
+                currentKey.reset()
+            }
+        }
+    }
+}
+
+/**
+ * Returns a flow with the files inside a folder (with a given glob)
+ */
+fun Path.listDirectoryEntriesFlow(glob: String): Flow<List<Path>> {
+    val watchService = watch()
+    return watchService.eventFlow()
+        .map { listDirectoryEntries(glob) }
+        .onStart { emit(listDirectoryEntries(glob)) }
+        .onCompletion { watchService.close() }
+        .flowOn(Dispatchers.IO)
+}
+
+/**
+ * Creates a new WatchService for any Event
+ */
+fun Path.watch(): WatchService {
+    return watch(
+        StandardWatchEventKinds.ENTRY_CREATE, StandardWatchEventKinds.ENTRY_MODIFY,
+        StandardWatchEventKinds.OVERFLOW, StandardWatchEventKinds.ENTRY_DELETE
+    )
+}
+
+/**
+ * Creates a new watch service
+ */
+fun Path.watch(vararg events: WatchEvent.Kind<out Any>) =
+    fileSystem.newWatchService()!!.apply { register(this, events) }
+
+
+/**
  * Loads application configuration from resources.
  */
-object AppConfigLoader {
-    private var config: AppConfig? = null
+class AppConfigLoader(val path: Path? = getConfigPath()) {
+    var config: AppConfig = loadConfig(path)
+        private set
+
+    private val watchJob: Job? = path?.let {
+        CoroutineScope(Dispatchers.Default).launch {
+            logger.info{ "Watching for config changes in '${it.parent}'..." }
+            it.parent.listDirectoryEntriesFlow("application.yaml*").distinctUntilChanged().collect {
+                logger.info { "application.yaml changed. Reloading..." }
+                config = loadConfig(path)
+            }
+        }
+    }
+
+    fun stopWatch() {
+        watchJob?.cancel()
+    }
+
+    companion object {
+        private fun getConfigPath(): Path? {
+            val configPath = System.getenv("CONFIG_PATH")
+            val resourcePath = "application.yaml"
+            // Try to load from resources, if no config path set
+            return when (configPath) {
+                null -> AppConfigLoader::class.java.classLoader.getResource(resourcePath)
+                    ?.let { Path.of(URLDecoder.decode(it.path, StandardCharsets.UTF_8)) }
+
+                else -> (Path.of(configPath, resourcePath))
+            }
+        }
+    }
 
     /**
      * Loads the application configuration from the resources.
      * If the configuration is already loaded, returns the cached instance.
      */
-    fun loadConfig(): AppConfig {
-        // TODO (alan): redo all this
-        val _c = config
-        if (_c != null) {
-            return _c
-        }
-        val config = try {
-            // Try to load from resources
-            val resourcePath = "application.yaml"
-            val resource = AppConfigLoader::class.java.classLoader.getResource(resourcePath)
-            if (resource != null) {
-                val file = File(resource.path)
-                if (!file.exists()) {
-                    throw FileNotFoundException(file.absolutePath)
-                }
-
-                val c =
-                    Yaml(configuration = YamlConfiguration(polymorphismStyle = PolymorphismStyle.Property)).decodeFromStream<AppConfig>(
-                        file.inputStream()
-                    )
-                config = c
-
-                logger.info { "Loaded configuration with ${c.applications.size ?: 0} applications & ${c.registry?.size ?: 0} registry agents" }
-                c
-            } else {
-                throw Exception("Resource not found: $resourcePath")
+    private fun loadConfig(path: Path?): AppConfig = try {
+        val file = path?.toFile()
+        if (file != null) {
+            if (!file.exists()) {
+                throw FileNotFoundException(file.absolutePath)
             }
-        } catch (e: Exception) {
-            logger.error(e) { "Failed to load configuration, using default" }
-            AppConfig(
-                applications = listOf(
-                    ApplicationConfig(
-                        id = "default-app",
-                        name = "Default Application",
-                        description = "Default application (fallback)",
-                        privacyKeys = listOf("default-key", "public")
-                    )
+
+            val c =
+                Yaml(configuration = YamlConfiguration(polymorphismStyle = PolymorphismStyle.Property)).decodeFromStream<AppConfig>(
+                    file.inputStream()
+                )
+            config = c
+
+            logger.info { "Loaded configuration with ${c.applications.size ?: 0} applications & ${c.registry?.size ?: 0} registry agents" }
+            c
+        } else {
+            throw Exception("Failed to lookup resource.")
+        }
+    } catch (e: Exception) {
+        logger.error(e) { "Failed to load configuration, using default" }
+        AppConfig(
+            applications = listOf(
+                ApplicationConfig(
+                    id = "default-app",
+                    name = "Default Application",
+                    description = "Default application (fallback)",
+                    privacyKeys = listOf("default-key", "public")
                 )
             )
-        }
-        this.config = config
-        return config
+        )
     }
+
 
     /**
      * Validates if the application ID and privacy key are valid.
      */
     fun isValidApplication(applicationId: String, privacyKey: String): Boolean {
-        val config = loadConfig()
         val application = config.applications.find { it.id == applicationId }
         return application != null && application.privacyKeys.contains(privacyKey)
     }
@@ -78,7 +152,6 @@ object AppConfigLoader {
      * Gets an application by ID.
      */
     fun getApplication(applicationId: String): ApplicationConfig? {
-        val config = loadConfig()
         return config.applications.find { it.id == applicationId }
     }
 }

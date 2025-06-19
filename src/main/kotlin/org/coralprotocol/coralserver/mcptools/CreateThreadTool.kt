@@ -45,7 +45,7 @@ fun CoralAgentIndividualMcp.addCreateThreadTool() {
 /**
  * Handles the create thread tool request.
  */
-private suspend fun CoralAgentIndividualMcp.handleCreateThread(request: CallToolRequest): CallToolResult {
+private fun CoralAgentIndividualMcp.handleCreateThread(request: CallToolRequest): CallToolResult {
     try {
         val json = Json { ignoreUnknownKeys = true }
         val input = json.decodeFromString<CreateThreadInput>(request.arguments.toString())
@@ -59,12 +59,12 @@ private suspend fun CoralAgentIndividualMcp.handleCreateThread(request: CallTool
             content = listOf(
                 TextContent(
                     """
-                    Thread created successfully:
-                    ID: ${thread.id}
-                    Name: ${thread.name}
-                    Creator: ${thread.creatorId}
-                    Participants: ${thread.participants.joinToString(", ")}
-                    """.trimIndent()
+                    |Thread created successfully:
+                    |ID: ${thread.id}
+                    |Name: ${thread.name}
+                    |Creator: ${thread.creatorId}
+                    |Participants: ${thread.participants.joinToString(", ")}
+                    """.trimMargin()
                 )
             )
         )

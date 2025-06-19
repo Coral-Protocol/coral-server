@@ -1,0 +1,41 @@
+POST http://localhost:5555/sessions
+Content-Type: application/json
+
+{
+  "applicationId": "app",
+  "privacyKey": "priv",
+  "agentGraph": {
+    "agents": {
+      "my-deepresearch": {
+        "type": "local",
+        "agentType": "deepresearch",
+        "options": {
+          "OPENAI_API_KEY": "{{OPENAI_API_KEY}}",
+          "LINKUP_API_KEY": "{{LINKUP_API_KEY}}"
+        }
+      },
+      "my-repounderstanding": {
+        "type": "local",
+        "agentType": "repounderstanding",
+        "options": {
+          "OPENAI_API_KEY": "{{OPENAI_API_KEY}}",
+          "GITHUB_ACCESS_TOKEN": "{{GITHUB_ACCESS_TOKEN}}"
+        }
+      },
+      "my-interface": {
+        "type": "local",
+        "agentType": "interface",
+        "options": {
+          "OPENAI_API_KEY": "{{OPENAI_API_KEY}}",
+          "HUMAN_RESPONSE": "Please give me a comprehensive instruction of the master branch of Coral-Protocol/coral-server."
+        }
+      }
+    },
+    "links": [
+      ["my-repounderstanding", "my-deepresearch", "my-interface"]
+    ]
+  }
+}
+
+
+###

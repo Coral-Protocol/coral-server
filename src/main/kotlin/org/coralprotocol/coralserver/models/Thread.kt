@@ -6,7 +6,6 @@ import java.util.*
 /**
  * Represents a thread with participants.
  */
-@Serializable
 data class Thread(
     val id: String = UUID.randomUUID().toString(),
     val name: String,

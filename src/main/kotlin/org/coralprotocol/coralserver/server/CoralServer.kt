@@ -17,8 +17,10 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.coroutines.Job
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.config.AppConfig
+import org.coralprotocol.coralserver.config.AppConfigLoader
 import org.coralprotocol.coralserver.debug.debugRoutes
 import org.coralprotocol.coralserver.routes.messageRoutes
+import org.coralprotocol.coralserver.routes.publicRoutes
 import org.coralprotocol.coralserver.routes.sessionRoutes
 import org.coralprotocol.coralserver.routes.sseRoutes
 import org.coralprotocol.coralserver.session.SessionManager
@@ -36,7 +38,7 @@ private val logger = KotlinLogging.logger {}
 class CoralServer(
     val host: String = "0.0.0.0",
     val port: UShort = 5555u,
-    val appConfig: AppConfig,
+    val appConfig: AppConfigLoader,
     val devmode: Boolean = false,
     val sessionManager: SessionManager = SessionManager(port = port),
 ) {
@@ -65,8 +67,9 @@ class CoralServer(
             }
             routing {
                 // Configure all routes
+                publicRoutes(appConfig, sessionManager)
                 debugRoutes(sessionManager)
-                sessionRoutes(sessionManager, devmode)
+                sessionRoutes(appConfig, sessionManager, devmode)
                 sseRoutes(mcpServersByTransportId, sessionManager)
                 messageRoutes(mcpServersByTransportId, sessionManager)
             }
@@ -78,7 +81,7 @@ class CoralServer(
      * Starts the server.
      */
     fun start(wait: Boolean = false) {
-        logger.info { "Starting sse server on port $port with ${appConfig.applications.size} configured applications" }
+        logger.info { "Starting sse server on port $port with ${appConfig.config.applications.size} configured applications" }
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "trace");
 
         if (devmode) {

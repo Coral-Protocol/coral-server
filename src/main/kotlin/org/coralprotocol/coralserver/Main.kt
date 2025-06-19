@@ -28,9 +28,9 @@ fun main(args: Array<String>) {
     when (command) {
 //        "--stdio" -> runMcpServerUsingStdio()
         "--sse-server" -> {
-            val appConfig = AppConfigLoader.loadConfig()
+            val appConfig = AppConfigLoader()
 
-            val orchestrator = Orchestrator(AgentRegistry(appConfig.registry ?: mapOf()))
+            val orchestrator = Orchestrator(AgentRegistry(appConfig.config.registry ?: mapOf()))
             val server = CoralServer(
                 port = port,
                 devmode = devMode,
@@ -41,6 +41,7 @@ fun main(args: Array<String>) {
             // Add shutdown hook to stop the server gracefully
             Runtime.getRuntime().addShutdownHook(Thread {
                 logger.info { "Shutting down server..." }
+                appConfig.stopWatch()
                 server.stop()
             })
 

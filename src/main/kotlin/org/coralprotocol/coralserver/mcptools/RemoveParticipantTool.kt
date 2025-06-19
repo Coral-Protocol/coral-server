@@ -40,7 +40,7 @@ fun CoralAgentIndividualMcp.addRemoveParticipantTool() {
 /**
  * Handles the remove participant tool request.
  */
-private suspend fun CoralAgentIndividualMcp.handleRemoveParticipant(request: CallToolRequest): CallToolResult {
+private fun CoralAgentIndividualMcp.handleRemoveParticipant(request: CallToolRequest): CallToolResult {
     try {
         val json = Json { ignoreUnknownKeys = true }
         val input = json.decodeFromString<RemoveParticipantInput>(request.arguments.toString())

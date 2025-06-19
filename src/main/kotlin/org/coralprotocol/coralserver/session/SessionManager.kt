@@ -1,5 +1,7 @@
 package org.coralprotocol.coralserver.session
 
+import com.chrynan.uri.core.Uri
+import com.chrynan.uri.core.fromParts
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -59,7 +61,7 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
     /**
      * Create a new session with a random ID.
      */
-    fun createSession(applicationId: String, privacyKey: String, agentGraph: AgentGraph?): CoralAgentGraphSession =
+    fun createSession(applicationId: String, privacyKey: String, agentGraph: AgentGraph? = null): CoralAgentGraphSession =
         createSessionWithId(java.util.UUID.randomUUID().toString(), applicationId, privacyKey, agentGraph)
 
     /**
@@ -69,7 +71,7 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
         sessionId: String,
         applicationId: String,
         privacyKey: String,
-        agentGraph: AgentGraph?
+        agentGraph: AgentGraph? = null
     ): CoralAgentGraphSession {
         val subgraphs = agentGraph?.let { it ->
 
@@ -100,14 +102,15 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
 
             it.agents.forEach { agent ->
                 orchestrator.spawn(
-                    agent.value,
+                    type = agent.value,
+                    port = port,
                     agentName = agent.key.toString(),
-                    connectionUrl = "http://localhost:${port}/${applicationId}/${privacyKey}/${sessionId}/sse?agentId=${agent.key}"
+                    relativeMcpServerUri = Uri.fromParts(scheme = "http", path = "${applicationId}/${privacyKey}/${sessionId}/sse", query = "agentId=${agent.key}")
                 )
             }
             subgraphs
         }
-        val session = CoralAgentGraphSession(sessionId, applicationId, privacyKey)
+        val session = CoralAgentGraphSession(sessionId, applicationId, privacyKey, agentGraph = agentGraph, groups = subgraphs?.toList() ?: emptyList())
         sessions[sessionId] = session
         sessionListeners[sessionId]?.let { it ->
             it.forEach {
@@ -127,7 +130,7 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
         sessionId: String,
         applicationId: String,
         privacyKey: String,
-        agentGraph: AgentGraph?
+        agentGraph: AgentGraph? = null
     ): CoralAgentGraphSession {
         sessionSemaphore.withPermit {
             return sessions[sessionId] ?: createSessionWithId(sessionId, applicationId, privacyKey, agentGraph)

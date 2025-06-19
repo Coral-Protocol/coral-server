@@ -1,0 +1,7 @@
+.gradle
+.venv
+build
+.direnv
+.idea
+examples
+coralizer

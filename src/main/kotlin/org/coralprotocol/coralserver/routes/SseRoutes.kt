@@ -2,6 +2,9 @@ package org.coralprotocol.coralserver.routes
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.*
+import io.ktor.server.request.host
+import io.ktor.server.request.port
+import io.ktor.server.request.uri
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
@@ -22,6 +25,7 @@ private val logger = KotlinLogging.logger {}
 fun Routing.sseRoutes(servers: ConcurrentMap<String, Server>, sessionManager: SessionManager) {
     sse("/{applicationId}/{privacyKey}/{coralSessionId}/sse") {
         handleSseConnection(
+            "coral://" + call.request.host() + ":" + call.request.port() + call.request.uri,
             call.parameters,
             this,
             servers,
@@ -32,6 +36,7 @@ fun Routing.sseRoutes(servers: ConcurrentMap<String, Server>, sessionManager: Se
 
     sse("/devmode/{applicationId}/{privacyKey}/{coralSessionId}/sse") {
         handleSseConnection(
+            "coral://" + call.request.host() + ":" + call.request.port() + call.request.uri,
             call.parameters,
             this,
             servers,
@@ -47,6 +52,7 @@ fun Routing.sseRoutes(servers: ConcurrentMap<String, Server>, sessionManager: Se
  * while production enforces security checks and requires pre-created sessions.
  */
 private suspend fun handleSseConnection(
+    uri: String,
     parameters: Parameters,
     sseProducer: ServerSSESession,
     servers: ConcurrentMap<String, Server>,
@@ -95,22 +101,24 @@ private suspend fun handleSseConnection(
         existingSession
     }
     val currentCount = session.getRegisteredAgentsCount()
-    logger.info { "DevMode: Current agent count for session ${session.id} (object id: ${session}) (from sessionmanager: ${sessionManager}): $currentCount, waiting for: ${session.devRequiredAgentStartCount}" }
-    // Create the agent object
-    val agent = Agent(
-        id = agentId,
-        description = agentDescription
-    )
     // Register the agent
-    session.registerAgent(agent)
+    val agent = session.registerAgent(agentId, agentDescription)
+    if (agent == null) {
+        logger.info {"Agent ID $agentId already registered"}
+        sseProducer.call.respond(HttpStatusCode.BadRequest, "Agent ID already exists")
+        return false
+    }
+
+    logger.info { "DevMode: Current agent count for session ${session.id} (object id: ${session}) (from sessionmanager: ${sessionManager}): $currentCount, waiting for: ${session.devRequiredAgentStartCount}" }
     val newCount = session.getRegisteredAgentsCount()
     logger.info { "DevMode: New agent count for session ${session.id} (object id: ${session})after registering: $newCount" }
 
     val routePrefix = if (isDevMode) "/devmode" else ""
-    val transport = SseServerTransport("$routePrefix/$applicationId/$privacyKey/$sessionId/message", sseProducer)
+    val endpoint = "$routePrefix/$applicationId/$privacyKey/$sessionId/message"
+    val transport = SseServerTransport(endpoint, sseProducer)
 
     val individualServer =
-        CoralAgentIndividualMcp(transport, session, agentId, maxWaitForMentionsTimeout)
+        CoralAgentIndividualMcp(uri, transport, session, agentId, maxWaitForMentionsTimeout, extraTools = agent.extraTools)
     session.coralAgentConnections.add(individualServer)
 
     val transportSessionId = transport.sessionId

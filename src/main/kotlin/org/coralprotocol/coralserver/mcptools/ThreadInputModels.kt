@@ -53,7 +53,7 @@ data class SendMessageInput(
  */
 @Serializable
 data class WaitForMentionsInput(
-    val timeoutMs: Long = 30000 // Default timeout of 30 seconds
+    val timeoutMs: Long = 30000
 )
 
 /**

@@ -24,7 +24,7 @@ fun <K, V> Map<K, V?>.filterNotNullValues(): Map<K, V> =
 /**
  * Configures session-related routes.
  */
-fun Routing.sessionRoutes(sessionManager: SessionManager, devMode: Boolean) {
+fun Routing.sessionRoutes(appConfig: AppConfigLoader, sessionManager: SessionManager, devMode: Boolean) {
     // Session creation endpoint
 
     post("/sessions") {
@@ -32,7 +32,7 @@ fun Routing.sessionRoutes(sessionManager: SessionManager, devMode: Boolean) {
             val request = call.receive<CreateSessionRequest>()
 
             // Validate application and privacy key
-            if (!devMode && !AppConfigLoader.isValidApplication(request.applicationId, request.privacyKey)) {
+            if (!devMode && !appConfig.isValidApplication(request.applicationId, request.privacyKey)) {
                 call.respond(HttpStatusCode.BadRequest, "Invalid application ID or privacy key")
                 return@post
             }
@@ -50,6 +50,8 @@ fun Routing.sessionRoutes(sessionManager: SessionManager, devMode: Boolean) {
                 }
 
                 AgentGraph(
+                    tools = it.tools,
+                    links = it.links,
                     agents = agents.mapValues { agent ->
                         when (val agentReq = agent.value) {
                             is GraphAgentRequest.Local -> {
@@ -80,15 +82,14 @@ fun Routing.sessionRoutes(sessionManager: SessionManager, devMode: Boolean) {
                                 GraphAgent.Local(
                                     blocking = agentReq.blocking ?: true,
                                     agentType = agentReq.agentType,
+                                    extraTools = agentReq.tools,
                                     options = defaultOptions + setOptions
                                 )
                             }
 
                             else -> TODO("(alan) remote agent option resolution")
                         }
-
-                    },
-                    links = it.links
+                    }
                 )
             }
 

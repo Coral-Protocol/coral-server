@@ -67,3 +67,5 @@ examples/camel-search-maths/__pycache__/
 /examples/camel-search-maths/.idea/inspectionProfiles/Project_Default.xml
 /examples/camel-search-maths/.idea/vcs.xml
 /examples/camel-search-maths/.idea/workspace.xml
+
+examples/session-posts/**.env.json

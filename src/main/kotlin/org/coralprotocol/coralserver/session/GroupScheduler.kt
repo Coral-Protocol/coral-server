@@ -21,7 +21,6 @@ data class GroupScheduler(
     fun clear() {
         agentGroupNotifications.clear()
         agentGroupRegisteredCount.values.forEach{it -> it.store(0)}
-
     }
 
     @OptIn(ExperimentalAtomicApi::class)
@@ -41,7 +40,6 @@ data class GroupScheduler(
                     }
                 }
             }
-
         }
     }
 

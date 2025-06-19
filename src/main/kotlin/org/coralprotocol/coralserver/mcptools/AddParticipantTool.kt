@@ -41,7 +41,7 @@ fun CoralAgentIndividualMcp.addAddParticipantTool() {
 /**
  * Handles the add participant tool request.
  */
-private suspend fun CoralAgentIndividualMcp.handleAddParticipant(request: CallToolRequest): CallToolResult {
+private fun CoralAgentIndividualMcp.handleAddParticipant(request: CallToolRequest): CallToolResult {
     try {
         val json = Json { ignoreUnknownKeys = true }
         val input = json.decodeFromString<AddParticipantInput>(request.arguments.toString())

@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.session
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.util.collections.*
 import kotlinx.coroutines.CompletableDeferred
 import org.coralprotocol.coralserver.EventBus
@@ -11,6 +12,8 @@ import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
+private val logger = KotlinLogging.logger {}
+
 /**
  * Session class to hold stateful information for a specific application and privacy key.
  * [devRequiredAgentStartCount] is the number of agents that need to register before the session can proceed. This is for devmode only.
@@ -19,6 +22,7 @@ class CoralAgentGraphSession(
     val id: String,
     val applicationId: String,
     val privacyKey: String,
+    val agentGraph: AgentGraph?,
     val coralAgentConnections: MutableList<CoralAgentIndividualMcp> = mutableListOf(),
     val groups: List<Set<String>> = listOf(),
     var devRequiredAgentStartCount: Int = 0,
@@ -52,16 +56,24 @@ class CoralAgentGraphSession(
         agentGroupScheduler.clear()
     }
 
-    suspend fun registerAgent(agent: Agent): Boolean {
-        if (agents.containsKey(agent.id)) {
-            return false
+    fun registerAgent(agentId: String, agentDescription: String?): Agent? {
+        if (agents.containsKey(agentId)) {
+            logger.warn { "$agentId has already been registered" }
+            return null
         }
+        val agent = Agent(
+            id = agentId,
+            description = agentDescription ?: "",
+            extraTools = agentGraph?.let {
+                it.agents[AgentName(agentId)]?.extraTools?.mapNotNull { tool -> it.tools[tool] }?.toSet()
+            } ?: setOf()
+        )
         agents[agent.id] = agent
 
         agentGroupScheduler.registerAgent(agent.id)
         countBasedScheduler.registerAgent(agent.id)
         eventBus.emit(Event.AgentRegistered(agent))
-        return true
+        return agent
     }
 
     fun getRegisteredAgentsCount(): Int = countBasedScheduler.getRegisteredAgentsCount()
@@ -90,7 +102,7 @@ class CoralAgentGraphSession(
         return agent
     }
 
-    suspend fun createThread(name: String, creatorId: String, participantIds: List<String>): Thread {
+    fun createThread(name: String, creatorId: String, participantIds: List<String>): Thread {
         if (creatorId != "debug" && !agents.containsKey(creatorId)) {
             throw IllegalArgumentException("Creator agent $creatorId not found")
         }
@@ -166,7 +178,7 @@ class CoralAgentGraphSession(
         return colors[index]
     }
 
-    suspend fun sendMessage(
+    fun sendMessage(
         threadId: String,
         senderId: String,
         content: String,
