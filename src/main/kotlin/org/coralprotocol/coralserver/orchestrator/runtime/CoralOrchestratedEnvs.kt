@@ -20,7 +20,7 @@ fun getCoralSystemEnvs(
         "CORAL_ORCHESTRATION_RUNTIME" to orchestrationRuntime,
         "CORAL_SESSION_ID" to sessionId,
         "CORAL_SSE_URL" to with(coralConnectionUrl) {
-            "${scheme}://$host$path"
+            "${scheme}://$host:$port$path"
         }
     )
 }
