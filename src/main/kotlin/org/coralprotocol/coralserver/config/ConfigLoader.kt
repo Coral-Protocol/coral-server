@@ -156,4 +156,4 @@ class AppConfigLoader(val path: Path? = getConfigPath(), val defaultConfig: AppC
     }
 }
 
-fun AppConfigLoader.custom(config: AppConfig) = AppConfigLoader(path = null, defaultConfig = config)
+fun AppConfigLoader.Companion.custom(config: AppConfig) = AppConfigLoader(path = null, defaultConfig = config)
