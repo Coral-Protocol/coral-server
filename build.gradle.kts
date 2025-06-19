@@ -19,7 +19,6 @@ repositories {
     }
 
     maven("https://repo.repsy.io/mvn/chrynan/public")
-
 }
 
 
@@ -36,6 +35,7 @@ dependencies {
     implementation("io.github.pdvrieze.xmlutil:serialization:0.91.0")
     implementation("io.github.pdvrieze.xmlutil:core-jdk:0.91.0")
     implementation("io.github.pdvrieze.xmlutil:serialization-jvm:0.91.0")
+    implementation("com.github.docker-java:docker-java:3.5.1")
 
 
     // Hoplite for configuration
@@ -98,6 +98,7 @@ tasks.jar {
     }
     from(configurations.runtimeClasspath.get().map { if (it.isDirectory) it else zipTree(it) })
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    exclude("META-INF/*.RSA", "META-INF/*.SF", "META-INF/*.DSA")
 }
 
 kotlin {

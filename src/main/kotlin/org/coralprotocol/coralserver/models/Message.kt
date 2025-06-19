@@ -1,15 +1,12 @@
 package org.coralprotocol.coralserver.models
 
-import kotlinx.serialization.Serializable
 import java.util.*
 
 /**
  * Represents a message in a thread.
  */
-@Serializable
 class Message private constructor (
     val id: String = UUID.randomUUID().toString(),
-    @Transient
     val thread: Thread,
     val sender: Agent,
     val content: String,
@@ -37,6 +34,7 @@ class Message private constructor (
 
 fun Message.resolve(): ResolvedMessage = ResolvedMessage(
     id = id,
+    threadName = this.thread.name,
     threadId = this.thread.id,
     senderId = this.sender.id,
     content = content,

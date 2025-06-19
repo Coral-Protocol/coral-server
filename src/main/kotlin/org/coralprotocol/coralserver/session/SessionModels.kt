@@ -37,7 +37,7 @@ private val logger = KotlinLogging.logger {}
 @Serializable
 data class CreateSessionRequest(
     val applicationId: String,
-    val sessionId: String?,
+    val sessionId: String? = null,
     val privacyKey: String,
     val agentGraph: AgentGraphRequest?,
 )
