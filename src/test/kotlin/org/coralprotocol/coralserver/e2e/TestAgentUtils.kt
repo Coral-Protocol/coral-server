@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.newFixedThreadPoolContext
 import kotlinx.coroutines.runBlocking
 import org.coralprotocol.coralserver.config.AppConfig
+import org.coralprotocol.coralserver.config.AppConfigLoader
 import org.coralprotocol.coralserver.server.CoralServer
 import org.coralprotocol.coralserver.session.CoralAgentGraphSession
 import org.coralprotocol.coralserver.session.SessionManager
@@ -236,7 +237,7 @@ class TestCoralServer(
             port = port,
             devmode = devmode,
             sessionManager = sessionManager,
-            appConfig = AppConfig()
+            appConfig = AppConfigLoader(null)
         )
         GlobalScope.launch(serverContext) {
             server!!.start()
