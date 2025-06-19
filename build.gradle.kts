@@ -72,8 +72,11 @@ dependencies {
     // Ktor client dependencies
     implementation("io.ktor:ktor-client-logging")
     implementation("io.ktor:ktor-client-content-negotiation")
+    implementation("io.ktor:ktor-client-cio-jvm")
     implementation("io.ktor:ktor-serialization-kotlinx-json")
     implementation("io.ktor:ktor-client-plugins")
+
+    implementation("net.pwall.json:json-kotlin-schema:0.56")
 
     // Ktor server dependencies
     implementation("io.ktor:ktor-server-core")
