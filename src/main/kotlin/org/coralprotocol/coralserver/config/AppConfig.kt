@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver.config
 
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.orchestrator.AgentRegistry
 import org.coralprotocol.coralserver.orchestrator.AgentType
 import org.coralprotocol.coralserver.orchestrator.RegistryAgent
 
@@ -13,7 +14,7 @@ import org.coralprotocol.coralserver.orchestrator.RegistryAgent
 data class AppConfig(
     val applications: List<ApplicationConfig> = emptyList(),
     val applicationSource: ApplicationSourceConfig? = null,
-    val registry: Map<AgentType, RegistryAgent>? = null,
+    val registry: AgentRegistry? = null,
 )
 
 /**

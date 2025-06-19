@@ -56,7 +56,7 @@ class CoralAgentGraphSession(
         agentGroupScheduler.clear()
     }
 
-    fun registerAgent(agentId: String, agentDescription: String?): Agent? {
+    fun registerAgent(agentId: String, agentDescription: String? = null): Agent? {
         if (agents.containsKey(agentId)) {
             logger.warn { "$agentId has already been registered" }
             return null
