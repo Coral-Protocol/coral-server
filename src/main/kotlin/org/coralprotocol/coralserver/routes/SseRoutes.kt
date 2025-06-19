@@ -101,14 +101,15 @@ private suspend fun handleSseConnection(
         existingSession
     }
     val currentCount = session.getRegisteredAgentsCount()
-    logger.info { "DevMode: Current agent count for session ${session.id} (object id: ${session}) (from sessionmanager: ${sessionManager}): $currentCount, waiting for: ${session.devRequiredAgentStartCount}" }
-    // Create the agent object
-    val agent = Agent(
-        id = agentId,
-        description = agentDescription
-    )
     // Register the agent
-    session.registerAgent(agent)
+    val agent = session.registerAgent(agentId, agentDescription)
+    if (agent == null) {
+        logger.info {"Agent ID $agentId already registered"}
+        sseProducer.call.respond(HttpStatusCode.BadRequest, "Agent ID already exists")
+        return false
+    }
+
+    logger.info { "DevMode: Current agent count for session ${session.id} (object id: ${session}) (from sessionmanager: ${sessionManager}): $currentCount, waiting for: ${session.devRequiredAgentStartCount}" }
     val newCount = session.getRegisteredAgentsCount()
     logger.info { "DevMode: New agent count for session ${session.id} (object id: ${session})after registering: $newCount" }
 
@@ -117,7 +118,7 @@ private suspend fun handleSseConnection(
     val transport = SseServerTransport(endpoint, sseProducer)
 
     val individualServer =
-        CoralAgentIndividualMcp(uri, transport, session, agentId, maxWaitForMentionsTimeout)
+        CoralAgentIndividualMcp(uri, transport, session, agentId, maxWaitForMentionsTimeout, extraTools = agent.extraTools)
     session.coralAgentConnections.add(individualServer)
 
     val transportSessionId = transport.sessionId
