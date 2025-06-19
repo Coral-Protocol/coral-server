@@ -18,7 +18,7 @@ private val logger = KotlinLogging.logger {}
  */
 fun Routing.publicRoutes(appConfig: AppConfigLoader, sessionManager: SessionManager) {
     get("/api/v1/registry") {
-        val registry = appConfig.config.registry?.map { entry -> entry.value.toPublic(entry.key.toString()) } ?: listOf();
+        val registry = appConfig.config.registry?.agents?.map { entry -> entry.value.toPublic(entry.key.toString()) } ?: listOf();
         call.respond(HttpStatusCode.OK, registry)
     }
 

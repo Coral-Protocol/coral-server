@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.orchestrator
 
 import com.chrynan.uri.core.Uri
 import kotlinx.coroutines.*
+import org.coralprotocol.coralserver.config.AppConfigLoader
 import org.coralprotocol.coralserver.session.GraphAgent
 import org.coralprotocol.coralserver.orchestrator.runtime.AgentRuntime
 
@@ -19,12 +20,13 @@ interface OrchestratorHandle {
 }
 
 class Orchestrator(
-    val registry: AgentRegistry = AgentRegistry()
+    val app: AppConfigLoader = AppConfigLoader(null)
 ) {
     private val handles: MutableList<OrchestratorHandle> = mutableListOf()
 
     fun spawn(type: AgentType, agentName: String, port: UShort, relativeMcpServerUri: Uri, options: Map<String, ConfigValue>) {
-        spawn(registry.get(type), agentName = agentName, port = port, relativeMcpServerUri = relativeMcpServerUri, options = options)
+        val agent = app.config.registry?.get(type) ?: return;
+        spawn(agent, agentName = agentName, port = port, relativeMcpServerUri = relativeMcpServerUri, options = options)
     }
 
     fun spawn(agent: RegistryAgent, agentName: String, port: UShort, relativeMcpServerUri: Uri, options: Map<String, ConfigValue>) {
