@@ -120,7 +120,7 @@ class AppConfigLoader(val path: Path? = getConfigPath()) {
                 )
             config = c
 
-            logger.info { "Loaded configuration with ${c.applications.size ?: 0} applications & ${c.registry?.size ?: 0} registry agents" }
+            logger.info { "Loaded configuration with ${c.applications.size ?: 0} applications & ${c.registry?.agents?.size ?: 0} registry agents" }
             c
         } else {
             throw Exception("Failed to lookup resource.")
