@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.orchestrator.runtime
 
+import com.chrynan.uri.core.Uri
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.orchestrator.ConfigValue
@@ -17,17 +18,13 @@ sealed class AgentRuntime : Orchestrate {
         val appId: String,
         val privacyKey: String,
     ) : AgentRuntime() {
-        override fun spawn(agentName: String, connectionUrl: String, options: Map<String, ConfigValue>): OrchestratorHandle {
+        override fun spawn(
+            agentName: String,
+            port: UShort,
+            relativeMcpServerUri: Uri,
+            options: Map<String, ConfigValue>
+        ): OrchestratorHandle {
             TODO("request agent from remote server")
         }
     }
-
-    @Serializable
-    @SerialName("docker")
-    data class Docker(val container: String) : AgentRuntime() {
-        override fun spawn(agentName: String, connectionUrl: String, options: Map<String, ConfigValue>): OrchestratorHandle {
-            TODO("Not yet implemented")
-        }
-    }
-
 }
