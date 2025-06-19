@@ -19,6 +19,7 @@ class CoralAgentGraphSession(
     val id: String,
     val applicationId: String,
     val privacyKey: String,
+    val agentGraph: AgentGraph?,
     val coralAgentConnections: MutableList<CoralAgentIndividualMcp> = mutableListOf(),
     val groups: List<Set<String>> = listOf(),
     var devRequiredAgentStartCount: Int = 0,
@@ -52,16 +53,23 @@ class CoralAgentGraphSession(
         agentGroupScheduler.clear()
     }
 
-    fun registerAgent(agent: Agent): Boolean {
-        if (agents.containsKey(agent.id)) {
-            return false
+    fun registerAgent(agentId: String, agentDescription: String?): Agent? {
+        if (agents.containsKey(agentId)) {
+            return null
         }
+        val agent = Agent(
+            id = agentId,
+            description = agentDescription ?: "",
+            extraTools = agentGraph?.let {
+                it.agents[AgentName(agentId)]?.extraTools?.mapNotNull { tool -> it.tools[tool] }?.toSet()
+            } ?: setOf()
+        )
         agents[agent.id] = agent
 
         agentGroupScheduler.registerAgent(agent.id)
         countBasedScheduler.registerAgent(agent.id)
         eventBus.emit(Event.AgentRegistered(agent))
-        return true
+        return agent
     }
 
     fun getRegisteredAgentsCount(): Int = countBasedScheduler.getRegisteredAgentsCount()
