@@ -109,29 +109,23 @@ class SessionManagerTest {
         val session2 = sessionManager.createSessionWithId("session2", "app1", "key2")
 
         // Register agents in both sessions
-        val creator1 = Agent(id = "creator1")
-        val participant1 = Agent(id = "participant1")
+        val creator1 = session1.registerAgent(agentId = "creator1") ?: throw AssertionError("could not register agent")
+        val participant1 = session1.registerAgent(agentId = "participant1") ?: throw AssertionError("could not register agent")
 
-        session1.registerAgent(creator1)
-        session1.registerAgent(participant1)
-
-        val creator2 = Agent(id = "creator2")
-        val participant2 = Agent(id = "participant2")
-
-        session2.registerAgent(creator2)
-        session2.registerAgent(participant2)
+        val creator2 = session2.registerAgent(agentId = "creator2") ?: throw AssertionError("could not register agent")
+        val participant2 = session2.registerAgent(agentId = "participant2") ?: throw AssertionError("could not register agent")
 
         // Create a thread in the first session
         val thread1 = session1.createThread(
             name = "Thread in Session 1",
-            creatorId = "creator1",
+            creatorId = creator1.id,
             participantIds = listOf("participant1")
         )
 
         // Create a thread in the second session
         val thread2 = session2.createThread(
             name = "Thread in Session 2",
-            creatorId = "creator2",
+            creatorId = creator2.id,
             participantIds = listOf("participant2")
         )
 
@@ -140,12 +134,12 @@ class SessionManagerTest {
         assertNotNull(thread2)
 
         // Verify thread1 is accessible in session1
-        val retrievedThread1 = session1.getThread(thread1!!.id)
+        val retrievedThread1 = session1.getThread(thread1.id)
         assertNotNull(retrievedThread1)
         assertEquals("Thread in Session 1", retrievedThread1?.name)
 
         // Verify thread2 is accessible in session2
-        val retrievedThread2 = session2.getThread(thread2!!.id)
+        val retrievedThread2 = session2.getThread(thread2.id)
         assertNotNull(retrievedThread2)
         assertEquals("Thread in Session 2", retrievedThread2?.name)
 
@@ -165,23 +159,17 @@ class SessionManagerTest {
         val session2 = sessionManager.createSessionWithId("session2", "app1", "key2")
 
         // Register agents in both sessions with the same IDs
-        val agent1 = Agent(id = "agent1")
-        val agent2 = Agent(id = "agent2")
+        val agent1 = session1.registerAgent(agentId = "agent1") ?: throw AssertionError("could not register agent")
+        val agent2 = session1.registerAgent(agentId = "agent2") ?: throw AssertionError("could not register agent")
 
-        session1.registerAgent(agent1)
-        session1.registerAgent(agent2)
-
-        val agent1InSession2 = Agent(id = "agent1")
-        val agent2InSession2 = Agent(id = "agent2")
-
-        session2.registerAgent(agent1InSession2)
-        session2.registerAgent(agent2InSession2)
+        val agent1InSession2 = session2.registerAgent(agentId = "agent1") ?: throw AssertionError("could not register agent")
+        val agent2InSession2 = session2.registerAgent(agentId = "agent2") ?: throw AssertionError("could not register agent")
 
         // Verify agents were registered in their respective sessions
-        val retrievedAgent1InSession1 = session1.getAgent("agent1")
+        val retrievedAgent1InSession1 = session1.getAgent(agent1.id)
         assertNotNull(retrievedAgent1InSession1)
 
-        val retrievedAgent1InSession2 = session2.getAgent("agent1")
+        val retrievedAgent1InSession2 = session2.getAgent(agent1InSession2.id)
         assertNotNull(retrievedAgent1InSession2)
 
         // Verify agents in different sessions with the same ID are different objects
@@ -209,6 +197,6 @@ class SessionManagerTest {
         )
 
         assertNotNull(thread2)
-        assertEquals(1, thread2?.participants?.size) // Only the creator should be included
+        assertEquals(1, thread2.participants.size) // Only the creator should be included
     }
 }
