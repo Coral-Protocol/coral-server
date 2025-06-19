@@ -29,13 +29,9 @@ data class Executable(
         options: Map<String, ConfigValue>
     ): OrchestratorHandle {
         val processBuilder = ProcessBuilder().redirectErrorStream(true)
-        val environment = processBuilder.environment()
-        environment.clear()
-        for (env in this.environment) {
-            val (key, value) = env.resolve(options)
-            environment[key] = value
-        }
-        // TODO: error if someone tries passing 'CORAL_CONNECTION_URL' themselves
+        val processEnvironment = processBuilder.environment()
+        processEnvironment.clear()
+        // TODO: error if someone tries passing coral system envs themselves
         val coralConnectionUrl = Uri.fromParts(
             scheme = "http",
             host = "localhost", // Executables run on the same host as the Coral server
@@ -43,7 +39,16 @@ data class Executable(
             path = relativeMcpServerUri.path,
             query = relativeMcpServerUri.query
         )
-        environment["CORAL_CONNECTION_URL"] = coralConnectionUrl.toUriString().value
+
+        val resolvedOptions = this.environment.associate {
+            val (key, value) = it.resolve(options);
+            key to (value ?: "")
+        }
+        val envsToSet = resolvedOptions + getCoralSystemEnvs(coralConnectionUrl, agentName, "executable")
+        for (env in envsToSet) {
+            processEnvironment[env.key] = env.value
+        }
+
         processBuilder.command(command)
 
         logger.info { "spawning process..." }

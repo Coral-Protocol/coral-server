@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver.orchestrator.runtime
 
 import com.chrynan.uri.core.Uri
+import com.chrynan.uri.core.parse
 import com.github.dockerjava.api.async.ResultCallback
 import com.github.dockerjava.api.exception.NotModifiedException
 import com.github.dockerjava.api.model.Frame
@@ -45,7 +46,11 @@ data class Docker(
             val (key, value) = it.resolve(options)
             "$key=$value"
         }
-        val allEnvs = resolvedEnvs + "CORAL_CONNECTION_URL=$fullConnectionUrl"
+        val allEnvs = resolvedEnvs + getCoralSystemEnvs(
+            Uri.parse(fullConnectionUrl),
+            agentName,
+            "docker"
+        ).map { (key, value) -> "$key=$value" }
 
         val containerCreation = dockerClient.createContainerCmd(image)
             .withName(getDockerContainerName(relativeMcpServerUri, agentName))
