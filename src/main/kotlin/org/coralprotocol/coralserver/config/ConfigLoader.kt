@@ -71,7 +71,16 @@ fun Path.watch(vararg events: WatchEvent.Kind<out Any>) =
 /**
  * Loads application configuration from resources.
  */
-class AppConfigLoader(val path: Path? = getConfigPath()) {
+class AppConfigLoader(val path: Path? = getConfigPath(), val defaultConfig: AppConfig = AppConfig(
+    applications = listOf(
+        ApplicationConfig(
+            id = "default-app",
+            name = "Default Application",
+            description = "Default application (fallback)",
+            privacyKeys = listOf("default-key", "public")
+        )
+    )
+)) {
     var config: AppConfig = loadConfig(path)
         private set
 
@@ -127,16 +136,7 @@ class AppConfigLoader(val path: Path? = getConfigPath()) {
         }
     } catch (e: Exception) {
         logger.error(e) { "Failed to load configuration, using default" }
-        AppConfig(
-            applications = listOf(
-                ApplicationConfig(
-                    id = "default-app",
-                    name = "Default Application",
-                    description = "Default application (fallback)",
-                    privacyKeys = listOf("default-key", "public")
-                )
-            )
-        )
+        defaultConfig
     }
 
 
@@ -155,3 +155,5 @@ class AppConfigLoader(val path: Path? = getConfigPath()) {
         return config.applications.find { it.id == applicationId }
     }
 }
+
+fun AppConfigLoader.custom(config: AppConfig) = AppConfigLoader(path = null, defaultConfig = config)
