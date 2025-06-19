@@ -8,6 +8,8 @@ import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import org.coralprotocol.coralserver.mcpresources.addMessageResource
 import org.coralprotocol.coralserver.session.CoralAgentGraphSession
 import org.coralprotocol.coralserver.mcptools.addThreadTools
+import org.coralprotocol.coralserver.session.CustomTool
+import org.coralprotocol.coralserver.session.addExtraTool
 
 /**
  * Represents a persistent connection to a Coral agent.
@@ -32,6 +34,7 @@ class CoralAgentIndividualMcp(
      */
     val connectedAgentId: String,
     val maxWaitForMentionsTimeoutMs: Long = 2000,
+    val extraTools: Set<CustomTool> = setOf(),
 ) : Server(
     Implementation(
         name = "Coral Server",
@@ -48,6 +51,9 @@ class CoralAgentIndividualMcp(
     init {
         addThreadTools()
         addMessageResource()
+        extraTools.forEach {
+            addExtraTool(coralAgentGraphSession.id, connectedAgentId, it)
+        }
     }
 
     suspend fun closeTransport() {

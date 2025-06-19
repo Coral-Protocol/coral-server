@@ -50,6 +50,8 @@ fun Routing.sessionRoutes(sessionManager: SessionManager, devMode: Boolean) {
                 }
 
                 AgentGraph(
+                    tools = it.tools,
+                    links = it.links,
                     agents = agents.mapValues { agent ->
                         when (val agentReq = agent.value) {
                             is GraphAgentRequest.Local -> {
@@ -80,15 +82,14 @@ fun Routing.sessionRoutes(sessionManager: SessionManager, devMode: Boolean) {
                                 GraphAgent.Local(
                                     blocking = agentReq.blocking ?: true,
                                     agentType = agentReq.agentType,
+                                    extraTools = agentReq.tools,
                                     options = defaultOptions + setOptions
                                 )
                             }
 
                             else -> TODO("(alan) remote agent option resolution")
                         }
-
-                    },
-                    links = it.links
+                    }
                 )
             }
 
@@ -103,6 +104,7 @@ fun Routing.sessionRoutes(sessionManager: SessionManager, devMode: Boolean) {
                         agentGraph
                     )
                 }
+
                 false -> {
                     sessionManager.createSession(request.applicationId, request.privacyKey, agentGraph)
                 }
