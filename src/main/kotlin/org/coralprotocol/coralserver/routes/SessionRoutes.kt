@@ -40,8 +40,7 @@ fun Routing.sessionRoutes(appConfig: AppConfigLoader, sessionManager: SessionMan
 
             val agentGraph = request.agentGraph?.let { it ->
                 val agents = it.agents;
-                val registry =
-                    sessionManager.orchestrator.registry
+                val registry = appConfig.config.registry ?: return@let null
 
                 val unknownAgents =
                     it.links.map { set -> set.filter { agent -> !it.agents.containsKey(AgentName(agent)) } }.flatten()

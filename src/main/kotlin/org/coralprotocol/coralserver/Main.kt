@@ -30,7 +30,7 @@ fun main(args: Array<String>) {
         "--sse-server" -> {
             val appConfig = AppConfigLoader()
 
-            val orchestrator = Orchestrator(AgentRegistry(appConfig.config.registry ?: mapOf()))
+            val orchestrator = Orchestrator(appConfig)
             val server = CoralServer(
                 port = port,
                 devmode = devMode,
