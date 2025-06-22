@@ -347,13 +347,29 @@ suspend fun main(args: Array<String>) {
                 result.question.taskId == question.taskId && result.isCorrect
             }
         }
-        val semaphore = Semaphore(20)
+        val questionsWithCorrectAnswers = questions.filter { question ->
+            existingResults.any { result ->
+                result.question.taskId == question.taskId && result.isCorrect
+            }
+        }
+        val questionsWithAnyAnswers = questions.filter { question ->
+            existingResults.any { result ->
+                result.question.taskId == question.taskId
+            }
+        }
+        val percentOfAnsweredQuestionsCorrect = if (questionsWithAnyAnswers.isNotEmpty()) {
+            questionsWithCorrectAnswers.size.toDouble() / questionsWithAnyAnswers.size * 100
+        } else {
+            0.0
+        }
+        println("Percent of questions with correct answers: $percentOfAnsweredQuestionsCorrect%")
+        println("Total questions: ${questions.size}, Questions with correct answers: ${questionsWithCorrectAnswers.size}, Questions without correct answers: ${questionsWithoutCorrectAnswers.size}, Questions with any answers: ${questionsWithAnyAnswers.size}")
+        println("Total correct answers: ${existingResults.count { it.isCorrect }}, Total incorrect answers: ${existingResults.count { !it.isCorrect }}")
+        val semaphore = Semaphore(6)
         val context = CoroutineScope(SupervisorJob())
         questionsWithoutCorrectAnswers.map { question ->
             context.async {
             semaphore.withPermit {
-
-
                     try {
                         withTimeout(600 * 1000) {
                             val answerDeferred = findAnswer(question)
