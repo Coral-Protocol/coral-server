@@ -17,6 +17,8 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
@@ -49,6 +51,7 @@ val searchAgent = AgentType("search")
 val videoAgent = AgentType("video")
 val webAgent = AgentType("web")
 val answerFindingAgent = AgentType("answer_finding")
+val problemSolvingAgent = AgentType("problem_solving")
 
 @Serializable
 data class GaiaAnswerAttempt(
@@ -215,9 +218,15 @@ class GaiaApplication(val server: CoralServer) {
                     getAgentInstanceReference(commonOptions, "image", imageAgent),
                     getAgentInstanceReference(commonOptions, "video", videoAgent),
                     getAgentInstanceReference(commonOptions, "web", webAgent),
-                    getAgentInstanceReference(commonOptions, "answer_finding", answerFindingAgent)
+                    getAgentInstanceReference(commonOptions, "answer_finding", answerFindingAgent),
+                    getAgentInstanceReference(commonOptions, "problem_solving", problemSolvingAgent)
                 ),
-                links = setOf(setOf("search", "planning", "assistant", "image", "video", "web", "answer_finding"))
+                links = setOf(
+                    setOf(
+                        "search", "planning", "assistant", "image", "video", "web", "answer_finding",
+                        "problem_solving"
+                    )
+                )
             )
         )
     }
@@ -266,7 +275,8 @@ fun createServerWithRegisteredAgents(): CoralServer {
             createAgentRegistryEntry(imageAgent, "image"),
             createAgentRegistryEntry(videoAgent, "video"),
             createAgentRegistryEntry(webAgent, "web"),
-            createAgentRegistryEntry(answerFindingAgent, "answer_finding")
+            createAgentRegistryEntry(answerFindingAgent, "answer_finding"),
+            createAgentRegistryEntry(problemSolvingAgent, "problem_solving"),
         )
     )
     val appConfigLoader = AppConfigLoader.custom(
@@ -312,18 +322,13 @@ fun loadAllGaiaResults(): Set<GaiaResult> {
     if (!resultsDir.exists()) {
         return emptySet()
     }
-//    return resultsDir.listFiles()?.flatMap { file ->
-//        file.listFiles()?.map { resultFile ->
-//            val content = resultFile.readText()
-//            Json.decodeFromString<GaiaResult>(content)
-//        } ?: emptyList()
-//    }?.toSet() ?: emptySet()
-    // use walk to traverse the directory structure
+
     return resultsDir.walk().filter { it.isFile && it.extension == "json" }.map { file ->
         val content = file.readText()
         Json.decodeFromString<GaiaResult>(content)
     }.toSet()
 }
+
 suspend fun main(args: Array<String>) {
 
     val server = createServerWithRegisteredAgents()
@@ -335,52 +340,63 @@ suspend fun main(args: Array<String>) {
         var correctAnswersCount = 0
         var allAnswersCount = 0
         val questionAnswerPairs = mutableListOf<Pair<GaiaQuestion, GaiaAnswerAttempt>>()
+        val results = mutableSetOf<GaiaResult>()
         val existingResults = loadAllGaiaResults()
         val questionsWithoutCorrectAnswers = questions.filter { question ->
             existingResults.none { result ->
                 result.question.taskId == question.taskId && result.isCorrect
             }
         }
-        questionsWithoutCorrectAnswers.forEach { question ->
-            try {
-                withTimeout(600 * 1000) {
-                    val answerDeferred = findAnswer(question)
-                    println("Waiting for answer to question: ${question.question}")
-                    val answerAttempt = answerDeferred.await()
-                    println("Received answer attempt: $answerAttempt")
-                    if (question.finalAnswer != answerAttempt.answer) {
-                        println("The answer attempt is incorrect! Expected: ${question.finalAnswer}, got: ${answerAttempt.answer}")
-                    } else {
-                        println("The answer attempt is correct!")
-                        correctAnswersCount++
+        val semaphore = Semaphore(20)
+        val context = CoroutineScope(SupervisorJob())
+        questionsWithoutCorrectAnswers.map { question ->
+            context.async {
+            semaphore.withPermit {
+
+
+                    try {
+                        withTimeout(600 * 1000) {
+                            val answerDeferred = findAnswer(question)
+                            println("Waiting for answer to question: ${question.question}")
+                            val answerAttempt = answerDeferred.await()
+                            println("Received answer attempt: $answerAttempt")
+                            if (question.finalAnswer != answerAttempt.answer) {
+                                println("The answer attempt is incorrect! Expected: ${question.finalAnswer}, got: ${answerAttempt.answer}")
+                            } else {
+                                println("The answer attempt is correct!")
+                                correctAnswersCount++
+                            }
+                            val relevantSession = server.sessionManager.getSession(answerAttempt.sessionId)
+                                ?: throw IllegalStateException("Session not found for answer attempt: ${answerAttempt.sessionId}")
+                            val questionAnswerPair = question to answerAttempt
+                            val result = GaiaResult(
+                                question = question,
+                                answerAttempt = answerAttempt,
+                                isCorrect = question.finalAnswer == answerAttempt.answer,
+                                relevantSession.getAllThreads().map { it.resolve() }
+                            )
+                            saveResultToFile(result)
+                            results.add(result)
+                            questionAnswerPairs.add(questionAnswerPair)
+                        }
+                    } catch (e: TimeoutCancellationException) {
+                        println("Timeout while waiting for answer to question: ${question.question}")
+                        e.printStackTrace()
+                    } catch (e: Exception) {
+                        println("Error while waiting for answer to question: ${question.question}")
+                        e.printStackTrace()
                     }
-                    val relevantSession = server.sessionManager.getSession(answerAttempt.sessionId)
-                        ?: throw IllegalStateException("Session not found for answer attempt: ${answerAttempt.sessionId}")
-                    val questionAnswerPair = question to answerAttempt
-                    val result = GaiaResult(
-                        question = question,
-                        answerAttempt = answerAttempt,
-                        isCorrect = question.finalAnswer == answerAttempt.answer,
-                        relevantSession.getAllThreads().map { it.resolve() }
-                    )
-                    saveResultToFile(result)
-                    questionAnswerPairs.add(questionAnswerPair)
+
+
+                    allAnswersCount++
+                    println("So far, correct answers: $correctAnswersCount, all answers: $allAnswersCount, total questions: ${questions.size}")
                 }
-            } catch (e: TimeoutCancellationException) {
-                println("Timeout while waiting for answer to question: ${question.question}")
-                e.printStackTrace()
-            } catch (e: Exception) {
-                println("Error while waiting for answer to question: ${question.question}")
-                e.printStackTrace()
             }
+        }.awaitAll()
 
-            allAnswersCount++
-            delay(1000 * 60 * 2) // Delay to avoid overwhelming the API rate limits
-            println("So far, correct answers: $correctAnswersCount, all answers: $allAnswersCount, total questions: ${questions.size}")
-        }
-
+        File("coral-GAIA/answers.json").writeText(Json.encodeToString(results))
         val json = Json.encodeToString(questionAnswerPairs)
-        File("coral-GAIA/answers.json").writeText(json)
+        File("coral-GAIA/results+${System.currentTimeMillis()}.json").writeText(json)
         server.stop()
     }
 }

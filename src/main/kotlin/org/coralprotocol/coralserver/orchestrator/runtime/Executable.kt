@@ -4,6 +4,8 @@ import com.chrynan.uri.core.Uri
 import com.chrynan.uri.core.fromParts
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.newFixedThreadPoolContext
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
@@ -52,7 +54,7 @@ data class Executable(
 
         processBuilder.command(command)
 
-        logger.info { "spawning process..." }
+        logger.info { "spawning process... for $agentName" }
         val process = processBuilder.start()
 
         // TODO (alan): re-evaluate this when it becomes a bottleneck
@@ -64,10 +66,18 @@ data class Executable(
         return object : OrchestratorHandle {
             override suspend fun destroy() {
                 withContext(processContext) {
+                    process.toHandle().descendants().forEach {
+                        launch {
+                            logger.info { "[${agentName}] Destroying child process: ${it.pid()} with command: ${it.info().command()}" }
+                            it.destroy()
+                            delay(1000)
+                            it.destroyForcibly()
+                        }
+                    }
                     process.destroy()
                     process.waitFor(30, TimeUnit.SECONDS)
                     process.destroyForcibly()
-                    logger.info { "Process exited" }
+                    logger.info { "[${agentName}] Process exited" }
                 }
             }
 
