@@ -22,7 +22,8 @@ sealed class AgentRuntime : Orchestrate {
             agentName: String,
             port: UShort,
             relativeMcpServerUri: Uri,
-            options: Map<String, ConfigValue>
+            options: Map<String, ConfigValue>,
+            sessionId: String
         ): OrchestratorHandle {
             TODO("request agent from remote server")
         }

@@ -14,7 +14,7 @@ import org.coralprotocol.coralserver.orchestrator.runtime.executable.EnvVar
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
-private val logger = KotlinLogging.logger {}
+private val logger = KotlinLogging.logger(name = "ExecutableRuntime")
 
 @Serializable
 @SerialName("executable")
@@ -26,7 +26,8 @@ data class Executable(
         agentName: String,
         port: UShort,
         relativeMcpServerUri: Uri,
-        options: Map<String, ConfigValue>
+        options: Map<String, ConfigValue>,
+        sessionId: String
     ): OrchestratorHandle {
         val processBuilder = ProcessBuilder().redirectErrorStream(true)
         val processEnvironment = processBuilder.environment()
@@ -57,7 +58,7 @@ data class Executable(
         // TODO (alan): re-evaluate this when it becomes a bottleneck
         thread(isDaemon = true) {
             val reader = process.inputStream.bufferedReader()
-            reader.forEachLine { line -> logger.info { "[STDOUT] $agentName: $line" } }
+            reader.forEachLine { line -> logger.info { "[STDOUT-${sessionId}] $agentName: $line" } }
         }
 
         return object : OrchestratorHandle {
@@ -69,6 +70,8 @@ data class Executable(
                     logger.info { "Process exited" }
                 }
             }
+
+            override var sessionId: String = sessionId
         }
 
     }

@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver.gaia
 
 import io.ktor.client.*
+import io.ktor.client.call.body
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -17,9 +18,15 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import org.coralprotocol.coralserver.config.AppConfig
+import org.coralprotocol.coralserver.config.AppConfigLoader
+import org.coralprotocol.coralserver.config.ApplicationConfig
+import org.coralprotocol.coralserver.config.custom
+import org.coralprotocol.coralserver.models.ResolvedThread
+import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.orchestrator.AgentRegistry
 import org.coralprotocol.coralserver.orchestrator.AgentType
 import org.coralprotocol.coralserver.orchestrator.ConfigEntry
@@ -42,67 +49,17 @@ val searchAgent = AgentType("search")
 val videoAgent = AgentType("video")
 val webAgent = AgentType("web")
 val answerFindingAgent = AgentType("answer_finding")
-val commonRegistryOptionsList = listOf(
-    ConfigEntry.Str("OPENAI_API_KEY", "OpenAI API Key", null),
-    ConfigEntry.Str("GOOGLE_API_KEY", "Google API Key", null),
-    ConfigEntry.Str("SEARCH_ENGINE_ID", "Search Engine ID", null),
-    ConfigEntry.Str("OPENROUTER_API_KEY", "OpenRouter API Key", null),
-    ConfigEntry.Str("TASK_INSTRUCTION", "The task to instruct the", null),
-    ConfigEntry.Str("TASK_ID", "The gaia question ID", null),
-)
-val openAiApiKey: String = System.getenv("OPENAI_API_KEY")
-val googleApiKey: String = System.getenv("GOOGLE_API_KEY")
-val searchEngineId: String = System.getenv("SEARCH_ENGINE_ID")
-val openRouterApiKey: String = System.getenv("OPENROUTER_API_KEY")
-
-val commonRegistryEnvList = listOf(
-    EnvVar(
-        "OPENAI_API_KEY",
-        from = "OPENAI_API_KEY",
-        value = openAiApiKey,
-        option = "OPENAI_API_KEY"
-    ),
-    EnvVar(
-        "GOOGLE_API_KEY",
-        from = "GOOGLE_API_KEY",
-        value = googleApiKey,
-        option = "GOOGLE_API_KEY"
-    ),
-    EnvVar(
-        "SEARCH_ENGINE_ID",
-        from = "SEARCH_ENGINE_ID",
-        value = searchEngineId,
-        option = "SEARCH_ENGINE_ID"
-    ),
-    EnvVar(
-        "OPENROUTER_API_KEY",
-        from = "OPENROUTER_API_KEY",
-        value = openRouterApiKey,
-        option = "OPENROUTER_API_KEY"
-    ),
-    EnvVar(
-        "TASK_INSTRUCTION",
-        from = "TASK_INSTRUCTION",
-        option = "TASK_INSTRUCTION"
-    ),
-    EnvVar(
-        "TASK_ID",
-        from = "TASK_ID",
-        option = "TASK_ID"
-    )
-)
-
 
 @Serializable
 data class GaiaAnswerAttempt(
     val questionId: String,
     val answer: String,
     val sessionId: String,
+    val justification: String
 ) {
-//    val correctAnswer: String
-//        get() = question.finalAnswer
+    @Transient
+    var session: CoralAgentGraphSession? = null
 }
-
 
 /**
  * Application that runs the whole GAIA benchmark.
@@ -130,6 +87,8 @@ class GaiaApplication(val server: CoralServer) {
                     val answerAttempt = call.receive<GaiaAnswerAttempt>()
                     val questionId = answerAttempt.questionId
 
+                    answerAttempt.session = server.sessionManager.getSession(answerAttempt.sessionId)
+                        ?: throw IllegalStateException("Session not found for answer attempt: ${answerAttempt.sessionId}")
                     // end the session if it exists
                     server.sessionManager.getSession(questionId)?.coralAgentConnections?.forEach {
                         it.closeTransport()
@@ -139,6 +98,7 @@ class GaiaApplication(val server: CoralServer) {
                     val channel = answerChannels.computeIfAbsent(questionId) {
                         MutableSharedFlow(extraBufferCapacity = 1)
                     }
+
                     (channel as MutableSharedFlow<GaiaAnswerAttempt>).emit(answerAttempt)
 
                     // Respond with OK status
@@ -175,16 +135,25 @@ class GaiaApplication(val server: CoralServer) {
         if (sessionPostResponse.status != HttpStatusCode.OK) {
             throw IllegalStateException("Failed to create session: ${sessionPostResponse.status}")
         }
+        val responseBody = sessionPostResponse.body<CreateSessionResponse>()
         val completableDeferred = CompletableDeferred<GaiaAnswerAttempt>()
 
 
         waitingForAnswerScope.launch {
+            launch {
+                delay(10 * 60 * 1000)
+                try {
+                    endSession(responseBody)
+                } catch (e: Exception) {
+                    println("Failed to end session after timeout: ${e.message}")
+                }
+            }
             answerChannel.collect { answerAttempt ->
                 if (answerAttempt.questionId != question.taskId) {
                     throw IllegalStateException("Received answer for a different question: ${answerAttempt.questionId} != ${question.taskId}")
                 }
-
                 completableDeferred.complete(answerAttempt)
+                endSession(responseBody)
             }
         }
 
@@ -192,21 +161,51 @@ class GaiaApplication(val server: CoralServer) {
     }
 
 
-    private fun creationSessionRequest(question: GaiaQuestion): CreateSessionRequest {
-
+    /**
+     * Helper function to create common options map for agent configuration
+     */
+    private fun createCommonOptionsMap(
+        question: GaiaQuestion,
+        customValues: Map<String, String> = emptyMap()
+    ): Map<String, JsonPrimitive> {
         val questionWithFile = if (question.file != null) {
             "${question.question}\n relevant file: ${question.file.absolutePath}"
         } else {
             question.question
         }
-        val commonOptions = mapOf(
-            "OPENAI_API_KEY" to JsonPrimitive(openAiApiKey),
-            "GOOGLE_API_KEY" to JsonPrimitive(googleApiKey),
-            "SEARCH_ENGINE_ID" to JsonPrimitive(searchEngineId),
-            "OPENROUTER_API_KEY" to JsonPrimitive(openRouterApiKey),
-            "TASK_INSTRUCTION" to JsonPrimitive(questionWithFile),
-            "TASK_ID" to JsonPrimitive(question.taskId)
+
+        // Start with the base environment variables
+        val optionsMap = EnvVars.definitions
+            .filter { it.isApiKey }
+            .associate { it.name to JsonPrimitive(customValues[it.name] ?: EnvVars.getValue(it.name)) }
+            .toMutableMap()
+
+        // Add task-specific variables
+        optionsMap["TASK_INSTRUCTION"] = JsonPrimitive(questionWithFile)
+        optionsMap["TASK_ID"] = JsonPrimitive(question.taskId)
+
+        return optionsMap
+    }
+
+    /**
+     * Helper function to create agent instance reference
+     */
+    private fun getAgentInstanceReference(
+        commonOptions: Map<String, JsonPrimitive>,
+        name: String,
+        agentType: AgentType,
+        blocking: Boolean = true
+    ): Pair<AgentName, GraphAgentRequest.Local> =
+        AgentName(name) to GraphAgentRequest.Local(
+            agentType,
+            blocking = blocking,
+            options = commonOptions
         )
+
+    private fun creationSessionRequest(question: GaiaQuestion): CreateSessionRequest {
+        val commonOptions = createCommonOptionsMap(question)
+
+        // Create agent instances using the helper method
         return CreateSessionRequest(
             "gaia", "gaia-1", "public", AgentGraphRequest(
                 agents = hashMapOf(
@@ -222,54 +221,109 @@ class GaiaApplication(val server: CoralServer) {
             )
         )
     }
+}
 
-    private fun getAgentInstanceReference(
-        commonOptions: Map<String, JsonPrimitive>, name: String, agentType: AgentType, blocking: Boolean = true
-    ): Pair<AgentName, GraphAgentRequest.Local> =
-        AgentName(name) to GraphAgentRequest.Local(
-            agentType,
-            blocking = blocking,
-            options = commonOptions
-        )
+private suspend fun GaiaApplication.endSession(responseBody: CreateSessionResponse) {
+    // Wait for the answer attempt to be emitted
+    server.sessionManager.getSession(responseBody.sessionId)?.let { session ->
+        server.sessionManager.orchestrator.destroy(session.id)
+    } ?: throw IllegalStateException("Session not found: ${responseBody.sessionId}")
+
 }
 
 
-fun createServerWithRegisteredAgents(): CoralServer {
-    fun registerGaiaAgent(agentPath: String): RegistryAgent = RegistryAgent(
-        Executable(
-            listOf("bash", "coral-GAIA/venv.sh", agentPath),
-            commonRegistryEnvList
-        ),
-        optionsList = commonRegistryOptionsList
-    )
+/**
+ * Helper function to create a registry agent for GAIA
+ */
+fun createRegistryAgent(
+    agentPath: String,
+    envList: List<EnvVar> = EnvVars.envVars,
+    options: List<ConfigEntry> = EnvVars.configEntries
+): RegistryAgent = RegistryAgent(
+    Executable(
+        listOf("bash", "coral-GAIA/venv.sh", agentPath),
+        envList
+    ),
+    optionsList = options
+)
 
+/**
+ * Helper function to create an agent registry entry
+ */
+fun createAgentRegistryEntry(
+    agentType: AgentType,
+    agentName: String,
+    basePath: String = "coral-GAIA/agents/"
+): Pair<AgentType, RegistryAgent> =
+    agentType to createRegistryAgent("$basePath${agentName}_agent.py")
+
+fun createServerWithRegisteredAgents(): CoralServer {
     val registry = AgentRegistry(
         mapOf(
-            searchAgent to registerGaiaAgent("coral-GAIA/agents/search_agent.py"),
-            planningAgent to registerGaiaAgent("coral-GAIA/agents/planning_agent.py"),
-            assistantAgent to registerGaiaAgent("coral-GAIA/agents/assistant_agent.py"),
-            imageAgent to registerGaiaAgent("coral-GAIA/agents/image_agent.py"),
-            videoAgent to registerGaiaAgent("coral-GAIA/agents/video_agent.py"),
-            webAgent to registerGaiaAgent("coral-GAIA/agents/web_agent.py"),
-            answerFindingAgent to registerGaiaAgent("coral-GAIA/agents/answer_finding_agent.py")
+            createAgentRegistryEntry(searchAgent, "search"),
+            createAgentRegistryEntry(planningAgent, "planning"),
+            createAgentRegistryEntry(assistantAgent, "assistant"),
+            createAgentRegistryEntry(imageAgent, "image"),
+            createAgentRegistryEntry(videoAgent, "video"),
+            createAgentRegistryEntry(webAgent, "web"),
+            createAgentRegistryEntry(answerFindingAgent, "answer_finding")
         )
     )
-    val orchestrator = Orchestrator(registry)
-
+    val appConfigLoader = AppConfigLoader.custom(
+        AppConfig(
+            registry = registry,
+            applications = listOf(ApplicationConfig("gaia", "gaia", "gaia application", listOf("public")))
+        )
+    ).apply { stopWatch() }
+    val orchestrator = Orchestrator(appConfigLoader)
     val coralServer = CoralServer(
         devmode = false,
         sessionManager = SessionManager(
             orchestrator,
             serverPort,
         ),
-        appConfig = AppConfig(
-            registry = registry.agents
-        )
+        appConfig = appConfigLoader
     )
 
     return coralServer
 }
 
+@Serializable
+data class GaiaResult(
+    val question: GaiaQuestion,
+    val answerAttempt: GaiaAnswerAttempt,
+    val isCorrect: Boolean = question.finalAnswer == answerAttempt.answer,
+    val threads: List<ResolvedThread>? = null
+)
+
+fun saveResultToFile(result: GaiaResult) {
+    val questionDir = File("coral-GAIA/results/${result.question.taskId}")
+    val correctnessDir = File(questionDir, if (result.isCorrect) "correct" else "incorrect")
+    val resultHash = result.answerAttempt.answer.hashCode().toString(16)
+    val resultFile = File(correctnessDir, "$resultHash.json")
+    if (!correctnessDir.exists()) {
+        correctnessDir.mkdirs()
+    }
+    resultFile.writeText(Json.encodeToString(result))
+}
+
+fun loadAllGaiaResults(): Set<GaiaResult> {
+    val resultsDir = File("coral-GAIA/results")
+    if (!resultsDir.exists()) {
+        return emptySet()
+    }
+//    return resultsDir.listFiles()?.flatMap { file ->
+//        file.listFiles()?.map { resultFile ->
+//            val content = resultFile.readText()
+//            Json.decodeFromString<GaiaResult>(content)
+//        } ?: emptyList()
+//    }?.toSet() ?: emptySet()
+    // use walk to traverse the directory structure
+    return resultsDir.walk().filter { it.isFile && it.extension == "json" }.map { file ->
+        val content = file.readText()
+        Json.decodeFromString<GaiaResult>(content)
+    }.toSet()
+}
 suspend fun main(args: Array<String>) {
 
     val server = createServerWithRegisteredAgents()
@@ -280,10 +334,16 @@ suspend fun main(args: Array<String>) {
 
         var correctAnswersCount = 0
         var allAnswersCount = 0
-        val questionAnswerPairs = mutableListOf<Pair<GaiaQuestion, Deferred<GaiaAnswerAttempt>>>()
-        questions.forEach { question ->
+        val questionAnswerPairs = mutableListOf<Pair<GaiaQuestion, GaiaAnswerAttempt>>()
+        val existingResults = loadAllGaiaResults()
+        val questionsWithoutCorrectAnswers = questions.filter { question ->
+            existingResults.none { result ->
+                result.question.taskId == question.taskId && result.isCorrect
+            }
+        }
+        questionsWithoutCorrectAnswers.forEach { question ->
             try {
-                withTimeout(300 * 1000) {
+                withTimeout(600 * 1000) {
                     val answerDeferred = findAnswer(question)
                     println("Waiting for answer to question: ${question.question}")
                     val answerAttempt = answerDeferred.await()
@@ -294,7 +354,17 @@ suspend fun main(args: Array<String>) {
                         println("The answer attempt is correct!")
                         correctAnswersCount++
                     }
-                    questionAnswerPairs.add(question to answerDeferred)
+                    val relevantSession = server.sessionManager.getSession(answerAttempt.sessionId)
+                        ?: throw IllegalStateException("Session not found for answer attempt: ${answerAttempt.sessionId}")
+                    val questionAnswerPair = question to answerAttempt
+                    val result = GaiaResult(
+                        question = question,
+                        answerAttempt = answerAttempt,
+                        isCorrect = question.finalAnswer == answerAttempt.answer,
+                        relevantSession.getAllThreads().map { it.resolve() }
+                    )
+                    saveResultToFile(result)
+                    questionAnswerPairs.add(questionAnswerPair)
                 }
             } catch (e: TimeoutCancellationException) {
                 println("Timeout while waiting for answer to question: ${question.question}")
@@ -305,6 +375,7 @@ suspend fun main(args: Array<String>) {
             }
 
             allAnswersCount++
+            delay(1000 * 60 * 2) // Delay to avoid overwhelming the API rate limits
             println("So far, correct answers: $correctAnswersCount, all answers: $allAnswersCount, total questions: ${questions.size}")
         }
 

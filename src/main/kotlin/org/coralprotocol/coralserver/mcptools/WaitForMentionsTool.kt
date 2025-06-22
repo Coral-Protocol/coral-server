@@ -61,7 +61,11 @@ private suspend fun CoralAgentIndividualMcp.handleWaitForMentions(request: CallT
         )
 
         if (messages.isNotEmpty()) {
-            logger.info { "Received ${messages.size} messages for agent $connectedAgentId" }
+            messages.forEach { message ->
+                logger.info {
+                    "[${message.sender.id}] -> ${message.mentions}: ${message.content}"
+                }
+            }
             val formattedMessages = XML.encodeToString (messages.map { message -> message.resolve() })
             return CallToolResult(
                 content = listOf(TextContent(formattedMessages))

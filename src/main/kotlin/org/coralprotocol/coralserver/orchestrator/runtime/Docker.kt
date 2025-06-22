@@ -36,7 +36,8 @@ data class Docker(
         agentName: String,
         port: UShort,
         relativeMcpServerUri: Uri,
-        options: Map<String, ConfigValue>
+        options: Map<String, ConfigValue>,
+        sessionId: String
     ): OrchestratorHandle {
         logger.info { "Spawning Docker container with image: $image" }
         val fullConnectionUrl =
@@ -68,6 +69,8 @@ data class Docker(
             .withStdErr(true)
             .withFollowStream(true)
             .withLogs(true)
+
+
 
         val streamCallback = attachCmd.exec(object : ResultCallback.Adapter<Frame>() {
             override fun onNext(frame: Frame) {
@@ -115,6 +118,8 @@ data class Docker(
                     }
                 }
             }
+
+            override var sessionId: String = sessionId
         }
     }
 }
