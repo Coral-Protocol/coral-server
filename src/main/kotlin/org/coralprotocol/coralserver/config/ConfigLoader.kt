@@ -104,8 +104,9 @@ class AppConfigLoader(val path: Path? = getConfigPath(), val defaultConfig: AppC
             val resourcePath = "application.yaml"
             // Try to load from resources, if no config path set
             return when (configPath) {
-                null -> AppConfigLoader::class.java.classLoader.getResource(resourcePath)
-                    ?.let { Path.of(URLDecoder.decode(it.path, StandardCharsets.UTF_8)) }
+                null -> if(Path.of("./application.yaml").toFile().exists()) {
+                    Path.of("./application.yaml") // Check local application.yaml
+                } else Path.of("./src/main/resources/application.yaml") // Assume running from source when config path not specified
 
                 else -> (Path.of(configPath, resourcePath))
             }
