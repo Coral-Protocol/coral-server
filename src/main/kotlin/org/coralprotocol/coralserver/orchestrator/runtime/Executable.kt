@@ -23,10 +23,7 @@ data class Executable(
     val environment: List<EnvVar> = listOf()
 ) : AgentRuntime() {
     override fun spawn(
-        agentName: String,
-        port: UShort,
-        relativeMcpServerUri: Uri,
-        options: Map<String, ConfigValue>
+        params: RuntimeParams
     ): OrchestratorHandle {
         val processBuilder = ProcessBuilder().redirectErrorStream(true)
         val processEnvironment = processBuilder.environment()
@@ -35,16 +32,16 @@ data class Executable(
         val coralConnectionUrl = Uri.fromParts(
             scheme = "http",
             host = "localhost", // Executables run on the same host as the Coral server
-            port = port.toInt(),
-            path = relativeMcpServerUri.path,
-            query = relativeMcpServerUri.query
+            port = params.mcpServerPort.toInt(),
+            path = params.mcpServerRelativeUri.path,
+            query = params.mcpServerRelativeUri.query
         )
 
         val resolvedOptions = this.environment.associate {
-            val (key, value) = it.resolve(options);
+            val (key, value) = it.resolve(params.options);
             key to (value ?: "")
         }
-        val envsToSet = resolvedOptions + getCoralSystemEnvs(coralConnectionUrl, agentName, "executable")
+        val envsToSet = resolvedOptions + getCoralSystemEnvs(params, coralConnectionUrl, "executable")
         for (env in envsToSet) {
             processEnvironment[env.key] = env.value
         }
@@ -57,7 +54,7 @@ data class Executable(
         // TODO (alan): re-evaluate this when it becomes a bottleneck
         thread(isDaemon = true) {
             val reader = process.inputStream.bufferedReader()
-            reader.forEachLine { line -> logger.info { "[STDOUT] $agentName: $line" } }
+            reader.forEachLine { line -> logger.info { "[STDOUT] ${params.agentName}: $line" } }
         }
 
         return object : OrchestratorHandle {

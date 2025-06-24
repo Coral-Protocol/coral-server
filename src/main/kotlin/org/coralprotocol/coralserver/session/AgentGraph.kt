@@ -20,12 +20,14 @@ data class AgentGraph(
 
 sealed interface GraphAgent {
     val options: Map<String, ConfigValue>
+    val systemPrompt: String?
     val extraTools: Set<String>
     val blocking: Boolean
 
     data class Remote(
         val remote: AgentRuntime.Remote,
         override val extraTools: Set<String> = setOf(),
+        override val systemPrompt: String? = null,
         override val options: Map<String, ConfigValue> = mapOf(),
         override val blocking: Boolean = true
     ) : GraphAgent
@@ -33,6 +35,7 @@ sealed interface GraphAgent {
     data class Local(
         val agentType: AgentType,
         override val extraTools: Set<String> = setOf(),
+        override val systemPrompt: String? = null,
         override val options: Map<String, ConfigValue> = mapOf(),
         override val blocking: Boolean = true
     ) :
