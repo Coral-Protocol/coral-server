@@ -4,11 +4,18 @@ import com.chrynan.uri.core.Uri
 import com.chrynan.uri.core.parse
 import com.github.dockerjava.api.async.ResultCallback
 import com.github.dockerjava.api.exception.NotModifiedException
+import com.github.dockerjava.api.exception.NotFoundException
 import com.github.dockerjava.api.model.Frame
+import com.github.dockerjava.api.model.PullResponseItem
 import com.github.dockerjava.api.model.StreamType
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import com.github.dockerjava.core.DefaultDockerClientConfig
 import com.github.dockerjava.core.DockerClientBuilder
 import com.github.dockerjava.core.DockerClientConfig
+import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
+import com.github.dockerjava.transport.DockerHttpClient
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -18,6 +25,8 @@ import org.coralprotocol.coralserver.orchestrator.ConfigValue
 import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
 import org.coralprotocol.coralserver.orchestrator.runtime.executable.EnvVar
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.toJavaDuration
+
 
 private val logger = KotlinLogging.logger {}
 
@@ -30,7 +39,64 @@ data class Docker(
     private val dockerClientConfig: DockerClientConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
         .withDockerHost(getDockerSocket())
         .build()
-    private val dockerClient = DockerClientBuilder.getInstance(dockerClientConfig).build()
+    private val dockerHttpClient: DockerHttpClient = ApacheDockerHttpClient.Builder()
+        .dockerHost(dockerClientConfig.dockerHost)
+        .sslConfig(dockerClientConfig.sslConfig)
+        .maxConnections(100)
+        .connectionTimeout(30.seconds.toJavaDuration())
+        .responseTimeout(45.seconds.toJavaDuration())
+        .build()
+    private val dockerClient =
+        DockerClientBuilder.getInstance(dockerClientConfig).withDockerHttpClient(dockerHttpClient).build()
+
+    /**
+     * Checks if the specified Docker image exists locally.
+     * @param imageName The name of the image to check
+     * @return true if the image exists locally, false otherwise
+     */
+    private fun imageExists(imageName: String): Boolean {
+        return try {
+            dockerClient.inspectImageCmd(imageName).exec()
+            true
+        } catch (e: NotFoundException) {
+            false
+        }
+    }
+
+    /**
+     * Pulls a Docker image if it doesn't exist locally.
+     * @param imageName The name of the image to pull
+     */
+    private fun pullImageIfNeeded(imageName: String) {
+        if (!imageExists(imageName)) {
+            logger.info { "Docker image $imageName not found locally, pulling..." }
+            val callback = object : ResultCallback.Adapter<PullResponseItem>() {}
+            dockerClient.pullImageCmd(imageName).exec(callback)
+            callback.awaitCompletion()
+            logger.info { "Docker image $imageName pulled successfully" }
+        }
+    }
+
+    /**
+     * Checks if the image is using the 'latest' tag and logs a warning if it is.
+     * Also includes the image creation date in the warning.
+     * @param imageName The name of the image to check
+     */
+    private fun checkAndWarnForLatestTag(imageName: String) {
+        if (imageName.endsWith(":latest") || !imageName.contains(":")) {
+            val imageInfo = dockerClient.inspectImageCmd(imageName).exec()
+            val createdAt = imageInfo.created
+
+            // Format the date for display
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                .withZone(ZoneId.systemDefault())
+            val formattedDate = formatter.format(Instant.parse(createdAt))
+
+            logger.warn { "Using 'latest' tag for Docker image $imageName is poor practice. " +
+                    "Consider using a specific version tag instead. " +
+                    "Image creation date: $formattedDate" }
+        }
+    }
 
     override fun spawn(
         agentName: String,
@@ -39,6 +105,12 @@ data class Docker(
         options: Map<String, ConfigValue>
     ): OrchestratorHandle {
         logger.info { "Spawning Docker container with image: $image" }
+
+        // Pull the image if it doesn't exist locally
+        pullImageIfNeeded(image)
+
+        // Check if using 'latest' tag and warn if so
+        checkAndWarnForLatestTag(image)
         val fullConnectionUrl =
             "http://host.docker.internal:$port/${relativeMcpServerUri.path}${relativeMcpServerUri.query?.let { "?$it" } ?: ""}"
 
@@ -143,6 +215,8 @@ private fun getDockerContainerName(relativeMcpServerUri: Uri, agentName: String)
 
 private fun getDockerSocket(): String {
     val specifiedSocket = System.getenv("CORAL_DOCKER_SOCKET")
+//    val specifiedSocket = "npipe:////./pipe/docker_engine"
+    //TODO: Use this if windows detected
     if (specifiedSocket != null) {
         return specifiedSocket
     }
