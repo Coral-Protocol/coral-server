@@ -33,27 +33,24 @@ data class Docker(
     private val dockerClient = DockerClientBuilder.getInstance(dockerClientConfig).build()
 
     override fun spawn(
-        agentName: String,
-        port: UShort,
-        relativeMcpServerUri: Uri,
-        options: Map<String, ConfigValue>
+        params: RuntimeParams
     ): OrchestratorHandle {
         logger.info { "Spawning Docker container with image: $image" }
         val fullConnectionUrl =
-            "http://host.docker.internal:$port/${relativeMcpServerUri.path}${relativeMcpServerUri.query?.let { "?$it" } ?: ""}"
+            "http://host.docker.internal:${params.mcpServerPort}/${params.mcpServerRelativeUri.path}${params.mcpServerRelativeUri.query?.let { "?$it" } ?: ""}"
 
         val resolvedEnvs = this.environment.map {
-            val (key, value) = it.resolve(options)
+            val (key, value) = it.resolve(params.options)
             "$key=$value"
         }
         val allEnvs = resolvedEnvs + getCoralSystemEnvs(
+            params,
             Uri.parse(fullConnectionUrl),
-            agentName,
             "docker"
         ).map { (key, value) -> "$key=$value" }
 
         val containerCreation = dockerClient.createContainerCmd(image)
-            .withName(getDockerContainerName(relativeMcpServerUri, agentName))
+            .withName(getDockerContainerName(params.mcpServerRelativeUri, params.agentName))
             .withEnv(allEnvs)
             .withAttachStdout(true)
             .withAttachStderr(true)
@@ -74,15 +71,15 @@ data class Docker(
                 val message = String(frame.payload).trimEnd('\n')
                 when (frame.streamType) {
                     StreamType.STDOUT -> {
-                        logger.info { "[STDOUT] $agentName: $message" }
+                        logger.info { "[STDOUT] ${params.agentName}: $message" }
                     }
 
                     StreamType.STDERR -> {
-                        logger.info { "[STDERR] $agentName: $message" }
+                        logger.info { "[STDERR] ${params.agentName}: $message" }
                     }
 
                     else -> {
-                        logger.warn { "[UNKNOWN] $agentName: $message" }
+                        logger.warn { "[UNKNOWN] ${params.agentName}: $message" }
                     }
                 }
             }
@@ -105,13 +102,13 @@ data class Docker(
                                 .exec()
                             return@withTimeoutOrNull true
                         } ?: let {
-                            logger.warn { "Docker container $agentName did not stop in time, force removing it" }
+                            logger.warn { "Docker container ${params.agentName} did not stop in time, force removing it" }
                             dockerClient.removeContainerCmd(containerCreation.id)
                                 .withRemoveVolumes(true)
                                 .withForce(true)
                                 .exec()
                         }
-                        logger.info { "Docker container $agentName stopped and removed" }
+                        logger.info { "Docker container ${params.agentName} stopped and removed" }
                     }
                 }
             }
