@@ -25,7 +25,6 @@ import org.coralprotocol.coralserver.orchestrator.ConfigValue
 import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
 import org.coralprotocol.coralserver.orchestrator.runtime.executable.EnvVar
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.toJavaDuration
 
 
 private val logger = KotlinLogging.logger {}
@@ -106,10 +105,7 @@ data class Docker(
     ): OrchestratorHandle {
         logger.info { "Spawning Docker container with image: $image" }
 
-        // Pull the image if it doesn't exist locally
         pullImageIfNeeded(image)
-
-        // Check if using 'latest' tag and warn if so
         checkAndWarnForLatestTag(image)
         val fullConnectionUrl =
             "http://host.docker.internal:$port/${relativeMcpServerUri.path}${relativeMcpServerUri.query?.let { "?$it" } ?: ""}"
