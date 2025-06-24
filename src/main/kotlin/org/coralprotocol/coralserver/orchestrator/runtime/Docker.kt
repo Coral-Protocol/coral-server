@@ -42,9 +42,7 @@ data class Docker(
     private val dockerHttpClient: DockerHttpClient = ApacheDockerHttpClient.Builder()
         .dockerHost(dockerClientConfig.dockerHost)
         .sslConfig(dockerClientConfig.sslConfig)
-        .maxConnections(100)
-        .connectionTimeout(30.seconds.toJavaDuration())
-        .responseTimeout(45.seconds.toJavaDuration())
+        .maxConnections(1024)
         .build()
     private val dockerClient =
         DockerClientBuilder.getInstance(dockerClientConfig).withDockerHttpClient(dockerHttpClient).build()
@@ -92,9 +90,11 @@ data class Docker(
                 .withZone(ZoneId.systemDefault())
             val formattedDate = formatter.format(Instant.parse(createdAt))
 
-            logger.warn { "Using 'latest' tag for Docker image $imageName is poor practice. " +
-                    "Consider using a specific version tag instead. " +
-                    "Image creation date: $formattedDate" }
+            logger.warn {
+                "Using 'latest' tag for Docker image $imageName is poor practice. " +
+                        "Consider using a specific version tag instead. " +
+                        "Image creation date: $formattedDate"
+            }
         }
     }
 
@@ -214,19 +214,26 @@ private fun getDockerContainerName(relativeMcpServerUri: Uri, agentName: String)
 }
 
 private fun getDockerSocket(): String {
-    val specifiedSocket = System.getenv("CORAL_DOCKER_SOCKET")
-//    val specifiedSocket = "npipe:////./pipe/docker_engine"
-    //TODO: Use this if windows detected
+    val specifiedSocket = System.getenv("DOCKER_HOST")?.takeIf { it.isNotBlank() }
+        ?: System.getProperty("docker.host")?.takeIf { it.isNotBlank() }
+        ?: System.getenv("DOCKER_SOCKET")?.takeIf { it.isNotBlank() }
+        ?: System.getProperty("docker.socket")?.takeIf { it.isNotBlank() }
+        ?: System.getProperty("CORAL_DOCKER_SOCKET")?.takeIf { it.isNotBlank() }
+
     if (specifiedSocket != null) {
         return specifiedSocket
     }
 
-    // Check whether colima is installed and use its socket if available
-    val homeDir = System.getProperty("user.home")
+    // Use colima socket if it exists
+    val homeDir = System.getProperty("user.home") ?: "~"
     val colimaSocket = "$homeDir/.colima/default/docker.sock"
-    return if (java.io.File(colimaSocket).exists()) {
-        "unix://$colimaSocket"
-    } else {
-        "unix:///var/run/docker.sock" // Default Docker socket
+    if (java.io.File(colimaSocket).exists()) {
+        return "unix://$colimaSocket"
     }
+
+    // If on windows, use npipe
+    if (System.getProperty("os.name").startsWith("Windows", ignoreCase = true)) {
+        return "npipe:////./pipe/docker_engine"
+    }
+    return "unix:///var/run/docker.sock" // Default Docker socket location for Unix-like systems
 }
