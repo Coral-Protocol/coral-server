@@ -18,7 +18,7 @@ from prompts import get_tools_description, get_user_message
 async def main():
     # Simply add the Coral server address as a tool
     coral_url = os.getenv("CORAL_CONNECTION_URL", default = "http://localhost:5555/devmode/exampleApplication/privkey/session1/sse?waitForAgents=3&agentId=user_interaction_agent")
-    server = MCPClient(coral_url, timeout=300.0)
+    server = MCPClient(coral_url, timeout=3000000.0)
 
     mcp_toolkit = MCPToolkit([server])
 
@@ -49,10 +49,10 @@ async def create_interface_agent(connected_mcp_toolkit):
             
             Make sure to put the name of the agent you are talking to in the mentions field of the send message tool.
             
-            After working with other agents, when you are confident that you have all the information for a final answer/response, reply in the same thread as the original request message. Only do this when you are confident you have the FINAL response. Do not use that thread to send partial answers, guesses or updates. At least 2 messages from other agents should be seen before you send the final response.
+            {os.getenv("CORAL_PROMPT_SYSTEM", default = "")}
             
             Here are the guidelines for using the communication tools:
-            ${get_tools_description()}
+            {get_tools_description()}
             """
     )
     model = ModelFactory.create(
@@ -68,8 +68,6 @@ async def create_interface_agent(connected_mcp_toolkit):
         message_window_size=MESSAGE_WINDOW_SIZE,
         token_limit=TOKEN_LIMIT
     )
-    camel_agent.reset()
-    camel_agent.memory.clear()
     return camel_agent
 
 
