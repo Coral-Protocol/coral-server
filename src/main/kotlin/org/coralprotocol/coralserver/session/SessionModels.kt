@@ -108,6 +108,9 @@ sealed interface ToolTransport {
                     install(ContentNegotiation) {
                         json()
                     }
+                    engine {
+                        requestTimeout = 0
+                    }
                 }
 
                 val response = client.post(url.value) {
