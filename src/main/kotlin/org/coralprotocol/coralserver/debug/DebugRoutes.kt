@@ -53,7 +53,7 @@ fun Routing.debugRoutes(sessionManager: SessionManager) {
         sendSerialized<SocketEvent>(SocketEvent.DebugAgentRegistered(id = debugId.id))
 
         sendSerialized<SocketEvent>(SocketEvent.ThreadList(session.getAllThreads().map { it.resolve() }))
-        sendSerialized<SocketEvent>(SocketEvent.AgentList(session.getAllAgents(true)))
+        sendSerialized<SocketEvent>(SocketEvent.AgentList(session.getAllAgents(false)))
 
         session.events.collect { evt ->
             logger.debug { "Received evt: $evt" }
