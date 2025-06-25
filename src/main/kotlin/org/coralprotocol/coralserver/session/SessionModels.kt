@@ -28,6 +28,7 @@ import org.coralprotocol.coralserver.orchestrator.AgentType
 import org.coralprotocol.coralserver.orchestrator.runtime.AgentRuntime
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import java.net.URI
+import kotlin.js.ExperimentalJsExport
 
 
 private val logger = KotlinLogging.logger {}

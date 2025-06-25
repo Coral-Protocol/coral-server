@@ -365,9 +365,9 @@ suspend fun main(args: Array<String>) {
         println("Percent of questions with correct answers: $percentOfAnsweredQuestionsCorrect%")
         println("Total questions: ${questions.size}, Questions with correct answers: ${questionsWithCorrectAnswers.size}, Questions without correct answers: ${questionsWithoutCorrectAnswers.size}, Questions with any answers: ${questionsWithAnyAnswers.size}")
         println("Total correct answers: ${existingResults.count { it.isCorrect }}, Total incorrect answers: ${existingResults.count { !it.isCorrect }}")
-        val semaphore = Semaphore(6)
+        val semaphore = Semaphore(2)
         val context = CoroutineScope(SupervisorJob())
-        questionsWithoutCorrectAnswers.map { question ->
+        questions.map { question ->
             context.async {
             semaphore.withPermit {
                     try {
