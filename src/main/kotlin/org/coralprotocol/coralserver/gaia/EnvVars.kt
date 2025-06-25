@@ -18,6 +18,7 @@ object EnvVars {
     // List of all environment variables
     val definitions = listOf(
         EnvVarDef("OPENAI_API_KEY", "OpenAI API Key", null, true),
+        EnvVarDef("JINA_API_KEY", "Jina API key", null, true),
         EnvVarDef("GOOGLE_API_KEY", "Google API Key", null, true),
         EnvVarDef("FIRECRAWL_API_KEY", "Google API Key", null, true),
         EnvVarDef("SEARCH_ENGINE_ID", "Search Engine ID", null, true),
