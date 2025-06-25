@@ -56,7 +56,7 @@ class CoralAgentGraphSession(
         agentGroupScheduler.clear()
     }
 
-    fun registerAgent(agentId: String, agentDescription: String? = null, force: Boolean = false): Agent? {
+    fun registerAgent(agentId: String, agentUri: String? = null, agentDescription: String? = null, force: Boolean = false): Agent? {
         if (agents.containsKey(agentId)) {
             logger.warn { "$agentId has already been registered" }
             if (!force) {
@@ -68,7 +68,8 @@ class CoralAgentGraphSession(
             description = agentDescription ?: "",
             extraTools = agentGraph?.let {
                 it.agents[AgentName(agentId)]?.extraTools?.mapNotNull { tool -> it.tools[tool] }?.toSet()
-            } ?: setOf()
+            } ?: setOf(),
+            mcpUrl = agentUri
         )
         agents[agent.id] = agent
 
@@ -98,7 +99,7 @@ class CoralAgentGraphSession(
     fun registerDebugAgent(): Agent {
         val id = UUID.randomUUID().toString()
         if (agents[id] !== null) throw AssertionError("Debug agent id collision")
-        val agent = Agent(id = id, description = "")
+        val agent = Agent(id = id, description = "", mcpUrl = "n/a")
         agents[id] = agent
         debugAgents.add(id)
         return agent
