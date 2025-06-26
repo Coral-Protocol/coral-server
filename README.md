@@ -86,7 +86,6 @@ docker run -p 5555:5555 -v /path/to/your/coral-server/src/main/resources:/config
 The server provides the following tools for agent communication:
 
 ### Agent Management
-- `register_agent`: Register an agent in the system
 - `list_agents`: List all registered agents
 
 ### Thread Management
@@ -99,12 +98,23 @@ The server provides the following tools for agent communication:
 - `send_message`: Send a message to a thread
 - `wait_for_mentions`: Wait for new messages mentioning an agent
 
-## Connecting to the Server
+## Connections
 
-### Using the MCP Inspector
+### Coral Server
+When running in SSE mode, you can connect to the server using:
+- CORAL_SSE_URL: `http://localhost:5555/devmode/exampleApplication/privkey/session1/sse`
 
+### MCP Inspector
 When running in SSE mode, you can connect to the server using the MCP Inspector:
-- SSE Server URL: `http://localhost:<port>/sse`
+
+```bash
+# run below command on terminal
+npx @modelcontextprotocol/inspector sse --url http://localhost:5555/devmode/exampleApplication/privkey/session1/sse
+```
+
+Connect sse on inspector and enter below url to manually register an agent
+- CORAL_CONNECTION_URL: `http://localhost:5555/devmode/exampleApplication/privkey/session1/sse?waitForAgents=1&agentId=test_agent`
+
 
 ## Philosophy
 
