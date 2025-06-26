@@ -1,3 +1,5 @@
+# Default application configuration
+# TODO: Applications are a work in progress. This is safe to ignore for now.
 applications:
   - id: "app"
     name: "Default Application"
@@ -7,81 +9,70 @@ applications:
       - "public"
       - "priv"
 
+# NOTE: this will almost certainly *not* work on your machine without some tweaking of the `command`'s for each agent
+
 # Registry of agents we can orchestrate
 registry:
-  repounderstanding:
+  test:
+    options:
+      - name: "NAME"
+        type: "string"
+        description: "Test agent name"
+    runtime:
+      type: "executable"
+      command: ["bash", "examples/camel-search-maths/venv.sh", "examples/camel-search-maths/test.py"]
+      environment:
+        - option: "NAME"
+  search:
     # Exposed configuration for consumers of this agent
     options:
       - name: "OPENAI_API_KEY"
         type: "string"
         description: "OpenAI API Key"
-      - name: "GITHUB_ACCESS_TOKEN"
+      - name: "GOOGLE_API_KEY"
         type: "string"
-        description: "GitHub Access Token"
+        description: "Google API Key"
+      - name: "SEARCH_ENGINE_ID"
+        type: "string"
+        description: "Google Search Engine ID"
 
     # How this agent is actually orchestrated locally
     runtime:
-      type: "docker"
+      type: "executable"
+      command: [ "bash", "examples/camel-search-maths/venv.sh", "examples/camel-search-maths/mcp_example_camel_search.py" ]
+
       environment:
         - name: "API_KEY"
           from: "OPENAI_API_KEY"
-        - name: "GITHUB_ACCESS_TOKEN"
-          from: "GITHUB_ACCESS_TOKEN"
-      image: "coralprotocol/coral-repounderstanding:latest"
-
-  deepresearch:
+        - option: "GOOGLE_API_KEY"
+        - option: "SEARCH_ENGINE_ID"
+  math:
     options:
       - name: "OPENAI_API_KEY"
         type: "string"
         description: "OpenAI API Key"
-      - name: "LINKUP_API_KEY"
-        type: "string"
-        description: "LinkUp API Key. Get from https://linkup.so/"
 
     runtime:
-      type: "docker"
+      type: "executable"
+      command: [ "bash", "examples/camel-search-maths/venv.sh", "examples/camel-search-maths/mcp_example_camel_math.py" ]
       environment:
         - name: "API_KEY"
           from: "OPENAI_API_KEY"
-      image: "coralprotocol/coral-opendeepresearch:latest"
-
   interface:
     options:
       - name: "OPENAI_API_KEY"
         type: "string"
         description: "OpenAI API Key"
-      - name: "HUMAN_RESPONSE"
-        type: "string"
-        description: "Human response to be used in the interface agent"
-
-    runtime:
-      type: "docker"
-      image: "coralprotocol/coral-interface-agent:latest"
-      environment:
-        - name: "API_KEY"
-          from: "OPENAI_API_KEY"
-        - name: "HUMAN_RESPONSE"
-          from: "HUMAN_RESPONSE"
-
-  interface-local:
-    options:
-      - name: "OPENAI_API_KEY"
-        type: "string"
-        description: "OpenAI API Key"
-      - name: "HUMAN_RESPONSE"
-        type: "string"
-        description: "Human response to be used in the interface agent"
 
     runtime:
       type: "executable"
-      command:
-        [
-          "bash",
-          "-c",
-          "cd ../Coral-Interface-Agent && /home/suman/.local/bin/uv sync && /home/suman/.local/bin/uv run 0-langchain-interface.py",
-        ]
+      command: [ "bash", "examples/camel-search-maths/venv.sh", "examples/camel-search-maths/mcp_example_camel_interface.py" ]
       environment:
         - name: "API_KEY"
           from: "OPENAI_API_KEY"
-        - name: "HUMAN_RESPONSE"
-          from: "HUMAN_RESPONSE"
+
+# Uncomment to configure an external application source
+# applicationSource:
+#   type: "http"
+#   url: "https://example.com/applications"
+#   refreshIntervalSeconds: 3600
