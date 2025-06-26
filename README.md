@@ -101,18 +101,18 @@ The server provides the following tools for agent communication:
 ## Connections
 
 ### Coral Server
-When running in SSE mode, you can connect to the server using:
-- CORAL_SSE_URL: `http://localhost:5555/devmode/exampleApplication/privkey/session1/sse`
+In SSE mode, you can connect to the server on:
+`http://localhost:5555/devmode/exampleApplication/privkey/session1/sse`
 
 ### MCP Inspector
-When running in SSE mode, you can connect to the server using the MCP Inspector:
+In SSE mode, you can connect to the server using the MCP Inspector:
 
 ```bash
 npx @modelcontextprotocol/inspector sse --url http://localhost:5555/devmode/exampleApplication/privkey/session1/sse
 ```
-
-Connect sse on inspector and enter below url to manually register an agent:
-- URL: `http://localhost:5555/devmode/exampleApplication/privkey/session1/sse?waitForAgents=1&agentId=test_agent`
+### Register an Agent
+In SSE mode, you can register an agent to the Coral Server on (also can be registered on MCP inspector):
+`http://localhost:5555/devmode/exampleApplication/privkey/session1/sse?agentId=test_agent`
 
 
 ## Philosophy
