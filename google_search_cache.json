@@ -6955,5 +6955,612 @@
       "long_description": "AI agents take the power of generative AI a step further by working alongside you or even on your behalf, and they can be built and used by anyone.",
       "url": "https://news.microsoft.com/source/features/ai/ai-agents-what-they-are-and-how-theyll-change-the-way-we-work/"
     }
+  ],
+  "9ea7bdd4d5b788c4baf83f2fe976422b": [
+    {
+      "result_id": 1,
+      "title": "(PDF) Fairness in Agreement With European Values: An ...",
+      "description": "Jul 5, 2022 ... Fairness in Agreement With European Values: An Interdisciplinary Perspective on AI Regulation. June 2022 ... This has motivated regulation efforts ...",
+      "long_description": "PDF | With increasing digitalization, Artificial Intelligence (AI) is becoming ubiquitous. AI-based systems to identify, optimize, automate, and scale... | Find, read and cite all the research you need on ResearchGate",
+      "url": "https://arxiv.org/pdf/2207.01510"
+    }
+  ],
+  "55583bfbd810ece8afd1e47b216c6031": [
+    {
+      "result_id": 1,
+      "title": "Mercedes Sosa - Wikipedia",
+      "description": "Studio albums ; 1998, Al Despertar. Label: Mercury ; 1999, Misa Criolla. Label: Mercury ; 2005, Corazón Libre. Label: Edge ; 2009, Cantora 1 (w/various artists).",
+      "long_description": "N/A",
+      "url": "https://en.wikipedia.org/wiki/Mercedes_Sosa"
+    }
+  ],
+  "cf4f26deeec99737f1f8c464af311c7c": [
+    {
+      "result_id": 1,
+      "title": "numpy/numpy/polynomial/polynomial.py at main · numpy/numpy ...",
+      "description": "opencollective.com/numpy · tidelift.com/funding/github/pypi/numpy · https://numpy.org/about/#donate · Learn more about funding links in repositories.",
+      "long_description": "The fundamental package for scientific computing with Python. - numpy/numpy",
+      "url": "https://github.com/numpy/numpy/blob/main/numpy/polynomial/polynomial.py"
+    }
+  ],
+  "b05c75115964a35c7acdbfbfda465b1c": [
+    {
+      "result_id": 1,
+      "title": "The representation of polynomials with Polynomial class using ...",
+      "description": "Aug 8, 2017 ... from numpy.polynomial import Polynomial as P >>> p = P ... StanczakDominik pushed a commit to StanczakDominik/numpy that referenced this issue on ...",
+      "long_description": ">>> from numpy.polynomial import Polynomial as P >>> p = P([1,1], domain=[0,1]) >>> p.linspace(2) (array([ 0., 1.]), array([ 0., 2.])) >>> p.linspace(2, domain=[0,1]) (array([ 0., 1.]), array([ 0.,...",
+      "url": "https://github.com/numpy/numpy/issues/9533"
+    }
+  ],
+  "629b7880f7cbe5044ef6ad361e896227": [
+    {
+      "result_id": 1,
+      "title": "The representation of polynomials with Polynomial class using ...",
+      "description": "Aug 8, 2017 ... Window, see domain for its use. The default value is [-1, 1] . I'll change the title of this issue to make it about documentation and will ...",
+      "long_description": ">>> from numpy.polynomial import Polynomial as P >>> p = P([1,1], domain=[0,1]) >>> p.linspace(2) (array([ 0., 1.]), array([ 0., 2.])) >>> p.linspace(2, domain=[0,1]) (array([ 0., 1.]), array([ 0.,...",
+      "url": "https://github.com/numpy/numpy/issues/9533"
+    }
+  ],
+  "309b14e6e4a6a7413738bc2427563eec": [
+    {
+      "result_id": 1,
+      "title": "The clinician's guide to p values, confidence intervals, and ...",
+      "description": "Nov 26, 2021 ... For example, a p-value of 0.04 would indicate that the difference ... For example, a study may find a statistically significant difference (p ...",
+      "long_description": "N/A",
+      "url": "https://www.nature.com/articles/s41433-021-01863-w"
+    },
+    {
+      "result_id": 2,
+      "title": "The P Value and Statistical Significance: Misunderstandings ...",
+      "description": "This article considers why 5% may be set as a reasonable cut-off for statistical significance, explains the correct interpretation of P < 0.05 and other values ...",
+      "long_description": "The calculation of a P value in research and especially the use of a threshold to declare the statistical significance of the P value have both been challenged in recent years. There are at least two important reasons for this challenge: research ...",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6532382/"
+    }
+  ],
+  "ad1126779d552baead89ed91b9bc7d08": [
+    {
+      "result_id": 1,
+      "title": "clown anemonefish (Amphiprion ocellaris) - Species Profile",
+      "description": "The information has not received final approval by the U.S. Geological Survey (USGS) ... The Nonindigenous Occurrences section of the NAS species profiles has a ...",
+      "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
+      "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
+    },
+    {
+      "result_id": 2,
+      "title": "Nonindigenous Aquatic Species Database | U.S. Geological Survey",
+      "description": "The USGS Nonindigenous Aquatic Species (NAS) database tracks occurrence data on non-native aquatic plant and animal species throughout the United States.",
+      "long_description": "N/A",
+      "url": "https://www.usgs.gov/centers/wetland-and-aquatic-research-center/science/science-topics/nonindigenous-aquatic-species"
+    }
+  ],
+  "64538a3c128e1dc92797b66140086333": [
+    {
+      "result_id": 1,
+      "title": "The P Value and Statistical Significance: Misunderstandings ...",
+      "description": "The calculation of a P value in research and especially ... The Chi-square test that you apply yields a P value of 0.04, a value that is less than 0.05.",
+      "long_description": "The calculation of a P value in research and especially the use of a threshold to declare the statistical significance of the P value have both been challenged in recent years. There are at least two important reasons for this challenge: research ...",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6532382/"
+    },
+    {
+      "result_id": 2,
+      "title": "P-Value: What It Is, How to Calculate It, and Examples",
+      "description": "Because different researchers use different levels of significance when ... Beyond this simplified example, you could compare a 0.04 p-value to a 0.001 p-value.",
+      "long_description": "P-value is the level of marginal significance within a statistical hypothesis test, representing the probability of the occurrence of a given event.",
+      "url": "https://www.investopedia.com/terms/p/p-value.asp"
+    }
+  ],
+  "d8add7efd2f55f0093302974d1c06b04": [
+    {
+      "result_id": 1,
+      "title": "Scientists rise up against statistical significance",
+      "description": "Mar 20, 2019 ... Valentin Amrhein, Sander Greenland, Blake McShane and more than 800 signatories call for an end to hyped claims and the dismissal of possibly crucial effects.",
+      "long_description": "Valentin Amrhein, Sander Greenland, Blake McShane and more than 800 signatories call for an end to hyped claims and the dismissal of possibly crucial effects.",
+      "url": "https://www.nature.com/articles/d41586-019-00857-9"
+    },
+    {
+      "result_id": 2,
+      "title": "Kea show three signatures of domain-general statistical inference ...",
+      "description": "Mar 3, 2020 ... Nature Communications volume 11, Article number: 828 (2020) Cite this article ... Nature remains neutral with regard to jurisdictional claims ...",
+      "long_description": "N/A",
+      "url": "https://www.nature.com/articles/s41467-020-14695-1"
+    }
+  ],
+  "41c9ccd549b7471bd7e371478fa31a99": [
+    {
+      "result_id": 1,
+      "title": "clown anemonefish (Amphiprion ocellaris) - Species Profile",
+      "description": "Clownfish live within the tentacles of sea anemones. About one-third of the species live with a host-specific species of anemone.",
+      "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
+      "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
+    },
+    {
+      "result_id": 2,
+      "title": "Nonindigenous Aquatic Species Database | U.S. Geological Survey",
+      "description": "The USGS Nonindigenous Aquatic Species (NAS) database tracks occurrence data on non-native aquatic plant and animal species throughout the United States.",
+      "long_description": "N/A",
+      "url": "https://www.usgs.gov/centers/wetland-and-aquatic-research-center/science/science-topics/nonindigenous-aquatic-species"
+    }
+  ],
+  "12aab1a85f7c313a6d623e38859a3943": [
+    {
+      "result_id": 1,
+      "title": "It's time to talk about ditching statistical significance",
+      "description": "Mar 20, 2019 ... Whether a P value falls above or below an arbitrary threshold demarcating 'statistical significance ... Nature (Nature). ISSN 1476-4687 ...",
+      "long_description": "Looking beyond a much used and abused measure would make science harder, but better.",
+      "url": "https://www.nature.com/articles/d41586-019-00874-8"
+    },
+    {
+      "result_id": 2,
+      "title": "The P Value and Statistical Significance: Misunderstandings ...",
+      "description": "The calculation of a P value in research and especially the use of a threshold to declare the statistical significance of the P value have both been ...",
+      "long_description": "The calculation of a P value in research and especially the use of a threshold to declare the statistical significance of the P value have both been challenged in recent years. There are at least two important reasons for this challenge: research ...",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6532382/"
+    }
+  ],
+  "b7c727318b8ac028d17f6db48bc9f839": [
+    {
+      "result_id": 1,
+      "title": "Statistical significance: p value, 0.05 threshold, and applications to ...",
+      "description": "Mar 11, 2020 ... The p value is probably the most ubiquitous and, at the same time, misunderstood index in all of biomedical research. Hundreds of articles were ...",
+      "long_description": "N/A",
+      "url": "https://eurradiolexp.springeropen.com/articles/10.1186/s41747-020-0145-y"
+    },
+    {
+      "result_id": 2,
+      "title": "The P Value and Statistical Significance: Misunderstandings ...",
+      "description": "The calculation of a P value in research and especially the use of a threshold ... This is an open access journal, and articles are distributed under the ...",
+      "long_description": "The calculation of a P value in research and especially the use of a threshold to declare the statistical significance of the P value have both been challenged in recent years. There are at least two important reasons for this challenge: research ...",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6532382/"
+    }
+  ],
+  "cd97bd2fd1377124fb04befe7ba7c9c9": [
+    {
+      "result_id": 1,
+      "title": "clown anemonefish (Amphiprion ocellaris) - Species Profile",
+      "description": "Species profile: Clownfish. SRAC Publication No. 7213. Southern ... The Nonindigenous Occurrences section of the NAS species profiles has a new structure.",
+      "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
+      "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
+    },
+    {
+      "result_id": 2,
+      "title": "Nonindigenous Aquatic Species Database | U.S. Geological Survey",
+      "description": "The USGS Nonindigenous Aquatic Species (NAS) database tracks occurrence data on non-native aquatic plant and animal species throughout the United States.",
+      "long_description": "N/A",
+      "url": "https://www.usgs.gov/centers/wetland-and-aquatic-research-center/science/science-topics/nonindigenous-aquatic-species"
+    }
+  ],
+  "651f558985293c16e95654fe1f6e80f2": [
+    {
+      "result_id": 1,
+      "title": "Unlambda - Esolang",
+      "description": "Jun 12, 2025 ... Examples · Palindromes · Hello, world! · Cat program · Looping counter · Deadfish interpreter · Number I/O.",
+      "long_description": "N/A",
+      "url": "https://esolangs.org/wiki/Unlambda"
+    }
+  ],
+  "9c8cdf1dfb775fdb56b69353e3ef7649": [
+    {
+      "result_id": 1,
+      "title": "Unlambda - Wikipedia",
+      "description": "Unlambda is a minimal, \"nearly pure\" functional programming language invented by David Madore. It is based on combinatory logic, an expression system ...",
+      "long_description": "N/A",
+      "url": "https://en.wikipedia.org/wiki/Unlambda"
+    }
+  ],
+  "8fcd10c7ab0972be810426566375cfcc": [
+    {
+      "result_id": 1,
+      "title": "clown anemonefish (Amphiprion ocellaris) - Species Profile",
+      "description": "States with nonindigenous occurrences, the earliest and latest observations in each state, and the tally and names of HUCs with observations†. Names and dates ...",
+      "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
+      "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
+    },
+    {
+      "result_id": 2,
+      "title": "Nonindigenous Aquatic Species Database | U.S. Geological Survey",
+      "description": "The USGS Nonindigenous Aquatic Species (NAS) database tracks occurrence data on non-native aquatic plant and animal species throughout the United States.",
+      "long_description": "N/A",
+      "url": "https://www.usgs.gov/centers/wetland-and-aquatic-research-center/science/science-topics/nonindigenous-aquatic-species"
+    }
+  ],
+  "465b6af5951c0caf0b77fa7d80ee6fb8": [
+    {
+      "result_id": 1,
+      "title": "The Unlambda Programming Language",
+      "description": "... represent them with ad hoc functions. In fact, you can so well build your ... character (read during parsing), not a parameter to the function. The r ...",
+      "long_description": "N/A",
+      "url": "http://www.madore.org/~david/programs/unlambda/"
+    }
+  ],
+  "a3064036aac8e11f9835235a2a26bfeb": [
+    {
+      "result_id": 1,
+      "title": "The Unlambda Programming Language",
+      "description": "While all this works without glitch in the blessed realm of the pure untyped lambda calculus, i.e. in the absence of side effects (the functions we have seen so ...",
+      "long_description": "N/A",
+      "url": "http://www.madore.org/~david/programs/unlambda/"
+    }
+  ],
+  "a674fd36a5e2669ae5c75d42b7fc5066": [
+    {
+      "result_id": 1,
+      "title": "Phase transition from egalitarian to hierarchical societies driven by ...",
+      "description": "Physics > Physics and Society. arXiv:1608.03637 (physics). [Submitted on 11 Aug 2016]. Title:Phase transition from egalitarian to hierarchical societies ...",
+      "long_description": "Empirical evidence suggests that social structure may have changed from hierarchical to egalitarian and back along the evolutionary line of humans. We model a society subject to competing cognitive and social navigation constraints. The theory predicts that the degree of hierarchy decreases with encephalization and increases with group size. Hence hominin groups may have been driven from a phase with hierarchical order to a phase with egalitarian structures by the encephalization during the last two million years, and back to hierarchical due to fast demographical changes during the Neolithic. The dynamics in the perceived social network shows evidence in the egalitarian phase of the observed phenomenon of Reverse Dominance. The theory also predicts for modern hunter-gatherers in mild climates a trend towards an intermediate hierarchy degree and a phase transition for harder ecological conditions. In harsher climates societies would tend to bemore egalitarian if organized in small groups but more hierarchical",
+      "url": "https://arxiv.org/abs/1608.03637"
+    }
+  ],
+  "01674dede8eae7cc7068743e04c6a8a2": [
+    {
+      "result_id": 1,
+      "title": "Fairness in Agreement With European Values: An Interdisciplinary ...",
+      "description": "arXiv:2207.01510v1 [cs.CY] 8 Jun 2022. Page 2. described above should not only be mitigated to increase fairness but in ... Machines learn that Brussels ...",
+      "long_description": "N/A",
+      "url": "https://arxiv.org/pdf/2207.01510"
+    }
+  ],
+  "b3588207b80c10e2ebd2895d6711a26f": [
+    {
+      "result_id": 1,
+      "title": "Phase transition from egalitarian to hierarchical societies driven by ...",
+      "description": "Physics > Physics and Society. arXiv:1608.03637 (physics). [Submitted on 11 Aug 2016] ... Subjects: Physics and Society (physics.soc-ph); Social and ...",
+      "long_description": "Empirical evidence suggests that social structure may have changed from hierarchical to egalitarian and back along the evolutionary line of humans. We model a society subject to competing cognitive and social navigation constraints. The theory predicts that the degree of hierarchy decreases with encephalization and increases with group size. Hence hominin groups may have been driven from a phase with hierarchical order to a phase with egalitarian structures by the encephalization during the last two million years, and back to hierarchical due to fast demographical changes during the Neolithic. The dynamics in the perceived social network shows evidence in the egalitarian phase of the observed phenomenon of Reverse Dominance. The theory also predicts for modern hunter-gatherers in mild climates a trend towards an intermediate hierarchy degree and a phase transition for harder ecological conditions. In harsher climates societies would tend to bemore egalitarian if organized in small groups but more hierarchical",
+      "url": "https://arxiv.org/abs/1608.03637"
+    }
+  ],
+  "49bc934581b04c78a22c02794683d1e2": [
+    {
+      "result_id": 1,
+      "title": "Unlambda - Esolang",
+      "description": "Jun 12, 2025 ... To shorten notation or to make structure sharing explicit, define names for common subexpressions. ... Unlambda (program C source code, Makefile, ...",
+      "long_description": "N/A",
+      "url": "https://esolangs.org/wiki/Unlambda"
+    },
+    {
+      "result_id": 2,
+      "title": "Lisp machine - Wikipedia",
+      "description": "... correcting codes). The first group of extra bits were used to hold type data ... Unlambda. Retrieved 12 November 2011. ^ \"Symbolics L Lisp Machine ...",
+      "long_description": "N/A",
+      "url": "https://en.wikipedia.org/wiki/Lisp_machine"
+    }
+  ],
+  "7d2407347fd1a3bacc48aedd2f5f1785": [
+    {
+      "result_id": 1,
+      "title": "test.ipynb · baixianger/RobotPai at main",
+      "description": "Apr 26, 2025 ... ... Physics and Society article submitted to arXiv.org on August 11, 2016? ... AI Regulation\\\".\\n5. Note the six words used as labels ...",
+      "long_description": "N/A",
+      "url": "https://huggingface.co/spaces/baixianger/RobotPai/blob/main/test.ipynb"
+    },
+    {
+      "result_id": 2,
+      "title": "GAIA: A Benchmark for General AI Assistants",
+      "description": "A paper about AI regulation that was originally submitted to arXiv.org in June ... Physics and Society article submitted to arXiv.org on August 11, 2016?",
+      "long_description": "N/A",
+      "url": "https://ukgovernmentbeis.github.io/inspect_evals/evals/assistants/gaia/"
+    },
+    {
+      "result_id": 3,
+      "title": "Fairness in Agreement With European Values: An Interdisciplinary ...",
+      "description": "Jun 8, 2022 ... This has motivated regulation efforts, including the Proposal of an EU AI Act. This interdisciplinary position paper considers various concerns.",
+      "long_description": "N/A",
+      "url": "https://arxiv.org/pdf/2207.01510"
+    },
+    {
+      "result_id": 4,
+      "title": "(PDF) Fairness in Agreement With European Values: An ...",
+      "description": "Jul 5, 2022 ... This has motivated regulation efforts, including the Proposal of an EU AI Act. This interdisciplinary position paper considers various concerns ...",
+      "long_description": "PDF | With increasing digitalization, Artificial Intelligence (AI) is becoming ubiquitous. AI-based systems to identify, optimize, automate, and scale... | Find, read and cite all the research you need on ResearchGate",
+      "url": "https://www.researchgate.net/publication/361765355_Fairness_in_Agreement_With_European_Values_An_Interdisciplinary_Perspective_on_AI_Regulation"
+    },
+    {
+      "result_id": 5,
+      "title": "GAIA/benchmark_gaia.ipynb at main · aymeric-roucher/GAIA · GitHub",
+      "description": "A paper about AI regulation that was originally submitted to arXiv.org in June ... Physics and Society article submitted to arXiv.org on August 11, 2016?",
+      "long_description": "Beating the GAIA benchmark with Transformers Agents. 🚀 - aymeric-roucher/GAIA",
+      "url": "https://github.com/aymeric-roucher/GAIA/blob/main/benchmark_gaia.ipynb"
+    }
+  ],
+  "fe5fb651e1d4f51290547be3e2e7acfe": [
+    {
+      "result_id": 1,
+      "title": "The Unlambda Programming Language",
+      "description": "I added a couple of functions (chosen for their obscurity) to the language so as to make output (and, in version 2, input) possible, or just to make things even ...",
+      "long_description": "N/A",
+      "url": "http://www.madore.org/~david/programs/unlambda/"
+    },
+    {
+      "result_id": 2,
+      "title": "Unlambda - Esolang",
+      "description": "Jun 12, 2025 ... Now since the second argument has been evaluated, d acts like the identity function i, so we have ``i`.xii, which evaluates to i and outputs x: ...",
+      "long_description": "N/A",
+      "url": "https://esolangs.org/wiki/Unlambda"
+    }
+  ],
+  "c014da781216611a43fd668ab718f6d8": [
+    {
+      "result_id": 1,
+      "title": "Phase transition from egalitarian to hierarchical societies driven by ...",
+      "description": "Physics > Physics and Society. arXiv:1608.03637 (physics). [Submitted on 11 Aug 2016]. Title:Phase transition from egalitarian to hierarchical societies ...",
+      "long_description": "Empirical evidence suggests that social structure may have changed from hierarchical to egalitarian and back along the evolutionary line of humans. We model a society subject to competing cognitive and social navigation constraints. The theory predicts that the degree of hierarchy decreases with encephalization and increases with group size. Hence hominin groups may have been driven from a phase with hierarchical order to a phase with egalitarian structures by the encephalization during the last two million years, and back to hierarchical due to fast demographical changes during the Neolithic. The dynamics in the perceived social network shows evidence in the egalitarian phase of the observed phenomenon of Reverse Dominance. The theory also predicts for modern hunter-gatherers in mild climates a trend towards an intermediate hierarchy degree and a phase transition for harder ecological conditions. In harsher climates societies would tend to bemore egalitarian if organized in small groups but more hierarchical",
+      "url": "https://arxiv.org/abs/1608.03637"
+    },
+    {
+      "result_id": 2,
+      "title": "GAIA: A Benchmark for General AI Assistants",
+      "description": "Which of these words is used to describe a type of society in a Physics and Society article submitted to arXiv.org on August 11, 2016? Scoring. A simple mean ...",
+      "long_description": "N/A",
+      "url": "https://ukgovernmentbeis.github.io/inspect_evals/evals/assistants/gaia/"
+    },
+    {
+      "result_id": 3,
+      "title": "Physics and Society",
+      "description": "Subjects: Populations and Evolution (q-bio.PE); Computer Science and Game Theory (cs.GT); Physics and Society (physics.soc-ph). [16] arXiv:2506.17510 (cross- ...",
+      "long_description": "N/A",
+      "url": "https://arxiv.org/list/physics.soc-ph/recent"
+    },
+    {
+      "result_id": 4,
+      "title": "Physics and Society Dec 2024",
+      "description": "[11] arXiv:2412.02438 [pdf, html, other]. Title: Structural robustness of ... [16] arXiv:2412.03285 [pdf, html, other]. Title: Relations of society ...",
+      "long_description": "N/A",
+      "url": "https://www.arxiv.org/list/physics.soc-ph/2024-12"
+    },
+    {
+      "result_id": 5,
+      "title": "Physics (since October 1996)",
+      "description": "Physics (since October 1996) · Browse: new (most recent mailing, with abstracts) · Catch-up: Categories: · Search within the physics archive · Article statistics by ...",
+      "long_description": "N/A",
+      "url": "https://arxiv.org/archive/physics"
+    }
+  ],
+  "a42cda9baedb19e91dc30a6210f800da": [
+    {
+      "result_id": 1,
+      "title": "Fairness in Agreement With European Values: An Interdisciplinary ...",
+      "description": "arXiv:2207.01510v1 [cs.CY] 8 Jun 2022. Page ... technical requirements to deal with bias that would be introduced with the AI Regulation Proposal. 3.1 Non- ...",
+      "long_description": "N/A",
+      "url": "https://arxiv.org/pdf/2207.01510"
+    },
+    {
+      "result_id": 2,
+      "title": "arXiv:2202.13252v3 [cs.AI] 5 Jun 2022",
+      "description": "This paper will appear as an extended abstract at the fifth Multi-disciplinary Conference on Reinforcement Learning and. Decision Making, held in Providence ...",
+      "long_description": "N/A",
+      "url": "http://incompleteideas.net/papers/RLDM22-quest-common-model.pdf"
+    },
+    {
+      "result_id": 3,
+      "title": "Frontier AI Regulation: Managing Emerging Risks to Public Safety",
+      "description": "Nov 7, 2023 ... In the UK, the White Paper on AI regulation highlights the need to ... June 2022. URL: https://perma.cc/4XWP-NWK7. [146] Amazon AWS ...",
+      "long_description": "N/A",
+      "url": "https://arxiv.org/pdf/2307.03718"
+    },
+    {
+      "result_id": 4,
+      "title": "(PDF) Fairness in Agreement With European Values: An ...",
+      "description": "Jul 5, 2022 ... Fairness in Agreement With European Values: An Interdisciplinary Perspective on AI Regulation. June 2022. DOI:10.48550/arXiv.2207.01510.",
+      "long_description": "PDF | With increasing digitalization, Artificial Intelligence (AI) is becoming ubiquitous. AI-based systems to identify, optimize, automate, and scale... | Find, read and cite all the research you need on ResearchGate",
+      "url": "https://www.researchgate.net/publication/361765355_Fairness_in_Agreement_With_European_Values_An_Interdisciplinary_Perspective_on_AI_Regulation"
+    },
+    {
+      "result_id": 5,
+      "title": "Responsible Artificial Intelligence--from Principles to Practice",
+      "description": "May 22, 2022 ... This paper is a curated version of my keynote at the Web Conference 2022. ... 1 June 2022.",
+      "long_description": "N/A",
+      "url": "https://arxiv.org/pdf/2205.10785"
+    }
+  ],
+  "36138053483ccfddc4137f0b574b0eb2": [
+    {
+      "result_id": 1,
+      "title": "clown anemonefish (Amphiprion ocellaris) - Species Profile",
+      "description": "Monogamy and sex change by aggressive dominance in coral reef fish. Nature ... The information has not received final approval by the U.S. Geological Survey (USGS) ...",
+      "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
+      "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
+    },
+    {
+      "result_id": 2,
+      "title": "Nonindigenous Aquatic Species Database | U.S. Geological Survey",
+      "description": "Forty-two fish biologists from seven organizations participated in a two-day Spring Fish Slam event in southwest Florida. Fourteen species of non-native fishes ...",
+      "long_description": "N/A",
+      "url": "https://www.usgs.gov/centers/wetland-and-aquatic-research-center/science/science-topics/nonindigenous-aquatic-species"
+    }
+  ],
+  "2e5a3964787517342f9605be3b73fca9": [
+    {
+      "result_id": 1,
+      "title": "Nonindigenous Aquatic Species Database | U.S. Geological Survey",
+      "description": "The USGS Nonindigenous Aquatic Species (NAS) database tracks occurrence data on non-native aquatic plant and animal species throughout the United States.",
+      "long_description": "N/A",
+      "url": "https://www.usgs.gov/centers/wetland-and-aquatic-research-center/science/science-topics/nonindigenous-aquatic-species"
+    },
+    {
+      "result_id": 2,
+      "title": "clown anemonefish (Amphiprion ocellaris) - Species Profile",
+      "description": "The information has not received final approval by the U.S. Geological Survey (USGS) ... The Nonindigenous Occurrences section of the NAS species profiles has a ...",
+      "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
+      "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
+    }
+  ],
+  "9665fd105369183e09e4ce2b7b7d77ee": [
+    {
+      "result_id": 1,
+      "title": "FAQ | Nature Index",
+      "description": "The Nature Index tracks a small proportion of the total number of research articles published. There are many factors that determine an institution's output in ...",
+      "long_description": "N/A",
+      "url": "https://www.nature.com/nature-index/faq"
+    },
+    {
+      "result_id": 2,
+      "title": "published in Nature Communications",
+      "description": "Publish in Nature Communications: multidisciplinary, open access journal, with 14.7 Impact Factor, 8 days to first decision and 114M annual downloads.",
+      "long_description": "Nature Communications is an open access, multidisciplinary journal dedicated to publishing high-quality research in all areas of the biological, health, ...",
+      "url": "https://www.nature.com/ncomms/"
+    }
+  ],
+  "872b5510f939f1e6f4d59f89d8c320b7": [
+    {
+      "result_id": 1,
+      "title": "Phase transition from egalitarian to hierarchical societies driven by ...",
+      "description": "Physics > Physics and Society. arXiv:1608.03637 (physics). [Submitted on 11 Aug 2016] ... View a PDF of the paper titled Phase transition from egalitarian to ...",
+      "long_description": "Empirical evidence suggests that social structure may have changed from hierarchical to egalitarian and back along the evolutionary line of humans. We model a society subject to competing cognitive and social navigation constraints. The theory predicts that the degree of hierarchy decreases with encephalization and increases with group size. Hence hominin groups may have been driven from a phase with hierarchical order to a phase with egalitarian structures by the encephalization during the last two million years, and back to hierarchical due to fast demographical changes during the Neolithic. The dynamics in the perceived social network shows evidence in the egalitarian phase of the observed phenomenon of Reverse Dominance. The theory also predicts for modern hunter-gatherers in mild climates a trend towards an intermediate hierarchy degree and a phase transition for harder ecological conditions. In harsher climates societies would tend to bemore egalitarian if organized in small groups but more hierarchical",
+      "url": "https://arxiv.org/abs/1608.03637"
+    }
+  ],
+  "c298cc9ddb95ae12c1a274904edd78dd": [
+    {
+      "result_id": 1,
+      "title": "Fairness in Agreement With European Values: An Interdisciplinary ...",
+      "description": "Jun 8, 2022 ... This has motivated regulation efforts, including the Proposal of an EU AI Act. This interdisciplinary position paper considers various concerns.",
+      "long_description": "N/A",
+      "url": "https://arxiv.org/pdf/2207.01510"
+    }
+  ],
+  "b9b25c527f12bd8da69ad9fcd799eaef": [
+    {
+      "result_id": 1,
+      "title": "Nonindigenous Aquatic Species",
+      "description": "We highly recommend reviewing metadata files prior to interpreting these data. Citation information: U.S. Geological Survey. [2025]. Nonindigenous Aquatic ...",
+      "long_description": "N/A",
+      "url": "https://nas.er.usgs.gov/"
+    },
+    {
+      "result_id": 2,
+      "title": "Cyprinella lutrensis",
+      "description": "... records (USGS Nonindigenous Aquatic Species Program 2018). Given the prevalence of this fish in the bait industry, further introductions are likely. Maxtent ...",
+      "long_description": "N/A",
+      "url": "https://invasions.si.edu/nemesis/calnemo/species_summary/163792"
+    },
+    {
+      "result_id": 3,
+      "title": "clown anemonefish (Amphiprion ocellaris) - Species Profile",
+      "description": "These fish form monogamous pairs, sharing an anemone with a few subordinate non-breeding non-related individuals (Fricke and Fricke 1977). Amphiprion are ...",
+      "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
+      "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
+    }
+  ],
+  "960a9896afe4ee814e7336bd73461b6f": [
+    {
+      "result_id": 1,
+      "title": "clown anemonefish (Amphiprion ocellaris) - Species Profile",
+      "description": "States with nonindigenous occurrences, the earliest and latest observations in each state, and the tally and names of HUCs with observations†. Names and dates ...",
+      "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
+      "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
+    },
+    {
+      "result_id": 2,
+      "title": "Nonindigenous Aquatic Species Database | U.S. Geological Survey",
+      "description": "This development may aid in the identification of possible waterways used as corridors for northward expansion of this invasive species. Learn More.",
+      "long_description": "N/A",
+      "url": "https://www.usgs.gov/centers/wetland-and-aquatic-research-center/science/science-topics/nonindigenous-aquatic-species"
+    },
+    {
+      "result_id": 3,
+      "title": "Climate change accelerates range expansion of the invasive non ...",
+      "description": "Dec 13, 2020 ... Abstract. Invasive non-native species and global warming are two of the greatest components of global ecosystem change. The Pacific oyster ...",
+      "long_description": "Abstract. Invasive non-native species and global warming are two of the greatest components of global ecosystem change. The Pacific oyster, Crassostrea gig",
+      "url": "https://academic.oup.com/icesjms/article/78/1/70/6032772"
+    }
+  ],
+  "01c7c59734bd1709a6196558d0a02068": [
+    {
+      "result_id": 1,
+      "title": "Databases | National Invasive Species Information Center",
+      "description": "Provides selected Database resources from agencies and organizations with an interest in the prevention, control, or eradication of invasive species.",
+      "long_description": "N/A",
+      "url": "https://www.invasivespeciesinfo.gov/type/databases"
+    },
+    {
+      "result_id": 2,
+      "title": "Invasive Species | U.S. Geological Survey",
+      "description": "USGS invasive species research encompasses all significant groups of invasive organisms in terrestrial and aquatic ecosystems throughout the United States.",
+      "long_description": "N/A",
+      "url": "https://www.usgs.gov/programs/biological-threats-and-invasive-species-research-program/science/invasive-species"
+    },
+    {
+      "result_id": 3,
+      "title": "Economic and Social Impacts | National Invasive Species ...",
+      "description": "A 2021 study estimated that invasive species have cost North America $2 billion per year in the early 1960s to over $26 billion per year since 2010 (Crystal- ...",
+      "long_description": "N/A",
+      "url": "https://www.invasivespeciesinfo.gov/subject/economic-and-social-impacts"
+    }
+  ],
+  "2363ee8d2e3f1149399cd3428a740ec4": [
+    {
+      "result_id": 1,
+      "title": "Statistical tests, P values, confidence intervals, and power: a guide ...",
+      "description": "The focus of traditional definitions of P values and statistical significance has been on null hypotheses, treating all other assumptions used to compute the P ...",
+      "long_description": "Misinterpretation and abuse of statistical tests, confidence intervals, and statistical power have been decried for decades, yet remain rampant. A key problem is that there are no interpretations of these concepts that are at once simple, intuitive, ...",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4877414/"
+    },
+    {
+      "result_id": 2,
+      "title": "The ASA Statement on p-Values: Context, Process, and Purpose",
+      "description": "Jun 9, 2016 ... (2008), The Cult of Statistical Significance: How the Standard Error Costs Us Jobs, Justice, and Lives, Ann Arbor, MI: University of Michigan ...",
+      "long_description": "Published in The American Statistician (Vol. 70, No. 2, 2016)",
+      "url": "https://www.tandfonline.com/doi/full/10.1080/00031305.2016.1154108"
+    },
+    {
+      "result_id": 3,
+      "title": "Is it impossible to commit Type I errors in statistical significance tests ...",
+      "description": "Nov 27, 2020 ... In fact, if violations of the model assumptions prevent computing a legitimate P-value, then its value is not really “about” anything. Three ...",
+      "long_description": "While immersed in our fast-paced, remote, NISS debate (October 15) with J. Berger and D. Trafimow, I didn’t immediately catch all that was said by my co-debaters (I will shortly post a transc…",
+      "url": "https://errorstatistics.com/2020/11/27/is-it-impossible-to-commit-type-i-errors-in-statistical-significance-tests/"
+    }
+  ],
+  "45c9124fbe8f7eb7a6d821092a705e0a": [
+    {
+      "result_id": 1,
+      "title": "Supermoons - NASA Science",
+      "description": "... point, or apogee, about 251,000 miles (405,500 km) from Earth. ... A supermoon occurs when the Moon's orbit is closest (perigee) to Earth at the same time the ...",
+      "long_description": "The Moon's orbit isn't a perfect circle. When the Moon is at its closest point to Earth during a full moon phase, that's a \"supermoon\".",
+      "url": "https://science.nasa.gov/moon/supermoons/"
+    }
+  ],
+  "d96b3f906ab0d493a275dc773c901a35": [
+    {
+      "result_id": 1,
+      "title": "Average runners try to match the pace of Eliud Kipchoge, the man ...",
+      "description": "Apr 17, 2023 ... It works out to 2:52 per km. 1:15 for each lap of a track. I don't think I could even reach that speed in a sprint.",
+      "long_description": "Posted by u/BoraLabora - 22,637 votes and 566 comments",
+      "url": "https://www.reddit.com/r/Damnthatsinteresting/comments/12pnh0b/average_runners_try_to_match_the_pace_of_eliud/"
+    }
+  ],
+  "a54c3676d95ee7eed2a98f71427c260e": [
+    {
+      "result_id": 1,
+      "title": "Meet the Real Fish Species of Finding Nemo - Scuba.com",
+      "description": "Dec 5, 2022 ... The Ocellaris — the species of Marlin, Coral, and Nemo — can be recognized by its orange color with three white bars and black markings on the ...",
+      "long_description": "Finding Nemo is a favorite of kids and adults from all over the world, but have you ever seen who the fish characters actually are?",
+      "url": "https://www.scuba.com/blog/meet-real-cast-finding-nemo/"
+    }
+  ],
+  "1d929974ed64ba205fa49eab9bc2853e": [
+    {
+      "result_id": 1,
+      "title": "Ocellaris clownfish - Wikipedia",
+      "description": "The ocellaris clownfish (Amphiprion ocellaris), also known as the false percula clownfish or common clownfish, is a marine fish belonging to the family ...",
+      "long_description": "N/A",
+      "url": "https://en.wikipedia.org/wiki/Ocellaris_clownfish"
+    }
+  ],
+  "e6ef78216c0abb8734918240c9cfa58f": [
+    {
+      "result_id": 1,
+      "title": "clown anemonefish (Amphiprion ocellaris) - Species Profile",
+      "description": "Amphiprion are protandrous hermaphrodites which means all fish begin as males with the ability to change into females as they grow older (Randall 2005). Females ...",
+      "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
+      "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
+    }
+  ],
+  "1f99850985b417dca9db244c09e48552": [
+    {
+      "result_id": 1,
+      "title": "The incredible science behind Eliud Kipchoge's 1:59 marathon ...",
+      "description": "Oct 14, 2019 ... The 34-year-old Kenyan runner has topped the podium in 11 of his 12 races over 26.2 miles, is the Olympic champion, and holds the world record ...",
+      "long_description": "A 1:59:59 marathon is the equivalent of running 100m sprints in just over 17 seconds – 422 times in a row. On October 12, Kipchoge went even faster than that",
+      "url": "https://www.wired.com/story/eliud-kipchoge-ineos-159-marathon/"
+    }
   ]
 }
