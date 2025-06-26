@@ -5753,5 +5753,1207 @@
       "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
       "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
     }
+  ],
+  "fed733b32a1691c0ec037a9a291c3d44": [
+    {
+      "result_id": 1,
+      "title": "clown anemonefish (Amphiprion ocellaris) - Species Profile",
+      "description": "common clownfish, false clown anemonefish, false percula clownfish, clownfish, anemonefish ... The information has not received final approval by the U.S. ...",
+      "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
+      "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
+    },
+    {
+      "result_id": 2,
+      "title": "Nonindigenous Aquatic Species Database | U.S. Geological Survey",
+      "description": "The Asian tiger shrimp began appearing in commercial shrimp catches in 2006. They grow larger than native shrimp and are known to be fierce predators - so ...",
+      "long_description": "N/A",
+      "url": "https://www.usgs.gov/centers/wetland-and-aquatic-research-center/science/science-topics/nonindigenous-aquatic-species"
+    },
+    {
+      "result_id": 3,
+      "title": "WebDancer: Towards Autonomous Information Seeking Agency",
+      "description": "May 28, 2025 ... A Google search for 'USGS Amphiprion ocellaris nonnative locations before 2020' found 9 ... question asks for zip codes, and this is the only ...",
+      "long_description": "N/A",
+      "url": "https://arxiv.org/pdf/2505.22648"
+    }
+  ],
+  "1a41a45ef5166eacd68b3aeca50d14c7": [
+    {
+      "result_id": 1,
+      "title": "clown anemonefish (Amphiprion ocellaris) - Species Profile",
+      "description": "Species profile: Clownfish. SRAC Publication No. 7213. Southern ... The information has not received final approval by the U.S. Geological Survey (USGS) ...",
+      "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
+      "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
+    },
+    {
+      "result_id": 2,
+      "title": "Nonindigenous Aquatic Species Database | U.S. Geological Survey",
+      "description": "The USGS Nonindigenous Aquatic Species (NAS) database tracks occurrence data on non-native aquatic plant and animal species throughout the United States.",
+      "long_description": "N/A",
+      "url": "https://www.usgs.gov/centers/wetland-and-aquatic-research-center/science/science-topics/nonindigenous-aquatic-species"
+    },
+    {
+      "result_id": 3,
+      "title": "Impacts of Sediment Removal from and Placement in Coastal ...",
+      "description": "Sep 2, 2020 ... Geological Survey. 2Formerly with the U.S. Fish and Wildlife Service. ... Exposure of clownfish larvae to suspended sediment levels found ...",
+      "long_description": "N/A",
+      "url": "https://pubs.usgs.gov/of/2021/1062/ofr20211062.pdf"
+    }
+  ],
+  "4837fd5a9293e3d994e34c11e8a0d197": [
+    {
+      "result_id": 1,
+      "title": "The clinician's guide to p values, confidence intervals, and ...",
+      "description": "Nov 26, 2021 ... For example, a p-value of 0.04 would indicate that the difference ... For example, a study may find a statistically significant difference (p ...",
+      "long_description": "N/A",
+      "url": "https://www.nature.com/articles/s41433-021-01863-w"
+    }
+  ],
+  "15ab94139ad5671a786da5cab5796e47": [
+    {
+      "result_id": 1,
+      "title": "Unlambda - Esolang",
+      "description": "Jun 12, 2025 ... Now since the second argument has been evaluated, d acts like the identity function i, so we have ``i`.xii, which evaluates to i and outputs x: ...",
+      "long_description": "N/A",
+      "url": "https://esolangs.org/wiki/Unlambda"
+    }
+  ],
+  "ac3b39f3c82f76a8702bc859f84983fd": [
+    {
+      "result_id": 1,
+      "title": "Unlambda - Esolang",
+      "description": "Jun 12, 2025 ... Unlambda is a small functional Turing tarpit based on combinatory logic. Contents Syntax Unlambda is written in a parenthesis-free prefix notation.",
+      "long_description": "N/A",
+      "url": "https://esolangs.org/wiki/Unlambda"
+    }
+  ],
+  "ff9733cd495c53b743fb73c7aab4d62a": [
+    {
+      "result_id": 1,
+      "title": "Unlambda - Esolang",
+      "description": "Jun 12, 2025 ... Now since the second argument has been evaluated, d acts like the identity function i, so we have ``i`.xii, which evaluates to i and outputs x: ...",
+      "long_description": "N/A",
+      "url": "https://esolangs.org/wiki/Unlambda"
+    }
+  ],
+  "a217cc017a8082f569d527228df38eff": [
+    {
+      "result_id": 1,
+      "title": "Unlambda - Esolang",
+      "description": "Jun 12, 2025 ... Syntax. Unlambda is written in a parenthesis-free prefix notation ... xii, which evaluates to i and outputs x: the whole program outputs ...",
+      "long_description": "N/A",
+      "url": "https://esolangs.org/wiki/Unlambda"
+    }
+  ],
+  "79803f2f5bac745e35013e586e3da3df": [
+    {
+      "result_id": 1,
+      "title": "Unlambda - Esolang",
+      "description": "Jun 12, 2025 ... When applied, it tries to read a character of input, making it the current character. ... External resources. The Unlambda Programming Language ( ...",
+      "long_description": "N/A",
+      "url": "https://esolangs.org/wiki/Unlambda"
+    }
+  ],
+  "ff906d1f90eb4262e60c50b7435eea51": [
+    {
+      "result_id": 1,
+      "title": "Society-in-the-Loop: Programming the Algorithmic Social Contract",
+      "description": "Jul 23, 2017 ... Here, I propose a conceptual framework for the regulation of AI and algorithmic systems. I argue that we need tools to program, debug and ...",
+      "long_description": "Recent rapid advances in Artificial Intelligence (AI) and Machine Learning have raised many questions about the regulatory and governance mechanisms for autonomous machines. Many commentators, scholars, and policy-makers now call for ensuring that algorithms governing our lives are transparent, fair, and accountable. Here, I propose a conceptual framework for the regulation of AI and algorithmic systems. I argue that we need tools to program, debug and maintain an algorithmic social contract, a pact between various human stakeholders, mediated by machines. To achieve this, we can adapt the concept of human-in-the-loop (HITL) from the fields of modeling and simulation, and interactive machine learning. In particular, I propose an agenda I call society-in-the-loop (SITL), which combines the HITL control paradigm with mechanisms for negotiating the values of various stakeholders affected by AI systems, and monitoring compliance with the agreement. In short, `SITL = HITL + Social Contract.'",
+      "url": "https://arxiv.org/abs/1707.07232"
+    }
+  ],
+  "468691792559b8ea4e8340792bd36c36": [
+    {
+      "result_id": 1,
+      "title": "Physics and Society",
+      "description": "Subjects: Physics and Society (physics.soc-ph); Computer Science and ... Comments: 45 pages, 5 figures, 1 table, review article (1st vers.) Subjects ...",
+      "long_description": "N/A",
+      "url": "https://arxiv.org/list/physics.soc-ph/recent"
+    }
+  ],
+  "e3c7c8d97e4f4a4387f19191dfa64e92": [
+    {
+      "result_id": 1,
+      "title": "Scientists rise up against statistical significance",
+      "description": "Mar 20, 2019 ... Surveys of hundreds of articles have found that statistically non-significant ... Nature (Nature). ISSN 1476-4687 (online). ISSN 0028-0836 ...",
+      "long_description": "Valentin Amrhein, Sander Greenland, Blake McShane and more than 800 signatories call for an end to hyped claims and the dismissal of possibly crucial effects.",
+      "url": "https://www.nature.com/articles/d41586-019-00857-9"
+    },
+    {
+      "result_id": 2,
+      "title": "Analysis of compositions of microbiomes with bias correction - Nature",
+      "description": "Jul 14, 2020 ... Nature Communications volume 11, Article number: 3514 (2020) Cite this article ... statistical significance. It is important to distinguish ...",
+      "long_description": "N/A",
+      "url": "https://www.nature.com/articles/s41467-020-17041-7"
+    }
+  ],
+  "db3b2b687d462230f9c466cce3b564e4": [
+    {
+      "result_id": 1,
+      "title": "Phase transition from egalitarian to hierarchical societies driven by ...",
+      "description": "Physics > Physics and Society. arXiv:1608.03637 (physics). [Submitted on 11 Aug 2016] ... View a PDF of the paper titled Phase transition from egalitarian to ...",
+      "long_description": "Empirical evidence suggests that social structure may have changed from hierarchical to egalitarian and back along the evolutionary line of humans. We model a society subject to competing cognitive and social navigation constraints. The theory predicts that the degree of hierarchy decreases with encephalization and increases with group size. Hence hominin groups may have been driven from a phase with hierarchical order to a phase with egalitarian structures by the encephalization during the last two million years, and back to hierarchical due to fast demographical changes during the Neolithic. The dynamics in the perceived social network shows evidence in the egalitarian phase of the observed phenomenon of Reverse Dominance. The theory also predicts for modern hunter-gatherers in mild climates a trend towards an intermediate hierarchy degree and a phase transition for harder ecological conditions. In harsher climates societies would tend to bemore egalitarian if organized in small groups but more hierarchical",
+      "url": "https://arxiv.org/abs/1608.03637"
+    }
+  ],
+  "fb40257f5c2283628d47f74bde808af0": [
+    {
+      "result_id": 1,
+      "title": "(PDF) Fairness in Agreement With European Values: An ...",
+      "description": "Jul 5, 2022 ... Fairness in Agreement With European Values: An Interdisciplinary Perspective on AI Regulation. June 2022. DOI:10.48550/arXiv.2207.01510.",
+      "long_description": "PDF | With increasing digitalization, Artificial Intelligence (AI) is becoming ubiquitous. AI-based systems to identify, optimize, automate, and scale... | Find, read and cite all the research you need on ResearchGate",
+      "url": "https://arxiv.org/pdf/2207.01510"
+    }
+  ],
+  "0c4cf28b9f31177ffab9d76088392d87": [
+    {
+      "result_id": 1,
+      "title": "Articles in 2020 | Nature",
+      "description": "Coronavirus diaries: an unexpected career experiment. John Tregoning reflects on a year like no other. John Tregoning. Career Column ...",
+      "long_description": "N/A",
+      "url": "https://www.nature.com/nature/articles?year=2020"
+    },
+    {
+      "result_id": 2,
+      "title": "Journal for Nature Conservation | ScienceDirect.com by Elsevier",
+      "description": "No publication fee charged to authors, and published articles are immediately available to subscribers. 23 days. Time to first decision. 106 ...",
+      "long_description": "N/A",
+      "url": "https://www.sciencedirect.com/journal/journal-for-nature-conservation"
+    }
+  ],
+  "754553c60f3ae50c4ecf2b26010a0300": [
+    {
+      "result_id": 1,
+      "title": "Articles in 2020 | Nature",
+      "description": "Our podcast highlights of 2020. Nature Podcast 23 Dec 2020. Asteroid treasure, COVID vaccine and public peer review. The latest science news, in brief.",
+      "long_description": "N/A",
+      "url": "https://www.nature.com/nature/articles?year=2020"
+    },
+    {
+      "result_id": 2,
+      "title": "Journal for Nature Conservation | ScienceDirect.com by Elsevier",
+      "description": "No publication fee charged to authors, and published articles are immediately available to subscribers. 23 days. Time to first decision. 106 ...",
+      "long_description": "N/A",
+      "url": "https://www.sciencedirect.com/journal/journal-for-nature-conservation"
+    }
+  ],
+  "f11394c6f1cb50e282a517c3cc5ca920": [
+    {
+      "result_id": 1,
+      "title": "The P Value and Statistical Significance: Misunderstandings ...",
+      "description": "The calculation of a P value in research and especially the use of a threshold to declare the statistical significance of the P value have both been ...",
+      "long_description": "The calculation of a P value in research and especially the use of a threshold to declare the statistical significance of the P value have both been challenged in recent years. There are at least two important reasons for this challenge: research ...",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6532382/"
+    },
+    {
+      "result_id": 2,
+      "title": "How to Correctly Interpret P Values",
+      "description": "Apr 17, 2014 ... The most common mistake is to interpret a P value as the probability of making a mistake by rejecting a true null hypothesis (a Type I error).",
+      "long_description": "How to Correctly Interpret P Values",
+      "url": "https://blog.minitab.com/en/adventures-in-statistics-2/how-to-correctly-interpret-p-values"
+    }
+  ],
+  "ea2d272bf778adc8d1b3a5ee3fa0be85": [
+    {
+      "result_id": 1,
+      "title": "On reporting and interpreting statistical significance and p values in ...",
+      "description": "SAP: statistical analysis plan; SAMPL: Statistical Analyses and Methods in the Published ... When researchers arbitrarily default to a type I error rate of 0.05, ...",
+      "long_description": "N/A",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8005799/"
+    },
+    {
+      "result_id": 2,
+      "title": "Do p Values Lose Their Meaning in Exploratory Analyses? It ...",
+      "description": "Sep 1, 2017 ... Researchers usually prespecify the Type I error rate as a nominal alpha level. For example, if a researcher sets their nominal alpha level at .",
+      "long_description": "Several researchers have recently argued that p values lose their meaning in exploratory analyses due to an unknown inflation of the alpha level (e.g., Nosek &a...",
+      "url": "https://journals.sagepub.com/doi/10.1037/gpr0000123"
+    }
+  ],
+  "dbbdaff511784e211ac657458e03e1c5": [
+    {
+      "result_id": 1,
+      "title": "An evaluation of the variance components approach: type I error ...",
+      "description": "Apr 5, 2002 ... In the ENV100 model, the estimated type I error rate (0.003) was well below the specified nominal level (0.05). In the PG models, the type I ...",
+      "long_description": "N/A",
+      "url": "https://www.nature.com/articles/5200772"
+    },
+    {
+      "result_id": 2,
+      "title": "Type I Error Rates, Coverage of Confidence Intervals, and Variance ...",
+      "description": "We conducted a series of Monte Carlo simulations to examine the impact of ignoring the matched nature of the propensity-score matched sample on Type I error ...",
+      "long_description": "Propensity-score matching is frequently used in the medical literature to reduce or eliminate the effect of treatment selection bias when estimating the effect of treatments or exposures on outcomes using observational data. In propensity-score ...",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC2949360/"
+    }
+  ],
+  "f71a8664335e42a7edab0d283e049d3b": [
+    {
+      "result_id": 1,
+      "title": "Sample size, power and effect size revisited: simplified and practical ...",
+      "description": "The most common reason for this type of error is small sample size ... studies), while case 2 is more common in clinical studies. In clinical ...",
+      "long_description": "Calculating the sample size in scientific studies is one of the critical issues as regards the scientific contribution of the study. The sample size critically affects the hypothesis and the study design, and there is no straightforward way of ...",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC7745163/"
+    },
+    {
+      "result_id": 2,
+      "title": "Type I and Type II Errors and Statistical Power - StatPearls - NCBI ...",
+      "description": "Healthcare professionals, when determining the impact of patient interventions in clinical studies or research ... costs, cause iatrogenic harm, and not ...",
+      "long_description": "Healthcare professionals, when determining the impact of patient interventions in clinical studies or research endeavors that provide evidence for clinical practice, must distinguish well-designed studies with valid results from studies with research design or statistical flaws. This topic helps providers determine the likelihood of type I or type II errors and judge the adequacy of statistical power (see Table. Type I and Type II Errors and Statistical Power). Then, one can decide whether or not the evidence provided should be implemented in practice or used to guide future studies.",
+      "url": "https://www.ncbi.nlm.nih.gov/books/NBK557530/"
+    }
+  ],
+  "e5da5040a7d4200d64409f142776c6fe": [
+    {
+      "result_id": 1,
+      "title": "clown anemonefish (Amphiprion ocellaris) - Species Profile",
+      "description": "These fish form monogamous pairs, sharing an anemone with a few subordinate non-breeding non-related individuals (Fricke and Fricke 1977). Amphiprion are ...",
+      "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
+      "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
+    },
+    {
+      "result_id": 2,
+      "title": "Nonindigenous Aquatic Species Database | U.S. Geological Survey",
+      "description": "Fish Slam December 2023. Fifty-four biologists from nine organizations, including USGS, participated in a two-day Fish Slam event on December 13 - ...",
+      "long_description": "N/A",
+      "url": "https://www.usgs.gov/centers/wetland-and-aquatic-research-center/science/science-topics/nonindigenous-aquatic-species"
+    },
+    {
+      "result_id": 3,
+      "title": "Nonindigenous Aquatic Species",
+      "description": "We highly recommend reviewing metadata files prior to interpreting these data. Citation information: U.S. Geological Survey. [2025]. Nonindigenous Aquatic ...",
+      "long_description": "N/A",
+      "url": "https://nas.er.usgs.gov/"
+    },
+    {
+      "result_id": 4,
+      "title": "Notemigonus crysoleucas",
+      "description": "... fish was caught near the mouth of the Columbia, in Youngs Bay, near Astoria, in 2011 (USGS Nonindigenous Aquatic Species Program 2018). This fish was not ...",
+      "long_description": "N/A",
+      "url": "https://invasions.si.edu/nemesis/calnemo/species_summary/163368"
+    },
+    {
+      "result_id": 5,
+      "title": "Nonindigenous Aquatic Species",
+      "description": "This text based search can be used to find a single species or many species given a state. ... Contact USGS · U.S. Department of the Interior · DOI Inspector ...",
+      "long_description": "N/A",
+      "url": "https://nas.er.usgs.gov/queries/"
+    }
+  ],
+  "9535582331a06b4e68f3bb310540dbbd": [
+    {
+      "result_id": 1,
+      "title": "ninja-x/deepresearch · Datasets at Hugging Face",
+      "description": "In Unlambda, what exact charcter or text needs to be added to correct ... Code: `r```````````.F.o.r. .p.e.n.g.u.i.n.si. GAIA. backtick. None. It is 1999 ...",
+      "long_description": "N/A",
+      "url": "https://huggingface.co/datasets/ninja-x/deepresearch/viewer"
+    },
+    {
+      "result_id": 2,
+      "title": "m-ric/agents_medium_benchmark_2 · Datasets at Hugging Face",
+      "description": "In Unlambda, what exact charcter or text needs to be added to correct the ... Code: `r```````````.F.o.r. .p.e.n.g.u.i.n.si. GAIA. backtick. None. End of ...",
+      "long_description": "N/A",
+      "url": "https://huggingface.co/datasets/m-ric/agents_medium_benchmark_2"
+    }
+  ],
+  "a18ecf45526ed16dbee95196ecf69699": [
+    {
+      "result_id": 1,
+      "title": "Unlambda - Esolang",
+      "description": "Jun 12, 2025 ... xii, which evaluates to i and outputs x: the whole program outputs ... When applied, it tries to read a character of input, making it the current ...",
+      "long_description": "N/A",
+      "url": "https://esolangs.org/wiki/Unlambda"
+    },
+    {
+      "result_id": 2,
+      "title": "Critical Architecture/Software Theory - Tomas Petricek",
+      "description": "Apr 28, 2025 ... This text is an attempt to develop such critical language of software. ... Unlambda turns the formal model into a programming language that ...",
+      "long_description": "Post-modern architects use architecture to make critical, ironic and revealing comments on architectural history, practice and its social context. Is it possible to embed similar criticism into the language of software and make the software practice more self-aware and critical?",
+      "url": "https://tomasp.net/architecture/"
+    },
+    {
+      "result_id": 3,
+      "title": "Reverse a string - Rosetta Code",
+      "description": "... char || reverse process-end output reverse || '%n'. Output: f̅ds⃝a. OOC. main ... text ' elements of the string correctly handles combining character sequences and ...",
+      "long_description": "Task  Take a string and reverse it. For example, \"asdf\" becomes \"fdsa\".  Extra credit  Preserve Unicode combining characters.  For example, \"as⃝df̅\" becomes \"f̅ds...",
+      "url": "https://rosettacode.org/wiki/Reverse_a_string"
+    }
+  ],
+  "6c4c34527ae3340fd49f0f66b17def8a": [
+    {
+      "result_id": 1,
+      "title": "Linters | golangci-lint",
+      "description": "Errcheck is a program for checking for unchecked errors in Go code. ... # Check for common mistakes using the sync/atomic package. - atomic. # Check ...",
+      "long_description": "Fast Go linters runner golangci-lint.",
+      "url": "https://golangci-lint.run/usage/linters/"
+    },
+    {
+      "result_id": 2,
+      "title": "Why a career in computer programming sucks : r/programming",
+      "description": "Mar 12, 2007 ... ... unlambda is only timeless in the sense ... IMHO, the biggest problem is that programmers have traditionally been very bad at negotiation.",
+      "long_description": "Posted by u/krs - 197 votes and 148 comments",
+      "url": "https://www.reddit.com/r/programming/comments/19kq3/why_a_career_in_computer_programming_sucks/"
+    },
+    {
+      "result_id": 3,
+      "title": "What programming language has the most unclear error messages ...",
+      "description": "Jan 22, 2018 ... Why are off-by-one errors common in programming? 69,421 Views · What ... Whitespace, Unlambda, Brainf**k, and the granddaddy of them all ...",
+      "long_description": "N/A",
+      "url": "https://www.quora.com/What-programming-language-has-the-most-unclear-error-messages"
+    }
+  ],
+  "972bf53cf631cd27fbcf3a7e2966144a": [
+    {
+      "result_id": 1,
+      "title": "Unlambda - Esolang",
+      "description": "Jun 12, 2025 ... The above also works in the C interpreter. Both of these methods can be used with a general program, as long as you avoid reverse syntax errors.",
+      "long_description": "N/A",
+      "url": "https://esolangs.org/wiki/Unlambda"
+    },
+    {
+      "result_id": 2,
+      "title": "Critical Architecture/Software Theory - Tomas Petricek",
+      "description": "Apr 28, 2025 ... In words of Meyerovich and Rabkin, “a common pattern is for programmers ... As the earlier analysis of the esoteric programming language Unlambda ...",
+      "long_description": "Post-modern architects use architecture to make critical, ironic and revealing comments on architectural history, practice and its social context. Is it possible to embed similar criticism into the language of software and make the software practice more self-aware and critical?",
+      "url": "https://tomasp.net/architecture/"
+    },
+    {
+      "result_id": 3,
+      "title": "Linters | golangci-lint",
+      "description": "Errcheck is a program for checking for unchecked errors in Go code. These ... # Report common mistakes in defer statements. - defers. # Check Go ...",
+      "long_description": "Fast Go linters runner golangci-lint.",
+      "url": "https://golangci-lint.run/usage/linters/"
+    }
+  ],
+  "875e2cba2cf00aaa8879d4234c1138a8": [
+    {
+      "result_id": 1,
+      "title": "clown anemonefish (Amphiprion ocellaris) - Species Profile",
+      "description": "The information has not received final approval by the U.S. Geological Survey (USGS) ... The Nonindigenous Occurrences section of the NAS species profiles has a ...",
+      "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
+      "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
+    },
+    {
+      "result_id": 2,
+      "title": "Nonindigenous Aquatic Species Database | U.S. Geological Survey",
+      "description": "The USGS Nonindigenous Aquatic Species (NAS) database tracks occurrence data on non-native aquatic plant and animal species throughout the United States.",
+      "long_description": "N/A",
+      "url": "https://www.usgs.gov/centers/wetland-and-aquatic-research-center/science/science-topics/nonindigenous-aquatic-species"
+    },
+    {
+      "result_id": 3,
+      "title": "My Notes on Open Deep Researcher – Shekhar Gulati",
+      "description": "Feb 5, 2025 ... Use the search_agent tool to locate the relevant USGS report or database entries on nonnative occurrences of ... five-digit ZIP codes for each ...",
+      "long_description": "OpenAI recently released a new agentic application called Deep Research. This tool is available exclusively to pro users with a $200 monthly subscription. It utilizes their upcoming o3 reasoning mo…",
+      "url": "https://shekhargulati.com/2025/02/05/my-notes-on-open-deep-researcher/"
+    },
+    {
+      "result_id": 4,
+      "title": "WebDancer: Towards Autonomous Information Seeking Agency",
+      "description": "May 28, 2025 ... It validates this assumption by consulting the USGS database for non-native occurrences. ... five-digit zip codes of the places the species ...",
+      "long_description": "N/A",
+      "url": "https://arxiv.org/pdf/2505.22648"
+    },
+    {
+      "result_id": 5,
+      "title": "agent_reasoning_benchmark/benchmark_gaia.ipynb at main ...",
+      "description": "According to the USGS Clownfish were found as a nonnative species in ... zip codes are in Florida where the Clownfish were found as a nonnative species.",
+      "long_description": "🔧 Compare how Agent systems perform on several benchmarks. 📊🚀 - aymeric-roucher/agent_reasoning_benchmark",
+      "url": "https://github.com/aymeric-roucher/agent_reasoning_benchmark/blob/main/benchmark_gaia.ipynb"
+    }
+  ],
+  "a9638b9424e147c835d35801707862da": [
+    {
+      "result_id": 1,
+      "title": "clown anemonefish (Amphiprion ocellaris) - Species Profile",
+      "description": "... U.S. Geological Survey, Nonindigenous Aquatic Species Database, Gainesville, FL, https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243, Revision ...",
+      "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
+      "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
+    },
+    {
+      "result_id": 2,
+      "title": "Nonindigenous Aquatic Species Database | U.S. Geological Survey",
+      "description": "The USGS Nonindigenous Aquatic Species (NAS) database tracks occurrence data on non-native aquatic plant and animal species throughout the United States.",
+      "long_description": "N/A",
+      "url": "https://www.usgs.gov/centers/wetland-and-aquatic-research-center/science/science-topics/nonindigenous-aquatic-species"
+    },
+    {
+      "result_id": 3,
+      "title": "agent_reasoning_benchmark/benchmark_gaia.ipynb at main ...",
+      "description": "According to the USGS Clownfish were found as a nonnative species in ... zip codes are in Florida where the Clownfish were found as a nonnative species.",
+      "long_description": "🔧 Compare how Agent systems perform on several benchmarks. 📊🚀 - aymeric-roucher/agent_reasoning_benchmark",
+      "url": "https://github.com/aymeric-roucher/agent_reasoning_benchmark/blob/main/benchmark_gaia.ipynb"
+    },
+    {
+      "result_id": 4,
+      "title": "WebDancer: Autonomous Information-Seeking Agents ...",
+      "description": "May 30, 2025 ... “Find ZIP codes where Nemo's fish species (released by pet owners) ... nonnative locations before 2020\" → OBSERVE: USGS species profile link 2.",
+      "long_description": "How do AI agents solve complex tasks? Discover WebDancer's framework for multi-step reasoning and dynamic web navigation, surpassing GPT-4o in benchmarks.",
+      "url": "https://www.xugj520.cn/en/archives/webdancer-autonomous-agents-ai.html"
+    },
+    {
+      "result_id": 5,
+      "title": "My Notes on Open Deep Researcher – Shekhar Gulati",
+      "description": "Feb 5, 2025 ... According to the USGS, where was this fish found as a nonnative species, before the year 2020? I need the answer formatted as the five-digit zip ...",
+      "long_description": "OpenAI recently released a new agentic application called Deep Research. This tool is available exclusively to pro users with a $200 monthly subscription. It utilizes their upcoming o3 reasoning mo…",
+      "url": "https://shekhargulati.com/2025/02/05/my-notes-on-open-deep-researcher/"
+    }
+  ],
+  "c404c8745501231588b85f1eb06f6afc": [
+    {
+      "result_id": 1,
+      "title": "clown anemonefish (Amphiprion ocellaris) - Species Profile",
+      "description": "Clownfish live within the tentacles of sea anemones. About one-third of the species live with a host-specific species of anemone.",
+      "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
+      "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
+    },
+    {
+      "result_id": 2,
+      "title": "Nonindigenous Aquatic Species Database | U.S. Geological Survey",
+      "description": "Non-native Marine Fishes: Tracking Distributions with the USGS Nonindigenous ... WARC scientists work with local partners to verify and document sightings of ...",
+      "long_description": "N/A",
+      "url": "https://www.usgs.gov/centers/wetland-and-aquatic-research-center/science/science-topics/nonindigenous-aquatic-species"
+    },
+    {
+      "result_id": 3,
+      "title": "WebThinker: Empowering Large Reasoning Models with Deep ...",
+      "description": "Apr 30, 2025 ... ... clownfish, and methodically searches for nonnative sightings in the USGS ... <|begin_search_query|> Amphiprion ocellaris USGS nonnative sightings ...",
+      "long_description": "N/A",
+      "url": "https://arxiv.org/pdf/2504.21776"
+    },
+    {
+      "result_id": 4,
+      "title": "agent_reasoning_benchmark/benchmark_gaia.ipynb at main ...",
+      "description": "According to the USGS the Ocellaris Clownfish was found in non-native waters in Florida specifically in the following zip codes: 33950 33952 33954 33957 ...",
+      "long_description": "🔧 Compare how Agent systems perform on several benchmarks. 📊🚀 - aymeric-roucher/agent_reasoning_benchmark",
+      "url": "https://github.com/aymeric-roucher/agent_reasoning_benchmark/blob/main/benchmark_gaia.ipynb"
+    },
+    {
+      "result_id": 5,
+      "title": "guam wildlife action Plan",
+      "description": "Jan 10, 2019 ... A local resident reported an inconclusive sighting on 2012 in the Anao area. ... The Invasive Species Science Branch of the U.S. Geological Survey ...",
+      "long_description": "N/A",
+      "url": "https://doag.guam.gov/wp-doag-content/uploads/2021/11/GU-DOAG-DAWR-2016-GWAP-2019-07-17.pdf"
+    }
+  ],
+  "9ffe25c3a84ce4c628c0ed7d4aed3d9b": [
+    {
+      "result_id": 1,
+      "title": "clown anemonefish (Amphiprion ocellaris) - Species Profile",
+      "description": "Jacksonville, FL. 458 p. DiMaggio, M.A., Groover, E.M., van Senten, J., and Schwarz, M. 2017. Species profile: Clownfish ...",
+      "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
+      "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
+    },
+    {
+      "result_id": 2,
+      "title": "Branson Aquarium | Aquarium At The Boardwalk",
+      "description": "Branson Aquarium - It's all about Fish & Fun! Tickets are limited & sell out often. Pre-purchase now. Submarine Adventure, step right up...",
+      "long_description": "Branson Aquarium - It's all about Fish & Fun! Tickets are limited & sell out often. Pre-purchase now. Submarine Adventure, step right up...",
+      "url": "https://www.aquariumattheboardwalk.com/"
+    },
+    {
+      "result_id": 3,
+      "title": "Nonindigenous Aquatic Species Database | U.S. Geological Survey",
+      "description": "WARC scientists work with local partners to verify and document sightings of non-native marine fishes. ... Florida Everglades. This development may aid in ...",
+      "long_description": "N/A",
+      "url": "https://www.usgs.gov/centers/wetland-and-aquatic-research-center/science/science-topics/nonindigenous-aquatic-species"
+    },
+    {
+      "result_id": 4,
+      "title": "Reef Environmental Education Foundation | Conserving Oceans ...",
+      "description": "Geographic Zone Code Maps · Publications - Data Impact · REEF Surveyor Toolbox · Golden Hamlet Club. Invasive Species Program. About · Florida Keys Lionfish ...",
+      "long_description": "N/A",
+      "url": "https://www.reef.org/"
+    },
+    {
+      "result_id": 5,
+      "title": "Florida Aquarium // Things to Do in Tampa, Florida • Deep Water ...",
+      "description": "May 28, 2020 ... Thousands of fish and animals, a great dolphin-sighting boat ride, close views of alligators, birds, and otters contributed to our fantastic ...",
+      "long_description": "Thousands of fish and animals, a great dolphin-sighting boat ride, close views of alligators, birds, and otters contributed to our fantastic day of strolling around viewing sea life at the Florida Aquarium in Tampa, Florida.",
+      "url": "https://www.deepwaterhappy.com/2020/05/28/florida-aquarium-things-to-do-in-tampa-florida/"
+    }
+  ],
+  "3217d64b10de106fb1dafa45e4207a64": [
+    {
+      "result_id": 1,
+      "title": "clown anemonefish (Amphiprion ocellaris) - Species Profile",
+      "description": "... in July 2018 in Fred Howard Park, Pinellas Co., Florida. Table 1 ... The information has not received final approval by the U.S. Geological Survey (USGS) ...",
+      "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
+      "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
+    },
+    {
+      "result_id": 2,
+      "title": "Nonindigenous Aquatic Species Database | U.S. Geological Survey",
+      "description": "Non-native Marine Fishes: Tracking Distributions with the USGS Nonindigenous ... WARC scientists work with local partners to verify and document sightings of ...",
+      "long_description": "N/A",
+      "url": "https://www.usgs.gov/centers/wetland-and-aquatic-research-center/science/science-topics/nonindigenous-aquatic-species"
+    },
+    {
+      "result_id": 3,
+      "title": "WebThinker: Empowering Large Reasoning Models with Deep ...",
+      "description": "Apr 30, 2025 ... ... by searching the USGS for nonnative sightings of *Amphiprion ocellaris* before 2020. ... sighting before 2020 was at Fred Howard Park, zip code.",
+      "long_description": "N/A",
+      "url": "https://arxiv.org/pdf/2504.21776"
+    },
+    {
+      "result_id": 4,
+      "title": "agent_reasoning_benchmark/benchmark_gaia.ipynb at main ...",
+      "description": "... sightings of clownfish (*Amphiprion ocellaris*) in their repository before 2020. ... zip codes are in Florida where the Clownfish were found as a nonnative ...",
+      "long_description": "🔧 Compare how Agent systems perform on several benchmarks. 📊🚀 - aymeric-roucher/agent_reasoning_benchmark",
+      "url": "https://github.com/aymeric-roucher/agent_reasoning_benchmark/blob/main/benchmark_gaia.ipynb"
+    },
+    {
+      "result_id": 5,
+      "title": "SHARKS:",
+      "description": "Young Scientist Developed. Passion to Conserve Coral Reefs. BY CEYENNA TILLMAN. These coral fragments are used to study various environmental effects. CEYENNA.",
+      "long_description": "N/A",
+      "url": "https://www.aquariumofpacific.org/downloads/CURRENTS_SPRING_2021.pdf"
+    }
+  ],
+  "d9b25aa7f54b94005d994f2fbbdf94bf": [
+    {
+      "result_id": 1,
+      "title": "clown anemonefish (Amphiprion ocellaris) - Species Profile",
+      "description": "Clownfish live within the tentacles of sea anemones. About one-third of the species live with a host-specific species of anemone.",
+      "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
+      "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
+    },
+    {
+      "result_id": 2,
+      "title": "Nonindigenous Aquatic Species Database | U.S. Geological Survey",
+      "description": "The USGS Nonindigenous Aquatic Species (NAS) database tracks occurrence data on non-native aquatic plant and animal species throughout the United States.",
+      "long_description": "N/A",
+      "url": "https://www.usgs.gov/centers/wetland-and-aquatic-research-center/science/science-topics/nonindigenous-aquatic-species"
+    },
+    {
+      "result_id": 3,
+      "title": "WebDancer: Towards Autonomous Information Seeking Agency",
+      "description": "May 28, 2025 ... Iterative Reflection After failing to find the ZIP code in the USGS database, WebDancer ... searching for clownfish invasive species USGSto ...",
+      "long_description": "N/A",
+      "url": "https://arxiv.org/pdf/2505.22648"
+    },
+    {
+      "result_id": 4,
+      "title": "agent_reasoning_benchmark/benchmark_gaia.ipynb at main ...",
+      "description": "According to the USGS the Ocellaris Clownfish was found in non-native waters in Florida specifically in the following zip codes: 33950 33952 33954 33957 ...",
+      "long_description": "🔧 Compare how Agent systems perform on several benchmarks. 📊🚀 - aymeric-roucher/agent_reasoning_benchmark",
+      "url": "https://github.com/aymeric-roucher/agent_reasoning_benchmark/blob/main/benchmark_gaia.ipynb"
+    },
+    {
+      "result_id": 5,
+      "title": "My Notes on Open Deep Researcher – Shekhar Gulati",
+      "description": "Feb 5, 2025 ... ocellaris (the common clownfish) or another closely related species. ... Format the final list of ZIP codes as a comma-separated string ...",
+      "long_description": "OpenAI recently released a new agentic application called Deep Research. This tool is available exclusively to pro users with a $200 monthly subscription. It utilizes their upcoming o3 reasoning mo…",
+      "url": "https://shekhargulati.com/2025/02/05/my-notes-on-open-deep-researcher/"
+    }
+  ],
+  "e6922449588fadadea2ddacf40034916": [
+    {
+      "result_id": 1,
+      "title": "clown anemonefish (Amphiprion ocellaris) - Species Profile",
+      "description": "The information has not received final approval by the U.S. Geological Survey (USGS) ... Occurrences are summarized in Table 1, alphabetically by state ...",
+      "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
+      "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
+    },
+    {
+      "result_id": 2,
+      "title": "Nonindigenous Aquatic Species Database | U.S. Geological Survey",
+      "description": "The USGS Nonindigenous Aquatic Species (NAS) database tracks occurrence data on non-native aquatic plant and animal species throughout the United States.",
+      "long_description": "N/A",
+      "url": "https://www.usgs.gov/centers/wetland-and-aquatic-research-center/science/science-topics/nonindigenous-aquatic-species"
+    },
+    {
+      "result_id": 3,
+      "title": "clown anemonefish (Amphiprion ocellaris)",
+      "description": "We highly recommend reviewing metadata files prior to interpreting these data. Citation information: U.S. Geological Survey. [2025]. Nonindigenous Aquatic ...",
+      "long_description": "NAS Point Map",
+      "url": "https://nas.er.usgs.gov/viewer/omap.aspx?SpeciesID=3243"
+    },
+    {
+      "result_id": 4,
+      "title": "WebDancer: Towards Autonomous Information Seeking Agency",
+      "description": "May 28, 2025 ... clownfish (Amphiprion ocellaris), made famous by Finding Nemo, was found as a nonnative species in the US before 2020 according to USGS.",
+      "long_description": "N/A",
+      "url": "https://arxiv.org/pdf/2505.22648"
+    },
+    {
+      "result_id": 5,
+      "title": "My Notes on Open Deep Researcher – Shekhar Gulati",
+      "description": "Feb 5, 2025 ... ocellaris (the common clownfish) ... this clownfish species before 2020, ensuring that the search focuses on reports that mention invasive ...",
+      "long_description": "OpenAI recently released a new agentic application called Deep Research. This tool is available exclusively to pro users with a $200 monthly subscription. It utilizes their upcoming o3 reasoning mo…",
+      "url": "https://shekhargulati.com/2025/02/05/my-notes-on-open-deep-researcher/"
+    }
+  ],
+  "6fb68687870de7c03377e7ab704cc7a2": [
+    {
+      "result_id": 1,
+      "title": "Mercedes Sosa - Wikipedia",
+      "description": "Haydée Mercedes \"La Negra\" Sosa was an Argentine singer who was popular throughout Latin America and many countries outside the region. With her roots in ...",
+      "long_description": "N/A",
+      "url": "https://en.wikipedia.org/wiki/Mercedes_Sosa"
+    },
+    {
+      "result_id": 2,
+      "title": "Mercedes Sosa Songs, Albums, Reviews, Bio & Mo... | AllMusic",
+      "description": "Explore Mercedes Sosa's discography including top tracks, albums, and reviews. Learn all about Mercedes Sosa on AllMusic.",
+      "long_description": "Explore Mercedes Sosa's discography including top tracks, albums, and reviews. Learn all about Mercedes Sosa on AllMusic.",
+      "url": "https://www.allmusic.com/artist/mercedes-sosa-mn0000869068"
+    },
+    {
+      "result_id": 3,
+      "title": "smolagents/gaia-traces · Datasets at Hugging Face",
+      "description": "Apr 8, 2025 ... ... Mercedes Sosa or her discography.\\n\\n### 1.3. Facts to derive\\n- The ... (2000-2009) from the list obtained from Wikipedia.\\n\\n## 2 ...",
+      "long_description": "N/A",
+      "url": "https://huggingface.co/datasets/smolagents/gaia-traces"
+    },
+    {
+      "result_id": 4,
+      "title": "agent_reasoning_benchmark/benchmark_gaia.ipynb at main ...",
+      "description": "**List the albums released between 2000 and 2009**. ### Results: **Discography Section from Mercedes Sosa's Wikipedia (2022 Version)**: 1. **2000-2009 ...",
+      "long_description": "🔧 Compare how Agent systems perform on several benchmarks. 📊🚀 - aymeric-roucher/agent_reasoning_benchmark",
+      "url": "https://github.com/aymeric-roucher/agent_reasoning_benchmark/blob/main/benchmark_gaia.ipynb"
+    },
+    {
+      "result_id": 5,
+      "title": "Guest List: 2000s Edition | Page 3 | Pitchfork",
+      "description": "Sep 7, 2009 ... Mercedes Sosa: \"Balderrama\" (from Che soundtrack) Midlake: \"Young ... What I've done is sneakily listed the 20 best records of 2000-2009 under the ...",
+      "long_description": "Some of our favorite artists share their choices for outstanding albums, songs, concerts, and random other list-able items from the past 10 years.",
+      "url": "https://pitchfork.com/features/guest-lists/7698-guest-list-2000s-edition/?page=3"
+    }
+  ],
+  "79cac5a8be0ccb461a6db64d33ad26d2": [
+    {
+      "result_id": 1,
+      "title": "Mercedes Sosa - Wikipedia",
+      "description": "Studio albums ; 1998, Al Despertar. Label: Mercury ; 1999, Misa Criolla. Label: Mercury ; 2005, Corazón Libre. Label: Edge ; 2009, Cantora 1 (w/various artists).",
+      "long_description": "N/A",
+      "url": "https://en.wikipedia.org/wiki/Mercedes_Sosa"
+    },
+    {
+      "result_id": 2,
+      "title": "ninja-x/deepresearch · Datasets at Hugging Face",
+      "description": "How many studio albums were published by Mercedes Sosa between 2000 and 2009 (included)? You can use the latest 2022 version of english wikipedia. GAIA. 3.",
+      "long_description": "N/A",
+      "url": "https://huggingface.co/datasets/ninja-x/deepresearch/viewer"
+    },
+    {
+      "result_id": 3,
+      "title": "Mercedes Sosa Songs, Albums, Reviews, Bio & Mo... | AllMusic",
+      "description": "Explore Mercedes Sosa's discography including top tracks, albums, and reviews ... In fall 2000, Sosa won a Grammy for Best Folk Album for Misa Criolla at ...",
+      "long_description": "Explore Mercedes Sosa's discography including top tracks, albums, and reviews. Learn all about Mercedes Sosa on AllMusic.",
+      "url": "https://www.allmusic.com/artist/mercedes-sosa-mn0000869068"
+    },
+    {
+      "result_id": 4,
+      "title": "smolagents/gaia-traces · Datasets at Hugging Face",
+      "description": "Apr 8, 2025 ... ... studio albums were published by Mercedes Sosa between 2000 and 2009 (included)? You can use the latest 2022 version of english wikipedia ...",
+      "long_description": "N/A",
+      "url": "https://huggingface.co/datasets/smolagents/gaia-traces"
+    },
+    {
+      "result_id": 5,
+      "title": "agent_reasoning_benchmark/benchmark_gaia.ipynb at main ...",
+      "description": "... studio albums Mercedes Sosa released between 2000 and 2009. ### Research: 1 ... Mercedes Sosa released 4 studio albums between 2000 and 2009**.",
+      "long_description": "🔧 Compare how Agent systems perform on several benchmarks. 📊🚀 - aymeric-roucher/agent_reasoning_benchmark",
+      "url": "https://github.com/aymeric-roucher/agent_reasoning_benchmark/blob/main/benchmark_gaia.ipynb"
+    }
+  ],
+  "1ee2fbebf7887b49868177fa814584cc": [
+    {
+      "result_id": 1,
+      "title": "ScalingIntelligence/cs329A_hw2_evaluation · Datasets at Hugging ...",
+      "description": "... museum number of 2012,5015.17 is the shell of a particular mollusk species. According to the abstract of a research article published in Science Advances in ...",
+      "long_description": "N/A",
+      "url": "https://huggingface.co/datasets/ScalingIntelligence/cs329A_hw2_evaluation"
+    },
+    {
+      "result_id": 2,
+      "title": "A string of marine shell beads from the Neolithic site of Vršnik ...",
+      "description": "Mar 12, 2021 ... The majority of beads are tubular and made of shells of two mollusks with very different shell morphology (bivalves and scapho- pods), yet they ...",
+      "long_description": "N/A",
+      "url": "https://sciencepress.mnhn.fr/sites/default/files/articles/pdf/anthropozoologica2021v56a4.pdf"
+    },
+    {
+      "result_id": 3,
+      "title": "Aberystwyth University Early Middle Stone Age personal ornaments ...",
+      "description": "Sep 22, 2021 ... This paper describes and presents contextual information for 33 shell beads from Bizmoune Cave (southwest Morocco). Many of the beads come as ...",
+      "long_description": "N/A",
+      "url": "https://research.aber.ac.uk/files/50806584/sciadv.abi8620.pdf"
+    }
+  ],
+  "4e65573a9c376ead7beaac7b94ba27c8": [
+    {
+      "result_id": 1,
+      "title": "Early Middle Stone Age personal ornaments from Bizmoune Cave ...",
+      "description": "Sep 22, 2021 ... ... beads and other personal ornaments, frequently made from marine shells. ... Science Advances. Volume 7 | Issue 39. September 2021. Copyright.",
+      "long_description": "Shell beads from Bizmoune Cave (Morocco) show the early appearance and continuity of symbolic behavior among early Homo sapiens.",
+      "url": "https://www.science.org/doi/10.1126/sciadv.abi8620"
+    },
+    {
+      "result_id": 2,
+      "title": "Early Middle Stone Age personal ornaments from Bizmoune Cave ...",
+      "description": "Sep 22, 2021 ... ... beads and other personal ornaments, frequently made from marine shells. ... Science. Formats: Article; |; PubReader; |; PDF (2.6M); |; Cite. Share.",
+      "long_description": "N/A",
+      "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8457661/"
+    },
+    {
+      "result_id": 3,
+      "title": "Those Earrings Are So Last Year – But the Reason You're Wearing ...",
+      "description": "Sep 22, 2021 ... The beads uncovered by Kuhn and his collaborators were made from sea snail shells, and each measures roughly half an inch long. Holes in the ...",
+      "long_description": "Shell beads found in Morocco are at least 142,000 years old. Archaeologists say they're the earliest known evidence of a widespread form of human communication.",
+      "url": "https://news.arizona.edu/news/those-earrings-are-so-last-year-reason-youre-wearing-them-ancient"
+    }
+  ],
+  "b39f123d5af5f4d13b315df655aa7dbf": [
+    {
+      "result_id": 1,
+      "title": "animal remains | British Museum",
+      "description": "2012,5015.17. Description: Shell of a marine gastropod mollusc of the Mediterranean 'Nassa gibbosula' species. ... species and naming Naukratis as the provenance.",
+      "long_description": "Shell of a marine gastropod mollusc of the Mediterranean 'Nassa gibbosula' species.",
+      "url": "https://www.britishmuseum.org/collection/object/G_2012-5015-17"
+    },
+    {
+      "result_id": 2,
+      "title": "ScalingIntelligence/cs329A_hw2_evaluation · Datasets at Hugging ...",
+      "description": "I'm researching species ... The object in the British Museum's collection with a museum number of 2012,5015.17 is the shell of a particular mollusk species.",
+      "long_description": "N/A",
+      "url": "https://huggingface.co/datasets/ScalingIntelligence/cs329A_hw2_evaluation"
+    },
+    {
+      "result_id": 3,
+      "title": "A string of marine shell beads from the Neolithic site of Vršnik ...",
+      "description": "Mar 12, 2021 ... ... exhibition in the Štip museum. ... Monumenta Archæo- logica; 20), Los Angeles: 331-360. OZTURK B. 2011. — Scaphopod species (Mollusca) of the ...",
+      "long_description": "N/A",
+      "url": "https://sciencepress.mnhn.fr/sites/default/files/articles/pdf/anthropozoologica2021v56a4.pdf"
+    }
+  ],
+  "ec593a4f6bf8945790db274169b6db38": [
+    {
+      "result_id": 1,
+      "title": "Early Middle Stone Age personal ornaments from Bizmoune Cave ...",
+      "description": "Sep 22, 2021 ... ... mollusk could have been and were used as beads (22). However, once a ... Science Advances. Volume 7 | Issue 39. September 2021. Copyright.",
+      "long_description": "Shell beads from Bizmoune Cave (Morocco) show the early appearance and continuity of symbolic behavior among early Homo sapiens.",
+      "url": "https://www.science.org/doi/10.1126/sciadv.abi8620"
+    },
+    {
+      "result_id": 2,
+      "title": "Early Middle Stone Age personal ornaments from Bizmoune Cave ...",
+      "description": "Sep 22, 2021 ... ... beads (22). However ... Articles from Science Advances are provided here courtesy of American Association for the Advancement of Science.",
+      "long_description": "N/A",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8457661/"
+    },
+    {
+      "result_id": 3,
+      "title": "Those Earrings Are So Last Year – But the Reason You're Wearing ...",
+      "description": "Sep 22, 2021 ... ... sea snail shells, and each measures roughly half an ... Ancient beads from North Africa are associated with the Aterian, a Middle Stone Age ...",
+      "long_description": "Shell beads found in Morocco are at least 142,000 years old. Archaeologists say they're the earliest known evidence of a widespread form of human communication.",
+      "url": "https://news.arizona.edu/news/those-earrings-are-so-last-year-reason-youre-wearing-them-ancient"
+    }
+  ],
+  "585cecf7ec8bc4df56c5f0869b0d69bc": [
+    {
+      "result_id": 1,
+      "title": "animal remains | British Museum",
+      "description": "Object Type: animal remains. Museum number: 2012,5015.17. Description: Shell of a marine gastropod mollusc of the Mediterranean 'Nassa gibbosula' species.",
+      "long_description": "Shell of a marine gastropod mollusc of the Mediterranean 'Nassa gibbosula' species.",
+      "url": "https://www.britishmuseum.org/collection/object/G_2012-5015-17"
+    },
+    {
+      "result_id": 2,
+      "title": "ScalingIntelligence/cs329A_hw2_evaluation · Datasets at Hugging ...",
+      "description": "... Art Museum's collection ... The object in the British Museum's collection with a museum number of 2012,5015.17 is the shell of a particular mollusk species.",
+      "long_description": "N/A",
+      "url": "https://huggingface.co/datasets/ScalingIntelligence/cs329A_hw2_evaluation"
+    },
+    {
+      "result_id": 3,
+      "title": "A string of marine shell beads from the Neolithic site of Vršnik ...",
+      "description": "Mar 12, 2021 ... The majority of beads are tubular and made of shells of two mollusks with very different shell morphology (bivalves and scapho- pods), yet they ...",
+      "long_description": "N/A",
+      "url": "https://sciencepress.mnhn.fr/sites/default/files/articles/pdf/anthropozoologica2021v56a4.pdf"
+    }
+  ],
+  "4d1c39f3743538e9879ca29827717125": [
+    {
+      "result_id": 1,
+      "title": "Early Middle Stone Age personal ornaments from Bizmoune Cave ...",
+      "description": "Sep 22, 2021 ... gibbosula shells have ... Articles from Science Advances are provided here courtesy of American Association for the Advancement of Science.",
+      "long_description": "N/A",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8457661/"
+    },
+    {
+      "result_id": 2,
+      "title": "Archaeologists Just Discovered the World's Oldest Jewelry: This Set ...",
+      "description": "Nov 19, 2021 ... Archaeologists have discovered the world's oldest jewelry—33 beads made from snail shells 150000 years ago—in Morocco's Bizmoune Cave.",
+      "long_description": "Archaeologists have discovered the world's oldest jewelry—33 beads made from snail shells 150,000 years ago—in Morocco's Bizmoune Cave.",
+      "url": "https://news.artnet.com/art-world/worlds-oldest-jewelry-morocco-2037635"
+    },
+    {
+      "result_id": 3,
+      "title": "Tritia gibbosula - Wikipedia",
+      "description": "Tritia gibbosula, common name the swollen nassa, is a species of sea snail, a marine gastropod mollusc in the family Nassariidae, the Nassa mud snails or ...",
+      "long_description": "N/A",
+      "url": "https://en.wikipedia.org/wiki/Tritia_gibbosula"
+    }
+  ],
+  "fa5e4c95d886ae4d9f909fa58374ffc2": [
+    {
+      "result_id": 1,
+      "title": "animal remains | British Museum",
+      "description": "Object Type: animal remains. Museum number: 2012,5015.17. Description: Shell of a marine gastropod mollusc of the Mediterranean 'Nassa gibbosula' species.",
+      "long_description": "Shell of a marine gastropod mollusc of the Mediterranean 'Nassa gibbosula' species.",
+      "url": "https://www.britishmuseum.org/collection/object/G_2012-5015-17"
+    }
+  ],
+  "fb9a7395b4418584346285ef8652df22": [
+    {
+      "result_id": 1,
+      "title": "Early Middle Stone Age personal ornaments from Bizmoune Cave ...",
+      "description": "Sep 22, 2021 ... ... gibbosula shell beads ... Articles from Science Advances are provided here courtesy of American Association for the Advancement of Science.",
+      "long_description": "N/A",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC8457661/"
+    },
+    {
+      "result_id": 2,
+      "title": "Archaeologists Just Discovered the World's Oldest Jewelry: This Set ...",
+      "description": "Nov 19, 2021 ... The team behind the discovery published their findings earlier this fall in the journal Science Advances. ... age of the beads and the surrounding ...",
+      "long_description": "Archaeologists have discovered the world's oldest jewelry—33 beads made from snail shells 150,000 years ago—in Morocco's Bizmoune Cave.",
+      "url": "https://news.artnet.com/art-world/worlds-oldest-jewelry-morocco-2037635"
+    },
+    {
+      "result_id": 3,
+      "title": "Tritia gibbosula - Wikipedia",
+      "description": "Tritia gibbosula, common name the swollen nassa, is a species of sea snail, a marine gastropod mollusc in the family Nassariidae, the Nassa mud snails or ...",
+      "long_description": "N/A",
+      "url": "https://en.wikipedia.org/wiki/Tritia_gibbosula"
+    }
+  ],
+  "a63c13f3982703a02542611bdf6e1786": [
+    {
+      "result_id": 1,
+      "title": "The representation of polynomials with Polynomial class using ...",
+      "description": "Aug 8, 2017 ... from numpy.polynomial import Polynomial as P >>> p = P([1,1], domain=[0,1]) >>> p.linspace(2) (array([ 0., 1.]), array([ 0., 2.]",
+      "long_description": ">>> from numpy.polynomial import Polynomial as P >>> p = P([1,1], domain=[0,1]) >>> p.linspace(2) (array([ 0., 1.]), array([ 0., 2.])) >>> p.linspace(2, domain=[0,1]) (array([ 0., 1.]), array([ 0.,...",
+      "url": "https://github.com/numpy/numpy/issues/9533"
+    }
+  ],
+  "28c964ec091fded5c1e10fcaa08ad0af": [
+    {
+      "result_id": 1,
+      "title": "The representation of polynomials with Polynomial class using ...",
+      "description": "Aug 8, 2017 ... from numpy.polynomial import Polynomial as P >>> p = P([1,1], domain=[0,1]) >>> p.linspace(2) (array([ 0., 1.]), array([ 0., 2.]",
+      "long_description": ">>> from numpy.polynomial import Polynomial as P >>> p = P([1,1], domain=[0,1]) >>> p.linspace(2) (array([ 0., 1.]), array([ 0., 2.])) >>> p.linspace(2, domain=[0,1]) (array([ 0., 1.]), array([ 0.,...",
+      "url": "https://github.com/numpy/numpy/issues/9533"
+    }
+  ],
+  "7b03951e27d3c3fce0ec093e059b2d0b": [
+    {
+      "result_id": 1,
+      "title": "API Reference — cuml 25.06.00 documentation",
+      "description": "Parameters: ycudf.Series, pandas.Series, cupy.ndarray or numpy.ndarray. dtype=int32 Ordinal labels to ...",
+      "long_description": "N/A",
+      "url": "https://docs.rapids.ai/api/cuml/stable/api/"
+    },
+    {
+      "result_id": 2,
+      "title": "python - How do I fit a sine curve to my data with pylab and numpy ...",
+      "description": "May 23, 2013 ... This is a non-linear regression problem. A different method consists in transforming the non-linear regression to a linear regression thanks to ...",
+      "long_description": "N/A",
+      "url": "https://stackoverflow.com/questions/16716302/how-do-i-fit-a-sine-curve-to-my-data-with-pylab-and-numpy"
+    },
+    {
+      "result_id": 3,
+      "title": "Leveraging Quadratic Polynomials in Python for... | F1000Research",
+      "description": "The study demonstrates how quadratic models can effectively capture nonlinear relationships in complex datasets by leveraging Python libraries such as NumPy, ...",
+      "long_description": "Read the latest article version by Rostyslav Sipakov, Olena Voloshkina, Anastasiia Kovalova, at F1000Research.",
+      "url": "https://f1000research.com/articles/13-490"
+    }
+  ],
+  "73e4525b4035f2920f0b572c03be5f2a": [
+    {
+      "result_id": 1,
+      "title": "seaborn.regplot — seaborn 0.13.2 documentation",
+      "description": "Label to apply to either the scatterplot or regression line (if scatter is False ) for use in a legend. colormatplotlib color. Color to apply to all plot ...",
+      "long_description": "N/A",
+      "url": "https://seaborn.pydata.org/generated/seaborn.regplot.html"
+    },
+    {
+      "result_id": 2,
+      "title": "numpy - How to do exponential and logarithmic curve fitting in ...",
+      "description": "Aug 8, 2010 ... For fitting y = A + B log x, just fit y against (log x). >>> x = numpy.array([1, 7, 20, 50, 79]) >>> y = numpy.array([10, 19, 30, 35, ...",
+      "long_description": "N/A",
+      "url": "https://stackoverflow.com/questions/3433486/how-to-do-exponential-and-logarithmic-curve-fitting-in-python-i-found-only-poly"
+    },
+    {
+      "result_id": 3,
+      "title": "numpy.polyfit — NumPy v2.3 Manual",
+      "description": "Least squares polynomial fit. Note. This forms part of the old polynomial API. Since version 1.4, the new polynomial API defined in numpy.polynomial is ...",
+      "long_description": "N/A",
+      "url": "https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html"
+    }
+  ],
+  "5ca5f2b464419e2dc2c006d8f3eac4ad": [
+    {
+      "result_id": 1,
+      "title": "The representation of polynomials with Polynomial class using ...",
+      "description": "Aug 8, 2017 ... from numpy.polynomial import Polynomial as P >>> p = P([1,1], domain=[0,1]) >>> p.linspace(2) (array([ 0., 1.]), array([ 0., 2.]",
+      "long_description": ">>> from numpy.polynomial import Polynomial as P >>> p = P([1,1], domain=[0,1]) >>> p.linspace(2) (array([ 0., 1.]), array([ 0., 2.])) >>> p.linspace(2, domain=[0,1]) (array([ 0., 1.]), array([ 0.,...",
+      "url": "https://github.com/numpy/numpy/issues/9533"
+    }
+  ],
+  "9618aef6e3354554d9244d90ae05f2a0": [
+    {
+      "result_id": 1,
+      "title": "REST API endpoints for timeline events - GitHub Docs",
+      "description": "You can use the REST API to view different types of events triggered by timeline activity in issues and pull requests.",
+      "long_description": "N/A",
+      "url": "https://docs.github.com/en/rest/issues/timeline"
+    },
+    {
+      "result_id": 2,
+      "title": "Rest API List issue events doesn't return \"Referenced\" type events ...",
+      "description": "Rest API List issue events doesn't return \"Referenced\" type events when authorising with a GitHub Actions token.",
+      "long_description": "Hey, Was working on a script adds some labels based on the commits that an issue references. This translates to getting all events from List issue events endpoint, and then filtering where event ==...",
+      "url": "https://github.com/orgs/community/discussions/38471"
+    }
+  ],
+  "6d69958ed4f426fb6512dc83b886004a": [
+    {
+      "result_id": 1,
+      "title": "The representation of polynomials with Polynomial class using ...",
+      "description": "Aug 8, 2017 ... from numpy.polynomial import Polynomial as P >>> p = P([1,1], domain=[0,1]) >>> p.linspace(2) (array([ 0., 1.]), array([ 0., 2.]",
+      "long_description": ">>> from numpy.polynomial import Polynomial as P >>> p = P([1,1], domain=[0,1]) >>> p.linspace(2) (array([ 0., 1.]), array([ 0., 2.])) >>> p.linspace(2, domain=[0,1]) (array([ 0., 1.]), array([ 0.,...",
+      "url": "https://github.com/numpy/numpy/issues/9533"
+    },
+    {
+      "result_id": 2,
+      "title": "SciPy Reference Guide",
+      "description": "Nov 23, 2019 ... ... Issues closed for 1.3.2. ∗ Pull requests for 1.3.2. SciPy 1.3.2 is a bug-fix and maintenance release that adds support for Python 3.8. 3.2.1 ...",
+      "long_description": "N/A",
+      "url": "https://docs.scipy.org/doc/scipy-1.3.3/scipy-ref-1.3.3.pdf"
+    }
+  ],
+  "30442336e4c16adb2cae0c4a3e5da114": [
+    {
+      "result_id": 1,
+      "title": "Prevalence of sweetpotato viruses in Acholi sub-region, northern ...",
+      "description": "Sweetpotato feathery mottle virus had the highest prevalence compared to other viruses detected. •. Kitgum district had the highest number of infected ...",
+      "long_description": "Four sweetpotato viruses were confirmed to infect sweetpotato plants in northern Uganda. Sweetpotato feathery mottle virus had the highest prevalence compared to other viruses detected. Kitgum district had the highest number of infected sweetpotato ...",
+      "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6716578/"
+    },
+    {
+      "result_id": 2,
+      "title": "Mixed Infections of Four Viruses, the Incidence and Phylogenetic ...",
+      "description": "In this study, Sweet potato chlorotic fleck virus (SPCFV; Carlavirus, Betaflexiviridae) and Sweet potato chlorotic stunt virus (SPCSV; Crinivirus, ...",
+      "long_description": "N/A",
+      "url": "https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0167769"
+    },
+    {
+      "result_id": 3,
+      "title": "(PDF) Effects of Sweet Potato Feathery Mottle Virus and Sweet ...",
+      "description": "Abstract and Figures. Sweet potato feathery mottle virus (SPFMV) and Sweet potato chlorotic stunt virus (SPCSV) are the most common viruses infecting ...",
+      "long_description": "PDF | Sweet potato feathery mottle virus (SPFMV) and Sweet potato chlorotic stunt virus (SPCSV) are the most common viruses infecting sweetpotato in... | Find, read and cite all the research you need on ResearchGate",
+      "url": "https://www.researchgate.net/publication/283980876_Effects_of_Sweet_Potato_Feathery_Mottle_Virus_and_Sweet_Potato_Chlorotic_Stunt_Virus_on_the_Yield_of_SweetPotato_in_Uganda"
+    }
+  ],
+  "15643ef3363de074ce19827785093151": [
+    {
+      "result_id": 1,
+      "title": "The History of Patuxent: America's Wildlife Research Story",
+      "description": "Lucille Stickel, U.S. Fish and Wildlife Service, an important research scientist in ... invasive. Since then, USGS and USFWS staff at Patuxent have ...",
+      "long_description": "N/A",
+      "url": "https://pubs.usgs.gov/circ/1422/circ1422.pdf"
+    }
+  ],
+  "9344e61f67ff72aa4ae7cecec857f060": [
+    {
+      "result_id": 1,
+      "title": "Invasive Species in the Great Lakes | US EPA",
+      "description": "May 12, 2025 ... Of the over 180 established aquatic non-native species in the Great Lakes basin, 34% are considered invasive. Infamous Great Lakes invaders ...",
+      "long_description": "An invasive species is a plant or animal that is not native to an ecosystem, and whose introduction is likely to cause economic, human health, or environmental damage.",
+      "url": "https://www.epa.gov/greatlakes/invasive-species-great-lakes-0"
+    },
+    {
+      "result_id": 2,
+      "title": "Indiana Aquatic Invasive Species (AIS) Management Plan 2020",
+      "description": "used by U.S. fish farmers to prey on and control parasite-carrying snails in ... In the eastern U.S. the species has been identified in all the Great Lakes except ...",
+      "long_description": "N/A",
+      "url": "https://www.in.gov/dnr/fish-and-wildlife/files/inansmanagementplan.pdf"
+    }
+  ],
+  "8e14380a17f243338cfce0ce3f03c268": [
+    {
+      "result_id": 1,
+      "title": "Unlambda - Esolang",
+      "description": "Jun 12, 2025 ... xii, which evaluates to i and outputs x: the whole program outputs yx rather than xy due to d's special order-of-evaluation rules.) c takes ...",
+      "long_description": "N/A",
+      "url": "https://esolangs.org/wiki/Unlambda"
+    },
+    {
+      "result_id": 2,
+      "title": "The Unlambda Programming Language",
+      "description": "“The effect of reading an Unlambda program is like habing your brains smashed out by a Lisp sexp wrapped around an ENIAC. You won't find anything like it ...",
+      "long_description": "N/A",
+      "url": "http://www.madore.org/~david/programs/unlambda/"
+    }
+  ],
+  "a744269511eb0d47004391b545643f9d": [
+    {
+      "result_id": 1,
+      "title": "The Unlambda Programming Language",
+      "description": "Only contrary to the identity function it has a side effect, namely to print the character x on the standard output (this writing takes place when . x is ...",
+      "long_description": "N/A",
+      "url": "http://www.madore.org/~david/programs/unlambda/"
+    },
+    {
+      "result_id": 2,
+      "title": "Unlambda - Esolang",
+      "description": "Jun 12, 2025 ... When applied, it tries to read a character of input, making it the current character. ... External resources. The Unlambda Programming Language ( ...",
+      "long_description": "N/A",
+      "url": "https://esolangs.org/wiki/Unlambda"
+    }
+  ],
+  "e0a995255492d7a5ff5a3db1d773a381": [
+    {
+      "result_id": 1,
+      "title": "clown anemonefish (Amphiprion ocellaris) - Species Profile",
+      "description": "Eggs are laid on the anemone and tended by the male (Fautin and Allen 1992). Most clownfishes feed on zooplankton, copepods, larval tunicates, and bits of algae ...",
+      "long_description": "Species summary for clown anemonefish (Amphiprion ocellaris)",
+      "url": "https://nas.er.usgs.gov/queries/FactSheet.aspx?speciesID=3243"
+    },
+    {
+      "result_id": 2,
+      "title": "Nonindigenous Aquatic Species Database | U.S. Geological Survey",
+      "description": "February 11, 2020. Fish Chat and Slam November 2019. Fifty fish biologists from 15 organizations participated in a three-day Fish Chat and Slam event in South ...",
+      "long_description": "N/A",
+      "url": "https://www.usgs.gov/centers/wetland-and-aquatic-research-center/science/science-topics/nonindigenous-aquatic-species"
+    },
+    {
+      "result_id": 3,
+      "title": "Spatial autocorrelation and host anemone species drive variation in ...",
+      "description": "Jan 13, 2025 ... This is crucial because the habitat of the clownfish is changing ... Clownfish Population, Ecology Letters, Volume 23 (2020) no. 2, pp ...",
+      "long_description": "N/A",
+      "url": "https://peercommunityjournal.org/articles/10.24072/pcjournal.493/"
+    }
+  ],
+  "6d8e236605a5dda7db7eddf7853b21a5": [
+    {
+      "result_id": 1,
+      "title": "agent_reasoning_benchmark/benchmark_gaia.ipynb at main ...",
+      "description": "... zip codes before 2020. cannot be normalized to number str. String Unable ... According to the USGS before 2020 Clownfish were found as nonnative species in ...",
+      "long_description": "🔧 Compare how Agent systems perform on several benchmarks. 📊🚀 - aymeric-roucher/agent_reasoning_benchmark",
+      "url": "https://github.com/aymeric-roucher/agent_reasoning_benchmark/blob/main/benchmark_gaia.ipynb"
+    },
+    {
+      "result_id": 2,
+      "title": "Mariana Trench Marine National Monument Management Plan",
+      "description": "$1.4 trillion annually, which represents 5% of the economy.9. Governments around the world address marine invasive species in different ways. Australia is a ...",
+      "long_description": "N/A",
+      "url": "https://www.fws.gov/sites/default/files/documents/2024-06/mtmnm-mp-for-web-v-6.4.24-1.pdf"
+    },
+    {
+      "result_id": 3,
+      "title": "STATE OF PROTECTED AND CONSERVED AREAS REPORT ...",
+      "description": "There are ongoing projects in Maiombe Park and Integral. Nature Reserve, as well as the establishment of the first marine protected area (under GEF6). Figure ...",
+      "long_description": "N/A",
+      "url": "https://portals.iucn.org/library/sites/library/files/documents/2024-018-En_Part-2.pdf"
+    }
+  ],
+  "564d8544025f25eb722c60f54e53c6c7": [
+    {
+      "result_id": 1,
+      "title": "published in Nature Communications",
+      "description": "Publish in Nature Communications: multidisciplinary, open access journal, with 14.7 Impact Factor, 8 days to first decision and 114M annual downloads.",
+      "long_description": "Nature Communications is an open access, multidisciplinary journal dedicated to publishing high-quality research in all areas of the biological, health, ...",
+      "url": "https://www.nature.com/ncomms/"
+    }
+  ],
+  "7e27ad4f13ef6eb4ea615b4ed2ab8b22": [
+    {
+      "result_id": 1,
+      "title": "Scientific Reports",
+      "description": "An open access Nature Portfolio journal publishing research from the natural sciences, psychology, medicine, and engineering.",
+      "long_description": "Scientific Reports publishes original research in all areas of the natural and clinical sciences. We believe that if your research is scientifically valid and ...",
+      "url": "https://www.nature.com/srep/"
+    }
+  ],
+  "22a8d09ab52aa7121097a46bf2bafe33": [
+    {
+      "result_id": 1,
+      "title": "Registered Agents FAQs",
+      "description": "How do I find a registered agent in Texas? I designated a registered agent ... What are my duties as a registered agent or as an appointed agent? I was ...",
+      "long_description": "N/A",
+      "url": "https://www.sos.state.tx.us/corp/registeredagentfaqs.shtml"
+    },
+    {
+      "result_id": 2,
+      "title": "About admin roles in the Microsoft 365 admin center - Microsoft 365 ...",
+      "description": "Apr 4, 2025 ... Assign the Search admin role to users who need to create and manage ... Admin Agent Privileges equivalent to a global admin, except for ...",
+      "long_description": "Learn about admin roles, such as the global admin role, or the service admin role. Roles map to specific business functions and give permissions to do specific tasks in the Microsoft 365 admin center.",
+      "url": "https://learn.microsoft.com/en-us/microsoft-365/admin/add-users/about-admin-roles?view=o365-worldwide"
+    }
+  ],
+  "0b12e7601af72e85fb21363a08b7fefb": [
+    {
+      "result_id": 1,
+      "title": "Search Jobs - Loews Hotels & Co",
+      "description": "Front Office Agent. Miami Beach FL , Loews Miami Beach Hotel. View Job · Posted ... Seasonal Server Assistant - Streeterville. Chicago IL , Loews Chicago ...",
+      "long_description": "N/A",
+      "url": "https://careers.loewshotels.com/search/"
+    },
+    {
+      "result_id": 2,
+      "title": "Coral-Protocol/coral-server: Open collaboration ... - GitHub",
+      "description": "This project implements a Model Context Protocol (MCP) server that facilitates communication between AI agents through a thread-based messaging system.",
+      "long_description": "Open collaboration infrastructure that enables communication, coordination, trust and payments for The Internet of Agents. - Coral-Protocol/coral-server",
+      "url": "https://github.com/Coral-Protocol/coral-server"
+    }
+  ],
+  "50edd87fe15bce2c449b8d54f53d74e5": [
+    {
+      "result_id": 1,
+      "title": "Agent DVR, CodeProject.AI and Coral. Bugs and workarounds : r ...",
+      "description": "Jun 4, 2024 ... By default CPAI should be using \"Multi-TPU (TF-Lite)\" for Coral Object detection, if you set the AI Server to just the IP address Agent DVR ...",
+      "long_description": "Posted by u/Lawdie123 - 4 votes and 3 comments",
+      "url": "https://www.reddit.com/r/ispyconnect/comments/1d809er/agent_dvr_codeprojectai_and_coral_bugs_and/"
+    },
+    {
+      "result_id": 2,
+      "title": "Google coral ai to offset cpu usage - Server discussion - Bluecherry",
+      "description": "Sep 16, 2022 ... Google coral ai to offset cpu usage ... I am using bluechery a while already and i always struggle with cpu usage on motion detection, since my ...",
+      "long_description": "Hello.,…  I am using bluechery a while already and i always struggle with cpu usage on motion detection, since my server can not hold a major graphics card…i also dont want to run a 500 watt monster for just checking my chickens…  So i saw that Frigate is doing the calculations on a 60 bucks coral usb dongle…  Which is open source and all…  Can that be integrated as you did the graphics offset for motion?  Thx for any ideas…",
+      "url": "https://forums.bluecherrydvr.com/t/google-coral-ai-to-offset-cpu-usage/593"
+    }
+  ],
+  "8cf5745f82649958c0ba6d470901fa45": [
+    {
+      "result_id": 1,
+      "title": "Vertex AI Agent Builder | Google Cloud",
+      "description": "Vertex AI Search provides an out-of-the-box RAG solution that gets you ... Use Google quality search for grounding apps and agents. Read more. Use Model ...",
+      "long_description": "Vertex AI Agent Builder helps you build and orchestrate multi-agent experiences.",
+      "url": "https://cloud.google.com/products/agent-builder"
+    },
+    {
+      "result_id": 2,
+      "title": "What's Azure AI Search?",
+      "description": "Azure AI Search is the recommended retrieval system for building agent-to-agent ... For more information about specific functionality, see Features of Azure AI ...",
+      "long_description": "Azure AI Search is an AI-powered information retrieval platform, helps developers build rich search experiences and generative AI apps that combine large language models with enterprise data.",
+      "url": "https://learn.microsoft.com/en-us/azure/search/search-what-is-azure-search"
+    }
+  ],
+  "6ba2d42f60801745cb130eadc1052a04": [
+    {
+      "result_id": 1,
+      "title": "What are AI agents? Definition, examples, and types | Google Cloud",
+      "description": "AI agents are software systems that use AI to pursue goals and complete tasks on behalf of users. They show reasoning, planning, and memory.",
+      "long_description": "AI agents are software systems that use AI to pursue goals and complete tasks on behalf of users. Learn more with Google Cloud.",
+      "url": "https://cloud.google.com/discover/what-are-ai-agents"
+    },
+    {
+      "result_id": 2,
+      "title": "AI agents — what they are, and how they'll change the way we work ...",
+      "description": "Nov 19, 2024 ... An agent can tackle certain tasks with you or for you, from acting as a virtual project manager to handling more complex assignments like reconciling financial ...",
+      "long_description": "AI agents take the power of generative AI a step further by working alongside you or even on your behalf, and they can be built and used by anyone.",
+      "url": "https://news.microsoft.com/source/features/ai/ai-agents-what-they-are-and-how-theyll-change-the-way-we-work/"
+    }
   ]
 }
