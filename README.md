@@ -98,21 +98,27 @@ The server provides the following tools for agent communication:
 - `send_message`: Send a message to a thread
 - `wait_for_mentions`: Wait for new messages mentioning an agent
 
-## Connections
+## Connections (SSE Mode)
 
 ### Coral Server
-In SSE mode, you can connect to the server on:  
-`http://localhost:5555/devmode/exampleApplication/privkey/session1/sse`
+You can connect to the server on:  
+
+```bash
+http://localhost:5555/devmode/exampleApplication/privkey/session1/sse
+```
 
 ### MCP Inspector
-In SSE mode, you can connect to the server using the MCP Inspector:
+You can connect to the server using the MCP Inspector command:
 
 ```bash
 npx @modelcontextprotocol/inspector sse --url http://localhost:5555/devmode/exampleApplication/privkey/session1/sse
 ```
 ### Register an Agent
-In SSE mode, you can register an agent to the Coral Server on (also can be registered on MCP inspector):  
-`http://localhost:5555/devmode/exampleApplication/privkey/session1/sse?agentId=test_agent`
+You can register an agent to the Coral Server (also can be registered on MCP inspector) on:
+
+```bash
+http://localhost:5555/devmode/exampleApplication/privkey/session1/sse?agentId=test_agent
+```
 
 
 ## Philosophy
