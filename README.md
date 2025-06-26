@@ -108,12 +108,11 @@ When running in SSE mode, you can connect to the server using:
 When running in SSE mode, you can connect to the server using the MCP Inspector:
 
 ```bash
-# run below command on terminal
 npx @modelcontextprotocol/inspector sse --url http://localhost:5555/devmode/exampleApplication/privkey/session1/sse
 ```
 
-Connect sse on inspector and enter below url to manually register an agent
-- CORAL_CONNECTION_URL: `http://localhost:5555/devmode/exampleApplication/privkey/session1/sse?waitForAgents=1&agentId=test_agent`
+Connect sse on inspector and enter below url to manually register an agent:
+- URL: `http://localhost:5555/devmode/exampleApplication/privkey/session1/sse?waitForAgents=1&agentId=test_agent`
 
 
 ## Philosophy
