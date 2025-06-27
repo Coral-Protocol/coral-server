@@ -8,6 +8,15 @@ import org.coralprotocol.coralserver.orchestrator.Orchestrate
 import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
 
 
+data class RuntimeParams(
+    val agentName: String,
+    val mcpServerPort: UShort,
+    val mcpServerRelativeUri: Uri,
+
+    val systemPrompt: String?,
+    val options: Map<String, ConfigValue>,
+)
+
 @Serializable
 sealed class AgentRuntime : Orchestrate {
     @Serializable
@@ -19,10 +28,7 @@ sealed class AgentRuntime : Orchestrate {
         val privacyKey: String,
     ) : AgentRuntime() {
         override fun spawn(
-            agentName: String,
-            port: UShort,
-            relativeMcpServerUri: Uri,
-            options: Map<String, ConfigValue>
+            params: RuntimeParams,
         ): OrchestratorHandle {
             TODO("request agent from remote server")
         }

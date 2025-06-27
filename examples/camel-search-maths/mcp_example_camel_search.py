@@ -19,7 +19,7 @@ from config import PLATFORM_TYPE, MODEL_TYPE, MODEL_CONFIG, MESSAGE_WINDOW_SIZE,
 async def main():
     # Simply add the Coral server address as a tool
     coral_url = os.getenv("CORAL_CONNECTION_URL", default = "http://localhost:5555/devmode/exampleApplication/privkey/session1/sse?waitForAgents=3&agentId=search_agent")
-    server = MCPClient(coral_url, timeout=300.0)
+    server = MCPClient(coral_url, timeout=3000000.0)
     mcp_toolkit = MCPToolkit([server])
 
     async with mcp_toolkit.connection() as connected_mcp_toolkit:
@@ -49,9 +49,10 @@ async def create_search_agent(connected_mcp_toolkit):
             Search is your speciality. You identify as "search_agent".
             
             If you have no tasks yet, call the wait for mentions tool. Don't ask agents for tasks, wait for them to ask you.
+            {os.getenv("CORAL_PROMPT_SYSTEM", default = "")}
 
             Here are the guidelines for using the communication tools:
-            ${get_tools_description()}
+            {get_tools_description()}
             """
     )
     model = ModelFactory.create(
@@ -67,8 +68,6 @@ async def create_search_agent(connected_mcp_toolkit):
         message_window_size=MESSAGE_WINDOW_SIZE,
         token_limit=TOKEN_LIMIT
     )
-    camel_agent.reset()
-    camel_agent.memory.clear()
     return camel_agent
 
 
