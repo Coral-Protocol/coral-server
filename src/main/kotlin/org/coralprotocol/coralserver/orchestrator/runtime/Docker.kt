@@ -210,11 +210,10 @@ private fun getDockerContainerName(relativeMcpServerUri: Uri, agentName: String)
 }
 
 private fun getDockerSocket(): String {
-    val specifiedSocket = System.getenv("DOCKER_HOST")?.takeIf { it.isNotBlank() }
+    val specifiedSocket = System.getProperty("CORAL_DOCKER_SOCKET")?.takeIf { it.isNotBlank() }
         ?: System.getProperty("docker.host")?.takeIf { it.isNotBlank() }
         ?: System.getenv("DOCKER_SOCKET")?.takeIf { it.isNotBlank() }
         ?: System.getProperty("docker.socket")?.takeIf { it.isNotBlank() }
-        ?: System.getProperty("CORAL_DOCKER_SOCKET")?.takeIf { it.isNotBlank() }
 
     if (specifiedSocket != null) {
         return specifiedSocket
