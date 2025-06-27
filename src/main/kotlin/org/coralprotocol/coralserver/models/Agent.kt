@@ -12,6 +12,8 @@ import org.coralprotocol.coralserver.session.CustomTool
 class Agent(
     val id: String,
     val description: String = "", // Description of the agent's responsibilities
-    @Transient
+
+    val mcpUrl: String?,
+
     val extraTools: Set<CustomTool> = setOf()
 )
