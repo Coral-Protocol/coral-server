@@ -5,13 +5,11 @@ import kotlinx.coroutines.*
 import org.coralprotocol.coralserver.config.AppConfigLoader
 import org.coralprotocol.coralserver.session.GraphAgent
 import org.coralprotocol.coralserver.orchestrator.runtime.AgentRuntime
+import org.coralprotocol.coralserver.orchestrator.runtime.RuntimeParams
 
 interface Orchestrate {
     fun spawn(
-        agentName: String,
-        port: UShort, // implementations might misleadingly ignore this port, TODO: Make it less misleading
-        relativeMcpServerUri: Uri,
-        options: Map<String, ConfigValue>
+        params: RuntimeParams,
     ): OrchestratorHandle
 }
 
@@ -24,52 +22,43 @@ class Orchestrator(
 ) {
     private val handles: MutableList<OrchestratorHandle> = mutableListOf()
 
-    fun spawn(type: AgentType, agentName: String, port: UShort, relativeMcpServerUri: Uri, options: Map<String, ConfigValue>) {
+    fun spawn(type: AgentType, params: RuntimeParams) {
         val agent = app.config.registry?.get(type) ?: return;
-        spawn(agent, agentName = agentName, port = port, relativeMcpServerUri = relativeMcpServerUri, options = options)
+        spawn(agent, params)
     }
 
-    fun spawn(agent: RegistryAgent, agentName: String, port: UShort, relativeMcpServerUri: Uri, options: Map<String, ConfigValue>) {
+    fun spawn(agent: RegistryAgent, params: RuntimeParams) {
         handles.add(
-            agent.runtime.spawn(
-                agentName = agentName,
-                port = port,
-                relativeMcpServerUri = relativeMcpServerUri,
-                options = options
-            )
+            agent.runtime.spawn(params)
         )
     }
 
-    fun spawn(runtime: AgentRuntime, agentName: String, port: UShort, relativeMcpServerUri: Uri, options: Map<String, ConfigValue>) {
+    fun spawn(runtime: AgentRuntime, params: RuntimeParams) {
         handles.add(
-            runtime.spawn(
-                agentName = agentName,
-                port = port,
-                relativeMcpServerUri = relativeMcpServerUri,
-                options = options
-            )
+            runtime.spawn(params)
         )
     }
 
     fun spawn(type: GraphAgent, agentName: String, port: UShort, relativeMcpServerUri: Uri) {
+        val params = RuntimeParams(
+            agentName = agentName,
+            mcpServerPort = port,
+            mcpServerRelativeUri = relativeMcpServerUri,
+            systemPrompt = type.systemPrompt,
+            options = type.options
+        )
         when (type) {
             is GraphAgent.Local -> {
                 spawn(
                     type.agentType,
-                    agentName = agentName,
-                    port = port,
-                    relativeMcpServerUri = relativeMcpServerUri,
-                    options = type.options
+                    params
                 )
             }
 
             is GraphAgent.Remote -> {
                 spawn(
                     type.remote,
-                    agentName = agentName,
-                    port = port,
-                    relativeMcpServerUri = relativeMcpServerUri,
-                    options = type.options
+                    params,
                 )
             }
         }
