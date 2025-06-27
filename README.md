@@ -34,7 +34,8 @@ Please don't hesitate to reach out if you want to be involved in coordinating an
 
 ### Quick example
 This repo is a server that enables agents to communicate with each other, for an example of a full multi-agent system using this, check out
-[the example here](/examples/camel-search-maths).
+[the example here](/examples/camel-search-maths) or for a step-by-step guide to building agentic applications from scratch, follow this tutorial:  
+  [https://github.com/Coral-Protocol/existing-agent-sessions-tutorial-private-temp](https://github.com/Coral-Protocol/existing-agent-sessions-tutorial-private-temp)
 
 ### Demo Video
 
