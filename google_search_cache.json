@@ -758,5 +758,14 @@
       "long_description": "Shell beads from Bizmoune Cave (Morocco) show the early appearance and continuity of symbolic behavior among early Homo sapiens.",
       "url": "https://www.science.org/doi/10.1126/sciadv.abi8620"
     }
+  ],
+  "57d280cef5a1bc71c6ebcc883a6b50d1": [
+    {
+      "result_id": 1,
+      "title": "The representation of polynomials with Polynomial class using ...",
+      "description": "Aug 8, 2017 ... from numpy.polynomial import Polynomial as P >>> p = P([1,1], domain=[0,1]) >>> p.linspace(2) (array([ 0., 1.]), array([ 0., 2.]",
+      "long_description": ">>> from numpy.polynomial import Polynomial as P >>> p = P([1,1], domain=[0,1]) >>> p.linspace(2) (array([ 0., 1.]), array([ 0., 2.])) >>> p.linspace(2, domain=[0,1]) (array([ 0., 1.]), array([ 0.,...",
+      "url": "https://github.com/numpy/numpy/issues/9533"
+    }
   ]
 }
