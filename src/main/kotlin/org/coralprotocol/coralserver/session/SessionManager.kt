@@ -102,6 +102,7 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
 
             it.agents.forEach { agent ->
                 orchestrator.spawn(
+                    sessionId = sessionId,
                     type = agent.value,
                     port = port,
                     agentName = agent.key.toString(),
