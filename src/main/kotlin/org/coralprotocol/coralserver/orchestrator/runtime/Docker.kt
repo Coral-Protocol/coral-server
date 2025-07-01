@@ -14,8 +14,10 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.orchestrator.ConfigValue
 import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
+import org.coralprotocol.coralserver.orchestrator.RuntimeEvent
 import org.coralprotocol.coralserver.orchestrator.runtime.executable.EnvVar
 import kotlin.time.Duration.Companion.seconds
 
@@ -33,7 +35,8 @@ data class Docker(
     private val dockerClient = DockerClientBuilder.getInstance(dockerClientConfig).build()
 
     override fun spawn(
-        params: RuntimeParams
+        params: RuntimeParams,
+        bus: EventBus<RuntimeEvent>,
     ): OrchestratorHandle {
         logger.info { "Spawning Docker container with image: $image" }
         val fullConnectionUrl =
