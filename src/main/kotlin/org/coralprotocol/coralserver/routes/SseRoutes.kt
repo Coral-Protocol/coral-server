@@ -102,7 +102,7 @@ private suspend fun handleSseConnection(
     }
     val currentCount = session.getRegisteredAgentsCount()
     // Register the agent
-    val agent = session.registerAgent(agentId, uri, agentDescription, force = isDevMode)
+    val agent = session.registerAgent(agentId, uri, agentDescription, force = isDevMode || true)
     if (agent == null) {
         logger.info {"Agent ID $agentId already registered"}
         sseProducer.call.respond(HttpStatusCode.BadRequest, "Agent ID already exists")
