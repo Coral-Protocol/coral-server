@@ -2,17 +2,29 @@ package org.coralprotocol.coralserver.orchestrator
 
 import com.chrynan.uri.core.Uri
 import kotlinx.coroutines.*
+import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.config.AppConfigLoader
 import org.coralprotocol.coralserver.session.GraphAgent
 import org.coralprotocol.coralserver.orchestrator.runtime.AgentRuntime
+import org.coralprotocol.coralserver.orchestrator.runtime.RuntimeParams
+
+enum class LogKind {
+    STDOUT,
+    STDERR,
+}
+
+@Serializable
+sealed interface RuntimeEvent {
+    @Serializable
+    data class Log(val timestamp: Long = System.currentTimeMillis(), val kind: LogKind, val message: String) :
+        RuntimeEvent
+}
 
 interface Orchestrate {
     fun spawn(
-        agentName: String,
-        port: UShort, // implementations might misleadingly ignore this port, TODO: Make it less misleading
-        relativeMcpServerUri: Uri,
-        options: Map<String, ConfigValue>,
-        sessionId: String
+        params: RuntimeParams,
+        eventBus: EventBus<RuntimeEvent>
     ): OrchestratorHandle
 }
 
@@ -24,58 +36,58 @@ interface OrchestratorHandle {
 class Orchestrator(
     val app: AppConfigLoader = AppConfigLoader(null)
 ) {
+    private val eventBusses: MutableMap<String, MutableMap<String, EventBus<RuntimeEvent>>> = mutableMapOf()
     private val handles: MutableList<OrchestratorHandle> = mutableListOf()
 
-    fun spawn(type: AgentType, agentName: String, port: UShort, relativeMcpServerUri: Uri, options: Map<String, ConfigValue>, sessionId: String) {
+
+    fun getBus(sessionId: String, agentId: String): EventBus<RuntimeEvent>? = eventBusses[sessionId]?.get(agentId)
+
+    private fun getBusOrCreate(sessionId: String, agentId: String) = eventBusses.getOrPut(sessionId) {
+        mutableMapOf()
+    }.getOrPut(agentId) {
+        EventBus(replay = 512)
+    }
+
+    fun spawn(type: AgentType, params: RuntimeParams) {
         val agent = app.config.registry?.get(type) ?: return;
-        spawn(agent, agentName = agentName, port = port, relativeMcpServerUri = relativeMcpServerUri, options = options, sessionId = sessionId)
+        spawn(agent, params)
     }
 
-    fun spawn(agent: RegistryAgent, agentName: String, port: UShort, relativeMcpServerUri: Uri, options: Map<String, ConfigValue>, sessionId: String) {
+    fun spawn(agent: RegistryAgent, params: RuntimeParams) {
+        val bus = getBusOrCreate(params.sessionId, params.agentName)
         handles.add(
-            agent.runtime.spawn(
-                agentName = agentName,
-                port = port,
-                relativeMcpServerUri = relativeMcpServerUri,
-                options = options,
-                sessionId = sessionId
-            )
+            agent.runtime.spawn(params, bus)
         )
     }
 
-    fun spawn(runtime: AgentRuntime, agentName: String, port: UShort, relativeMcpServerUri: Uri, options: Map<String, ConfigValue>, sessionId: String) {
+    fun spawn(runtime: AgentRuntime, params: RuntimeParams) {
+        val bus = getBusOrCreate(params.sessionId, params.agentName)
         handles.add(
-            runtime.spawn(
-                agentName = agentName,
-                port = port,
-                relativeMcpServerUri = relativeMcpServerUri,
-                options = options,
-                sessionId = sessionId
-            )
+            runtime.spawn(params, bus)
         )
     }
 
-    fun spawn(type: GraphAgent, agentName: String, port: UShort, relativeMcpServerUri: Uri, sessionId: String) {
+    fun spawn(sessionId: String, type: GraphAgent, agentName: String, port: UShort, relativeMcpServerUri: Uri) {
+        val params = RuntimeParams(
+            sessionId = sessionId,
+            agentName = agentName,
+            mcpServerPort = port,
+            mcpServerRelativeUri = relativeMcpServerUri,
+            systemPrompt = type.systemPrompt,
+            options = type.options
+        )
         when (type) {
             is GraphAgent.Local -> {
                 spawn(
                     type.agentType,
-                    agentName = agentName,
-                    port = port,
-                    relativeMcpServerUri = relativeMcpServerUri,
-                    options = type.options,
-                    sessionId = sessionId
+                    params
                 )
             }
 
             is GraphAgent.Remote -> {
                 spawn(
                     type.remote,
-                    agentName = agentName,
-                    port = port,
-                    relativeMcpServerUri = relativeMcpServerUri,
-                    options = type.options,
-                    sessionId = sessionId
+                    params,
                 )
             }
         }
@@ -87,6 +99,7 @@ class Orchestrator(
             .awaitAll()
         handles.removeIf { it.sessionId == sessionId }
     }
+
     suspend fun destroyAll(): Unit = coroutineScope {
         handles.map { async { it.destroy() } }.awaitAll()
     }

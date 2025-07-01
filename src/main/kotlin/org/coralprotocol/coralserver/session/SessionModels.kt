@@ -109,6 +109,9 @@ sealed interface ToolTransport {
                     install(ContentNegotiation) {
                         json()
                     }
+                    engine {
+                        requestTimeout = 0
+                    }
                 }
 
                 val response = client.post(url.value) {
@@ -144,6 +147,7 @@ sealed interface ToolTransport {
 @Serializable
 sealed interface GraphAgentRequest {
     val options: Map<String, JsonPrimitive>
+    val systemPrompt: String?
     val blocking: Boolean?
     val tools: Set<String>
 
@@ -152,6 +156,7 @@ sealed interface GraphAgentRequest {
     data class Remote(
         val remote: AgentRuntime.Remote,
         override val options: Map<String, JsonPrimitive> = mapOf(),
+        override val systemPrompt: String? = null,
         override val tools: Set<String> = setOf(),
         override val blocking: Boolean? = true
     ) :
@@ -162,6 +167,7 @@ sealed interface GraphAgentRequest {
     data class Local(
         val agentType: AgentType,
         override val options: Map<String, JsonPrimitive> = mapOf(),
+        override val systemPrompt: String? = null,
         override val tools: Set<String> = setOf(),
         override val blocking: Boolean? = true
     ) :

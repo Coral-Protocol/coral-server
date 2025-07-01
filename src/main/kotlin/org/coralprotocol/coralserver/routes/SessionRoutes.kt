@@ -82,6 +82,7 @@ fun Routing.sessionRoutes(appConfig: AppConfigLoader, sessionManager: SessionMan
                                     blocking = agentReq.blocking ?: true,
                                     agentType = agentReq.agentType,
                                     extraTools = agentReq.tools,
+                                    systemPrompt = agentReq.systemPrompt,
                                     options = defaultOptions + setOptions
                                 )
                             }

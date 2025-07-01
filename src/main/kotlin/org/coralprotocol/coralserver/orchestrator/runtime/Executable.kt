@@ -10,8 +10,11 @@ import kotlinx.coroutines.newFixedThreadPoolContext
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.orchestrator.ConfigValue
+import org.coralprotocol.coralserver.orchestrator.LogKind
 import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
+import org.coralprotocol.coralserver.orchestrator.RuntimeEvent
 import org.coralprotocol.coralserver.orchestrator.runtime.executable.EnvVar
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
@@ -25,42 +28,57 @@ data class Executable(
     val environment: List<EnvVar> = listOf()
 ) : AgentRuntime() {
     override fun spawn(
-        agentName: String,
-        port: UShort,
-        relativeMcpServerUri: Uri,
-        options: Map<String, ConfigValue>,
-        sessionId: String
+        params: RuntimeParams,
+        bus: EventBus<RuntimeEvent>,
     ): OrchestratorHandle {
-        val processBuilder = ProcessBuilder().redirectErrorStream(true)
+        val processBuilder = ProcessBuilder()
         val processEnvironment = processBuilder.environment()
         processEnvironment.clear()
         // TODO: error if someone tries passing coral system envs themselves
         val coralConnectionUrl = Uri.fromParts(
             scheme = "http",
             host = "localhost", // Executables run on the same host as the Coral server
-            port = port.toInt(),
-            path = relativeMcpServerUri.path,
-            query = relativeMcpServerUri.query
+            port = params.mcpServerPort.toInt(),
+            path = params.mcpServerRelativeUri.path,
+            query = params.mcpServerRelativeUri.query
         )
 
         val resolvedOptions = this.environment.associate {
-            val (key, value) = it.resolve(options);
+            val (key, value) = it.resolve(params.options);
             key to (value ?: "")
         }
-        val envsToSet = resolvedOptions + getCoralSystemEnvs(coralConnectionUrl, agentName, "executable")
+        val envsToSet = resolvedOptions + getCoralSystemEnvs(params, coralConnectionUrl, "executable")
         for (env in envsToSet) {
             processEnvironment[env.key] = env.value
         }
 
         processBuilder.command(command)
 
-        logger.info { "spawning process... for $agentName" }
+        logger.info { "spawning process for ${params.agentName}" }
         val process = processBuilder.start()
 
         // TODO (alan): re-evaluate this when it becomes a bottleneck
         thread(isDaemon = true) {
             val reader = process.inputStream.bufferedReader()
-            reader.forEachLine { line -> logger.info { "[STDOUT-${sessionId}] $agentName: $line" } }
+            reader.forEachLine { line ->
+                run {
+                    bus.emit(RuntimeEvent.Log(kind = LogKind.STDOUT, message = line))
+                    logger.info {
+                        "[STDOUT-${params.sessionId}] ${params.agentName}: $line"
+                    }
+                }
+            }
+        }
+        thread(isDaemon = true) {
+            val reader = process.errorStream.bufferedReader()
+            reader.forEachLine { line ->
+                run {
+                    bus.emit(RuntimeEvent.Log(kind = LogKind.STDERR, message = line))
+                    logger.error {
+                        "[STDERR-${params.sessionId}] ${params.agentName}: $line"
+                    }
+                }
+            }
         }
 
         return object : OrchestratorHandle {
@@ -68,7 +86,7 @@ data class Executable(
                 withContext(processContext) {
                     process.toHandle().descendants().forEach {
                         launch {
-                            logger.info { "[${agentName}] Destroying child process: ${it.pid()} with command: ${it.info().command()}" }
+                            logger.info { "[${params.agentName}] Destroying child process: ${it.pid()} with command: ${it.info().command()}" }
                             it.destroy()
                             delay(1000)
                             it.destroyForcibly()
@@ -77,11 +95,11 @@ data class Executable(
                     process.destroy()
                     process.waitFor(30, TimeUnit.SECONDS)
                     process.destroyForcibly()
-                    logger.info { "[${agentName}] Process exited" }
+                    logger.info { "[${params.agentName}] Process exited" }
                 }
             }
 
-            override var sessionId: String = sessionId
+            override var sessionId: String = params.sessionId
         }
 
     }

@@ -53,13 +53,31 @@ fun Routing.debugRoutes(sessionManager: SessionManager) {
         sendSerialized<SocketEvent>(SocketEvent.DebugAgentRegistered(id = debugId.id))
 
         sendSerialized<SocketEvent>(SocketEvent.ThreadList(session.getAllThreads().map { it.resolve() }))
-        sendSerialized<SocketEvent>(SocketEvent.AgentList(session.getAllAgents(true)))
+        sendSerialized<SocketEvent>(SocketEvent.AgentList(session.getAllAgents(false)))
 
         session.events.collect { evt ->
             logger.debug { "Received evt: $evt" }
             sendSerialized(evt)
         }
     }
+
+    webSocket("/debug/{applicationId}/{privacyKey}/{coralSessionId}/{agentId}/logs") {
+        val applicationId = call.parameters["applicationId"] ?: throw IllegalArgumentException("Missing applicationId")
+        val privacyKey = call.parameters["privacyKey"] ?: throw IllegalArgumentException("Missing privacyKey")
+        val sessionId = call.parameters["coralSessionId"] ?: throw IllegalArgumentException("Missing sessionId")
+        val agentId = call.parameters["agentId"] ?: throw IllegalArgumentException("Missing agentId")
+
+        val bus = sessionManager.orchestrator.getBus(sessionId, agentId) ?: run {
+            call.respond(HttpStatusCode.NotFound, "Agent not found")
+            return@webSocket;
+        };
+
+        bus.events.collect { evt ->
+            logger.debug { "Received evt: $evt" }
+            sendSerialized(evt)
+        }
+    }
+
 
     post("/debug/{applicationId}/{privacyKey}/{coralSessionId}/{debugAgentId}/thread/") {
         // TODO (alan): proper appId/privacyKey based lookups when session manager is updated
