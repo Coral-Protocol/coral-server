@@ -8,8 +8,11 @@ import kotlinx.coroutines.newFixedThreadPoolContext
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.orchestrator.ConfigValue
+import org.coralprotocol.coralserver.orchestrator.LogKind
 import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
+import org.coralprotocol.coralserver.orchestrator.RuntimeEvent
 import org.coralprotocol.coralserver.orchestrator.runtime.executable.EnvVar
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
@@ -23,9 +26,10 @@ data class Executable(
     val environment: List<EnvVar> = listOf()
 ) : AgentRuntime() {
     override fun spawn(
-        params: RuntimeParams
+        params: RuntimeParams,
+        bus: EventBus<RuntimeEvent>,
     ): OrchestratorHandle {
-        val processBuilder = ProcessBuilder().redirectErrorStream(true)
+        val processBuilder = ProcessBuilder()
         val processEnvironment = processBuilder.environment()
         processEnvironment.clear()
         // TODO: error if someone tries passing coral system envs themselves
@@ -54,7 +58,25 @@ data class Executable(
         // TODO (alan): re-evaluate this when it becomes a bottleneck
         thread(isDaemon = true) {
             val reader = process.inputStream.bufferedReader()
-            reader.forEachLine { line -> logger.info { "[STDOUT] ${params.agentName}: $line" } }
+            reader.forEachLine { line ->
+                run {
+                    bus.emit(RuntimeEvent.Log(kind = LogKind.STDOUT, message = line))
+                    logger.info {
+                        "[STDOUT] ${params.agentName}: $line"
+                    }
+                }
+            }
+        }
+        thread(isDaemon = true) {
+            val reader = process.errorStream.bufferedReader()
+            reader.forEachLine { line ->
+                run {
+                    bus.emit(RuntimeEvent.Log(kind = LogKind.STDERR, message = line))
+                    logger.error {
+                        "[STDERR] ${params.agentName}: $line"
+                    }
+                }
+            }
         }
 
         return object : OrchestratorHandle {
