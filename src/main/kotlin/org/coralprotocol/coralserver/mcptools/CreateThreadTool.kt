@@ -47,8 +47,13 @@ fun CoralAgentIndividualMcp.addCreateThreadTool() {
  */
 private fun CoralAgentIndividualMcp.handleCreateThread(request: CallToolRequest): CallToolResult {
     try {
-        val json = Json { ignoreUnknownKeys = true }
+        val json = Json { ignoreUnknownKeys = false }
         val input = json.decodeFromString<CreateThreadInput>(request.arguments.toString())
+        if(coralAgentGraphSession.getThread(input.threadName) != null) {
+            return CallToolResult(
+                content = listOf(TextContent("Thread with name '${input.threadName}' already exists. Please choose a different name, or simply add yourself to the existing thread."))
+            )
+        }
         val thread = coralAgentGraphSession.createThread(
             name = input.threadName,
             creatorId = connectedAgentId,

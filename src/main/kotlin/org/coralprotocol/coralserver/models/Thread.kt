@@ -18,7 +18,7 @@ data class Thread(
 
 @Serializable
 data class ResolvedThread(
-    val id: String = UUID.randomUUID().toString(),
+    val id: String,
     val name: String,
     val creatorId: String,
     val participants: List<String> = listOf(),

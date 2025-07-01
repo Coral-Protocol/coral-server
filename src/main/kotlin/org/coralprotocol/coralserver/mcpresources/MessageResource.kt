@@ -46,22 +46,25 @@ fun CoralAgentGraphSession.render(forParticipant: String): String {
     //   Offline (last called waitForMentions more than 5 minutes ago)
     //   Online (last called waitForMentions with a timeout that has not yet expired, and has not yet been notified of mentions)
 
-    return """
+    val status = """
         <messagingStatus>
         This is the current status of your messaging session. This section updates in real-time as messages are sent and received.
         You are working with these agents:
         <agents>
-        ${resolvedThreads.flatMap { it.participants }.distinct().joinToString(separator = "\n") { agent ->
-"""
-                <agent>
-                    Name: $agent
-                </agent>
-"""
-        }}
+        ${
+        this.getAllAgents(includeDebug = false).joinToString(separator = "\n") { agent ->
+            """
+            <agent>
+                Name: ${agent.id}
+                Description: ${agent.description}
+            </agent>"""
+        }
+    }
         Here are the threads you are not part of:
         <threads>
-        ${threadsNotParticipating.joinToString(separator = "\n") { thread ->
-"""
+        ${
+        threadsNotParticipating.joinToString(separator = "\n") { thread ->
+            """
                 <thread>
                     <name>${thread.name}</name>
                     <id>${thread.id}</id>
@@ -70,28 +73,42 @@ fun CoralAgentGraphSession.render(forParticipant: String): String {
                     </messages>
                 </thread>
 """
-        }}
+        }
+    }
+        </threads>
         Here are the threads you are participating in:
         <threads>
         ${/*Displau in more human readable format rather than pure xml */openParticipatingThreads.joinToString(separator = "\n") { thread ->
-"""
+        """
                 <thread>
                     <name>${thread.name}</name>
+                    <participants>                    
+                        ${
+            thread.participants.joinToString(separator = ", ") { participant ->
+                participant
+            }
+        }
+                    </participants>
                     <id>${thread.id}</id>
                     <messages>
-                        ${thread.messages.joinToString(separator = "\n") { message ->
-                            with(message) {
-                                val timestampFormatted = java.time.Instant.ofEpochMilli(timestamp).toString()
-                                "$timestampFormatted [${senderId}] (Mentioning ${mentions.joinToString(", ")}) $content"
-                            }
-                        }}
+                        ${
+            thread.messages.sortedBy { it.timestamp }.joinToString(separator = "\n") { message ->
+                with(message) {
+                    val timestampFormatted = java.time.Instant.ofEpochMilli(timestamp).toString()
+                    "$timestampFormatted [${senderId}] (Mentioning ${mentions.joinToString(", ")}) $content"
+                }
+            }
+        }
                     </messages>
                 </thread>
 """
-        
-        }}
-        ${/*Displau in more human readable format rather than pure xml */closedParticipatingThreads.joinToString(separator = "\n") { thread ->
-"""
+
+    }
+    }
+        ${/*Display in more human readable format rather than pure xml */closedParticipatingThreads.joinToString(
+        separator = "\n"
+    ) { thread ->
+        """
                 <thread>
                     <name>${thread.name}</name>
                     <id>${thread.id}</id>
@@ -104,9 +121,11 @@ fun CoralAgentGraphSession.render(forParticipant: String): String {
                     </summary>
                 </thread>
 """
-        }}
+    }
+    }
         </threads>
-""".trimIndent()
+"""
+    return status.trimIndent()
 }
 fun CoralAgentIndividualMcp.addMessageResource() {
     addResource(

@@ -10,7 +10,7 @@ applications:
       - "priv"
 
 # NOTE: this will almost certainly *not* work on your machine without some tweaking of the `command`'s for each agent
-
+#
 # Registry of agents we can orchestrate
 registry:
   test:

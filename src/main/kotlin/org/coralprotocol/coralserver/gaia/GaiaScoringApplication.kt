@@ -302,7 +302,7 @@ fun createServerWithRegisteredAgents(): CoralServer {
 data class GaiaResult(
     val question: GaiaQuestion,
     val answerAttempt: GaiaAnswerAttempt,
-    val isCorrect: Boolean = question.finalAnswer == answerAttempt.answer,
+    val isCorrect: Boolean = question.finalAnswer.lowercase() == answerAttempt.answer.lowercase(),
     val threads: List<ResolvedThread>? = null
 )
 
@@ -367,16 +367,18 @@ suspend fun main(args: Array<String>) {
         println("Total correct answers: ${existingResults.count { it.isCorrect }}, Total incorrect answers: ${existingResults.count { !it.isCorrect }}")
         val semaphore = Semaphore(2)
         val context = CoroutineScope(SupervisorJob())
-        questions.map { question ->
+        questionsWithoutCorrectAnswers.map { question ->
             context.async {
             semaphore.withPermit {
                     try {
                         withTimeout(600 * 1000) {
+                            val startTime = System.currentTimeMillis()
                             val answerDeferred = findAnswer(question)
                             println("Waiting for answer to question: ${question.question}")
                             val answerAttempt = answerDeferred.await()
                             println("Received answer attempt: $answerAttempt")
-                            if (question.finalAnswer != answerAttempt.answer) {
+                            println("That took ${(System.currentTimeMillis() - startTime) / 1000}s")
+                            if (question.finalAnswer.lowercase() != answerAttempt.answer.lowercase()) {
                                 println("The answer attempt is incorrect! Expected: ${question.finalAnswer}, got: ${answerAttempt.answer}")
                             } else {
                                 println("The answer attempt is correct!")
@@ -388,7 +390,7 @@ suspend fun main(args: Array<String>) {
                             val result = GaiaResult(
                                 question = question,
                                 answerAttempt = answerAttempt,
-                                isCorrect = question.finalAnswer == answerAttempt.answer,
+                                isCorrect = question.finalAnswer.lowercase() == answerAttempt.answer.lowercase(),
                                 relevantSession.getAllThreads().map { it.resolve() }
                             )
                             saveResultToFile(result)

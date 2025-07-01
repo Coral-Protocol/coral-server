@@ -148,7 +148,7 @@ class CoralAgentGraphSession(
 
         if (!thread.participants.contains(participantId)) {
             thread.participants.add(participantId)
-            lastReadMessageIndex[Pair(participantId, threadId)] = thread.messages.size
+            lastReadMessageIndex[Pair(participantId, threadId)] = 0
         }
         return true
     }
