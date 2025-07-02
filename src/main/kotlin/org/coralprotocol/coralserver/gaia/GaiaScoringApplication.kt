@@ -189,6 +189,8 @@ class GaiaApplication(val server: CoralServer) {
         // Add task-specific variables
         optionsMap["TASK_INSTRUCTION"] = JsonPrimitive(questionWithFile)
         optionsMap["TASK_ID"] = JsonPrimitive(question.taskId)
+        optionsMap["AGENT_WORKING_DIRECTORY"] =
+            JsonPrimitive(GaiaConfig.getOrCreateSessionWorkingDirectory(question.taskId).absolutePath)
 
         return optionsMap
     }
@@ -236,6 +238,7 @@ class GaiaApplication(val server: CoralServer) {
 }
 
 private suspend fun GaiaApplication.endSession(responseBody: CreateSessionResponse) {
+    println("Ending session with ID: ${responseBody.sessionId}")
     // Wait for the answer attempt to be emitted
     server.sessionManager.getSession(responseBody.sessionId)?.let { session ->
         server.sessionManager.orchestrator.destroy(session.id)
@@ -253,7 +256,7 @@ fun createRegistryAgent(
     options: List<ConfigEntry> = EnvVars.configEntries
 ): RegistryAgent = RegistryAgent(
     Executable(
-        listOf("bash", "coral-GAIA/venv.sh", agentPath),
+        listOf("bash", File(GaiaConfig.multiAgentSystemRootDir, "venv.sh").absolutePath, agentPath),
         envList
     ),
     optionsList = options
@@ -265,9 +268,9 @@ fun createRegistryAgent(
 fun createAgentRegistryEntry(
     agentType: AgentType,
     agentName: String,
-    basePath: String = "coral-GAIA/agents/"
+    absoluteBasePath: String = GaiaConfig.multiAgentSystemRootDir.absolutePath
 ): Pair<AgentType, RegistryAgent> =
-    agentType to createRegistryAgent("$basePath${agentName}_agent.py")
+    agentType to createRegistryAgent("$absoluteBasePath/agents/${agentName}_agent.py")
 
 fun createServerWithRegisteredAgents(): CoralServer {
     val registry = AgentRegistry(
@@ -313,7 +316,7 @@ fun saveResultToFile(result: GaiaResult) {
     println("Saving result for question: ${result.question}, session: ${result.answerAttempt.sessionId}")
     println("Answer attempt (correct: ${result.isCorrect}): ${result.answerAttempt.answer}")
     println("Justification: ${result.answerAttempt.justification}")
-    val questionDir = File("coral-GAIA/results/${result.question.taskId}")
+    val questionDir = File(GaiaConfig.gaiaQuestionSet.resultsDir, result.question.taskId)
     val correctnessDir = File(questionDir, if (result.isCorrect) "correct" else "incorrect")
     val resultHash = result.answerAttempt.answer.hashCode().toString(16)
     val resultFile = File(correctnessDir, "$resultHash.json")
@@ -324,7 +327,7 @@ fun saveResultToFile(result: GaiaResult) {
 }
 
 fun loadAllGaiaResults(): Set<GaiaResult> {
-    val resultsDir = File("coral-GAIA/results")
+    val resultsDir = GaiaConfig.gaiaQuestionSet.resultsDir
     if (!resultsDir.exists()) {
         return emptySet()
     }
@@ -336,9 +339,10 @@ fun loadAllGaiaResults(): Set<GaiaResult> {
 }
 
 suspend fun main(args: Array<String>) {
-
     val server = createServerWithRegisteredAgents()
-    val questions = loadGaiaQuestions(MetadataFiles.validationMetadata)
+    val questionSet: GaiaQuestionSet = GaiaConfig.gaiaQuestionSet
+    val questions = loadGaiaQuestions(questionSet.metadataFile)
+
     GaiaApplication(server).apply {
         server.start()
         startAnswerServer(wait = false)
@@ -375,14 +379,13 @@ suspend fun main(args: Array<String>) {
         val context = CoroutineScope(SupervisorJob())
         questions.map { question ->
             context.async {
-            semaphore.withPermit {
+                semaphore.withPermit {
                     try {
                         withTimeout(600 * 1000) {
                             val startTime = System.currentTimeMillis()
                             val answerDeferred = findAnswer(question)
                             println("Waiting for answer to question: ${question.question}")
                             val answerAttempt = answerDeferred.await()
-//                            println("Received answer attempt: $answerAttempt")
                             println("${answerAttempt.questionId} took ${(System.currentTimeMillis() - startTime) / 1000}s")
                             if (question.finalAnswer.lowercase() != answerAttempt.answer.lowercase()) {
                                 println("The answer attempt is incorrect! Expected: ${question.finalAnswer}, got: ${answerAttempt.answer}")

@@ -26,7 +26,12 @@ object EnvVars {
         EnvVarDef("SEARCH_ENGINE_ID", "Search Engine ID", null, true),
         EnvVarDef("OPENROUTER_API_KEY", "OpenRouter API Key", null, true),
         EnvVarDef("TASK_INSTRUCTION", "The task to instruct the", "", false),
-        EnvVarDef("TASK_ID", "The gaia question ID", "", false)
+        EnvVarDef("TASK_ID", "The gaia question ID", "", false),
+        EnvVarDef("AGENT_WORKING_DIRECTORY",
+            "The working directory for the agent, where it can store files and results",
+            null,
+            false
+        ),
     )
 
     // Map of environment variable names to their values
