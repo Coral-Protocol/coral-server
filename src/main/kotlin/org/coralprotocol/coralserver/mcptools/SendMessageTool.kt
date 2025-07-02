@@ -67,11 +67,7 @@ private suspend fun CoralAgentIndividualMcp.handleSendMessage(request: CallToolR
                     TextContent(
                         """
                         Message sent successfully:
-                        ID: ${message.id}
-                        Thread: ${message.thread.id}
-                        Sender: ${message.sender.id}
-                        Content: ${message.content}
-                        Mentions: ${message.mentions.joinToString(", ")}
+                        Mentions: ${message.mentions.joinToString(", ")} (if you need to notify an agent, you must mention them in the 'mentions' parameter)
                         """.trimIndent()
                     )
                 )

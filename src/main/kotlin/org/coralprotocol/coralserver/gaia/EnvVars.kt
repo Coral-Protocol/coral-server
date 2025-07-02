@@ -19,6 +19,8 @@ object EnvVars {
     val definitions = listOf(
         EnvVarDef("OPENAI_API_KEY", "OpenAI API Key", null, true),
         EnvVarDef("JINA_API_KEY", "Jina API key", null, true),
+        EnvVarDef("JINA_PROXY_URL", "Jina proxy url." +
+                " This is optional but prevents rate limits", null, true),
         EnvVarDef("GOOGLE_API_KEY", "Google API Key", null, true),
         EnvVarDef("FIRECRAWL_API_KEY", "Google API Key", null, true),
         EnvVarDef("SEARCH_ENGINE_ID", "Search Engine ID", null, true),

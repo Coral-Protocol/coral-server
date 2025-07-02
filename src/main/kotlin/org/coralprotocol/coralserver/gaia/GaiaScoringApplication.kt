@@ -172,7 +172,10 @@ class GaiaApplication(val server: CoralServer) {
         customValues: Map<String, String> = emptyMap()
     ): Map<String, JsonPrimitive> {
         val questionWithFile = if (question.file != null) {
-            "${question.question}\n relevant file: ${question.file.absolutePath}"
+            buildString {
+                append("${question.question}\n relevant file: ${question.file.absolutePath}\n")
+                append("Note that even if you don't have tools to work with files, others in your team will. Make sure you're all working around this file.")
+            }
         } else {
             question.question
         }
@@ -307,6 +310,9 @@ data class GaiaResult(
 )
 
 fun saveResultToFile(result: GaiaResult) {
+    println("Saving result for question: ${result.question}, session: ${result.answerAttempt.sessionId}")
+    println("Answer attempt (correct: ${result.isCorrect}): ${result.answerAttempt.answer}")
+    println("Justification: ${result.answerAttempt.justification}")
     val questionDir = File("coral-GAIA/results/${result.question.taskId}")
     val correctnessDir = File(questionDir, if (result.isCorrect) "correct" else "incorrect")
     val resultHash = result.answerAttempt.answer.hashCode().toString(16)
@@ -376,8 +382,8 @@ suspend fun main(args: Array<String>) {
                             val answerDeferred = findAnswer(question)
                             println("Waiting for answer to question: ${question.question}")
                             val answerAttempt = answerDeferred.await()
-                            println("Received answer attempt: $answerAttempt")
-                            println("That took ${(System.currentTimeMillis() - startTime) / 1000}s")
+//                            println("Received answer attempt: $answerAttempt")
+                            println("${answerAttempt.questionId} took ${(System.currentTimeMillis() - startTime) / 1000}s")
                             if (question.finalAnswer.lowercase() != answerAttempt.answer.lowercase()) {
                                 println("The answer attempt is incorrect! Expected: ${question.finalAnswer}, got: ${answerAttempt.answer}")
                             } else {

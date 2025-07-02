@@ -3,12 +3,13 @@ package org.coralprotocol.coralserver.mcpresources
 import io.modelcontextprotocol.kotlin.sdk.ReadResourceRequest
 import io.modelcontextprotocol.kotlin.sdk.ReadResourceResult
 import io.modelcontextprotocol.kotlin.sdk.TextResourceContents
+import kotlinx.coroutines.delay
 import org.coralprotocol.coralserver.models.ResolvedThread
 import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import org.coralprotocol.coralserver.session.CoralAgentGraphSession
 
-private fun CoralAgentIndividualMcp.handler(request: ReadResourceRequest): ReadResourceResult {
+private suspend fun CoralAgentIndividualMcp.handler(request: ReadResourceRequest): ReadResourceResult {
     val renderedSessionStatus = this.coralAgentGraphSession.render(forParticipant = this.connectedAgentId)
     return ReadResourceResult(
         contents = listOf(
@@ -21,7 +22,14 @@ private fun CoralAgentIndividualMcp.handler(request: ReadResourceRequest): ReadR
     )
 }
 
-fun CoralAgentGraphSession.render(forParticipant: String): String {
+suspend fun CoralAgentGraphSession.render(forParticipant: String): String {
+    if(forParticipant != "planning") {
+        //TODO: Create better way of managing ordering / soft workflows
+        // wait for a message to be sent before rendering the status
+        while (this.getAllThreads().none { it.participants.contains(forParticipant) }) {
+            delay(1000) // Wait for 1 second before checking again
+        }
+    }
     val resolvedThreads: List<ResolvedThread> = this.getAllThreads().map { it.resolve() }
     if( resolvedThreads.isEmpty()) {
         return """
@@ -121,7 +129,7 @@ fun CoralAgentGraphSession.render(forParticipant: String): String {
                     </summary>
                 </thread>
 """
-    }
+    }   
     }
         </threads>
 """
