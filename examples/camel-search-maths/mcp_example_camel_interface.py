@@ -6,6 +6,7 @@ from camel.agents import ChatAgent  # creates Agents
 from camel.models import ModelFactory  # encapsulates LLM
 from camel.toolkits import HumanToolkit, MCPToolkit  # import tools
 from camel.toolkits.mcp_toolkit import MCPClient
+from camel.utils.mcp_client import ServerConfig
 from camel.types import ModelPlatformType, ModelType
 from dotenv import load_dotenv
 
