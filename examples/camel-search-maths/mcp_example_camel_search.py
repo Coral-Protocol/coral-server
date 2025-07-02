@@ -6,6 +6,7 @@ from camel.agents import ChatAgent
 from camel.models import ModelFactory
 from camel.toolkits import FunctionTool, MCPToolkit
 from camel.toolkits.mcp_toolkit import MCPClient
+from camel.utils.mcp_client import ServerConfig
 from camel.toolkits.search_toolkit import SearchToolkit
 from camel.types import ModelPlatformType, ModelType
 
