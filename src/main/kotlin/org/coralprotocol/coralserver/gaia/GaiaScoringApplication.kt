@@ -373,7 +373,7 @@ suspend fun main(args: Array<String>) {
         println("Total correct answers: ${existingResults.count { it.isCorrect }}, Total incorrect answers: ${existingResults.count { !it.isCorrect }}")
         val semaphore = Semaphore(2)
         val context = CoroutineScope(SupervisorJob())
-        questionsWithoutCorrectAnswers.map { question ->
+        questions.map { question ->
             context.async {
             semaphore.withPermit {
                     try {
