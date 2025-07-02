@@ -18,7 +18,7 @@ from prompts import get_tools_description, get_user_message
 async def main():
     # Simply add the Coral server address as a tool
     coral_url = os.getenv("CORAL_CONNECTION_URL", default = "http://localhost:5555/devmode/exampleApplication/privkey/session1/sse?waitForAgents=3&agentId=user_interaction_agent")
-    server = MCPClient(coral_url, timeout=3000000.0)
+    server = MCPClient(ServerConfig(url=coral_url, timeout=3000000.0, sse_read_timeout=3000000.0, terminate_on_close=True, prefer_sse=True), timeout==3000000.0)
 
     mcp_toolkit = MCPToolkit([server])
 
