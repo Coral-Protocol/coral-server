@@ -9,6 +9,8 @@ import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
+import io.ktor.server.plugins.statuspages.StatusPages
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import io.ktor.server.websocket.*
@@ -28,6 +30,10 @@ import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 
+private val jsonEncoder = Json {
+    encodeDefaults = true
+}
+
 /**
  * CoralServer class that encapsulates the SSE MCP server functionality.
  *
@@ -42,6 +48,7 @@ class CoralServer(
     val devmode: Boolean = false,
     val sessionManager: SessionManager = SessionManager(port = port),
 ) {
+
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
         embeddedServer(CIO, host = host, port = port.toInt(), watchPaths = listOf("classes")) {
@@ -65,8 +72,19 @@ class CoralServer(
                 allowHeader(HttpHeaders.ContentType)
                 anyHost()
             }
+            install(StatusPages) {
+                exception<Throwable> { call, cause ->
+                    // Other exceptions should still be serialized, wrap non RouteException type exceptions in a
+                    // RouteException, giving a 500-status code
+                    var wrapped = cause
+                    if (cause !is RouteException) {
+                        wrapped = RouteException(HttpStatusCode.InternalServerError, cause.message)
+                    }
+
+                    call.respondText(text = jsonEncoder.encodeToString(wrapped), status = wrapped.status)
+                }
+            }
             routing {
-                // Configure all routes
                 publicRoutes(appConfig, sessionManager)
                 debugRoutes(sessionManager)
                 sessionRoutes(appConfig, sessionManager, devmode)
