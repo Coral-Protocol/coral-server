@@ -23,6 +23,7 @@ object EnvVars {
                 " This is optional but prevents rate limits", null, true),
         EnvVarDef("GOOGLE_API_KEY", "Google API Key", null, true),
         EnvVarDef("FIRECRAWL_API_KEY", "Google API Key", null, true),
+        EnvVarDef("CHUNKR_API_KEY", "Chunkr api key.", null, true),
         EnvVarDef("SEARCH_ENGINE_ID", "Search Engine ID", null, true),
         EnvVarDef("OPENROUTER_API_KEY", "OpenRouter API Key", null, true),
         EnvVarDef("TASK_INSTRUCTION", "The task to instruct the", "", false),

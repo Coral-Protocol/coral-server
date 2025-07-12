@@ -58,6 +58,7 @@ data class GaiaAnswerAttempt(
     val questionId: String,
     val answer: String,
     val sessionId: String,
+    val certaintyPercentage: Int? = null,
     val justification: String
 ) {
     @Transient
@@ -308,9 +309,19 @@ fun createServerWithRegisteredAgents(): CoralServer {
 data class GaiaResult(
     val question: GaiaQuestion,
     val answerAttempt: GaiaAnswerAttempt,
-    val isCorrect: Boolean = question.finalAnswer.lowercase() == answerAttempt.answer.lowercase(),
     val threads: List<ResolvedThread>? = null
-)
+) {
+    val isCorrect: Boolean = checkCorrectness()
+
+    private fun checkCorrectness(): Boolean = when {
+        question.finalAnswer == "?" -> { // Test set has unknown answers
+            println("Total confidence: ${answerAttempt.certaintyPercentage}%")
+            !answerAttempt.answer.contains("give up", ignoreCase = true)
+        }
+
+        else -> question.finalAnswer.lowercase() == answerAttempt.answer.lowercase()
+    }
+}
 
 fun saveResultToFile(result: GaiaResult) {
     println("Saving result for question: ${result.question}, session: ${result.answerAttempt.sessionId}")
@@ -377,7 +388,7 @@ suspend fun main(args: Array<String>) {
         println("Total correct answers: ${existingResults.count { it.isCorrect }}, Total incorrect answers: ${existingResults.count { !it.isCorrect }}")
         val semaphore = Semaphore(2)
         val context = CoroutineScope(SupervisorJob())
-        questions.map { question ->
+        questionsWithoutCorrectAnswers.map { question ->
             context.async {
                 semaphore.withPermit {
                     try {
@@ -387,21 +398,21 @@ suspend fun main(args: Array<String>) {
                             println("Waiting for answer to question: ${question.question}")
                             val answerAttempt = answerDeferred.await()
                             println("${answerAttempt.questionId} took ${(System.currentTimeMillis() - startTime) / 1000}s")
-                            if (question.finalAnswer.lowercase() != answerAttempt.answer.lowercase()) {
-                                println("The answer attempt is incorrect! Expected: ${question.finalAnswer}, got: ${answerAttempt.answer}")
-                            } else {
-                                println("The answer attempt is correct!")
-                                correctAnswersCount++
-                            }
+
                             val relevantSession = server.sessionManager.getSession(answerAttempt.sessionId)
                                 ?: throw IllegalStateException("Session not found for answer attempt: ${answerAttempt.sessionId}")
                             val questionAnswerPair = question to answerAttempt
                             val result = GaiaResult(
                                 question = question,
                                 answerAttempt = answerAttempt,
-                                isCorrect = question.finalAnswer.lowercase() == answerAttempt.answer.lowercase(),
                                 relevantSession.getAllThreads().map { it.resolve() }
                             )
+                            if (result.isCorrect) {
+                                println("The answer attempt is incorrect! Expected: ${question.finalAnswer}, got: ${answerAttempt.answer}")
+                            } else {
+                                println("The answer attempt is correct! (or not given up if test set)")
+                                correctAnswersCount++
+                            }
                             saveResultToFile(result)
                             results.add(result)
                             questionAnswerPairs.add(questionAnswerPair)
