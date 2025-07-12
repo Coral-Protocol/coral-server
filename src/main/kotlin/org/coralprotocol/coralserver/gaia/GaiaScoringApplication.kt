@@ -408,10 +408,10 @@ suspend fun main(args: Array<String>) {
                                 relevantSession.getAllThreads().map { it.resolve() }
                             )
                             if (result.isCorrect) {
-                                println("The answer attempt is incorrect! Expected: ${question.finalAnswer}, got: ${answerAttempt.answer}")
-                            } else {
                                 println("The answer attempt is correct! (or not given up if test set)")
                                 correctAnswersCount++
+                            } else {
+                                println("The answer attempt is incorrect! Expected: ${question.finalAnswer}, got: ${answerAttempt.answer}")
                             }
                             saveResultToFile(result)
                             results.add(result)
