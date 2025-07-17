@@ -3,5 +3,6 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/coral-GAIA" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/coral-GAIA/agents/nimble-agent" vcs="Git" />
   </component>
 </project>
