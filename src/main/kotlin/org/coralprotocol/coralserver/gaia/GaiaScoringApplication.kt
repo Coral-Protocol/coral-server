@@ -338,7 +338,7 @@ fun saveResultToFile(result: GaiaResult) {
 }
 
 fun loadAllGaiaResults(): Set<GaiaResult> {
-    val resultsDir = GaiaConfig.gaiaQuestionSet.resultsDir
+    val resultsDir = File("/Users/caelum/IdeaProjects/coral-server/coral-GAIA/results")
     if (!resultsDir.exists()) {
         return emptySet()
     }
@@ -347,6 +347,28 @@ fun loadAllGaiaResults(): Set<GaiaResult> {
         val content = file.readText()
         Json.decodeFromString<GaiaResult>(content)
     }.toSet()
+}
+
+val jsonWithDefaults = Json {
+    prettyPrint = true
+    isLenient = true
+    encodeDefaults = true
+}
+
+
+@Serializable
+data class VisualizableResult(
+    val result: GaiaResult
+) {
+    /**
+     * The total character count of all messages in the threads of the result.
+     *
+     * Note this will be significantly smaller than the total number of characters/tokens used in the answer attempt.
+     */
+    val characterCount: Int = result.threads?.sumOf { thread -> thread.messages.sumOf { it.content.length } } ?: run {
+        throw IllegalStateException("Threads are null for result: ${result.question.taskId}")
+    }
+
 }
 
 suspend fun main(args: Array<String>) {
@@ -362,7 +384,7 @@ suspend fun main(args: Array<String>) {
         var allAnswersCount = 0
         val questionAnswerPairs = mutableListOf<Pair<GaiaQuestion, GaiaAnswerAttempt>>()
         val results = mutableSetOf<GaiaResult>()
-        val existingResults = loadAllGaiaResults()
+        val existingResults = loadAllGaiaResults().filter { it.threads != null }
         val questionsWithoutCorrectAnswers = questions.filter { question ->
             existingResults.none { result ->
                 result.question.taskId == question.taskId && result.isCorrect
@@ -373,22 +395,38 @@ suspend fun main(args: Array<String>) {
                 result.question.taskId == question.taskId && result.isCorrect
             }
         }
+
         val questionsWithAnyAnswers = questions.filter { question ->
             existingResults.any { result ->
                 result.question.taskId == question.taskId
             }
         }
+        val questionsWithoutAnswers = questions.toSet().subtract(questionsWithAnyAnswers.toSet())
+
+
         val percentOfAnsweredQuestionsCorrect = if (questionsWithAnyAnswers.isNotEmpty()) {
             questionsWithCorrectAnswers.size.toDouble() / questionsWithAnyAnswers.size * 100
         } else {
             0.0
         }
+        val uniqueCorrectQuestions = questionsWithCorrectAnswers.distinctBy { it.taskId }.toSet()
+
+        val distinctResultsAllCorrectIncluded = uniqueCorrectQuestions + questionsWithoutCorrectAnswers.distinctBy { it.taskId }
+        val ressieBois =
+            distinctResultsAllCorrectIncluded.mapNotNull { question -> existingResults.find { it.question.taskId == question.taskId } }.map { VisualizableResult(it) }
+
+
+        File("ressieBois.json").writeText(jsonWithDefaults.encodeToString(
+                ressieBois
+            )
+        )
+
         println("Percent of questions with correct answers: $percentOfAnsweredQuestionsCorrect%")
         println("Total questions: ${questions.size}, Questions with correct answers: ${questionsWithCorrectAnswers.size}, Questions without correct answers: ${questionsWithoutCorrectAnswers.size}, Questions with any answers: ${questionsWithAnyAnswers.size}")
         println("Total correct answers: ${existingResults.count { it.isCorrect }}, Total incorrect answers: ${existingResults.count { !it.isCorrect }}")
         val semaphore = Semaphore(2)
         val context = CoroutineScope(SupervisorJob())
-        questionsWithoutCorrectAnswers.map { question ->
+        questionsWithoutAnswers.map { question ->
             context.async {
                 semaphore.withPermit {
                     try {

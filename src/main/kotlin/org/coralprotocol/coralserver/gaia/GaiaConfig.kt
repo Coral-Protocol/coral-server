@@ -12,7 +12,7 @@ enum class GaiaQuestionSet(
 }
 
 object GaiaConfig {
-    val gaiaQuestionSet = GaiaQuestionSet.TEST
+    val gaiaQuestionSet = GaiaQuestionSet.VALIDATION
     val multiAgentSystemRootDir =
         File("coral-GAIA")
             .apply { if (!exists()) throw IllegalStateException("Multi-agent system root directory does not exist: $absolutePath" +
