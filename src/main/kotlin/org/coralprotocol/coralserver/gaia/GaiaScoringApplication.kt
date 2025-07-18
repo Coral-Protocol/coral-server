@@ -338,7 +338,7 @@ fun saveResultToFile(result: GaiaResult) {
 }
 
 fun loadAllGaiaResults(): Set<GaiaResult> {
-    val resultsDir = File("/Users/caelum/IdeaProjects/coral-server/coral-GAIA/results")
+    val resultsDir = GaiaConfig.gaiaQuestionSet.resultsDir
     if (!resultsDir.exists()) {
         return emptySet()
     }
