@@ -192,6 +192,12 @@ class GaiaApplication(val server: CoralServer) {
         optionsMap["TASK_ID"] = JsonPrimitive(question.taskId)
         optionsMap["AGENT_WORKING_DIRECTORY"] =
             JsonPrimitive(GaiaConfig.getOrCreateSessionWorkingDirectory(question.taskId).absolutePath)
+        optionsMap["GOOGLE_SEARCH_CACHE_LOCATION"] = JsonPrimitive(
+            GaiaConfig.multiAgentSystemRootDir.resolve("google_search_cache.json").absolutePath
+        )
+        optionsMap["GOOGLE_SEARCH_CACHE_PLAIN_LOCATION"] = JsonPrimitive(
+            GaiaConfig.multiAgentSystemRootDir.resolve("google_search_cache_plain.json").absolutePath
+        )
 
         return optionsMap
     }
@@ -240,6 +246,7 @@ class GaiaApplication(val server: CoralServer) {
 
 private suspend fun GaiaApplication.endSession(responseBody: CreateSessionResponse) {
     println("Ending session with ID: ${responseBody.sessionId}")
+    delay(100) // Ensure the log has time to be printed before errors from agent termination show
     // Wait for the answer attempt to be emitted
     server.sessionManager.getSession(responseBody.sessionId)?.let { session ->
         server.sessionManager.orchestrator.destroy(session.id)

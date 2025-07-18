@@ -33,6 +33,16 @@ object EnvVars {
             null,
             false
         ),
+        EnvVarDef("GOOGLE_SEARCH_CACHE_LOCATION",
+            "Location of the Google search cache directory",
+            null,
+            false
+        ),
+        EnvVarDef("GOOGLE_SEARCH_CACHE_PLAIN_LOCATION",
+            "Location of the Google search cache directory",
+            null,
+            false
+        ),
     )
 
     // Map of environment variable names to their values

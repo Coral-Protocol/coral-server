@@ -234,7 +234,11 @@ class CoralAgentGraphSession(
         agentNotifications[agentId] = deferred
 
         val result = kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
-            deferred.await()
+            val startTime = System.currentTimeMillis()
+            val res = deferred.await()
+            val elapsedTime = System.currentTimeMillis() - startTime
+            logger.info { "Waited for mentions for agent $agentId for $elapsedTime ms" }
+            res
         } ?: emptyList()
 
         agentNotifications.remove(agentId)
