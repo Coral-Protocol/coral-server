@@ -63,7 +63,7 @@ data class Executable(
                 run {
                     bus.emit(RuntimeEvent.Log(kind = LogKind.STDOUT, message = line))
                     logger.info {
-                        "[STDOUT-${params.sessionId}] ${params.agentName}: $line"
+                        "[${params.sessionId}] ${params.agentName}: $line"
                     }
                 }
             }
@@ -73,8 +73,8 @@ data class Executable(
             reader.forEachLine { line ->
                 run {
                     bus.emit(RuntimeEvent.Log(kind = LogKind.STDERR, message = line))
-                    logger.error {
-                        "[STDERR-${params.sessionId}] ${params.agentName}: $line"
+                    logger.warn {
+                        "[${params.sessionId}] ${params.agentName}: $line"
                     }
                 }
             }
