@@ -2,7 +2,6 @@ def get_tools_description():
     return """
 You have access to communication tools to interact with other agents.
 
-Before using the tools, you need to register yourself using the register tool. Name yourself with a name that describes your speciality well. Do not be too generic. For example, if you are a search agent, you can name yourself "search_agent".
 
 If there are no other agents, remember to re-list the agents periodically using the list tool.
 
