@@ -5,7 +5,7 @@ plugins {
 }
 
 application {
-    mainClass.set("org.coralprotocol.coralserver.MainKt")
+    mainClass.set("org.coralprotocol.coralserver.gaia.GaiaScoringApplicationKt")
 }
 
 group = "org.coralprotocol"
