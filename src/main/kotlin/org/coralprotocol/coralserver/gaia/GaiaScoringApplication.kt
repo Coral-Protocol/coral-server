@@ -47,6 +47,7 @@ val serverPort: UShort = 5555u
 val assistantAgent = AgentType("assistant")
 val imageAgent = AgentType("image")
 val planningAgent = AgentType("planning")
+val critiqueAgent = AgentType("critique")
 val searchAgent = AgentType("search")
 val videoAgent = AgentType("video")
 val webAgent = AgentType("web")
@@ -226,6 +227,7 @@ class GaiaApplication(val server: CoralServer) {
                 agents = hashMapOf(
                     getAgentInstanceReference(commonOptions, "search", searchAgent),
                     getAgentInstanceReference(commonOptions, "planning", planningAgent),
+                    getAgentInstanceReference(commonOptions, "critique", critiqueAgent),
                     getAgentInstanceReference(commonOptions, "assistant", assistantAgent),
                     getAgentInstanceReference(commonOptions, "image", imageAgent),
                     getAgentInstanceReference(commonOptions, "video", videoAgent),
@@ -285,6 +287,7 @@ fun createServerWithRegisteredAgents(): CoralServer {
         mapOf(
             createAgentRegistryEntry(searchAgent, "search"),
             createAgentRegistryEntry(planningAgent, "planning"),
+            createAgentRegistryEntry(critiqueAgent, "critique"),
             createAgentRegistryEntry(assistantAgent, "assistant"),
             createAgentRegistryEntry(imageAgent, "image"),
             createAgentRegistryEntry(videoAgent, "video"),
