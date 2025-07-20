@@ -12,6 +12,7 @@ enum class GaiaQuestionSet(
 }
 
 object GaiaConfig {
+    val maxPassesPerTask: Int = 3
     val gaiaQuestionSet = GaiaQuestionSet.VALIDATION
     val multiAgentSystemRootDir =
         File("coral-GAIA")

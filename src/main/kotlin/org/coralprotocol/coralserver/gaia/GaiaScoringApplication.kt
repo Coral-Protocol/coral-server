@@ -3,6 +3,7 @@ package org.coralprotocol.coralserver.gaia
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.config.AppConfig
 import org.coralprotocol.coralserver.config.AppConfigLoader
@@ -123,6 +124,24 @@ val jsonWithDefaults = Json {
     encodeDefaults = true
 }
 
+@Serializable
+data class ReportMetadata(
+    val models: List<String>,
+    val notes: String,
+    val questionSetName: String = GaiaConfig.gaiaQuestionSet.name,
+    val maxPassesPerTask: Int = GaiaConfig.maxPassesPerTask,
+)
+
+@Serializable
+data class Report(
+    val reportMetadata: ReportMetadata,
+    val results: List<VisualizableResult>,
+)
+
+private fun askStdin(prompt: String): String {
+    print(prompt)
+    return readln().trim()
+}
 
 suspend fun main(args: Array<String>) {
     val server = createServerWithRegisteredAgents()
@@ -164,26 +183,47 @@ suspend fun main(args: Array<String>) {
         }
         val uniqueCorrectQuestions = questionsWithCorrectAnswers.distinctBy { it.taskId }.toSet()
 
-        val distinctResultsAllCorrectIncluded = uniqueCorrectQuestions + questionsWithoutCorrectAnswers.distinctBy { it.taskId }
-        val ressieBois =
-            distinctResultsAllCorrectIncluded.mapNotNull { question -> existingResults.find { it.question.taskId == question.taskId } }.map { VisualizableResult(it) }
-
-
-        File("ressieBois.json").writeText(jsonWithDefaults.encodeToString(
-                ressieBois
-            )
-        )
+        val distinctResultsAllCorrectIncluded =
+            uniqueCorrectQuestions + questionsWithoutCorrectAnswers.distinctBy { it.taskId }
 
         println("Percent of questions with correct answers: $percentOfAnsweredQuestionsCorrect%")
         println("Total questions: ${questions.size}, Questions with correct answers: ${questionsWithCorrectAnswers.size}, Questions without correct answers: ${questionsWithoutCorrectAnswers.size}, Questions with any answers: ${questionsWithAnyAnswers.size}")
         println("Total correct answers: ${existingResults.count { it.isCorrect }}, Total incorrect answers: ${existingResults.count { !it.isCorrect }}")
+        val reportMetadata = ReportMetadata(
+            models = askStdin("Models in use? (separated by commas)").split(",").map { it.trim() },
+            notes = askStdin("Any notes for the report?"),
+            questionSetName = GaiaConfig.gaiaQuestionSet.setId,
+            maxPassesPerTask = GaiaConfig.maxPassesPerTask
+        )
+        println("Report metadata: $reportMetadata")
+
+        fun saveReport() {
+            val resultsForReport =
+                distinctResultsAllCorrectIncluded.mapNotNull { question -> existingResults.find { it.question.taskId == question.taskId } }
+                    .map { VisualizableResult(it) }
+            val resultsFile = File(
+                "report-${reportMetadata.questionSetName}-${
+                    reportMetadata.models.sorted().joinToString("-") { it.lowercase() }
+                }-${System.currentTimeMillis()}.json"
+            )
+            resultsFile.writeText(
+                jsonWithDefaults.encodeToString(
+                    Report(
+                        reportMetadata = reportMetadata,
+                        results = resultsForReport
+                    )
+                )
+            )
+        }
+        saveReport()
+
         val semaphore = Semaphore(2)
         val context = CoroutineScope(SupervisorJob())
         questionsWithoutCorrectAnswers.map { question ->
             context.async {
                 semaphore.withPermit {
                     try {
-                        withTimeout(600 * 1000) {
+                        withTimeout(1000 * 1000) {
                             val startTime = System.currentTimeMillis()
                             val answerDeferred = findAnswer(question)
                             println("Waiting for answer to question: ${question.question}")
@@ -210,12 +250,37 @@ suspend fun main(args: Array<String>) {
                         }
                     } catch (e: TimeoutCancellationException) {
                         println("Timeout while waiting for answer to question: ${question.question}")
+                        results.add(
+                            GaiaResult(
+                                question = question,
+                                answerAttempt = GaiaAnswerAttempt(
+                                    questionId = question.taskId,
+                                    answer = "Timeout [nothing submitted]",
+                                    justification = "Timeout while waiting for answer",
+                                    sessionId = "",
+                                    certaintyPercentage = 0
+                                ),
+                                isTimeout = true
+                            )
+                        )
                         e.printStackTrace()
                     } catch (e: Exception) {
                         println("Error while waiting for answer to question: ${question.question}")
+                        results.add(
+                            GaiaResult(
+                                question = question,
+                                answerAttempt = GaiaAnswerAttempt(
+                                    questionId = question.taskId,
+                                    answer = "Error [nothing submitted]",
+                                    justification = "Error while waiting for answer: ${e.message}",
+                                    sessionId = "",
+                                    certaintyPercentage = 0
+                                ),
+                                isOtherError = true
+                            )
+                        )
                         e.printStackTrace()
                     }
-
 
                     allAnswersCount++
                     println("So far, correct answers: $correctAnswersCount, all answers: $allAnswersCount, total questions: ${questions.size}")
@@ -226,6 +291,7 @@ suspend fun main(args: Array<String>) {
         File("coral-GAIA/answers.json").writeText(Json.encodeToString(results))
         val json = Json.encodeToString(questionAnswerPairs)
         File("coral-GAIA/results+${System.currentTimeMillis()}.json").writeText(json)
+        saveReport()
         server.stop()
     }
 }
