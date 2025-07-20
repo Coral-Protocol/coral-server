@@ -178,6 +178,15 @@ suspend fun main(args: Array<String>) {
         var allAnswersCount = 0
         val questionAnswerPairs = mutableListOf<Pair<GaiaQuestion, GaiaAnswerAttempt>>()
         val results = mutableSetOf<GaiaResult>()
+
+        val reportMetadata = ReportMetadata(
+            models = askStdin("Models in use? (separated by commas)").split(",").map { it.trim() },
+            notes = askStdinMultiline("Any notes for the report?"),
+            questionSetName = GaiaConfig.gaiaQuestionSet.setId,
+            maxPassesPerTask = GaiaConfig.maxPassesPerTask
+        )
+        println("Report metadata: $reportMetadata")
+
         val existingResults = loadAllGaiaResults().filter { it.threads != null }
         val questionsWithoutCorrectAnswers = questions.filter { question ->
             existingResults.none { result ->
@@ -197,32 +206,42 @@ suspend fun main(args: Array<String>) {
         }
         val questionsWithoutAnswers = questions.toSet().subtract(questionsWithAnyAnswers.toSet())
 
-
-        val percentOfAnsweredQuestionsCorrect = if (questionsWithAnyAnswers.isNotEmpty()) {
-            questionsWithCorrectAnswers.size.toDouble() / questionsWithAnyAnswers.size * 100
-        } else {
-            0.0
-        }
-        val uniqueCorrectQuestions = questionsWithCorrectAnswers.distinctBy { it.taskId }.toSet()
-
-        val distinctResultsAllCorrectIncluded =
-            uniqueCorrectQuestions + questionsWithoutCorrectAnswers.distinctBy { it.taskId }
-
-        println("Percent of questions with correct answers: $percentOfAnsweredQuestionsCorrect%")
-        println("Total questions: ${questions.size}, Questions with correct answers: ${questionsWithCorrectAnswers.size}, Questions without correct answers: ${questionsWithoutCorrectAnswers.size}, Questions with any answers: ${questionsWithAnyAnswers.size}")
-        println("Total correct answers: ${existingResults.count { it.isCorrect }}, Total incorrect answers: ${existingResults.count { !it.isCorrect }}")
-        val reportMetadata = ReportMetadata(
-            models = askStdin("Models in use? (separated by commas)").split(",").map { it.trim() },
-            notes = askStdinMultiline("Any notes for the report?"),
-            questionSetName = GaiaConfig.gaiaQuestionSet.setId,
-            maxPassesPerTask = GaiaConfig.maxPassesPerTask
-        )
-        println("Report metadata: $reportMetadata")
-
         fun saveReport() {
+            val existingResults = loadAllGaiaResults().filter { it.threads != null }
+            val questionsWithoutCorrectAnswers = questions.filter { question ->
+                existingResults.none { result ->
+                    result.question.taskId == question.taskId && result.isCorrect
+                }
+            }
+            val questionsWithCorrectAnswers = questions.filter { question ->
+                existingResults.any { result ->
+                    result.question.taskId == question.taskId && result.isCorrect
+                }
+            }
+
+            val questionsWithAnyAnswers = questions.filter { question ->
+                existingResults.any { result ->
+                    result.question.taskId == question.taskId
+                }
+            }
+            val questionsWithoutAnswers = questions.toSet().subtract(questionsWithAnyAnswers.toSet())
+            val percentOfAnsweredQuestionsCorrect = if (questionsWithAnyAnswers.isNotEmpty()) {
+                questionsWithCorrectAnswers.size.toDouble() / questionsWithAnyAnswers.size * 100
+            } else {
+                0.0
+            }
+            val uniqueCorrectQuestions = questionsWithCorrectAnswers.distinctBy { it.taskId }.toSet()
+
+            val distinctResultsAllCorrectIncluded =
+                uniqueCorrectQuestions + questionsWithoutCorrectAnswers.distinctBy { it.taskId }
             val resultsForReport =
                 distinctResultsAllCorrectIncluded.mapNotNull { question -> existingResults.find { it.question.taskId == question.taskId } }
                     .map { VisualizableResult(it) }
+
+            println("Percent of questions with correct answers: $percentOfAnsweredQuestionsCorrect%")
+            println("Total questions: ${questions.size}, Questions with correct answers: ${questionsWithCorrectAnswers.size}, Questions without correct answers: ${questionsWithoutCorrectAnswers.size}, Questions with any answers: ${questionsWithAnyAnswers.size}")
+            println("Total correct answers: ${existingResults.count { it.isCorrect }}, Total incorrect answers: ${existingResults.count { !it.isCorrect }}")
+
             val resultsFile = File(
                 "report-${reportMetadata.questionSetName}-${
                     reportMetadata.models.sorted().joinToString("-") { it.lowercase() }
@@ -239,9 +258,9 @@ suspend fun main(args: Array<String>) {
         }
         saveReport()
 
-        val semaphore = Semaphore(32)
+        val semaphore = Semaphore(48)
         val context = CoroutineScope(SupervisorJob())
-        questionsWithoutCorrectAnswers.map { question ->
+        questionsWithoutAnswers.map { question ->
             context.async {
                 semaphore.withPermit {
                     try {
@@ -272,7 +291,7 @@ suspend fun main(args: Array<String>) {
                         }
                     } catch (e: TimeoutCancellationException) {
                         println("Timeout while waiting for answer to question: ${question.question}")
-                        results.add(
+                        val result =
                             GaiaResult(
                                 question = question,
                                 answerAttempt = GaiaAnswerAttempt(
@@ -284,11 +303,12 @@ suspend fun main(args: Array<String>) {
                                 ),
                                 isTimeout = true
                             )
-                        )
+                        results.add(result)
+                        saveResultToFile(result)
                         e.printStackTrace()
                     } catch (e: Exception) {
                         println("Error while waiting for answer to question: ${question.question}")
-                        results.add(
+                        val result =
                             GaiaResult(
                                 question = question,
                                 answerAttempt = GaiaAnswerAttempt(
@@ -300,7 +320,9 @@ suspend fun main(args: Array<String>) {
                                 ),
                                 isOtherError = true
                             )
-                        )
+
+                        results.add(result)
+                        saveResultToFile(result)
                         e.printStackTrace()
                     }
 
