@@ -143,6 +143,19 @@ private fun askStdin(prompt: String): String {
     return readln().trim()
 }
 
+private fun askStdinMultiline(prompt: String): String {
+    println(prompt + " (type 'END' on a new line to finish):")
+    val lines = mutableListOf<String>()
+    while (true) {
+        val line = readln().trim()
+        if (line.trim() == "END") {
+            break
+        }
+        lines.add(line)
+    }
+    return lines.joinToString("\n")
+}
+
 suspend fun main(args: Array<String>) {
     val server = createServerWithRegisteredAgents()
     val questionSet: GaiaQuestionSet = GaiaConfig.gaiaQuestionSet
@@ -200,7 +213,7 @@ suspend fun main(args: Array<String>) {
         println("Total correct answers: ${existingResults.count { it.isCorrect }}, Total incorrect answers: ${existingResults.count { !it.isCorrect }}")
         val reportMetadata = ReportMetadata(
             models = askStdin("Models in use? (separated by commas)").split(",").map { it.trim() },
-            notes = askStdin("Any notes for the report?"),
+            notes = askStdinMultiline("Any notes for the report?"),
             questionSetName = GaiaConfig.gaiaQuestionSet.setId,
             maxPassesPerTask = GaiaConfig.maxPassesPerTask
         )
