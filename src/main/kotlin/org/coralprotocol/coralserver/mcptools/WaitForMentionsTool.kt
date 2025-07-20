@@ -14,7 +14,7 @@ import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import java.time.Instant.*
 
-private val logger = KotlinLogging.logger {}
+private val logger = KotlinLogging.logger(name = "Mentions")
 
 /**
  * Extension function to add the wait for mentions tool to a server.

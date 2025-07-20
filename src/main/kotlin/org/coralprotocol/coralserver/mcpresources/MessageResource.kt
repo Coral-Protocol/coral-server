@@ -29,6 +29,9 @@ suspend fun CoralAgentGraphSession.render(forParticipant: String): String {
         while (this.getAllThreads().none { it.participants.contains(forParticipant) }) {
             delay(1000) // Wait for 1 second before checking again
         }
+
+        // Let the planning agent send a message to the thread
+        delay(10000)
     }
     val resolvedThreads: List<ResolvedThread> = this.getAllThreads().map { it.resolve() }
     if( resolvedThreads.isEmpty()) {

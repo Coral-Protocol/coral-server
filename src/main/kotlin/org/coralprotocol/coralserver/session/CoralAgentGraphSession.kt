@@ -151,6 +151,8 @@ class CoralAgentGraphSession(
             thread.participants.add(participantId)
             lastReadMessageIndex[Pair(participantId, threadId)] = 0
         }
+
+        logger.info { "Adding $participantId to $thread" }
         return true
     }
 

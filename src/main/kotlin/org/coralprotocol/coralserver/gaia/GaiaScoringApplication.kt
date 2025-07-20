@@ -148,6 +148,15 @@ suspend fun main(args: Array<String>) {
     val questionSet: GaiaQuestionSet = GaiaConfig.gaiaQuestionSet
     val questions = loadGaiaQuestions(questionSet.metadataFile)
 
+    Runtime.getRuntime().addShutdownHook(Thread {
+        println("Shutting down server...")
+        server.stop()
+
+        ProcessBuilder()
+            .command("pkill", "python")
+            .start()
+    })
+
     GaiaApplication(server).apply {
         server.start()
         startAnswerServer(wait = false)
@@ -217,7 +226,7 @@ suspend fun main(args: Array<String>) {
         }
         saveReport()
 
-        val semaphore = Semaphore(2)
+        val semaphore = Semaphore(32)
         val context = CoroutineScope(SupervisorJob())
         questionsWithoutCorrectAnswers.map { question ->
             context.async {

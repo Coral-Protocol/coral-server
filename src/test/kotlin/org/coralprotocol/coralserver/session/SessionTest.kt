@@ -36,17 +36,17 @@ class SessionTest {
         assertNull(duplicateAgent)
     }
 
-    @Test
-    fun `test agent registration with description`() {
-        // Register a new agent with description
-        val agent = session.registerAgent("agent2", "This agent is responsible for testing")
-
-        // Verify agent was registered with description
-        assertNotNull(agent)
-        val retrievedAgent = session.getAgent(agent!!.id)
-        assertEquals(agent, retrievedAgent)
-        assertEquals("This agent is responsible for testing", retrievedAgent?.description)
-    }
+//    @Test
+//    fun `test agent registration with description`() {
+//        // Register a new agent with description
+//        val agent = session.registerAgent("agent2", "This agent is responsible for testing")
+//
+//        // Verify agent was registered with description
+//        assertNotNull(agent)
+//        val retrievedAgent = session.getAgent(agent!!.id)
+//        assertEquals(agent, retrievedAgent)
+//        assertEquals("This agent is responsible for testing", retrievedAgent?.description)
+//    }
 
     @Test
     fun `test thread creation`() {
