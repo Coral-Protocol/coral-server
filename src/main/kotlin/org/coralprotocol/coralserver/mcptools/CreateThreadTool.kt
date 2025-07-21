@@ -57,7 +57,7 @@ private fun CoralAgentIndividualMcp.handleCreateThread(request: CallToolRequest)
         val thread = coralAgentGraphSession.createThread(
             name = input.threadName,
             creatorId = connectedAgentId,
-            participantIds = input.participantIds
+            participantIds = input.participantIds + connectedAgentId
         )
 
         return CallToolResult(

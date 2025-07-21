@@ -100,7 +100,7 @@ suspend fun CoralAgentGraphSession.render(forParticipant: String): String {
             }
         }
                     </participants>
-                    <id>${thread.id}</id>
+                    <id>${thread.id}</id> (Use this ID to send messages to the thread)
                     <messages>
                         ${
             thread.messages.sortedBy { it.timestamp }.joinToString(separator = "\n") { message ->
@@ -112,6 +112,7 @@ suspend fun CoralAgentGraphSession.render(forParticipant: String): String {
         }
                     </messages>
                 </thread>
+        Remember to add another agent as a participant to the thread if you want them to see the messages or if their input could be valuable.
 """
 
     }
