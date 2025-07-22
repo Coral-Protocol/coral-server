@@ -20,8 +20,10 @@ import org.coralprotocol.coralserver.orchestrator.runtime.executable.EnvVar
 import org.coralprotocol.coralserver.server.CoralServer
 import org.coralprotocol.coralserver.session.*
 import java.io.File
+import java.io.IOException
 
 val serverPort: UShort = 5555u
+val reportMetadataFile = File(GaiaConfig.multiAgentSystemRootDir, "report_metadata.json")
 
 val assistantAgent = AgentType("assistant")
 val imageAgent = AgentType("image")
@@ -118,6 +120,29 @@ fun loadAllGaiaResults(): Set<GaiaResult> {
     }.toSet()
 }
 
+fun saveReportMetadata(metadata: ReportMetadata) {
+    try {
+        reportMetadataFile.writeText(jsonWithDefaults.encodeToString(metadata))
+        println("Report metadata saved to ${reportMetadataFile.absolutePath}")
+    } catch (e: IOException) {
+        println("Failed to save report metadata: ${e.message}")
+    }
+}
+
+fun loadReportMetadata(): ReportMetadata? {
+    return try {
+        if (reportMetadataFile.exists()) {
+            val content = reportMetadataFile.readText()
+            Json.decodeFromString<ReportMetadata>(content)
+        } else {
+            null
+        }
+    } catch (e: Exception) {
+        println("Failed to load report metadata: ${e.message}")
+        null
+    }
+}
+
 val jsonWithDefaults = Json {
     prettyPrint = true
     isLenient = true
@@ -143,12 +168,35 @@ private fun askStdin(prompt: String): String {
     return readln().trim()
 }
 
-private fun askStdinMultiline(prompt: String): String {
-    println(prompt + " (type 'END' on a new line to finish):")
+private fun askStdinWithDefault(prompt: String, defaultValue: String? = null): String {
+    val promptWithDefault = if (defaultValue != null) "$prompt [Press Enter to use: $defaultValue]" else prompt
+    print(promptWithDefault)
+    val input = readln().trim()
+    return if (input.isEmpty() && defaultValue != null) defaultValue else input
+}
+
+private fun askStdinMultiline(prompt: String, defaultValue: String? = null): String {
+    val promptWithDefault = if (defaultValue != null)
+        "$prompt (type 'END' on a new line to finish, or just press Enter to use previous value)"
+    else
+        "$prompt (type 'END' on a new line to finish):"
+
+    println(promptWithDefault)
+
+    // If there's a default value and the user just presses Enter, return the default
+    val firstLine = readln().trim()
+    if (firstLine.isEmpty() && defaultValue != null) {
+        return defaultValue
+    }
+
     val lines = mutableListOf<String>()
+    if (firstLine != "END") {
+        lines.add(firstLine)
+    }
+
     while (true) {
         val line = readln().trim()
-        if (line.trim() == "END") {
+        if (line == "END") {
             break
         }
         lines.add(line)
@@ -179,13 +227,27 @@ suspend fun main(args: Array<String>) {
         val questionAnswerPairs = mutableListOf<Pair<GaiaQuestion, GaiaAnswerAttempt>>()
         val results = mutableSetOf<GaiaResult>()
 
+        // Load previous report metadata if available
+        val previousMetadata = loadReportMetadata()
+        val previousModels = previousMetadata?.models?.joinToString(", ")
+        val previousNotes = previousMetadata?.notes
+
+        // If previous metadata exists, inform the user
+        if (previousMetadata != null) {
+            println("Found previous report metadata:")
+            println("Models: $previousModels")
+            println("Notes: $previousNotes")
+        }
+
         val reportMetadata = ReportMetadata(
-            models = askStdin("Models in use? (separated by commas)").split(",").map { it.trim() },
-            notes = askStdinMultiline("Any notes for the report?"),
+            models = askStdinWithDefault("Models in use? (separated by commas)", previousModels).split(",")
+                .map { it.trim() }.filter { it.isNotEmpty() },
+            notes = askStdinMultiline("Any notes for the report?", previousNotes),
             questionSetName = GaiaConfig.gaiaQuestionSet.setId,
             maxPassesPerTask = GaiaConfig.maxPassesPerTask
         )
         println("Report metadata: $reportMetadata")
+        saveReportMetadata(reportMetadata)
 
         val existingResults = loadAllGaiaResults().filter { it.threads != null }
         val questionsWithoutCorrectAnswers = questions.filter { question ->
@@ -258,54 +320,35 @@ suspend fun main(args: Array<String>) {
         }
         saveReport()
 
-        val semaphore = Semaphore(48)
+        val semaphore = Semaphore(1)
         val context = CoroutineScope(SupervisorJob())
         questionsWithoutAnswers.map { question ->
             context.async {
                 semaphore.withPermit {
                     try {
-                        withTimeout(1000 * 1000) {
-                            val startTime = System.currentTimeMillis()
-                            val answerDeferred = findAnswer(question)
-                            println("Waiting for answer to question: ${question.question}")
-                            val answerAttempt = answerDeferred.await()
-                            println("${answerAttempt.questionId} took ${(System.currentTimeMillis() - startTime) / 1000}s")
+                        val startTime = System.currentTimeMillis()
+                        val answerDeferred = findAnswer(question)
+                        println("Waiting for answer to question: ${question.question}")
+                        val answerAttempt = answerDeferred.await()
+                        println("${answerAttempt.questionId} took ${(System.currentTimeMillis() - startTime) / 1000}s")
 
-                            val relevantSession = server.sessionManager.getSession(answerAttempt.sessionId)
-                                ?: throw IllegalStateException("Session not found for answer attempt: ${answerAttempt.sessionId}")
-                            val questionAnswerPair = question to answerAttempt
-                            val result = GaiaResult(
-                                question = question,
-                                answerAttempt = answerAttempt,
-                                relevantSession.getAllThreads().map { it.resolve() }
-                            )
-                            if (result.isCorrect) {
-                                println("The answer attempt is correct! (or not given up if test set)")
-                                correctAnswersCount++
-                            } else {
-                                println("The answer attempt is incorrect! Expected: ${question.finalAnswer}, got: ${answerAttempt.answer}")
-                            }
-                            saveResultToFile(result)
-                            results.add(result)
-                            questionAnswerPairs.add(questionAnswerPair)
+                        val relevantSession = server.sessionManager.getSession(answerAttempt.sessionId)
+                            ?: throw IllegalStateException("Session not found for answer attempt: ${answerAttempt.sessionId}")
+                        val questionAnswerPair = question to answerAttempt
+                        val result = GaiaResult(
+                            question = question,
+                            answerAttempt = answerAttempt,
+                            relevantSession.getAllThreads().map { it.resolve() }
+                        )
+                        if (result.isCorrect) {
+                            println("The answer attempt is correct! (or not given up if test set)")
+                            correctAnswersCount++
+                        } else {
+                            println("The answer attempt is incorrect! Expected: ${question.finalAnswer}, got: ${answerAttempt.answer}")
                         }
-                    } catch (e: TimeoutCancellationException) {
-                        println("Timeout while waiting for answer to question: ${question.question}")
-                        val result =
-                            GaiaResult(
-                                question = question,
-                                answerAttempt = GaiaAnswerAttempt(
-                                    questionId = question.taskId,
-                                    answer = "Timeout [nothing submitted]",
-                                    justification = "Timeout while waiting for answer",
-                                    sessionId = "",
-                                    certaintyPercentage = 0
-                                ),
-                                isTimeout = true
-                            )
-                        results.add(result)
                         saveResultToFile(result)
-                        e.printStackTrace()
+                        results.add(result)
+                        questionAnswerPairs.add(questionAnswerPair)
                     } catch (e: Exception) {
                         println("Error while waiting for answer to question: ${question.question}")
                         val result =

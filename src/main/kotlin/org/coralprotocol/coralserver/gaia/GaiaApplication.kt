@@ -116,8 +116,9 @@ class GaiaApplication(val server: CoralServer) {
 
         waitingForAnswerScope.launch {
             launch {
-                delay(10 * 60 * 1000)
+                delay(20 * 60 * 1000)
                 try {
+                    completableDeferred.complete(createIncompleteAnswer(question, responseBody.sessionId))
                     endSession(responseBody)
                 } catch (e: Exception) {
                     println("Failed to end session after timeout: ${e.message}")
@@ -135,6 +136,18 @@ class GaiaApplication(val server: CoralServer) {
         return completableDeferred
     }
 
+    /**
+     * Create a complete-as-possible attempt for a question.  Called when waiting for an answer times out
+     */
+    private fun createIncompleteAnswer(question: GaiaQuestion, sessionId: String): GaiaAnswerAttempt {
+        return GaiaAnswerAttempt(
+            questionId = question.taskId,
+            answer = "[Timeout [nothing submitted]]",
+            justification = "Timeout while waiting for answer",
+            certaintyPercentage = 0,
+            sessionId = sessionId
+        )
+    }
 
     /**
      * Helper function to create common options map for agent configuration

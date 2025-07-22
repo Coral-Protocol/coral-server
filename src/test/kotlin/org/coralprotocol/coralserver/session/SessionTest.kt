@@ -218,6 +218,111 @@ class SessionTest {
     }
 
     @Test
+    fun `test waiting for agent messages`() = runBlocking {
+        // Register agents
+        val creator = session.registerAgent("creator")
+        val participant = session.registerAgent("participant")
+        val otherAgent = session.registerAgent("otherAgent")
+
+        // Create a thread
+        val thread = session.createThread(
+            name = "Test Thread",
+            creatorId = "creator",
+            participantIds = listOf("participant", "otherAgent")
+        )
+
+        // Launch a coroutine to wait for messages from specific agents
+        val waitJob = launch(Dispatchers.Default) {
+            val messages = session.waitForAgentMessages(
+                agentId = "participant",
+                fromAgentIds = listOf("creator"),
+                timeoutMs = 5000
+            )
+
+            // Verify messages were received
+            assertFalse(messages.isEmpty())
+            assertEquals(1, messages.size)
+            assertEquals("Hello from creator!", messages[0].content)
+            assertEquals("creator", messages[0].sender.id)
+        }
+
+        // Wait a bit to ensure the wait operation has started
+        delay(100)
+
+        // Send a message from the creator
+        session.sendMessage(
+            threadId = thread?.id ?: "",
+            senderId = "creator",
+            content = "Hello from creator!",
+            mentions = listOf()
+        )
+
+        // Wait for the job to complete
+        waitJob.join()
+    }
+
+    @Test
+    fun `test waiting for agent messages with timeout`() = runBlocking {
+        // Register agents
+        val agent1 = session.registerAgent("agent1")
+        val agent2 = session.registerAgent("agent2")
+
+        // Wait for messages from agent2 with a short timeout
+        val messages = session.waitForAgentMessages(
+            agentId = "agent1",
+            fromAgentIds = listOf("agent2"),
+            timeoutMs = 100
+        )
+
+        // Verify no messages were received
+        assertTrue(messages.isEmpty())
+    }
+
+    @Test
+    fun `test waiting for messages from multiple agents`() = runBlocking {
+        // Register agents
+        val agent1 = session.registerAgent("agent1")
+        val agent2 = session.registerAgent("agent2")
+        val agent3 = session.registerAgent("agent3")
+
+        // Create a thread
+        val thread = session.createThread(
+            name = "Test Thread",
+            creatorId = "agent1",
+            participantIds = listOf("agent2", "agent3")
+        )
+
+        // Launch a coroutine to wait for messages from specific agents
+        val waitJob = launch(Dispatchers.Default) {
+            val messages = session.waitForAgentMessages(
+                agentId = "agent1",
+                fromAgentIds = listOf("agent2", "agent3"),
+                timeoutMs = 5000
+            )
+
+            // Verify messages were received
+            assertFalse(messages.isEmpty())
+            assertEquals(1, messages.size)
+            assertEquals("Hello from agent3!", messages[0].content)
+            assertEquals("agent3", messages[0].sender.id)
+        }
+
+        // Wait a bit to ensure the wait operation has started
+        delay(100)
+
+        // Send a message from agent3
+        session.sendMessage(
+            threadId = thread?.id ?: "",
+            senderId = "agent3",
+            content = "Hello from agent3!",
+            mentions = listOf()
+        )
+
+        // Wait for the job to complete
+        waitJob.join()
+    }
+
+    @Test
     fun `test listing all agents`() {
         // Register multiple agents
         val agent1 = session.registerAgent("agent1")

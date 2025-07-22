@@ -33,7 +33,7 @@ class CoralAgentIndividualMcp(
      * The ID of the agent associated with this connection.
      */
     val connectedAgentId: String,
-    val maxWaitForMentionsTimeoutMs: Long = 2000,
+    val maxWaitForMentionsTimeoutMs: Long = 120000,
     val extraTools: Set<CustomTool> = setOf(),
 ) : Server(
     Implementation(

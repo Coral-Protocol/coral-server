@@ -33,6 +33,7 @@ class CoralAgentGraphSession(
     private val threads = ConcurrentHashMap<String, Thread>()
 
     private val agentNotifications = ConcurrentHashMap<String, CompletableDeferred<List<Message>>>()
+    private val agentSenderNotifications = ConcurrentHashMap<Pair<String, List<String>>, CompletableDeferred<List<Message>>>()
 
     private val lastReadMessageIndex = ConcurrentHashMap<Pair<String, String>, Int>()
 
@@ -217,6 +218,23 @@ class CoralAgentGraphSession(
                 deferred.complete(listOf(message))
             }
         }
+
+        // Notify agents waiting for messages from specific senders
+        val senderId = message.sender.id
+        val thread = threads[message.thread.id] ?: return
+
+        // For each participant in the thread
+        thread.participants.forEach { participantId ->
+            // Check if they're waiting for messages from this sender
+            agentSenderNotifications.keys
+                .filter { it.first == participantId && it.second.contains(senderId) }
+                .forEach { key ->
+                    val deferred = agentSenderNotifications[key]
+                    if (deferred != null && !deferred.isCompleted) {
+                        deferred.complete(listOf(message))
+                    }
+                }
+        }
     }
 
     suspend fun waitForMentions(agentId: String, timeoutMs: Long): List<Message> {
@@ -246,6 +264,74 @@ class CoralAgentGraphSession(
         agentNotifications.remove(agentId)
 
         updateLastReadIndices(agentId, result)
+
+        return result
+    }
+
+    /**
+     * Wait for messages from specific agents in any thread the agent participates in.
+     * 
+     * @param agentId The ID of the agent waiting for messages
+     * @param fromAgentIds The IDs of the agents to wait for messages from
+     * @param timeoutMs The maximum time to wait in milliseconds
+     * @return A list of messages from the specified agents
+     */
+    suspend fun waitForAgentMessages(agentId: String, fromAgentIds: List<String>, timeoutMs: Long): List<Message> {
+        if (timeoutMs <= 0) {
+            throw IllegalArgumentException("Timeout must be greater than 0")
+        }
+
+        val agent = agents[agentId] ?: return emptyList()
+
+        // Check if there are any unread messages from the specified agents
+        val unreadMessages = getUnreadMessagesFromAgents(agentId, fromAgentIds)
+        if (unreadMessages.isNotEmpty()) {
+            updateLastReadIndices(agentId, unreadMessages)
+            return unreadMessages
+        }
+
+        // If no unread messages, wait for new messages
+        val deferred = CompletableDeferred<List<Message>>()
+        agentSenderNotifications[Pair(agentId, fromAgentIds)] = deferred
+
+        val result = kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
+            val startTime = System.currentTimeMillis()
+            val res = deferred.await()
+            val elapsedTime = System.currentTimeMillis() - startTime
+            logger.info { "Waited for messages from agents $fromAgentIds for agent $agentId for $elapsedTime ms" }
+            res
+        } ?: emptyList()
+
+        agentSenderNotifications.remove(Pair(agentId, fromAgentIds))
+
+        updateLastReadIndices(agentId, result)
+
+        return result
+    }
+
+    /**
+     * Get unread messages from specific agents in any thread the agent participates in.
+     * 
+     * @param agentId The ID of the agent to get unread messages for
+     * @param fromAgentIds The IDs of the agents to get messages from
+     * @return A list of unread messages from the specified agents
+     */
+    fun getUnreadMessagesFromAgents(agentId: String, fromAgentIds: List<String>): List<Message> {
+        val agent = agents[agentId] ?: return emptyList()
+
+        val result = mutableListOf<Message>()
+
+        val agentThreads = getThreadsForAgent(agentId)
+
+        for (thread in agentThreads) {
+            val lastReadIndex = lastReadMessageIndex[Pair(agentId, thread.id)] ?: 0
+
+            val unreadMessages = thread.messages.subList(lastReadIndex, thread.messages.size)
+
+            result.addAll(unreadMessages.filter {
+                fromAgentIds.contains(it.sender.id)
+            })
+        }
 
         return result
     }
