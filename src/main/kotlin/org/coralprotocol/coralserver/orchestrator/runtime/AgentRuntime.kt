@@ -8,6 +8,7 @@ import org.coralprotocol.coralserver.orchestrator.ConfigValue
 import org.coralprotocol.coralserver.orchestrator.Orchestrate
 import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
 import org.coralprotocol.coralserver.orchestrator.RuntimeEvent
+import org.coralprotocol.coralserver.session.SessionManager
 
 
 data class RuntimeParams(
@@ -33,6 +34,7 @@ sealed class AgentRuntime : Orchestrate {
         override fun spawn(
             params: RuntimeParams,
             bus: EventBus<RuntimeEvent>,
+            sessionManager: SessionManager?,
         ): OrchestratorHandle {
             TODO("request agent from remote server")
         }

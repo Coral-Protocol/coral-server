@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.runBlocking
 import org.coralprotocol.coralserver.config.AppConfigLoader
 import org.coralprotocol.coralserver.orchestrator.AgentRegistry
 import org.coralprotocol.coralserver.orchestrator.Orchestrator
@@ -43,6 +44,9 @@ fun main(args: Array<String>) {
                 logger.info { "Shutting down server..." }
                 appConfig.stopWatch()
                 server.stop()
+                runBlocking {
+                    orchestrator.destroy()
+                }
             })
 
             server.start(wait = true)
