@@ -9,11 +9,13 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
+import org.coralprotocol.coralserver.models.AgentState
 import org.coralprotocol.coralserver.orchestrator.ConfigValue
 import org.coralprotocol.coralserver.orchestrator.LogKind
 import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
 import org.coralprotocol.coralserver.orchestrator.RuntimeEvent
 import org.coralprotocol.coralserver.orchestrator.runtime.executable.EnvVar
+import org.coralprotocol.coralserver.session.SessionManager
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
@@ -28,6 +30,7 @@ data class Executable(
     override fun spawn(
         params: RuntimeParams,
         bus: EventBus<RuntimeEvent>,
+        sessionManager: SessionManager?,
     ): OrchestratorHandle {
         val processBuilder = ProcessBuilder()
         val processEnvironment = processBuilder.environment()
@@ -56,6 +59,14 @@ data class Executable(
         val process = processBuilder.start()
 
         // TODO (alan): re-evaluate this when it becomes a bottleneck
+
+        thread(isDaemon = true) {
+            process.waitFor()
+            bus.emit(RuntimeEvent.Stopped())
+            logger.warn {"Process exited for Agent {params.agentName}"};
+            sessionManager?.getSession(params.sessionId)?.setAgentState(params.agentName, AgentState.Dead);
+        }
+
         thread(isDaemon = true) {
             val reader = process.inputStream.bufferedReader()
             reader.forEachLine { line ->

@@ -10,6 +10,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 import nl.adaptivity.xmlutil.serialization.XML
+import org.coralprotocol.coralserver.models.AgentState
 import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
@@ -54,12 +55,15 @@ private suspend fun CoralAgentIndividualMcp.handleWaitForMentions(request: CallT
                 content = listOf(TextContent("Timeout must not exceed the maximum of $maxWaitForMentionsTimeoutMs ms"))
             )
         }
+
+        coralAgentGraphSession.setAgentState(agentId = connectedAgentId, state = AgentState.Listening)
         // Use the session to wait for mentions
         val messages = coralAgentGraphSession.waitForMentions(
             agentId = connectedAgentId,
             timeoutMs = input.timeoutMs
         )
 
+        coralAgentGraphSession.setAgentState(agentId = connectedAgentId, state = AgentState.Busy)
         if (messages.isNotEmpty()) {
             logger.info { "Received ${messages.size} messages for agent $connectedAgentId" }
             val formattedMessages = XML.encodeToString (messages.map { message -> message.resolve() })
@@ -74,6 +78,7 @@ private suspend fun CoralAgentIndividualMcp.handleWaitForMentions(request: CallT
     } catch (e: Exception) {
         val errorMessage = "Error waiting for mentions: ${e.message}"
         logger.error(e) { errorMessage }
+        coralAgentGraphSession.setAgentState(agentId = connectedAgentId, state = AgentState.Busy)
         return CallToolResult(
             content = listOf(TextContent(errorMessage))
         )
