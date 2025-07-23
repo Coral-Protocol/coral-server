@@ -101,11 +101,33 @@ private suspend fun handleSseConnection(
         existingSession
     }
     val currentCount = session.getRegisteredAgentsCount()
-    // Register the agent
-    val agent = session.registerAgent(agentId, uri, agentDescription, force = isDevMode || true)
-    if (agent == null) {
-        logger.info {"Agent ID $agentId already registered"}
-        sseProducer.call.respond(HttpStatusCode.BadRequest, "Agent ID already exists")
+
+    // TODO: better route err handling
+    val agent = try {
+        val agent = when (isDevMode) {
+            true -> {
+                val agent = session.registerAgent(agentId, uri, agentDescription, force = true)
+                session.connectAgent(agentId)
+                agent!! // never null when force = true
+            }
+            false -> {
+                val agent = session.connectAgent(agentId)
+                if(agent != null) {
+                    agent.description = agentDescription
+                    agent.mcpUrl = uri
+                }
+                agent
+            }
+        }
+        if (agent == null) {
+            logger.info { "Agent ID $agentId does not exist!" }
+            sseProducer.call.respond(HttpStatusCode.NotFound, "Agent ID does not exist")
+            return false
+        }
+        agent
+    } catch (e: Exception) {
+        logger.info { "Agent ID $agentId already connected!" }
+        sseProducer.call.respond(HttpStatusCode.BadRequest, "Agent ID already connected")
         return false
     }
 
@@ -150,5 +172,9 @@ private suspend fun handleSseConnection(
     }
 
     individualServer.connect(transport)
+    individualServer.onClose {
+        logger.info { "Agent $agentId disconnected via server." }
+        session.disconnectAgent(agentId);
+    }
     return true
 }
