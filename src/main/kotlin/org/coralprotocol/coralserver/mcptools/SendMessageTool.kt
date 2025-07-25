@@ -52,19 +52,21 @@ private suspend fun CoralAgentIndividualMcp.handleSendMessage(request: CallToolR
     try {
         val json = Json { ignoreUnknownKeys = true }
         val input = json.decodeFromString<SendMessageInput>(request.arguments.toString())
-        val message = coralAgentGraphSession.sendMessage(
-            threadId = input.threadId,
-            senderId = this.connectedAgentId,
-            content = input.content,
-            mentions = input.mentions
-        )
-        val mentionsSelf = message.mentions.contains(this.connectedAgentId)
+        val mentionsSelf = input.mentions.contains(this.connectedAgentId)
         if( mentionsSelf) {
             logger.warn { "${this.connectedAgentId} mentioned themselves in a message, which is not necessary and may reflect confusion. Failing." }
             return CallToolResult(
                 content = listOf(TextContent("You (${this.connectedAgentId}) mentioned yourself in the message, which is not necessary and may reflect confusion. Try again with updated mentions."))
             )
         }
+
+        val message = coralAgentGraphSession.sendMessage(
+            threadId = input.threadId,
+            senderId = this.connectedAgentId,
+            content = input.content,
+            mentions = input.mentions
+        )
+
         logger.info { message }
 
         return CallToolResult(
