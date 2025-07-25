@@ -23,7 +23,7 @@ private suspend fun CoralAgentIndividualMcp.handler(request: ReadResourceRequest
 }
 
 suspend fun CoralAgentGraphSession.render(forParticipant: String): String {
-    if(forParticipant != "planning") {
+    if (forParticipant != "planning") {
         //TODO: Create better way of managing ordering / soft workflows
         // wait for a message to be sent before rendering the status
         while (this.getAllThreads().none { it.participants.contains(forParticipant) }) {

@@ -58,27 +58,25 @@ private suspend fun CoralAgentIndividualMcp.handleSendMessage(request: CallToolR
             content = input.content,
             mentions = input.mentions
         )
-
-        if (message != null) {
-            logger.info { message }
-
+        val mentionsSelf = message.mentions.contains(this.connectedAgentId)
+        if( mentionsSelf) {
+            logger.warn { "${this.connectedAgentId} mentioned themselves in a message, which is not necessary and may reflect confusion. Failing." }
             return CallToolResult(
-                content = listOf(
-                    TextContent(
-                        """
-                        Message sent successfully:
-                        Mentions: ${message.mentions.joinToString(", ")} (if you need to notify an agent, you must mention them in the 'mentions' parameter)
-                        """.trimIndent()
-                    )
-                )
-            )
-        } else {
-            val errorMessage = "Failed to send message: Thread not found, sender not found, thread is closed, or sender is not a participant"
-            logger.error { errorMessage }
-            return CallToolResult(
-                content = listOf(TextContent(errorMessage))
+                content = listOf(TextContent("You (${this.connectedAgentId}) mentioned yourself in the message, which is not necessary and may reflect confusion. Try again with updated mentions."))
             )
         }
+        logger.info { message }
+
+        return CallToolResult(
+            content = listOf(
+                TextContent(
+                    """
+                    Message sent successfully:
+                    Mentions: ${message.mentions.joinToString(", ")} (if you need to notify an agent, you must mention them in the 'mentions' parameter)
+                    """.trimIndent()
+                )
+            )
+        )
     } catch (e: Exception) {
         val errorMessage = "Error sending message: ${e.message}"
         logger.error(e) { errorMessage }
