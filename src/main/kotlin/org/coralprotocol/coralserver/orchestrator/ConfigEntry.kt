@@ -17,6 +17,13 @@ sealed interface ConfigEntry {
     }
 
     @Serializable
+    @SerialName("secret")
+    data class Secret(override val name: String, override val description: String? = null) :
+        ConfigEntry {
+        override val type get(): String = "secret"
+    }
+
+    @Serializable
     @SerialName("number")
     data class Number(
         override val name: String,
@@ -28,12 +35,14 @@ sealed interface ConfigEntry {
 
     val required: Boolean get() = when (val o = this) {
         is Str -> o.default == null
+        is Secret -> true // secrets cannot have defaults
         is Number -> o.default == null
     }
 
     val defaultAsValue: ConfigValue? get() =
         when (val o = this) {
             is Str -> o.default?.let { ConfigValue.Str(it) }
+            is Secret -> null // secrets cannot have defaults
             is Number -> o.default?.let { ConfigValue.Num(it) }
         }
 
