@@ -64,13 +64,15 @@ class CoralAgentGraphSession(
 
     fun connectAgent(agentId: String): Agent? {
         val agent = agents[agentId] ?: return null
-        if (agent.state.isConnected()) throw AssertionError("Agent $agentId is already connected")
+//        if (agent.state.isConnected()) throw AssertionError("Agent $agentId is already connected")
+        if (agent.state.isConnected()) logger.warn { "Agent $agentId is already connected" }
         agent.state = AgentState.Busy;
         agentGroupScheduler.markAgentReady(agentId)
         countBasedScheduler.markAgentReady(agent.id)
         eventBus.emit(Event.AgentStateUpdated(agent.id, agent.state))
         return agent
     }
+
     fun setAgentState(agentId: String, state: AgentState): AgentState? {
         val agent = agents[agentId] ?: return null
         val oldState = agent.state
@@ -83,13 +85,19 @@ class CoralAgentGraphSession(
         return oldState
 
     }
+
     fun disconnectAgent(agentId: String) {
         val agent = agents[agentId] ?: return
         agent.state = AgentState.Disconnected;
         eventBus.emit(Event.AgentStateUpdated(agent.id, agent.state))
     }
 
-    fun registerAgent(agentId: String, agentUri: String? = null, agentDescription: String? = null, force: Boolean = false): Agent? {
+    fun registerAgent(
+        agentId: String,
+        agentUri: String? = null,
+        agentDescription: String? = null,
+        force: Boolean = false
+    ): Agent? {
         if (agents.containsKey(agentId)) {
             logger.warn { "$agentId has already been registered" }
             if (!force) {
