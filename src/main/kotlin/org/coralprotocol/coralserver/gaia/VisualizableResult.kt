@@ -14,5 +14,4 @@ data class VisualizableResult(
     val characterCount: Int = result.threads?.sumOf { thread -> thread.messages.sumOf { it.content.length } } ?: run {
         throw IllegalStateException("Threads are null for result: ${result.question.taskId}")
     }
-
 }

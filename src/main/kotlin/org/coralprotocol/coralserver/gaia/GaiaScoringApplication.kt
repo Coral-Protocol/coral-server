@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.gaia
 
+import PartMetadata
 import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -19,6 +20,7 @@ import org.coralprotocol.coralserver.orchestrator.runtime.Executable
 import org.coralprotocol.coralserver.orchestrator.runtime.executable.EnvVar
 import org.coralprotocol.coralserver.server.CoralServer
 import org.coralprotocol.coralserver.session.*
+import writeTextWithParts
 import java.io.File
 import java.io.IOException
 
@@ -155,7 +157,8 @@ data class ReportMetadata(
     val notes: String,
     val questionSetName: String = GaiaConfig.gaiaQuestionSet.name,
     val maxPassesPerTask: Int = GaiaConfig.maxPassesPerTask,
-)
+    override val numberOfParts: Int
+) : PartMetadata
 
 @Serializable
 data class Report(
@@ -239,12 +242,14 @@ suspend fun main(args: Array<String>) {
             println("Notes: $previousNotes")
         }
 
+        val numberOfParts = 20
         val reportMetadata = ReportMetadata(
             models = askStdinWithDefault("Models in use? (separated by commas)", previousModels).split(",")
                 .map { it.trim() }.filter { it.isNotEmpty() },
             notes = askStdinMultiline("Any notes for the report?", previousNotes),
             questionSetName = GaiaConfig.gaiaQuestionSet.setId,
-            maxPassesPerTask = GaiaConfig.maxPassesPerTask
+            maxPassesPerTask = GaiaConfig.maxPassesPerTask,
+            numberOfParts = numberOfParts
         )
         println("Report metadata: $reportMetadata")
         saveReportMetadata(reportMetadata)
@@ -269,7 +274,7 @@ suspend fun main(args: Array<String>) {
         val questionsWithoutAnswers = questions.toSet().subtract(questionsWithAnyAnswers.toSet())
 
         fun saveReport() {
-            val existingResults = loadAllGaiaResults().filter { it.threads != null }
+            val existingResults = loadAllGaiaResults().filter { !it.threads.isNullOrEmpty() }
             val questionsWithoutCorrectAnswers = questions.filter { question ->
                 existingResults.none { result ->
                     result.question.taskId == question.taskId && result.isCorrect
@@ -309,20 +314,22 @@ suspend fun main(args: Array<String>) {
                     reportMetadata.models.sorted().joinToString("-") { it.lowercase() }
                 }-${System.currentTimeMillis()}.json"
             )
-            resultsFile.writeText(
-                jsonWithDefaults.encodeToString(
-                    Report(
-                        reportMetadata = reportMetadata,
-                        results = resultsForReport
-                    )
-                )
-            )
+            resultsFile.writeTextWithParts(reportMetadata, resultsForReport.chunkedByCountConcise(20))
+            println("Report saved to ${resultsFile.absolutePath}")
         }
         saveReport()
 
-        val semaphore = Semaphore(1)
+        val semaphore = Semaphore(3)
         val context = CoroutineScope(SupervisorJob())
-        questionsWithoutAnswers.map { question ->
+        val questionsWithVideoInTheirResults = questionsWithAnyAnswers.filter { question ->
+            existingResults.any { result ->
+                result.threads?.any { thread ->
+                    thread.participants.contains("video")
+                } == true && result.question.taskId == question.taskId
+            }
+        }
+
+        questionsWithoutCorrectAnswers.shuffled().map { question ->
             context.async {
                 semaphore.withPermit {
                     try {
@@ -382,3 +389,9 @@ suspend fun main(args: Array<String>) {
         server.stop()
     }
 }
+
+fun <T> List<T>.chunkedByCountConcise(chunkCount: Int): List<List<T>> =
+    withIndex()
+        .groupBy { it.index % chunkCount }
+        .values
+        .map { it.map { indexed -> indexed.value } }
