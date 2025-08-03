@@ -45,7 +45,7 @@ sealed class UserContent {
 }
 
 @Serializable
-@JsonClassDiscriminator("cheese")
+@JsonClassDiscriminator("type")
 sealed class AssistantContent {
     @Serializable
     @SerialName("text")

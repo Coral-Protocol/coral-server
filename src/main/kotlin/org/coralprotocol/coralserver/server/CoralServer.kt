@@ -37,6 +37,7 @@ import org.coralprotocol.coralserver.routes.sessionRoutes
 import org.coralprotocol.coralserver.routes.sseRoutes
 import org.coralprotocol.coralserver.routes.telemetryRoutes
 import org.coralprotocol.coralserver.session.SessionManager
+import java.io.File
 import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
@@ -117,6 +118,9 @@ class CoralServer(
                 route("api.json") {
                     openApi()
                 }
+                route("redoc") {
+                    redoc("/api.json")
+                }
                 route("scalar") {
                    get {
                        call.respondHtml(HttpStatusCode.OK) {
@@ -138,10 +142,7 @@ class CoralServer(
                                    unsafe {
                                        raw("""
                                                 Scalar.createApiReference('#app', {
-                                                  // The URL of the OpenAPI/Swagger document
-                                                  url: 'https://api.api-fiddle.com/v1/public/resources/oas_api_3_1/seafra-forders-organization-iuh/strong-owl-5qsm8j',
-                                                  // Avoid CORS issues
-                                                  proxyUrl: 'https://proxy.scalar.com',
+                                                  url: '/api.json',
                                                 })
                                                 """.trimIndent())
                                    }

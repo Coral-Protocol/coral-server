@@ -134,10 +134,10 @@ enum class AudioMediaType {
 }
 
 @Serializable
-@JsonClassDiscriminator("big_cheese")
+@JsonClassDiscriminator("type")
 sealed class UserContent {
     @Serializable
-    @SerialName("text1")
+    @SerialName("text")
     @Suppress("unused")
     data class Text(val text: String): UserContent()
 
@@ -179,7 +179,7 @@ sealed class UserContent {
 }
 
 @Serializable
-@JsonClassDiscriminator("cheese")
+@JsonClassDiscriminator("type")
 sealed class AssistantContent {
     @Serializable
     @SerialName("text")

@@ -9,13 +9,13 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.models.serialization.OneOrMany
 
 @Serializable
-@JsonClassDiscriminator("message_discrim")
-sealed class Message(val message_discrim: String) {
+@JsonClassDiscriminator("role")
+sealed class Message() {
 
     @Serializable
     @SerialName("user")
     @Suppress("unused")
-    data class UserMessage(val content: UserContent) : Message("user")
+    data class UserMessage(val content: UserContent) : Message()
 
     @Serializable
     @SerialName("assistant")
@@ -23,5 +23,5 @@ sealed class Message(val message_discrim: String) {
     data class AssistantMessage(
         val id: String? = null,
         val content: AssistantContent,
-    ) : Message("assistant")
+    ) : Message()
 }

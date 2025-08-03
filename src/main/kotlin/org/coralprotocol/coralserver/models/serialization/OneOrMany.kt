@@ -13,9 +13,7 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonDecoder
 
-//@Polymorphic
 @Serializable(with = Serializer::class)
-@JsonClassDiscriminator("also_cheese")
 sealed interface OneOrMany<out T> {
     @Serializable
     data class Single<T>(val value: T) : OneOrMany<T>

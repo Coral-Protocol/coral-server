@@ -20,23 +20,23 @@ sealed class Message {
     @SerialName("user")
     @Suppress("unused")
     data class UserMessage(val content: OneOrMany<UserContent>, val name: String? = null) : Message()
-//
-//    @Serializable
-//    @SerialName("assistant")
-//    @Suppress("unused")
-//    data class AssistantMessage(
-//        val content: OneOrMany<AssistantContent>,
-//        val refusal: String? = null,
-//        val audio: String? = null,
-//        val name: String? = null,
-//        @SerialName("tool_calls") val toolCalls: List<ToolCall>
-//    ) : Message()
-//
-//    @Serializable
-//    @SerialName("tool")
-//    @Suppress("unused")
-//    data class ToolMessage(
-//        @SerialName("tool_call_id") val toolCallId: String,
-//        val content: OneOrMany<ToolResultContent>
-//    ) : Message()
+
+    @Serializable
+    @SerialName("assistant")
+    @Suppress("unused")
+    data class AssistantMessage(
+        val content: OneOrMany<AssistantContent>,
+        val refusal: String? = null,
+        val audio: String? = null,
+        val name: String? = null,
+        @SerialName("tool_calls") val toolCalls: List<ToolCall>
+    ) : Message()
+
+    @Serializable
+    @SerialName("tool")
+    @Suppress("unused")
+    data class ToolMessage(
+        @SerialName("tool_call_id") val toolCallId: String,
+        val content: OneOrMany<ToolResultContent>
+    ) : Message()
 }
