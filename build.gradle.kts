@@ -83,11 +83,18 @@ dependencies {
     implementation("io.ktor:ktor-server-core")
     implementation("io.ktor:ktor-server-cio")
     implementation("io.ktor:ktor-server-sse")
+    implementation("io.ktor:ktor-server-html-builder")
     implementation("io.ktor:ktor-server-cors")
     implementation("io.ktor:ktor-server-content-negotiation")
+    implementation("io.ktor:ktor-server-resources")
     testImplementation("io.ktor:ktor-server-core")
     testImplementation("io.ktor:ktor-server-cio")
     testImplementation("io.ktor:ktor-server-sse")
+
+    // OpenAPI
+    val openApiVersion = "5.2.0"
+    implementation("io.github.smiley4:ktor-openapi:${openApiVersion}")
+    implementation("io.github.smiley4:ktor-redoc:${openApiVersion}")
 }
 
 tasks.test {
