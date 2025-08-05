@@ -37,8 +37,11 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.coroutines.Job
 import kotlinx.html.*
 import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonNamingStrategy
+import nl.adaptivity.xmlutil.core.impl.multiplatform.name
 import org.coralprotocol.coralserver.config.AppConfigLoader
 import org.coralprotocol.coralserver.debug.debugRoutes
 import org.coralprotocol.coralserver.routes.messageRoutes
@@ -90,12 +93,20 @@ class CoralServer(
                             .addMissingSupertypeSubtypeRelations()
                             .addJsonClassDiscriminatorProperty()
                             .generateSwaggerSchema()
-//                            .customizeTypes { data, schema ->
-//                                print("")
-//                                schema.properties.put("")
-//                            }
+
+                            .customizeTypes { data, schema ->
+                                val discriminator = data.annotations.firstOrNull { it.name == JsonClassDiscriminator::class.name }?.values["discriminator"]
+                                if (discriminator != null && schema.properties != null) {
+                                    schema.properties[discriminator]?.enum = listOf(
+                                        data.annotations.firstOrNull {
+                                            it.name == SerialName::class.name
+                                        }?.values["value"] ?: data.identifyingName.short
+                                    )
+                                }
+                            }
+
                             .withTitle(TitleType.SIMPLE)
-                            .compileReferencingRoot()
+                            .compileInlining()
                     }
                 }
                 outputFormat = OutputFormat.YAML
