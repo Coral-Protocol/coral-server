@@ -3,7 +3,6 @@
 package org.coralprotocol.coralserver.models.telemetry.openai
 
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.models.telemetry.generic.AudioMediaType
@@ -11,7 +10,6 @@ import org.coralprotocol.coralserver.models.telemetry.generic.ImageDetail
 
 @Serializable
 enum class SystemContentType {
-    @SerialName("text")
     @Suppress("unused")
     TEXT,
 }
@@ -29,31 +27,26 @@ data class SystemContent(val type: SystemContentType, val text: String)
 @JsonClassDiscriminator("type")
 sealed class UserContent {
     @Serializable
-    @SerialName("text")
     @Suppress("unused")
     data class Text(val text: String): UserContent()
 
     @Serializable
-    @SerialName("image_url")
     @Suppress("unused")
-    data class Image(@SerialName("image_url") val imageUrl: ImageUrl): UserContent()
+    data class Image(val imageUrl: ImageUrl): UserContent()
 
     @Serializable
-    @SerialName("audio")
     @Suppress("unused")
-    data class Audio(@SerialName("input_audio") val inputAudio: InputAudio): UserContent()
+    data class Audio(val inputAudio: InputAudio): UserContent()
 }
 
 @Serializable
 @JsonClassDiscriminator("type")
 sealed class AssistantContent {
     @Serializable
-    @SerialName("text")
     @Suppress("unused")
     data class Text(val text: String) : AssistantContent()
 
     @Serializable
-    @SerialName("refusal")
     @Suppress("unused")
     data class Refusal(val refusal: String) : AssistantContent()
 }

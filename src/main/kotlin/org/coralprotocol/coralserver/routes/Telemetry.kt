@@ -56,6 +56,11 @@ fun Routing.telemetryRoutes(sessionManager: SessionManager) {
                     description = "Telemetry data"
                 }
             }
+            response {
+                HttpStatusCode.OK to {
+                    description = "Success"
+                }
+            }
         }
     ) { post ->
         val model = call.receive<TelemetryPostModel>()

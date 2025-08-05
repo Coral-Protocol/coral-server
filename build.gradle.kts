@@ -92,9 +92,14 @@ dependencies {
     testImplementation("io.ktor:ktor-server-sse")
 
     // OpenAPI
-    val openApiVersion = "5.2.0"
-    implementation("io.github.smiley4:ktor-openapi:${openApiVersion}")
-    implementation("io.github.smiley4:ktor-redoc:${openApiVersion}")
+    val ktorToolsVersion = "5.2.0"
+    implementation("io.github.smiley4:ktor-openapi:${ktorToolsVersion}")
+    implementation("io.github.smiley4:ktor-redoc:${ktorToolsVersion}")
+
+    val schemaVersion = "2.3.0"
+    implementation("io.github.smiley4:schema-kenerator-core:${schemaVersion}")
+    implementation("io.github.smiley4:schema-kenerator-serialization:${schemaVersion}")
+    implementation("io.github.smiley4:schema-kenerator-swagger:${schemaVersion}")
 }
 
 tasks.test {
