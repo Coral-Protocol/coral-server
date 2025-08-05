@@ -11,14 +11,11 @@ import org.coralprotocol.coralserver.models.serialization.OneOrMany
 @Serializable
 @JsonClassDiscriminator("role")
 sealed class Message() {
-
     @Serializable
-    @SerialName("user")
     @Suppress("unused")
     data class UserMessage(val content: UserContent) : Message()
 
     @Serializable
-    @SerialName("assistant")
     @Suppress("unused")
     data class AssistantMessage(
         val id: String? = null,

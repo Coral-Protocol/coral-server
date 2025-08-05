@@ -4,9 +4,19 @@ package org.coralprotocol.coralserver.server
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.OpenApi
-import io.github.smiley4.ktoropenapi.config.SchemaGenerator
+import io.github.smiley4.ktoropenapi.config.OutputFormat
 import io.github.smiley4.ktoropenapi.openApi
 import io.github.smiley4.ktorredoc.redoc
+import io.github.smiley4.schemakenerator.core.CoreSteps.addDiscriminatorProperty
+import io.github.smiley4.schemakenerator.core.CoreSteps.addMissingSupertypeSubtypeRelations
+import io.github.smiley4.schemakenerator.serialization.SerializationSteps.addJsonClassDiscriminatorProperty
+import io.github.smiley4.schemakenerator.serialization.SerializationSteps.analyzeTypeUsingKotlinxSerialization
+import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.compileInlining
+import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.compileReferencingRoot
+import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.customizeTypes
+import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.generateSwaggerSchema
+import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.withTitle
+import io.github.smiley4.schemakenerator.swagger.data.TitleType
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.*
 import io.ktor.serialization.kotlinx.json.*
@@ -72,8 +82,23 @@ class CoralServer(
                 //autoDocumentResourcesRoutes = true
                 // schema-generator must use kotlinx-serialization to be compatible
                 schemas {
-                    generator = SchemaGenerator.kotlinx(json)
+                    generator = { type ->
+                        type
+                            .analyzeTypeUsingKotlinxSerialization {
+                                 findTypeParametersUsingReflection = true
+                            }
+                            .addMissingSupertypeSubtypeRelations()
+                            .addJsonClassDiscriminatorProperty()
+                            .generateSwaggerSchema()
+//                            .customizeTypes { data, schema ->
+//                                print("")
+//                                schema.properties.put("")
+//                            }
+                            .withTitle(TitleType.SIMPLE)
+                            .compileReferencingRoot()
+                    }
                 }
+                outputFormat = OutputFormat.YAML
             }
             install(Resources)
             install(SSE)
@@ -115,11 +140,11 @@ class CoralServer(
                 sseRoutes(mcpServersByTransportId, sessionManager)
                 messageRoutes(mcpServersByTransportId, sessionManager)
                 telemetryRoutes(sessionManager)
-                route("api.json") {
+                route("api.yaml") {
                     openApi()
                 }
                 route("redoc") {
-                    redoc("/api.json")
+                    redoc("/api.yaml")
                 }
                 route("scalar") {
                    get {
@@ -142,7 +167,7 @@ class CoralServer(
                                    unsafe {
                                        raw("""
                                                 Scalar.createApiReference('#app', {
-                                                  url: '/api.json',
+                                                  url: '/api.yaml',
                                                 })
                                                 """.trimIndent())
                                    }
