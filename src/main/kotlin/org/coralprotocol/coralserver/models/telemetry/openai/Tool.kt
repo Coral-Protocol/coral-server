@@ -1,8 +1,11 @@
 package org.coralprotocol.coralserver.models.telemetry.openai
+
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
 enum class ToolType {
+    @SerialName("function")
     @Suppress("unused")
     Function
 }
@@ -15,6 +18,7 @@ data class ToolCall(val id: String, val type: ToolType, val function: Function)
 
 @Serializable
 enum class ToolResultContentType {
+    @SerialName("text")
     @Suppress("unused")
     Text
 }

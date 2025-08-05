@@ -2,8 +2,6 @@
 
 package org.coralprotocol.coralserver.models
 
-import io.github.smiley4.schemakenerator.core.annotations.Format
-import io.github.smiley4.schemakenerator.core.annotations.Name
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -15,21 +13,22 @@ import org.coralprotocol.coralserver.models.telemetry.openai.Message as OpenAIMe
 
 @Serializable
 @JsonClassDiscriminator("format")
-@Name("TelemetryMessages")
 sealed class TelemetryMessages() {
     @Suppress("unused")
     @Serializable
+    @SerialName("OpenAI")
     data class OpenAI(val data: List<OpenAIMessage>) : TelemetryMessages()
 
     @Suppress("unused")
     @Serializable
+    @SerialName("Generic")
     data class Generic(val data: List<GenericMessage>) : TelemetryMessages()
 }
 
 @Serializable
 data class TelemetryTarget(
-    val threadId: String,
-    val messageId: String
+    @SerialName("thread_id") val threadId: String,
+    @SerialName("message_id") val messageId: String
 )
 
 @Serializable
@@ -43,13 +42,13 @@ data class Document(
 
 @Serializable
 data class Telemetry(
-    val modelDescription: String,
+    @SerialName("model_description") val modelDescription: String,
     val preamble: String? = null,
     val resources: List<Document>,
     val tools: List<Document>,
     val temperature: Double? = null,
-    val maxTokens: Long? = null,
-    val additionalParams: JsonObject? = null,
+    @SerialName("max_tokens") val maxTokens: Long? = null,
+    @SerialName("additional_params") val additionalParams: JsonObject? = null,
     val messages: TelemetryMessages
 )
 
