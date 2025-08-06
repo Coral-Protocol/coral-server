@@ -28,4 +28,4 @@ sealed class ToolResultContent {
 }
 
 @Serializable
-data class ToolFunction(val name: String, val arguments: JsonElement)
+data class ToolFunction(val name: String, val arguments: String)

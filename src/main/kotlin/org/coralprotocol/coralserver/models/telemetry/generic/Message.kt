@@ -6,7 +6,6 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
-import org.coralprotocol.coralserver.models.serialization.OneOrMany
 
 @Serializable
 @JsonClassDiscriminator("role")
@@ -15,13 +14,13 @@ sealed class Message() {
     @Serializable
     @SerialName("user")
     @Suppress("unused")
-    data class UserMessage(val content: UserContent) : Message()
+    data class UserMessage(val content: List<UserContent>) : Message()
 
     @Serializable
     @SerialName("assistant")
     @Suppress("unused")
     data class AssistantMessage(
         val id: String? = null,
-        val content: AssistantContent,
+        val content: List<AssistantContent>,
     ) : Message()
 }
