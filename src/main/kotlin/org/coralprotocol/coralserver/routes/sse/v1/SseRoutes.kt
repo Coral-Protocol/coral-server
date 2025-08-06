@@ -134,8 +134,8 @@ private suspend fun handleSseConnection(
     val newCount = session.getRegisteredAgentsCount()
     logger.info { "DevMode: New agent count for session ${session.id} (object id: ${session})after registering: $newCount" }
 
-    val routePrefix = if (isDevMode) "/devmode" else ""
-    val endpoint = "$routePrefix/$applicationId/$privacyKey/$sessionId/message"
+    val routeSuffix = if (isDevMode) "devmode/" else ""
+    val endpoint = "/api/v1/message/$routeSuffix$applicationId/$privacyKey/$sessionId"
     val transport = SseServerTransport(endpoint, sseProducer)
 
     val individualServer =
