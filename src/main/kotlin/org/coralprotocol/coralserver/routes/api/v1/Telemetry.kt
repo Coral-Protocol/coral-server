@@ -45,6 +45,17 @@ fun Routing.telemetryRoutes(sessionManager: SessionManager) {
         summary = "Get telemetry"
         description = "Fetches telemetry information for a given message"
         operationId = "getTelemetry"
+        request {
+            pathParameter<String>("sessionId") {
+                description = "The session ID"
+            }
+            pathParameter<String>("threadId") {
+                description = "The thread ID"
+            }
+            pathParameter<String>("messageId") {
+                description = "The message ID"
+            }
+        }
         response {
             HttpStatusCode.OK to {
                 description = "Success"
@@ -68,6 +79,9 @@ fun Routing.telemetryRoutes(sessionManager: SessionManager) {
         description = "Attaches telemetry information a list of messages"
         operationId = "addTelemetry"
         request {
+            pathParameter<String>("sessionId") {
+                description = "The session ID"
+            }
             body<TelemetryPostModel> {
                 description = "Telemetry data"
             }

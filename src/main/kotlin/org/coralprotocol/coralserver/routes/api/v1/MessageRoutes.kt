@@ -32,7 +32,17 @@ fun Routing.messageRoutes(servers: ConcurrentMap<String, Server>, sessionManager
         summary = "Send message"
         description = "Sends a message"
         operationId = "sendMessage"
-
+        request {
+            pathParameter<String>("applicationId") {
+                description = "The application ID"
+            }
+            pathParameter<String>("privacyKey") {
+                description = "The privacy key"
+            }
+            pathParameter<String>("coralSessionId") {
+                description = "The Coral session ID"
+            }
+        }
         response {
             HttpStatusCode.OK to {
                 description = "Success"
@@ -83,6 +93,17 @@ fun Routing.messageRoutes(servers: ConcurrentMap<String, Server>, sessionManager
         summary = "Send development message"
         description = "Sends a dev-mode message"
         operationId = "sendDevMessage"
+        request {
+            pathParameter<String>("applicationId") {
+                description = "The application ID"
+            }
+            pathParameter<String>("privacyKey") {
+                description = "The privacy key"
+            }
+            pathParameter<String>("coralSessionId") {
+                description = "The Coral session ID"
+            }
+        }
         response {
             HttpStatusCode.OK to {
                 description = "Success"
