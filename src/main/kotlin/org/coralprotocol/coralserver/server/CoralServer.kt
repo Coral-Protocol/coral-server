@@ -6,16 +6,13 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.OpenApi
 import io.github.smiley4.ktoropenapi.config.OutputFormat
 import io.github.smiley4.ktoropenapi.openApi
-import io.github.smiley4.ktorredoc.redoc
-import io.github.smiley4.schemakenerator.core.CoreSteps.addDiscriminatorProperty
 import io.github.smiley4.schemakenerator.core.CoreSteps.addMissingSupertypeSubtypeRelations
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.addJsonClassDiscriminatorProperty
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.analyzeTypeUsingKotlinxSerialization
-import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.compileInlining
-import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.compileReferencingRoot
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.customizeTypes
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.generateSwaggerSchema
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.withTitle
+import io.github.smiley4.schemakenerator.swagger.TitleBuilder
 import io.github.smiley4.schemakenerator.swagger.data.TitleType
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.*
@@ -23,12 +20,12 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
-import io.ktor.server.html.respondHtml
+import io.ktor.server.html.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
-import io.ktor.server.plugins.statuspages.StatusPages
-import io.ktor.server.resources.Resources
-import io.ktor.server.response.respondText
+import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.resources.*
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import io.ktor.server.websocket.*
@@ -44,13 +41,9 @@ import kotlinx.serialization.json.JsonNamingStrategy
 import nl.adaptivity.xmlutil.core.impl.multiplatform.name
 import org.coralprotocol.coralserver.config.AppConfigLoader
 import org.coralprotocol.coralserver.debug.debugRoutes
-import org.coralprotocol.coralserver.routes.messageRoutes
-import org.coralprotocol.coralserver.routes.publicRoutes
-import org.coralprotocol.coralserver.routes.sessionRoutes
-import org.coralprotocol.coralserver.routes.sseRoutes
-import org.coralprotocol.coralserver.routes.telemetryRoutes
+import org.coralprotocol.coralserver.models.serialization.compileHybridInline
+import org.coralprotocol.coralserver.routes.*
 import org.coralprotocol.coralserver.session.SessionManager
-import java.io.File
 import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
@@ -88,13 +81,16 @@ class CoralServer(
                     generator = { type ->
                         type
                             .analyzeTypeUsingKotlinxSerialization {
-                                 findTypeParametersUsingReflection = true
+                                findTypeParametersUsingReflection = true
                             }
                             .addMissingSupertypeSubtypeRelations()
                             .addJsonClassDiscriminatorProperty()
                             .generateSwaggerSchema()
-
                             .customizeTypes { data, schema ->
+                                // It doesn't appear that any code generation actually uses this mapping, it also breaks
+                                // when inlining, so for now we will omit it completely
+                                schema.discriminator?.mapping = null;
+
                                 val discriminator = data.annotations.firstOrNull { it.name == JsonClassDiscriminator::class.name }?.values["discriminator"]
                                 if (discriminator != null && schema.properties != null) {
                                     schema.properties[discriminator]?.enum = listOf(
@@ -104,9 +100,8 @@ class CoralServer(
                                     )
                                 }
                             }
-
                             .withTitle(TitleType.SIMPLE)
-                            .compileInlining()
+                            .compileHybridInline(false, TitleBuilder.BUILDER_OPENAPI_SIMPLE)
                     }
                 }
                 outputFormat = OutputFormat.YAML
@@ -153,9 +148,6 @@ class CoralServer(
                 telemetryRoutes(sessionManager)
                 route("api.yaml") {
                     openApi()
-                }
-                route("redoc") {
-                    redoc("/api.yaml")
                 }
                 route("scalar") {
                    get {

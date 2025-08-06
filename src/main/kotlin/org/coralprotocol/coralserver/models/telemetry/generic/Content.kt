@@ -6,7 +6,6 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
-import org.coralprotocol.coralserver.models.serialization.OneOrMany
 
 @Serializable
 enum class ContentFormat {
@@ -147,7 +146,7 @@ sealed class UserContent {
     data class ToolResult(
         val id: String,
         @SerialName("call_id") val callId: String? = null,
-        val content: ToolResultContent
+        val content: List<ToolResultContent>
     ): UserContent()
 
     @Serializable
