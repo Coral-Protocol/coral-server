@@ -9,6 +9,7 @@ import io.ktor.server.routing.Routing
 import io.ktor.util.collections.*
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
+import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.SessionManager
 import kotlin.NoSuchElementException
 import kotlin.String
@@ -51,6 +52,9 @@ fun Routing.messageRoutes(servers: ConcurrentMap<String, Server>, sessionManager
                 description = "Invalid application ID or privacy key"
             }
             HttpStatusCode.NotFound to {
+                description = "Invalid Coral session ID"
+            }
+            HttpStatusCode.BadRequest to {
                 description = "Invalid session ID"
             }
             HttpStatusCode.InternalServerError to {
@@ -73,9 +77,12 @@ fun Routing.messageRoutes(servers: ConcurrentMap<String, Server>, sessionManager
         }
 
         // Get the transport
-        val transport = servers[message.coralSessionId]?.transport as? SseServerTransport
+        val transportId = call.request.queryParameters["sessionId"]
+            ?: throw RouteException(HttpStatusCode.BadRequest, "sessionId missing")
+
+        val transport = servers[transportId]?.transport as? SseServerTransport
         if (transport == null) {
-            call.respond(HttpStatusCode.NotFound, "Transport not found")
+            call.respond(HttpStatusCode.BadRequest, "Transport not found")
             return@post
         }
 
@@ -109,6 +116,9 @@ fun Routing.messageRoutes(servers: ConcurrentMap<String, Server>, sessionManager
                 description = "Success"
             }
             HttpStatusCode.NotFound to {
+                description = "Invalid Coral session ID"
+            }
+            HttpStatusCode.BadRequest to {
                 description = "Invalid session ID"
             }
             HttpStatusCode.InternalServerError to {
@@ -126,9 +136,12 @@ fun Routing.messageRoutes(servers: ConcurrentMap<String, Server>, sessionManager
         }
 
         // Get the transport
-        val transport = servers[message.coralSessionId]?.transport as? SseServerTransport
+        val transportId = call.request.queryParameters["sessionId"]
+            ?: throw RouteException(HttpStatusCode.BadRequest, "sessionId missing")
+
+        val transport = servers[transportId]?.transport as? SseServerTransport
         if (transport == null) {
-            call.respond(HttpStatusCode.NotFound, "Transport not found")
+            call.respond(HttpStatusCode.BadRequest, "Transport not found")
             return@post
         }
 
