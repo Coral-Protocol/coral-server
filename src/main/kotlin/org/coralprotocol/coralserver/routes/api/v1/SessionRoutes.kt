@@ -1,20 +1,17 @@
-package org.coralprotocol.coralserver.routes
+package org.coralprotocol.coralserver.routes.api.v1
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.smiley4.ktoropenapi.resources.get
+import io.github.smiley4.ktoropenapi.resources.post
 import io.ktor.http.*
+import io.ktor.resources.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.config.AppConfigLoader
 import org.coralprotocol.coralserver.orchestrator.ConfigValue
 import org.coralprotocol.coralserver.server.RouteException
-import org.coralprotocol.coralserver.session.AgentGraph
-import org.coralprotocol.coralserver.session.AgentName
-import org.coralprotocol.coralserver.session.GraphAgent
-import org.coralprotocol.coralserver.session.SessionManager
-import org.coralprotocol.coralserver.session.CreateSessionRequest
-import org.coralprotocol.coralserver.session.CreateSessionResponse
-import org.coralprotocol.coralserver.session.GraphAgentRequest
+import org.coralprotocol.coralserver.session.*
 
 private val logger = KotlinLogging.logger {}
 
@@ -22,11 +19,34 @@ private val logger = KotlinLogging.logger {}
 fun <K, V> Map<K, V?>.filterNotNullValues(): Map<K, V> =
     filterValues { it != null } as Map<K, V>
 
+@Resource("/api/v1/sessions")
+class Sessions
+
 /**
  * Configures session-related routes.
  */
 fun Routing.sessionRoutes(appConfig: AppConfigLoader, sessionManager: SessionManager, devMode: Boolean) {
-    post("/sessions") {
+    post<Sessions>({
+        summary = "Create session"
+        description = "Creates a new session"
+        operationId = "createSession"
+        request {
+            body<CreateSessionRequest> {
+                description = "Session creation request"
+            }
+        }
+        response {
+            HttpStatusCode.OK to {
+                description = "Success"
+                body<CreateSessionResponse> {
+                    description = "Session details"
+                }
+            }
+            HttpStatusCode.BadRequest to {
+                description = "Invalid application ID or privacy key"
+            }
+        }
+    }) {
         val request = call.receive<CreateSessionRequest>()
 
         // Validate application and privacy key
@@ -116,5 +136,23 @@ fun Routing.sessionRoutes(appConfig: AppConfigLoader, sessionManager: SessionMan
         )
 
         logger.info { "Created new session ${session.id} for application ${session.applicationId}" }
+    }
+
+    // TODO: this should probably be protected (only for debug maybe)
+    get<Sessions>({
+        summary = "Get sessions"
+        description = "Fetches all active session IDs"
+        operationId = "getSessions"
+        response {
+            HttpStatusCode.OK to {
+                description = "Success"
+                body<List<String>> {
+                    description = "List of session IDs"
+                }
+            }
+        }
+    }) {
+        val sessions = sessionManager.getAllSessions()
+        call.respond(HttpStatusCode.OK, sessions.map { it.id })
     }
 }

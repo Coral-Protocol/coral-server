@@ -1,15 +1,25 @@
-package org.coralprotocol.coralserver.routes
+package org.coralprotocol.coralserver.routes.api.v1
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.smiley4.ktoropenapi.resources.post
 import io.ktor.http.*
+import io.ktor.resources.*
 import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.server.routing.Routing
 import io.ktor.util.collections.*
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import org.coralprotocol.coralserver.session.SessionManager
+import kotlin.NoSuchElementException
+import kotlin.String
 
 private val logger = KotlinLogging.logger {}
+
+@Resource("/api/v1/message/{applicationId}/{privacyKey}/{coralSessionId}")
+class Message(val applicationId: String, val privacyKey: String, val coralSessionId: String)
+
+@Resource("/api/v1/message/devmode/{applicationId}/{privacyKey}/{coralSessionId}")
+class DevModeMessage(val applicationId: String, val privacyKey: String, val coralSessionId: String)
 
 /**
  * Configures message-related routes.
@@ -18,34 +28,42 @@ private val logger = KotlinLogging.logger {}
  */
 fun Routing.messageRoutes(servers: ConcurrentMap<String, Server>, sessionManager: SessionManager) {
     // Message endpoint with application, privacy key, and session parameters
-    post("/{applicationId}/{privacyKey}/{coralSessionId}/message") {
+    post<Message>({
+        summary = "Send message"
+        description = "Sends a message"
+        operationId = "sendMessage"
+
+        response {
+            HttpStatusCode.OK to {
+                description = "Success"
+            }
+            HttpStatusCode.Forbidden to {
+                description = "Invalid application ID or privacy key"
+            }
+            HttpStatusCode.NotFound to {
+                description = "Invalid session ID"
+            }
+            HttpStatusCode.InternalServerError to {
+                description = "MCP error"
+            }
+        }
+    }) { message ->
         logger.debug { "Received Message" }
 
-        val applicationId = call.parameters["applicationId"]
-        val privacyKey = call.parameters["privacyKey"]
-        val coralSessionId = call.parameters["coralSessionId"]
-        val transportSessionId = call.request.queryParameters["sessionId"]
-
-        if (applicationId == null || privacyKey == null || coralSessionId == null || transportSessionId == null) {
-            call.respond(HttpStatusCode.BadRequest, "Missing required parameters")
-            return@post
-        }
-
-        // Get the session
-        val session = sessionManager.getSession(coralSessionId)
+        val session = sessionManager.getSession(message.coralSessionId)
         if (session == null) {
             call.respond(HttpStatusCode.NotFound, "Session not found")
             return@post
         }
 
         // Validate that the application and privacy key match the session
-        if (session.applicationId != applicationId || session.privacyKey != privacyKey) {
+        if (session.applicationId != message.applicationId || session.privacyKey != message.privacyKey) {
             call.respond(HttpStatusCode.Forbidden, "Invalid application ID or privacy key for this session")
             return@post
         }
 
         // Get the transport
-        val transport = servers[transportSessionId]?.transport as? SseServerTransport
+        val transport = servers[message.coralSessionId]?.transport as? SseServerTransport
         if (transport == null) {
             call.respond(HttpStatusCode.NotFound, "Transport not found")
             return@post
@@ -61,28 +79,33 @@ fun Routing.messageRoutes(servers: ConcurrentMap<String, Server>, sessionManager
     }
 
     // DevMode message endpoint - no validation
-    post("/devmode/{applicationId}/{privacyKey}/{coralSessionId}/message") {
+    post<DevModeMessage>({
+        summary = "Send development message"
+        description = "Sends a dev-mode message"
+        operationId = "sendDevMessage"
+        response {
+            HttpStatusCode.OK to {
+                description = "Success"
+            }
+            HttpStatusCode.NotFound to {
+                description = "Invalid session ID"
+            }
+            HttpStatusCode.InternalServerError to {
+                description = "MCP error"
+            }
+        }
+    }) { message ->
         logger.debug { "Received DevMode Message" }
 
-        val applicationId = call.parameters["applicationId"]
-        val privacyKey = call.parameters["privacyKey"]
-        val sessionId = call.parameters["coralSessionId"]
-        val transportSessionId = call.request.queryParameters["sessionId"]
-
-        if (applicationId == null || privacyKey == null || sessionId == null || transportSessionId == null) {
-            call.respond(HttpStatusCode.BadRequest, "Missing required parameters")
-            return@post
-        }
-
         // Get the session. It should exist even in dev mode as it was created in the sse endpoint
-        val session = sessionManager.getSession(sessionId)
+        val session = sessionManager.getSession(message.coralSessionId)
         if (session == null) {
             call.respond(HttpStatusCode.NotFound, "Session not found")
             return@post
         }
 
         // Get the transport
-        val transport = servers[transportSessionId]?.transport as? SseServerTransport
+        val transport = servers[message.coralSessionId]?.transport as? SseServerTransport
         if (transport == null) {
             call.respond(HttpStatusCode.NotFound, "Transport not found")
             return@post
