@@ -6,6 +6,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.OpenApi
 import io.github.smiley4.ktoropenapi.config.OutputFormat
 import io.github.smiley4.ktoropenapi.openApi
+import io.github.smiley4.ktoropenapi.route
 import io.github.smiley4.schemakenerator.core.CoreSteps.addMissingSupertypeSubtypeRelations
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.addJsonClassDiscriminatorProperty
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.analyzeTypeUsingKotlinxSerialization
@@ -20,7 +21,6 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
-import io.ktor.server.html.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.statuspages.*
@@ -32,7 +32,6 @@ import io.ktor.server.websocket.*
 import io.ktor.util.collections.*
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.coroutines.Job
-import kotlinx.html.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.Json
@@ -42,7 +41,11 @@ import nl.adaptivity.xmlutil.core.impl.multiplatform.name
 import org.coralprotocol.coralserver.config.AppConfigLoader
 import org.coralprotocol.coralserver.debug.debugRoutes
 import org.coralprotocol.coralserver.models.serialization.compileHybridInline
-import org.coralprotocol.coralserver.routes.*
+import org.coralprotocol.coralserver.routes.api.v1.documentationRoutes
+import org.coralprotocol.coralserver.routes.api.v1.messageRoutes
+import org.coralprotocol.coralserver.routes.api.v1.sessionRoutes
+import org.coralprotocol.coralserver.routes.api.v1.telemetryRoutes
+import org.coralprotocol.coralserver.routes.sse.v1.sseRoutes
 import org.coralprotocol.coralserver.session.SessionManager
 import kotlin.time.Duration.Companion.seconds
 
@@ -74,37 +77,53 @@ class CoralServer(
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
         embeddedServer(CIO, host = host, port = port.toInt(), watchPaths = listOf("classes")) {
             install(OpenApi) {
-                // enable automatically extracting documentation from resources-routes
-                //autoDocumentResourcesRoutes = true
-                // schema-generator must use kotlinx-serialization to be compatible
-                schemas {
-                    generator = { type ->
-                        type
-                            .analyzeTypeUsingKotlinxSerialization {
-                                findTypeParametersUsingReflection = true
-                            }
-                            .addMissingSupertypeSubtypeRelations()
-                            .addJsonClassDiscriminatorProperty()
-                            .generateSwaggerSchema()
-                            .customizeTypes { data, schema ->
-                                // It doesn't appear that any code generation actually uses this mapping, it also breaks
-                                // when inlining, so for now we will omit it completely
-                                schema.discriminator?.mapping = null;
-
-                                val discriminator = data.annotations.firstOrNull { it.name == JsonClassDiscriminator::class.name }?.values["discriminator"]
-                                if (discriminator != null && schema.properties != null) {
-                                    schema.properties[discriminator]?.enum = listOf(
-                                        data.annotations.firstOrNull {
-                                            it.name == SerialName::class.name
-                                        }?.values["value"] ?: data.identifyingName.short
-                                    )
+                info {
+                    title = "Coral Server API"
+                }
+                spec("v1") {
+                    info {
+                        version = "1.0"
+                    }
+                    tags {
+                        tagGenerator = { url -> listOf(url.getOrNull(2)) }
+                    }
+                    schemas {
+                        generator = { type ->
+                            type
+                                .analyzeTypeUsingKotlinxSerialization {
+                                    findTypeParametersUsingReflection = true
                                 }
-                            }
-                            .withTitle(TitleType.SIMPLE)
-                            .compileHybridInline(false, TitleBuilder.BUILDER_OPENAPI_SIMPLE)
+                                .addMissingSupertypeSubtypeRelations()
+                                .addJsonClassDiscriminatorProperty()
+                                .generateSwaggerSchema()
+                                .customizeTypes { data, schema ->
+                                    // It doesn't appear that any code generation actually uses this mapping, it also breaks
+                                    // when inlining, so for now we will omit it completely
+                                    schema.discriminator?.mapping = null;
+
+                                    val discriminator = data.annotations.firstOrNull { it.name == JsonClassDiscriminator::class.name }?.values["discriminator"]
+                                    if (discriminator != null && schema.properties != null) {
+                                        schema.properties[discriminator]?.enum = listOf(
+                                            data.annotations.firstOrNull {
+                                                it.name == SerialName::class.name
+                                            }?.values["value"] ?: data.identifyingName.short
+                                        )
+                                    }
+                                }
+                                .withTitle(TitleType.SIMPLE)
+                                .compileHybridInline(false, TitleBuilder.BUILDER_OPENAPI_SIMPLE)
+                        }
                     }
                 }
-                outputFormat = OutputFormat.YAML
+                specAssigner = { url: String, tags: List<String> ->
+                    // when another spec version is added, determine the version based on the url here or use
+                    // specVersion on the new routes
+                    "v1"
+                }
+                pathFilter = { method, parts ->
+                     parts.getOrNull(0) == "api"
+                }
+                outputFormat = OutputFormat.JSON
             }
             install(Resources)
             install(SSE)
@@ -140,44 +159,15 @@ class CoralServer(
                 }
             }
             routing {
-                publicRoutes(appConfig, sessionManager)
                 debugRoutes(sessionManager)
                 sessionRoutes(appConfig, sessionManager, devmode)
-                sseRoutes(mcpServersByTransportId, sessionManager)
                 messageRoutes(mcpServersByTransportId, sessionManager)
                 telemetryRoutes(sessionManager)
-                route("api.yaml") {
-                    openApi()
-                }
-                route("scalar") {
-                   get {
-                       call.respondHtml(HttpStatusCode.OK) {
-                           head {
-                               title("Scalar API Reference")
-                               meta(charset = "utf-8")
-                               meta(name = "viewport", content = "width=device-width, initial-scale=1")
-                           }
-                           body {
-                               div {
-                                   id = "app"
-                               }
+                documentationRoutes()
+                sseRoutes(mcpServersByTransportId, sessionManager)
 
-                               // Load the Script
-                               script(src = "https://cdn.jsdelivr.net/npm/@scalar/api-reference") {}
-
-                               // Initialize the Scalar API Reference
-                               script {
-                                   unsafe {
-                                       raw("""
-                                                Scalar.createApiReference('#app', {
-                                                  url: '/api.yaml',
-                                                })
-                                                """.trimIndent())
-                                   }
-                               }
-                           }
-                       }
-                   }
+                route("api_v1.json") {
+                    openApi("v1")
                 }
             }
         }
