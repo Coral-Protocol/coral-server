@@ -39,6 +39,7 @@ import kotlinx.serialization.json.JsonNamingStrategy
 import org.coralprotocol.coralserver.config.AppConfigLoader
 import org.coralprotocol.coralserver.debug.debugRoutes
 import org.coralprotocol.coralserver.models.serialization.compileHybridInline
+import org.coralprotocol.coralserver.routes.api.v1.agentRoutes
 import org.coralprotocol.coralserver.routes.api.v1.documentationRoutes
 import org.coralprotocol.coralserver.routes.api.v1.messageRoutes
 import org.coralprotocol.coralserver.routes.api.v1.sessionRoutes
@@ -156,6 +157,7 @@ class CoralServer(
                 telemetryRoutes(sessionManager)
                 documentationRoutes()
                 sseRoutes(mcpServersByTransportId, sessionManager)
+                agentRoutes(appConfig, sessionManager)
 
                 route("api_v1.json") {
                     openApi("v1")
