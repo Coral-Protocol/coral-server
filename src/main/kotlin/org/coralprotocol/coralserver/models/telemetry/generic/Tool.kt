@@ -10,14 +10,15 @@ import kotlinx.serialization.json.JsonElement
 
 @Serializable
 @JsonClassDiscriminator("type")
+@SerialName("GenericToolResultContent")
 sealed class ToolResultContent {
     @Serializable
-    @SerialName("text")
+    @SerialName("generic_tool_text")
     @Suppress("unused")
     data class Text(val text: String): ToolResultContent()
 
     @Serializable
-    @SerialName("tool_result")
+    @SerialName("generic_tool_image")
     @Suppress("unused")
     data class Image(
         val data: String,

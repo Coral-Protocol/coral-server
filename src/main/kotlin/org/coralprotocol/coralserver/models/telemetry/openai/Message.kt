@@ -9,6 +9,7 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 
 @Serializable
 @JsonClassDiscriminator("role")
+@SerialName("OpenAIMessage")
 sealed class Message {
     @Serializable
     @SerialName("developer")
@@ -26,7 +27,7 @@ sealed class Message {
     data class AssistantMessage(
         val content: List<AssistantContent>,
         val refusal: String? = null,
-        val audio: String? = null,
+        val audio: AudioAssistant? = null,
         val name: String? = null,
         @SerialName("tool_calls") val toolCalls: List<ToolCall>
     ) : Message()
