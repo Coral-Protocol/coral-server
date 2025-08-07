@@ -10,6 +10,7 @@ import io.github.smiley4.ktoropenapi.route
 import io.github.smiley4.schemakenerator.core.CoreSteps.addMissingSupertypeSubtypeRelations
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.addJsonClassDiscriminatorProperty
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.analyzeTypeUsingKotlinxSerialization
+import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.compileInlining
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.customizeTypes
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.generateSwaggerSchema
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.withTitle
@@ -33,11 +34,8 @@ import io.ktor.util.collections.*
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.coroutines.Job
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonNamingStrategy
-import nl.adaptivity.xmlutil.core.impl.multiplatform.name
 import org.coralprotocol.coralserver.config.AppConfigLoader
 import org.coralprotocol.coralserver.debug.debugRoutes
 import org.coralprotocol.coralserver.models.serialization.compileHybridInline
@@ -91,24 +89,17 @@ class CoralServer(
                         generator = { type ->
                             type
                                 .analyzeTypeUsingKotlinxSerialization {
-                                    findTypeParametersUsingReflection = true
+
                                 }
                                 .addMissingSupertypeSubtypeRelations()
                                 .addJsonClassDiscriminatorProperty()
-                                .generateSwaggerSchema()
-                                .customizeTypes { data, schema ->
-                                    // It doesn't appear that any code generation actually uses this mapping, it also breaks
-                                    // when inlining, so for now we will omit it completely
+                                .generateSwaggerSchema({
+                                    strictDiscriminatorProperty = true
+                                })
+                                .customizeTypes { _, schema ->
+                                    // Mapping is broken, and one of the code generation libraries I am using checks the
+                                    // references here
                                     schema.discriminator?.mapping = null;
-
-                                    val discriminator = data.annotations.firstOrNull { it.name == JsonClassDiscriminator::class.name }?.values["discriminator"]
-                                    if (discriminator != null && schema.properties != null) {
-                                        schema.properties[discriminator]?.enum = listOf(
-                                            data.annotations.firstOrNull {
-                                                it.name == SerialName::class.name
-                                            }?.values["value"] ?: data.identifyingName.short
-                                        )
-                                    }
                                 }
                                 .withTitle(TitleType.SIMPLE)
                                 .compileHybridInline(false, TitleBuilder.BUILDER_OPENAPI_SIMPLE)
