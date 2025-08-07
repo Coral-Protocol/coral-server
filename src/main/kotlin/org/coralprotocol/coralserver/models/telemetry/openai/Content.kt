@@ -23,7 +23,11 @@ data class ImageUrl(val url: String, val detail: ImageDetail)
 data class InputAudio(val data: String, val format: AudioMediaType)
 
 @Serializable
+@SerialName("OpenAISystemContent")
 data class SystemContent(val type: SystemContentType, val text: String)
+
+@Serializable
+data class AudioAssistant(val id: String);
 
 @Serializable
 @JsonClassDiscriminator("type")

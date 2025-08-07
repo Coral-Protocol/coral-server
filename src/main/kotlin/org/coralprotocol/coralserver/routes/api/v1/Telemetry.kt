@@ -97,7 +97,8 @@ fun Routing.telemetryRoutes(sessionManager: SessionManager) {
             val message = TelemetryGet(post.sessionId, target.threadId, target.messageId)
                 .intoMessage(sessionManager)
 
-            message.telemetry = model.data;
+            message.telemetry = model.data
+            logger.info { "Adding telemetry to ${target.threadId}/${message.id} in session \"${post.sessionId}\"" }
         }
 
         call.respond(status = HttpStatusCode.OK, "")

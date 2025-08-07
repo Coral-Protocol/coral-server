@@ -24,4 +24,5 @@ enum class ToolResultContentType {
 }
 
 @Serializable
+@SerialName("OpenAIToolResultContent")
 data class ToolResultContent(val type: ToolResultContentType, val text: String)

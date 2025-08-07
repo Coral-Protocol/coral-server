@@ -9,15 +9,16 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 
 @Serializable
 @JsonClassDiscriminator("role")
+@SerialName("GenericMessage")
 sealed class Message() {
 
     @Serializable
-    @SerialName("user")
+    @SerialName("generic_user")
     @Suppress("unused")
     data class UserMessage(val content: List<UserContent>) : Message()
 
     @Serializable
-    @SerialName("assistant")
+    @SerialName("generic_assistant")
     @Suppress("unused")
     data class AssistantMessage(
         val id: String? = null,
