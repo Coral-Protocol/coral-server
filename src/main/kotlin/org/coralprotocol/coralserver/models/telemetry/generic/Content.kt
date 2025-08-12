@@ -137,12 +137,12 @@ enum class AudioMediaType {
 @SerialName("GenericUserContent")
 sealed class UserContent {
     @Serializable
-    @SerialName("generic_text")
+    @SerialName("text")
     @Suppress("unused")
     data class Text(val text: String): UserContent()
 
     @Serializable
-    @SerialName("generic_tool_result")
+    @SerialName("tool_result")
     @Suppress("unused")
     data class ToolResult(
         val id: String,
@@ -151,7 +151,7 @@ sealed class UserContent {
     ): UserContent()
 
     @Serializable
-    @SerialName("generic_image")
+    @SerialName("image")
     @Suppress("unused")
     data class Image(
         val data: String,
@@ -161,7 +161,7 @@ sealed class UserContent {
     ): UserContent()
 
     @Serializable
-    @SerialName("generic_audio")
+    @SerialName("audio")
     @Suppress("unused")
     data class Audio(
         val data: String,
@@ -170,7 +170,7 @@ sealed class UserContent {
     ): UserContent()
 
     @Serializable
-    @SerialName("generic_document")
+    @SerialName("document")
     @Suppress("unused")
     data class Document(
         val data: String,
@@ -184,12 +184,12 @@ sealed class UserContent {
 @SerialName("GenericAssistantContent")
 sealed class AssistantContent {
     @Serializable
-    @SerialName("generic_assistant_text")
+    @SerialName("assistant_text")
     @Suppress("unused")
     data class Text(val text: String) : AssistantContent()
 
     @Serializable
-    @SerialName("generic_assistant_tool_call")
+    @SerialName("assistant_tool_call")
     @Suppress("unused")
     data class ToolCall(
         val id: String,
@@ -198,7 +198,7 @@ sealed class AssistantContent {
     ) : AssistantContent()
 
     @Serializable
-    @SerialName("generic_assistant_reasoning")
+    @SerialName("assistant_reasoning")
     @Suppress("unused")
     data class Reasoning(val reasoning: String) : AssistantContent()
 }

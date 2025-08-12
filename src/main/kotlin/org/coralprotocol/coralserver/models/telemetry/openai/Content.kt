@@ -31,6 +31,7 @@ data class AudioAssistant(val id: String);
 
 @Serializable
 @JsonClassDiscriminator("type")
+@SerialName("OpenAIUserContent")
 sealed class UserContent {
     @Serializable
     @SerialName("text")
@@ -50,6 +51,7 @@ sealed class UserContent {
 
 @Serializable
 @JsonClassDiscriminator("type")
+@SerialName("OpenAIAssistantContent")
 sealed class AssistantContent {
     @Serializable
     @SerialName("text")
