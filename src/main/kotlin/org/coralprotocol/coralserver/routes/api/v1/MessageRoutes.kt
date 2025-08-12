@@ -27,7 +27,7 @@ class DevModeMessage(val applicationId: String, val privacyKey: String, val cora
  * 
  * @param servers A concurrent map to store server instances by transport session ID
  */
-fun Routing.messageRoutes(servers: ConcurrentMap<String, Server>, sessionManager: SessionManager) {
+fun Routing.messageApiRoutes(servers: ConcurrentMap<String, Server>, sessionManager: SessionManager) {
     // Message endpoint with application, privacy key, and session parameters
     post<Message>({
         summary = "Send message"
