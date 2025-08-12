@@ -1,18 +1,26 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package org.coralprotocol.coralserver.orchestrator
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonClassDiscriminator
 
 @Serializable
+@JsonClassDiscriminator("type")
 sealed interface ConfigEntry {
-    abstract val type: String
+    val type: String
     val name: String
     val description: String?
 
     @Serializable
     @SerialName("string")
-    data class Str(override val name: String, override val description: String? = null, val default: String? = null) :
-        ConfigEntry {
+    data class Str(
+        override val name: String,
+        override val description: String? = null,
+        val default: String? = null
+    ) : ConfigEntry {
         override val type get(): String = "string"
     }
 
@@ -45,5 +53,4 @@ sealed interface ConfigEntry {
             is Secret -> null // secrets cannot have defaults
             is Number -> o.default?.let { ConfigValue.Num(it) }
         }
-
 }
