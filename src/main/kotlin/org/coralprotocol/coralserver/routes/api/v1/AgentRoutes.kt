@@ -17,7 +17,7 @@ private val logger = KotlinLogging.logger {}
 @Resource("/api/v1/agents")
 class Agents
 
-fun Routing.agentRoutes(appConfig: AppConfigLoader, sessionManager: SessionManager) {
+fun Routing.agentApiRoutes(appConfig: AppConfigLoader, sessionManager: SessionManager) {
     get<Agents>({
         summary = "Get agent registry"
         description = "Fetches a list of available agents"

@@ -6,6 +6,8 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
+import kotlinx.serialization.json.JsonIgnoreUnknownKeys
+import kotlinx.serialization.json.JsonObject
 
 @Serializable
 enum class ContentFormat {
@@ -133,6 +135,21 @@ enum class AudioMediaType {
 }
 
 @Serializable
+enum class VideoMediaType {
+    @SerialName("avi")
+    @Suppress("unused")
+    AVI,
+
+    @SerialName("mp4")
+    @Suppress("unused")
+    MP4,
+
+    @SerialName("mpeg")
+    @Suppress("unused")
+    MPEG,
+}
+
+@Serializable
 @JsonClassDiscriminator("type")
 @SerialName("GenericUserContent")
 sealed class UserContent {
@@ -170,6 +187,16 @@ sealed class UserContent {
     ): UserContent()
 
     @Serializable
+    @SerialName("video")
+    @Suppress("unused")
+    @JsonIgnoreUnknownKeys
+    data class Video(
+        val data: String,
+        val format: ContentFormat? = null,
+        @SerialName("media_type") val mediaType: VideoMediaType? = null,
+    ): UserContent()
+
+    @Serializable
     @SerialName("document")
     @Suppress("unused")
     data class Document(
@@ -200,5 +227,5 @@ sealed class AssistantContent {
     @Serializable
     @SerialName("assistant_reasoning")
     @Suppress("unused")
-    data class Reasoning(val reasoning: String) : AssistantContent()
+    data class Reasoning(val reasoning: List<String>) : AssistantContent()
 }

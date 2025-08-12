@@ -25,7 +25,7 @@ class Sessions
 /**
  * Configures session-related routes.
  */
-fun Routing.sessionRoutes(appConfig: AppConfigLoader, sessionManager: SessionManager, devMode: Boolean) {
+fun Routing.sessionApiRoutes(appConfig: AppConfigLoader, sessionManager: SessionManager, devMode: Boolean) {
     post<Sessions>({
         summary = "Create session"
         description = "Creates a new session"

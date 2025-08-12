@@ -10,13 +10,14 @@ import io.github.smiley4.ktoropenapi.route
 import io.github.smiley4.schemakenerator.core.CoreSteps.addMissingSupertypeSubtypeRelations
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.addJsonClassDiscriminatorProperty
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.analyzeTypeUsingKotlinxSerialization
-import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.compileInlining
+import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.compileReferencingRoot
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.customizeTypes
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.generateSwaggerSchema
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.withTitle
 import io.github.smiley4.schemakenerator.swagger.TitleBuilder
 import io.github.smiley4.schemakenerator.swagger.data.TitleType
 import io.ktor.http.*
+import io.ktor.network.sockets.Socket
 import io.ktor.serialization.kotlinx.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -37,14 +38,15 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
 import org.coralprotocol.coralserver.config.AppConfigLoader
-import org.coralprotocol.coralserver.debug.debugRoutes
-import org.coralprotocol.coralserver.models.serialization.compileHybridInline
-import org.coralprotocol.coralserver.routes.api.v1.agentRoutes
-import org.coralprotocol.coralserver.routes.api.v1.documentationRoutes
-import org.coralprotocol.coralserver.routes.api.v1.messageRoutes
-import org.coralprotocol.coralserver.routes.api.v1.sessionRoutes
-import org.coralprotocol.coralserver.routes.api.v1.telemetryRoutes
-import org.coralprotocol.coralserver.routes.sse.v1.sseRoutes
+import org.coralprotocol.coralserver.models.SocketEvent
+import org.coralprotocol.coralserver.routes.api.v1.debugApiRoutes
+import org.coralprotocol.coralserver.routes.api.v1.agentApiRoutes
+import org.coralprotocol.coralserver.routes.api.v1.documentationApiRoutes
+import org.coralprotocol.coralserver.routes.api.v1.messageApiRoutes
+import org.coralprotocol.coralserver.routes.api.v1.sessionApiRoutes
+import org.coralprotocol.coralserver.routes.api.v1.telemetryApiRoutes
+import org.coralprotocol.coralserver.routes.sse.v1.connectionSseRoutes
+import org.coralprotocol.coralserver.routes.ws.v1.debugWsRoutes
 import org.coralprotocol.coralserver.session.SessionManager
 import kotlin.time.Duration.Companion.seconds
 
@@ -87,6 +89,7 @@ class CoralServer(
                         tagGenerator = { url -> listOf(url.getOrNull(2)) }
                     }
                     schemas {
+                        // Generated types from routes
                         generator = { type ->
                             type
                                 .analyzeTypeUsingKotlinxSerialization {
@@ -103,8 +106,15 @@ class CoralServer(
                                     schema.discriminator?.mapping = null;
                                 }
                                 .withTitle(TitleType.SIMPLE)
-                                .compileHybridInline(false, TitleBuilder.BUILDER_OPENAPI_SIMPLE)
+                                .compileReferencingRoot(
+                                    explicitNullTypes = false,
+                                    inlineDiscriminatedTypes = true,
+                                    builder = TitleBuilder.BUILDER_OPENAPI_SIMPLE
+                                )
                         }
+
+                        // Other types, used by SSE or WebSocket routes
+                        schema<SocketEvent>("SocketEvent")
                     }
                 }
                 specAssigner = { url: String, tags: List<String> ->
@@ -151,14 +161,21 @@ class CoralServer(
                 }
             }
             routing {
-                debugRoutes(sessionManager)
-                sessionRoutes(appConfig, sessionManager, devmode)
-                messageRoutes(mcpServersByTransportId, sessionManager)
-                telemetryRoutes(sessionManager)
-                documentationRoutes()
-                sseRoutes(mcpServersByTransportId, sessionManager)
-                agentRoutes(appConfig, sessionManager)
+                // api
+                debugApiRoutes(sessionManager)
+                sessionApiRoutes(appConfig, sessionManager, devmode)
+                messageApiRoutes(mcpServersByTransportId, sessionManager)
+                telemetryApiRoutes(sessionManager)
+                documentationApiRoutes()
+                agentApiRoutes(appConfig, sessionManager)
 
+                // sse
+                connectionSseRoutes(mcpServersByTransportId, sessionManager)
+
+                // websocket
+                debugWsRoutes(sessionManager)
+
+                // source of truth for OpenAPI docs/codegen
                 route("api_v1.json") {
                     openApi("v1")
                 }

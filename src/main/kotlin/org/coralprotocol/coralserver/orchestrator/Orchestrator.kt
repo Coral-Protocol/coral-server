@@ -1,8 +1,13 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package org.coralprotocol.coralserver.orchestrator
 
 import com.chrynan.uri.core.Uri
 import kotlinx.coroutines.*
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.config.AppConfigLoader
 import org.coralprotocol.coralserver.session.GraphAgent
@@ -16,11 +21,18 @@ enum class LogKind {
 }
 
 @Serializable
+@JsonClassDiscriminator("type")
 sealed interface RuntimeEvent {
     @Serializable
-    data class Log(val timestamp: Long = System.currentTimeMillis(), val kind: LogKind, val message: String) :
-        RuntimeEvent
+    @SerialName("log")
+    data class Log(
+        val timestamp: Long = System.currentTimeMillis(),
+        val kind: LogKind,
+        val message: String
+    ) : RuntimeEvent
+
     @Serializable
+    @SerialName("stopped")
     data class Stopped(val timestamp: Long = System.currentTimeMillis()): RuntimeEvent
 }
 
