@@ -31,7 +31,10 @@ data class ExecutableRuntime(
     ): OrchestratorHandle {
         val processBuilder = ProcessBuilder()
         val processEnvironment = processBuilder.environment()
+        val path = processEnvironment["PATH"] ?: ""
         processEnvironment.clear()
+        processEnvironment["PATH"] = path
+
         // TODO: error if someone tries passing coral system envs themselves
         val coralConnectionUrl = Uri.fromParts(
             scheme = "http",
