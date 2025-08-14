@@ -1,7 +1,23 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package org.coralprotocol.coralserver.server
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.smiley4.ktoropenapi.OpenApi
+import io.github.smiley4.ktoropenapi.config.OutputFormat
+import io.github.smiley4.ktoropenapi.openApi
+import io.github.smiley4.ktoropenapi.route
+import io.github.smiley4.schemakenerator.core.CoreSteps.addMissingSupertypeSubtypeRelations
+import io.github.smiley4.schemakenerator.serialization.SerializationSteps.addJsonClassDiscriminatorProperty
+import io.github.smiley4.schemakenerator.serialization.SerializationSteps.analyzeTypeUsingKotlinxSerialization
+import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.compileReferencingRoot
+import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.customizeTypes
+import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.generateSwaggerSchema
+import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.withTitle
+import io.github.smiley4.schemakenerator.swagger.TitleBuilder
+import io.github.smiley4.schemakenerator.swagger.data.TitleType
 import io.ktor.http.*
+import io.ktor.network.sockets.Socket
 import io.ktor.serialization.kotlinx.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -9,29 +25,38 @@ import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
-import io.ktor.server.plugins.statuspages.StatusPages
-import io.ktor.server.response.respondText
+import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.resources.*
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import io.ktor.server.websocket.*
 import io.ktor.util.collections.*
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.coroutines.Job
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
-import org.coralprotocol.coralserver.config.AppConfig
+import kotlinx.serialization.json.JsonNamingStrategy
 import org.coralprotocol.coralserver.config.AppConfigLoader
-import org.coralprotocol.coralserver.debug.debugRoutes
-import org.coralprotocol.coralserver.routes.messageRoutes
-import org.coralprotocol.coralserver.routes.publicRoutes
-import org.coralprotocol.coralserver.routes.sessionRoutes
-import org.coralprotocol.coralserver.routes.sseRoutes
+import org.coralprotocol.coralserver.models.SocketEvent
+import org.coralprotocol.coralserver.routes.api.v1.debugApiRoutes
+import org.coralprotocol.coralserver.routes.api.v1.agentApiRoutes
+import org.coralprotocol.coralserver.routes.api.v1.documentationApiRoutes
+import org.coralprotocol.coralserver.routes.api.v1.messageApiRoutes
+import org.coralprotocol.coralserver.routes.api.v1.sessionApiRoutes
+import org.coralprotocol.coralserver.routes.api.v1.telemetryApiRoutes
+import org.coralprotocol.coralserver.routes.sse.v1.connectionSseRoutes
+import org.coralprotocol.coralserver.routes.ws.v1.debugWsRoutes
 import org.coralprotocol.coralserver.session.SessionManager
 import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 
-private val jsonEncoder = Json {
+private val json = Json {
     encodeDefaults = true
+    prettyPrint = true
+    explicitNulls = false
+    namingStrategy = JsonNamingStrategy.SnakeCase
 }
 
 /**
@@ -52,9 +77,60 @@ class CoralServer(
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
         embeddedServer(CIO, host = host, port = port.toInt(), watchPaths = listOf("classes")) {
+            install(OpenApi) {
+                info {
+                    title = "Coral Server API"
+                }
+                spec("v1") {
+                    info {
+                        version = "1.0"
+                    }
+                    tags {
+                        tagGenerator = { url -> listOf(url.getOrNull(2)) }
+                    }
+                    schemas {
+                        // Generated types from routes
+                        generator = { type ->
+                            type
+                                .analyzeTypeUsingKotlinxSerialization {
+
+                                }
+                                .addMissingSupertypeSubtypeRelations()
+                                .addJsonClassDiscriminatorProperty()
+                                .generateSwaggerSchema({
+                                    strictDiscriminatorProperty = true
+                                })
+                                .customizeTypes { _, schema ->
+                                    // Mapping is broken, and one of the code generation libraries I am using checks the
+                                    // references here
+                                    schema.discriminator?.mapping = null;
+                                }
+                                .withTitle(TitleType.SIMPLE)
+                                .compileReferencingRoot(
+                                    explicitNullTypes = false,
+                                    inlineDiscriminatedTypes = true,
+                                    builder = TitleBuilder.BUILDER_OPENAPI_SIMPLE
+                                )
+                        }
+
+                        // Other types, used by SSE or WebSocket routes
+                        schema<SocketEvent>("SocketEvent")
+                    }
+                }
+                specAssigner = { url: String, tags: List<String> ->
+                    // when another spec version is added, determine the version based on the url here or use
+                    // specVersion on the new routes
+                    "v1"
+                }
+                pathFilter = { method, parts ->
+                     parts.getOrNull(0) == "api"
+                }
+                outputFormat = OutputFormat.JSON
+            }
+            install(Resources)
             install(SSE)
             install(ContentNegotiation) {
-                json()
+                json(json, contentType = ContentType.Application.Json)
             }
             install(WebSockets) {
                 contentConverter = KotlinxWebsocketSerializationConverter(Json)
@@ -81,15 +157,28 @@ class CoralServer(
                         wrapped = RouteException(HttpStatusCode.InternalServerError, cause.message)
                     }
 
-                    call.respondText(text = jsonEncoder.encodeToString(wrapped), status = wrapped.status)
+                    call.respondText(text = json.encodeToString(wrapped), status = wrapped.status)
                 }
             }
             routing {
-                publicRoutes(appConfig, sessionManager)
-                debugRoutes(sessionManager)
-                sessionRoutes(appConfig, sessionManager, devmode)
-                sseRoutes(mcpServersByTransportId, sessionManager)
-                messageRoutes(mcpServersByTransportId, sessionManager)
+                // api
+                debugApiRoutes(sessionManager)
+                sessionApiRoutes(appConfig, sessionManager, devmode)
+                messageApiRoutes(mcpServersByTransportId, sessionManager)
+                telemetryApiRoutes(sessionManager)
+                documentationApiRoutes()
+                agentApiRoutes(appConfig, sessionManager)
+
+                // sse
+                connectionSseRoutes(mcpServersByTransportId, sessionManager)
+
+                // websocket
+                debugWsRoutes(sessionManager)
+
+                // source of truth for OpenAPI docs/codegen
+                route("api_v1.json") {
+                    openApi("v1")
+                }
             }
         }
     val monitor get() = server.monitor
@@ -105,11 +194,11 @@ class CoralServer(
         if (devmode) {
             logger.info {
                 "In development, agents can connect to " +
-                        "http://localhost:$port/devmode/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=exampleAgent"
+                        "http://localhost:$port/sse/v1/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=exampleAgent"
             }
             logger.info {
                 "Connect the inspector to " +
-                        "http://localhost:$port/devmode/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=inspector"
+                        "http://localhost:$port/sse/v1/devmode/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=inspector"
             }
         }
         server.monitor.subscribe(ApplicationStarted) {

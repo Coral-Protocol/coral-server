@@ -21,7 +21,7 @@ class Agent(
 
 @Serializable
 enum class AgentState {
-   @SerialName("disconnected")
+    @SerialName("disconnected")
     Disconnected,
     @SerialName("connecting")
     Connecting,

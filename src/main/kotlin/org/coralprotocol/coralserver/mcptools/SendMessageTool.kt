@@ -70,8 +70,6 @@ private suspend fun CoralAgentIndividualMcp.handleSendMessage(request: CallToolR
                         ID: ${message.id}
                         Thread: ${message.thread.id}
                         Sender: ${message.sender.id}
-                        Content: ${message.content}
-                        Mentions: ${message.mentions.joinToString(", ")}
                         """.trimIndent()
                     )
                 )

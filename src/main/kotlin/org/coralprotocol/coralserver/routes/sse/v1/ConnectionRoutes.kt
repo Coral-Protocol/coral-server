@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.routes
+package org.coralprotocol.coralserver.routes.sse.v1
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.*
@@ -11,7 +11,6 @@ import io.ktor.server.sse.*
 import io.ktor.util.collections.*
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
-import org.coralprotocol.coralserver.models.Agent
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import org.coralprotocol.coralserver.session.SessionManager
 
@@ -22,8 +21,8 @@ private val logger = KotlinLogging.logger {}
  * These endpoints establish bidirectional communication channels and must be hit
  * before any message processing can begin.
  */
-fun Routing.sseRoutes(servers: ConcurrentMap<String, Server>, sessionManager: SessionManager) {
-    sse("/{applicationId}/{privacyKey}/{coralSessionId}/sse") {
+fun Routing.connectionSseRoutes(servers: ConcurrentMap<String, Server>, sessionManager: SessionManager) {
+    sse("/sse/v1/{applicationId}/{privacyKey}/{coralSessionId}") {
         handleSseConnection(
             "coral://" + call.request.host() + ":" + call.request.port() + call.request.uri,
             call.parameters,
@@ -34,7 +33,7 @@ fun Routing.sseRoutes(servers: ConcurrentMap<String, Server>, sessionManager: Se
         )
     }
 
-    sse("/devmode/{applicationId}/{privacyKey}/{coralSessionId}/sse") {
+    sse("/sse/v1/devmode/{applicationId}/{privacyKey}/{coralSessionId}") {
         handleSseConnection(
             "coral://" + call.request.host() + ":" + call.request.port() + call.request.uri,
             call.parameters,
@@ -135,8 +134,8 @@ private suspend fun handleSseConnection(
     val newCount = session.getRegisteredAgentsCount()
     logger.info { "DevMode: New agent count for session ${session.id} (object id: ${session})after registering: $newCount" }
 
-    val routePrefix = if (isDevMode) "/devmode" else ""
-    val endpoint = "$routePrefix/$applicationId/$privacyKey/$sessionId/message"
+    val routeSuffix = if (isDevMode) "devmode/" else ""
+    val endpoint = "/api/v1/message/$routeSuffix$applicationId/$privacyKey/$sessionId"
     val transport = SseServerTransport(endpoint, sseProducer)
 
     val individualServer =
