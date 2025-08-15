@@ -1,26 +1,32 @@
 package org.coralprotocol.coralserver.orchestrator
 
-import kotlinx.serialization.SerialName
+import UnresolvedAgentOption
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import org.coralprotocol.coralserver.orchestrator.runtime.AgentRuntime
-import org.coralprotocol.coralserver.toMapOnDuplicate
+
+@Serializable
+data class UnresolvedRegistryAgent(
+    val runtime: AgentRuntime,
+    val options: Map<String, UnresolvedAgentOption>
+) {
+    fun resolve(): RegistryAgent = RegistryAgent(
+        runtime = runtime,
+        options = options.mapValues { (_, option) ->
+            option.resolve()
+        }
+    )
+}
 
 @Serializable
 data class RegistryAgent(
     val runtime: AgentRuntime,
-    @SerialName("options")
-    private val optionsList: List<ConfigEntry>
-) {
-    @Transient
-    val options = optionsList.map { it.name to it }
-        .toMapOnDuplicate { throw IllegalArgumentException("Duplicate options ${it.joinToString(",")}") }
-}
+    val options: Map<String, AgentOption>
+)
 
 @Serializable
 data class PublicRegistryAgent(
     val id: String,
-    val options: Map<String, ConfigEntry>
+    val options: Map<String, AgentOption>
 )
 
 fun RegistryAgent.toPublic(id: String): PublicRegistryAgent = PublicRegistryAgent(

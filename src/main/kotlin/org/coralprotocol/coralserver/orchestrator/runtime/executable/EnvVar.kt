@@ -1,7 +1,7 @@
 package org.coralprotocol.coralserver.orchestrator.runtime.executable
 
 import kotlinx.serialization.Serializable
-import org.coralprotocol.coralserver.orchestrator.ConfigValue
+import org.coralprotocol.coralserver.orchestrator.AgentOptionValue
 
 @Serializable
 data class EnvVar(
@@ -28,7 +28,7 @@ data class EnvVar(
         }
     }
 
-    fun resolve(options: Map<String, ConfigValue>): Pair<String, String?> {
+    fun resolve(options: Map<String, AgentOptionValue>): Pair<String, String?> {
         if (option != null) {
             val opt = options[option] ?: throw IllegalArgumentException("Undefined option '$option'")
             return Pair(option, opt.toString())

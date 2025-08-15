@@ -9,7 +9,6 @@ import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import io.ktor.client.utils.EmptyContent.contentType
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.modelcontextprotocol.kotlin.sdk.CallToolRequest
@@ -27,11 +26,7 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.*
 import net.pwall.json.schema.JSONSchema
-import org.coralprotocol.coralserver.orchestrator.AgentType
-import org.coralprotocol.coralserver.orchestrator.runtime.AgentRuntime
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
-import java.net.URI
-
 
 private val logger = KotlinLogging.logger {}
 
@@ -158,7 +153,7 @@ sealed interface GraphAgentRequest {
     @Serializable
     @SerialName("remote")
     data class Remote(
-        val remote: AgentRuntime.Remote,
+        val remote: org.coralprotocol.coralserver.orchestrator.runtime.Remote,
         override val options: Map<String, JsonPrimitive> = mapOf(),
         override val systemPrompt: String? = null,
         override val tools: Set<String> = setOf(),
@@ -169,7 +164,7 @@ sealed interface GraphAgentRequest {
     @Serializable
     @SerialName("local")
     data class Local(
-        val agentType: AgentType,
+        val agentType: String,
         override val options: Map<String, JsonPrimitive> = mapOf(),
         override val systemPrompt: String? = null,
         override val tools: Set<String> = setOf(),

@@ -1,0 +1,11 @@
+[registry]
+interface = { path = "examples/camel-search-maths/interface" }
+math = { path = "examples/camel-search-maths/math" }
+search = { path = "examples/camel-search-maths/search" }
+
+#git-example1 = { git = "https://github.com/Coral-Protocol/coral-cli.git", rev = "ffffff" }
+#git-example2 = { git = "https://github.com/Coral-Protocol/coral-cli.git", branch = "main" }
+#git-example3 = { git = "https://github.com/Coral-Protocol/coral-cli.git", tag = "v1" }
+
+#marketplace = "0.1.0"
+#marketplace-detailed = { version = "0.1.1" }

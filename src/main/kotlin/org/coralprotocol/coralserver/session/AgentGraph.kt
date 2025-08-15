@@ -1,9 +1,7 @@
 package org.coralprotocol.coralserver.session
 
 import kotlinx.serialization.Serializable
-import org.coralprotocol.coralserver.orchestrator.ConfigValue
-import org.coralprotocol.coralserver.orchestrator.AgentType
-import org.coralprotocol.coralserver.orchestrator.runtime.AgentRuntime
+import org.coralprotocol.coralserver.orchestrator.AgentOptionValue
 
 @JvmInline
 @Serializable
@@ -19,25 +17,24 @@ data class AgentGraph(
 )
 
 sealed interface GraphAgent {
-    val options: Map<String, ConfigValue>
+    val options: Map<String, AgentOptionValue>
     val systemPrompt: String?
     val extraTools: Set<String>
     val blocking: Boolean
 
     data class Remote(
-        val remote: AgentRuntime.Remote,
+        val remote: org.coralprotocol.coralserver.orchestrator.runtime.Remote,
         override val extraTools: Set<String> = setOf(),
         override val systemPrompt: String? = null,
-        override val options: Map<String, ConfigValue> = mapOf(),
+        override val options: Map<String, AgentOptionValue> = mapOf(),
         override val blocking: Boolean = true
     ) : GraphAgent
 
     data class Local(
-        val agentType: AgentType,
+        val agentType: String,
         override val extraTools: Set<String> = setOf(),
         override val systemPrompt: String? = null,
-        override val options: Map<String, ConfigValue> = mapOf(),
+        override val options: Map<String, AgentOptionValue> = mapOf(),
         override val blocking: Boolean = true
-    ) :
-        GraphAgent
+    ) : GraphAgent
 }

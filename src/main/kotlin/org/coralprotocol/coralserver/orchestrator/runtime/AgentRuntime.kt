@@ -6,9 +6,8 @@ import com.chrynan.uri.core.Uri
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.EventBus
-import org.coralprotocol.coralserver.orchestrator.ConfigValue
+import org.coralprotocol.coralserver.orchestrator.AgentOptionValue
 import org.coralprotocol.coralserver.orchestrator.Orchestrate
 import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
 import org.coralprotocol.coralserver.orchestrator.RuntimeEvent
@@ -22,26 +21,23 @@ data class RuntimeParams(
     val mcpServerRelativeUri: Uri,
 
     val systemPrompt: String?,
-    val options: Map<String, ConfigValue>,
+    val options: Map<String, AgentOptionValue>,
 )
 
 @Serializable
-@JsonClassDiscriminator("type")
-sealed class AgentRuntime : Orchestrate {
-    @Serializable
-    @SerialName("remote")
-    data class Remote(
-        val host: String,
-        val agentType: String,
-        val appId: String,
-        val privacyKey: String,
-    ) : AgentRuntime() {
-        override fun spawn(
-            params: RuntimeParams,
-            bus: EventBus<RuntimeEvent>,
-            sessionManager: SessionManager?,
-        ): OrchestratorHandle {
-            TODO("request agent from remote server")
-        }
+@SerialName("runtime")
+class AgentRuntime(
+    @SerialName("executable")
+    val executableRuntime: Executable? = null,
+
+    @SerialName("docker")
+    val dockerRuntime: Docker? = null,
+) : Orchestrate {
+    override fun spawn(
+        params: RuntimeParams,
+        eventBus: EventBus<RuntimeEvent>,
+        sessionManager: SessionManager?
+    ): OrchestratorHandle {
+        TODO("runtime must be selected")
     }
 }

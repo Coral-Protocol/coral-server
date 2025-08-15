@@ -17,7 +17,6 @@ import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.withTitle
 import io.github.smiley4.schemakenerator.swagger.TitleBuilder
 import io.github.smiley4.schemakenerator.swagger.data.TitleType
 import io.ktor.http.*
-import io.ktor.network.sockets.Socket
 import io.ktor.serialization.kotlinx.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -37,7 +36,7 @@ import kotlinx.coroutines.Job
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
-import org.coralprotocol.coralserver.config.AppConfigLoader
+import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.models.SocketEvent
 import org.coralprotocol.coralserver.routes.api.v1.debugApiRoutes
 import org.coralprotocol.coralserver.routes.api.v1.agentApiRoutes
@@ -69,7 +68,7 @@ private val json = Json {
 class CoralServer(
     val host: String = "0.0.0.0",
     val port: UShort = 5555u,
-    val appConfig: AppConfigLoader,
+    val appConfig: ConfigCollection,
     val devmode: Boolean = false,
     val sessionManager: SessionManager = SessionManager(port = port),
 ) {
@@ -188,7 +187,7 @@ class CoralServer(
      * Starts the server.
      */
     fun start(wait: Boolean = false) {
-        logger.info { "Starting sse server on port $port with ${appConfig.config.applications.size} configured applications" }
+        logger.info { "Starting sse server on port $port with ${appConfig.appConfig.applications.size} configured applications" }
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "trace");
 
         if (devmode) {

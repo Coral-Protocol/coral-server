@@ -1,7 +1,6 @@
 package org.coralprotocol.coralserver.models
 
 import kotlinx.serialization.Serializable
-import java.util.*
 
 /**
  * Represents a message in a thread.
