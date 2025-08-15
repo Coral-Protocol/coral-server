@@ -15,7 +15,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
-import org.coralprotocol.coralserver.orchestrator.ConfigValue
+import org.coralprotocol.coralserver.orchestrator.Orchestrate
 import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
 import org.coralprotocol.coralserver.orchestrator.RuntimeEvent
 import org.coralprotocol.coralserver.orchestrator.runtime.executable.EnvVar
@@ -29,7 +29,7 @@ private val logger = KotlinLogging.logger {}
 data class Docker(
     val image: String,
     val environment: List<EnvVar> = listOf()
-) : AgentRuntime() {
+) : Orchestrate {
     private val dockerClientConfig: DockerClientConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
         .withDockerHost(getDockerSocket())
         .build()

@@ -8,8 +8,9 @@ import io.ktor.resources.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.coralprotocol.coralserver.config.AppConfigLoader
-import org.coralprotocol.coralserver.orchestrator.ConfigValue
+import org.coralprotocol.coralserver.config.ConfigCollection
+import org.coralprotocol.coralserver.orchestrator.AgentOptionValue
+import org.coralprotocol.coralserver.orchestrator.defaultAsValue
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.*
 
@@ -25,7 +26,7 @@ class Sessions
 /**
  * Configures session-related routes.
  */
-fun Routing.sessionApiRoutes(appConfig: AppConfigLoader, sessionManager: SessionManager, devMode: Boolean) {
+fun Routing.sessionApiRoutes(appConfig: ConfigCollection, sessionManager: SessionManager, devMode: Boolean) {
     post<Sessions>({
         summary = "Create session"
         description = "Creates a new session"
@@ -56,7 +57,7 @@ fun Routing.sessionApiRoutes(appConfig: AppConfigLoader, sessionManager: Session
 
         val agentGraph = request.agentGraph?.let { it ->
             val agents = it.agents;
-            val registry = appConfig.config.registry ?: return@let null
+            val registry = appConfig.registry ?: return@let null
 
             val unknownAgents =
                 it.links.map { set -> set.filter { agent -> !it.agents.containsKey(AgentName(agent)) } }.flatten()
@@ -72,7 +73,7 @@ fun Routing.sessionApiRoutes(appConfig: AppConfigLoader, sessionManager: Session
                         is GraphAgentRequest.Local -> {
                             val agentDef = registry.get(agentReq.agentType)
 
-                            val missing = agentDef.options.filter { option ->
+                            val missing = agentDef!!.options.filter { option ->
                                 option.value.required && !agentReq.options.containsKey(option.key)
                             }
                             if (missing.isNotEmpty()) {
@@ -80,17 +81,17 @@ fun Routing.sessionApiRoutes(appConfig: AppConfigLoader, sessionManager: Session
                             }
 
                             val defaultOptions =
-                                agentDef.options.mapValues { option -> option.value.defaultAsValue }
+                                agentDef.options.mapValues { option -> option.value.defaultAsValue() }
                                     .filterNotNullValues()
 
                             val setOptions = agentReq.options.mapValues { option ->
                                 val realOption = agentDef.options[option.key]
                                     ?: throw IllegalArgumentException("Unknown option '${option.key}'")
-                                val value = ConfigValue.tryFromJson(option.value)
-                                    ?: throw IllegalArgumentException("Agent '${agent.key}' given invalid type for option '${option.key} - expected ${realOption.type}'")
-                                if (value.type != realOption.type) {
-                                    throw IllegalArgumentException("Agent '${agent.key}' given invalid type for option '${option.key}' - expected ${realOption.type}")
-                                }
+                                val value = AgentOptionValue.tryFromJson(option.value)
+                                    ?: throw IllegalArgumentException("Agent '${agent.key}' given invalid type for option '${option.key}'")
+//                                if (value.type != realOption.type) {
+//                                    throw IllegalArgumentException("Agent '${agent.key}' given invalid type for option '${option.key}' - expected ${realOption.type}")
+//                                }
                                 value
                             }
 

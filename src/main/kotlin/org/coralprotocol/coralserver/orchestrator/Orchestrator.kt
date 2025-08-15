@@ -9,9 +9,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.EventBus
-import org.coralprotocol.coralserver.config.AppConfigLoader
+import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.session.GraphAgent
-import org.coralprotocol.coralserver.orchestrator.runtime.AgentRuntime
 import org.coralprotocol.coralserver.orchestrator.runtime.RuntimeParams
 import org.coralprotocol.coralserver.session.SessionManager
 
@@ -49,7 +48,7 @@ interface OrchestratorHandle {
 }
 
 class Orchestrator(
-    val app: AppConfigLoader = AppConfigLoader(null),
+    val app: ConfigCollection = ConfigCollection(null),
 ) {
     private val eventBusses: MutableMap<String, MutableMap<String, EventBus<RuntimeEvent>>> = mutableMapOf()
     private val handles: MutableList<OrchestratorHandle> = mutableListOf()
@@ -63,8 +62,8 @@ class Orchestrator(
         EventBus(replay = 512)
     }
 
-    fun spawn(type: AgentType, params: RuntimeParams, sessionManager: SessionManager?) {
-        val agent = app.config.registry?.get(type) ?: return;
+    fun spawn(type: String, params: RuntimeParams, sessionManager: SessionManager?) {
+        val agent = app.registry.get(type) ?: return;
         spawn(agent, params, sessionManager = sessionManager)
     }
 
@@ -75,7 +74,7 @@ class Orchestrator(
         )
     }
 
-    fun spawn(runtime: AgentRuntime, params: RuntimeParams, sessionManager: SessionManager?) {
+    fun spawn(runtime: Orchestrate, params: RuntimeParams, sessionManager: SessionManager?) {
         val bus = getBusOrCreate(params.sessionId, params.agentName)
         handles.add(
             runtime.spawn(params, bus, sessionManager)
