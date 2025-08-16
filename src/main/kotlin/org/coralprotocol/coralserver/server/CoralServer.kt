@@ -17,6 +17,7 @@ import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.withTitle
 import io.github.smiley4.schemakenerator.swagger.TitleBuilder
 import io.github.smiley4.schemakenerator.swagger.data.TitleType
 import io.ktor.http.*
+import io.ktor.resources.Resource
 import io.ktor.serialization.kotlinx.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -58,6 +59,9 @@ private val json = Json {
     namingStrategy = JsonNamingStrategy.SnakeCase
 }
 
+@Resource("/{destinationId}")
+data class DestinationId(val destinationId: String)
+
 /**
  * CoralServer class that encapsulates the SSE MCP server functionality.
  *
@@ -73,6 +77,17 @@ class CoralServer(
     val sessionManager: SessionManager = SessionManager(port = port),
 ) {
 
+    /*
+        /{destinationId}/{protocol}/{version}/depends....
+
+        /api/v2/forward/{destinationId}/ get/head/post/etc -> ...agent traffic: telemetry + sse + anything else in the future
+
+        local:
+            generic api:    /api/v1/message/{applicationId}/{privacyKey}/{coralSessionId}
+            sse:          * /sse/v1/1/{applicationId}/{privacyKey}/{coralSessionId}
+            coral studio:   /ws/v1/1/debug/{applicationId}/{privacyKey}/{coralSessionId}
+
+     */
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
         embeddedServer(CIO, host = host, port = port.toInt(), watchPaths = listOf("classes")) {

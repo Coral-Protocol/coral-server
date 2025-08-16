@@ -1,11 +1,38 @@
-[registry]
+[agent-import]
 interface = { path = "examples/camel-search-maths/interface" }
 math = { path = "examples/camel-search-maths/math" }
 search = { path = "examples/camel-search-maths/search" }
-
 #git-example1 = { git = "https://github.com/Coral-Protocol/coral-cli.git", rev = "ffffff" }
 #git-example2 = { git = "https://github.com/Coral-Protocol/coral-cli.git", branch = "main" }
 #git-example3 = { git = "https://github.com/Coral-Protocol/coral-cli.git", tag = "v1" }
 
-#marketplace = "0.1.0"
+#marketplace-agent1 = {marketplace-name="", version="0.1.0"}
+#marketplace-agent2 = {marketplace-name="", version="0.2.0"}
+
+[agent-export]
+# must be in imported
+# fopr hackathon this is not publicized
+interface = { quantity = 0 }
+
+#marketplace = { version = "0.1.0", pricing = 1, runtimes = ["docker"]  }
+
+
+
+
+
 #marketplace-detailed = { version = "0.1.1" }
+
+#{
+#    "agent": "marketplace",
+#    "options": [],
+#    "runtime": {
+#        "type": "docker"
+#    },
+#    "runtime": {
+#        "type": "remote",
+#        "stratergy": {
+#            "type": "servers"
+#            "servers": ["hackathon-server"]
+#        }
+#    }
+#}

@@ -71,7 +71,7 @@ fun Routing.sessionApiRoutes(appConfig: ConfigCollection, sessionManager: Sessio
                 agents = agents.mapValues { agent ->
                     when (val agentReq = agent.value) {
                         is GraphAgentRequest.Local -> {
-                            val agentDef = registry.get(agentReq.agentType)
+                            val agentDef = registry.importedAgents[agentReq.agentType]
 
                             val missing = agentDef!!.options.filter { option ->
                                 option.value.required && !agentReq.options.containsKey(option.key)
