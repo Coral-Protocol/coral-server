@@ -12,6 +12,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.io.files.FileNotFoundException
 import org.coralprotocol.coralserver.orchestrator.AgentRegistry
+import org.coralprotocol.coralserver.orchestrator.RegistryException
 import org.coralprotocol.coralserver.orchestrator.UnresolvedAgentRegistry
 import java.nio.file.*
 import kotlin.io.path.listDirectoryEntries
@@ -86,7 +87,8 @@ class ConfigCollection(
         )
     ),
     val defaultRegistry: AgentRegistry = AgentRegistry(
-
+        mapOf(),
+        mapOf()
     )
 ) {
     var appConfig: AppConfig = loadAppConfig(appConfigPath)
@@ -179,13 +181,20 @@ class ConfigCollection(
             val reg = toml.decodeFromStream<UnresolvedAgentRegistry>(file.inputStream())
                 .resolve(toml)
 
-            logger.info { "Loaded registry with ${reg.size} agents" }
+            logger.info { "Loaded registry with ${reg.importedAgents.size} imported agents and ${reg.exportedAgents.size} exported agents" }
             reg
         } else {
             throw Exception("Failed to load registry file")
         }
-    } catch (e: Exception) {
-        logger.error(e) { "Failed to load agent registry, using default" }
+    }
+    catch (e: RegistryException) {
+        logger.error{ "Error with registry file: ${e.message}" }
+        logger.warn{ "Using default registry" }
+        defaultRegistry
+    }
+    catch (e: Exception) {
+        logger.error(e) { "Unexpected exception loading registry" }
+        logger.warn{ "Using default registry" }
         defaultRegistry
     }
 

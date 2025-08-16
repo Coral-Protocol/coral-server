@@ -61,52 +61,52 @@ class Orchestrator(
     }.getOrPut(agentId) {
         EventBus(replay = 512)
     }
-
-    fun spawn(type: String, params: RuntimeParams, sessionManager: SessionManager?) {
-        val agent = app.registry.get(type) ?: return;
-        spawn(agent, params, sessionManager = sessionManager)
-    }
-
-    fun spawn(agent: RegistryAgent, params: RuntimeParams, sessionManager: SessionManager?) {
-        val bus = getBusOrCreate(params.sessionId, params.agentName)
-        handles.add(
-            agent.runtime.spawn(params, bus, sessionManager)
-        )
-    }
-
-    fun spawn(runtime: Orchestrate, params: RuntimeParams, sessionManager: SessionManager?) {
-        val bus = getBusOrCreate(params.sessionId, params.agentName)
-        handles.add(
-            runtime.spawn(params, bus, sessionManager)
-        )
-    }
+//
+//    fun spawn(type: String, params: RuntimeParams, sessionManager: SessionManager?) {
+//        val agent = app.registry.get(type) ?: return;
+//        spawn(agent, params, sessionManager = sessionManager)
+//    }
+//
+//    fun spawn(agent: RegistryAgent, params: RuntimeParams, sessionManager: SessionManager?) {
+//        val bus = getBusOrCreate(params.sessionId, params.agentName)
+//        handles.add(
+//            agent.runtime.spawn(params, bus, sessionManager)
+//        )
+//    }
+//
+//    fun spawn(runtime: Orchestrate, params: RuntimeParams, sessionManager: SessionManager?) {
+//        val bus = getBusOrCreate(params.sessionId, params.agentName)
+//        handles.add(
+//            runtime.spawn(params, bus, sessionManager)
+//        )
+//    }
 
     fun spawn(sessionId: String, type: GraphAgent, agentName: String, port: UShort, relativeMcpServerUri: Uri, sessionManager: SessionManager?) {
-        val params = RuntimeParams(
-            sessionId = sessionId,
-            agentName = agentName,
-            mcpServerPort = port,
-            mcpServerRelativeUri = relativeMcpServerUri,
-            systemPrompt = type.systemPrompt,
-            options = type.options
-        )
-        when (type) {
-            is GraphAgent.Local -> {
-                spawn(
-                    type.agentType,
-                    params,
-                    sessionManager = sessionManager
-                )
-            }
-
-            is GraphAgent.Remote -> {
-                spawn(
-                    type.remote,
-                    params,
-                    sessionManager = sessionManager
-                )
-            }
-        }
+//        val params = RuntimeParams(
+//            sessionId = sessionId,
+//            agentName = agentName,
+//            mcpServerPort = port,
+//            mcpServerRelativeUri = relativeMcpServerUri,
+//            systemPrompt = type.systemPrompt,
+//            options = type.options
+//        )
+//        when (type) {
+//            is GraphAgent.Local -> {
+//                spawn(
+//                    type.agentType,
+//                    params,
+//                    sessionManager = sessionManager
+//                )
+//            }
+//
+//            is GraphAgent.Remote -> {
+//                spawn(
+//                    type.remote,
+//                    params,
+//                    sessionManager = sessionManager
+//                )
+//            }
+//        }
     }
 
     suspend fun destroy(): Unit = coroutineScope {
