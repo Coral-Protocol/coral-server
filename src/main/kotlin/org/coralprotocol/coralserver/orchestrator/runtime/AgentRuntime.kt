@@ -13,6 +13,14 @@ import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
 import org.coralprotocol.coralserver.orchestrator.RuntimeEvent
 import org.coralprotocol.coralserver.session.SessionManager
 
+@Serializable
+enum class RuntimeId {
+    @SerialName("executable")
+    EXECUTABLE,
+
+    @SerialName("docker")
+    DOCKER,
+}
 
 data class RuntimeParams(
     val sessionId: String,
@@ -28,10 +36,10 @@ data class RuntimeParams(
 @SerialName("runtime")
 class AgentRuntime(
     @SerialName("executable")
-    val executableRuntime: Executable? = null,
+    private val executableRuntime: Executable? = null,
 
     @SerialName("docker")
-    val dockerRuntime: Docker? = null,
+    private val dockerRuntime: Docker? = null,
 ) : Orchestrate {
     override fun spawn(
         params: RuntimeParams,
@@ -39,5 +47,10 @@ class AgentRuntime(
         sessionManager: SessionManager?
     ): OrchestratorHandle {
         TODO("runtime must be selected")
+    }
+
+    fun getById(runtimeId: RuntimeId): Orchestrate? = when (runtimeId) {
+        RuntimeId.EXECUTABLE -> executableRuntime
+        RuntimeId.DOCKER -> dockerRuntime
     }
 }

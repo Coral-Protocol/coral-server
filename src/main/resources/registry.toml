@@ -6,21 +6,13 @@ search = { path = "examples/camel-search-maths/search" }
 #git-example2 = { git = "https://github.com/Coral-Protocol/coral-cli.git", branch = "main" }
 #git-example3 = { git = "https://github.com/Coral-Protocol/coral-cli.git", tag = "v1" }
 
-#marketplace-agent1 = {marketplace-name="", version="0.1.0"}
-#marketplace-agent2 = {marketplace-name="", version="0.2.0"}
 
 [agent-export]
-# must be in imported
-# fopr hackathon this is not publicized
-interface = { quantity = 0 }
-
-#marketplace = { version = "0.1.0", pricing = 1, runtimes = ["docker"]  }
+# name must match an imported agent
+# for hackathon this is not publicized
+interface = { quantity = 10, runtimes = ["executable"] }
 
 
-
-
-
-#marketplace-detailed = { version = "0.1.1" }
 
 #{
 #    "agent": "marketplace",
