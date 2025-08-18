@@ -1,8 +1,8 @@
-package org.coralprotocol.coralserver.orchestrator
+package org.coralprotocol.coralserver.agent.registry
 
 import UnresolvedAgentOption
 import kotlinx.serialization.Serializable
-import org.coralprotocol.coralserver.orchestrator.runtime.AgentRuntime
+import org.coralprotocol.coralserver.agent.runtime.AgentRuntime
 
 @Serializable
 data class UnresolvedRegistryAgent(

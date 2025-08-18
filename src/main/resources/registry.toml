@@ -1,5 +1,15 @@
+#
+# The agent import section defines a list of agents that are available to the Coral Server that uses them; agents can be
+# provided either by:
+# - A path to an agent folder that contains a coral-agent.toml file
+# - A Git repo (identified by tag, branch or revision) that contains a coral-agent.toml file at the root level
+# - A marketplace name
 [agent-import]
+
+#
+# One
 interface = { path = "examples/camel-search-maths/interface" }
+
 math = { path = "examples/camel-search-maths/math" }
 search = { path = "examples/camel-search-maths/search" }
 #git-example1 = { git = "https://github.com/Coral-Protocol/coral-cli.git", rev = "ffffff" }
@@ -10,21 +20,11 @@ search = { path = "examples/camel-search-maths/search" }
 [agent-export]
 # name must match an imported agent
 # for hackathon this is not publicized
-interface = { quantity = 10, runtimes = ["executable"] }
 
+[agent-export.interface]
+quantity = 10
 
-
-#{
-#    "agent": "marketplace",
-#    "options": [],
-#    "runtime": {
-#        "type": "docker"
-#    },
-#    "runtime": {
-#        "type": "remote",
-#        "stratergy": {
-#            "type": "servers"
-#            "servers": ["hackathon-server"]
-#        }
-#    }
-#}
+# Actual runtime pricing format is not yet determined
+[agent-export.interface.runtimes]
+executable = { min_price = 512.0, max_price = 1024.0 }
+docker = { min_price = 1024.0, max_price = 4096.0 }

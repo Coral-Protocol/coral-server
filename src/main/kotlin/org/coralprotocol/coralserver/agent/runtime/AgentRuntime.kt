@@ -1,16 +1,13 @@
 @file:OptIn(ExperimentalSerializationApi::class)
 
-package org.coralprotocol.coralserver.orchestrator.runtime
+package org.coralprotocol.coralserver.agent.runtime
 
 import com.chrynan.uri.core.Uri
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
-import org.coralprotocol.coralserver.orchestrator.AgentOptionValue
-import org.coralprotocol.coralserver.orchestrator.Orchestrate
-import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
-import org.coralprotocol.coralserver.orchestrator.RuntimeEvent
+import org.coralprotocol.coralserver.agent.registry.AgentOptionValue
 import org.coralprotocol.coralserver.session.SessionManager
 
 @Serializable
@@ -19,7 +16,7 @@ enum class RuntimeId {
     EXECUTABLE,
 
     @SerialName("docker")
-    DOCKER,
+    DOCKER
 }
 
 data class RuntimeParams(
@@ -36,10 +33,10 @@ data class RuntimeParams(
 @SerialName("runtime")
 class AgentRuntime(
     @SerialName("executable")
-    private val executableRuntime: Executable? = null,
+    private val executableRuntime: ExecutableRuntime? = null,
 
     @SerialName("docker")
-    private val dockerRuntime: Docker? = null,
+    private val dockerRuntime: DockerRuntime? = null,
 ) : Orchestrate {
     override fun spawn(
         params: RuntimeParams,

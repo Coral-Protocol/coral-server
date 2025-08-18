@@ -1,7 +1,7 @@
-package org.coralprotocol.coralserver.orchestrator.runtime.executable
+package org.coralprotocol.coralserver.agent.runtime.executable
 
 import kotlinx.serialization.Serializable
-import org.coralprotocol.coralserver.orchestrator.AgentOptionValue
+import org.coralprotocol.coralserver.agent.registry.AgentOptionValue
 
 @Serializable
 data class EnvVar(

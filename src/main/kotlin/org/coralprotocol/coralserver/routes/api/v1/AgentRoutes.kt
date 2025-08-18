@@ -7,9 +7,9 @@ import io.ktor.resources.Resource
 import io.ktor.server.response.respond
 import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.config.ConfigCollection
-import org.coralprotocol.coralserver.orchestrator.AgentExport
-import org.coralprotocol.coralserver.orchestrator.PublicRegistryAgent
-import org.coralprotocol.coralserver.orchestrator.toPublic
+import org.coralprotocol.coralserver.agent.registry.AgentExport
+import org.coralprotocol.coralserver.agent.registry.PublicRegistryAgent
+import org.coralprotocol.coralserver.agent.registry.toPublic
 import org.coralprotocol.coralserver.session.SessionManager
 
 private val logger = KotlinLogging.logger {}

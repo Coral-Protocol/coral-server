@@ -1,10 +1,7 @@
-package org.coralprotocol.coralserver.orchestrator.runtime
+package org.coralprotocol.coralserver.agent.runtime
 
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
-import org.coralprotocol.coralserver.orchestrator.Orchestrate
-import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
-import org.coralprotocol.coralserver.orchestrator.RuntimeEvent
 import org.coralprotocol.coralserver.session.SessionManager
 
 @Serializable

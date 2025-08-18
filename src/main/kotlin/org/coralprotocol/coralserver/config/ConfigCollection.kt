@@ -11,9 +11,9 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.io.files.FileNotFoundException
-import org.coralprotocol.coralserver.orchestrator.AgentRegistry
-import org.coralprotocol.coralserver.orchestrator.RegistryException
-import org.coralprotocol.coralserver.orchestrator.UnresolvedAgentRegistry
+import org.coralprotocol.coralserver.agent.registry.AgentRegistry
+import org.coralprotocol.coralserver.agent.registry.RegistryException
+import org.coralprotocol.coralserver.agent.registry.UnresolvedAgentRegistry
 import java.nio.file.*
 import kotlin.io.path.listDirectoryEntries
 
