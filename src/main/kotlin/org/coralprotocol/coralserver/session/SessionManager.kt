@@ -6,7 +6,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withTimeoutOrNull
-import org.coralprotocol.coralserver.orchestrator.Orchestrator
+import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import java.util.concurrent.ConcurrentHashMap
 
 fun AgentGraph.adjacencyMap(): Map<String, Set<String>> {

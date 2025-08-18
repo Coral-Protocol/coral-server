@@ -3,8 +3,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import org.coralprotocol.coralserver.orchestrator.AgentOption
-import org.coralprotocol.coralserver.orchestrator.AgentOptionType
+import org.coralprotocol.coralserver.agent.registry.AgentOption
+import org.coralprotocol.coralserver.agent.registry.AgentOptionType
 
 @Serializable
 data class UnresolvedAgentOption(

@@ -4,6 +4,7 @@ package org.coralprotocol.coralserver.session
 
 import com.chrynan.uri.core.UriString
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.smiley4.schemakenerator.core.annotations.Description
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -26,6 +27,8 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.*
 import net.pwall.json.schema.JSONSchema
+import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
+import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
@@ -140,37 +143,6 @@ sealed interface ToolTransport {
         request: CallToolRequest,
         toolSchema: Tool
     ): CallToolResult
-}
-
-@Serializable
-@JsonClassDiscriminator("type")
-sealed interface GraphAgentRequest {
-    val options: Map<String, JsonPrimitive>
-    val systemPrompt: String?
-    val blocking: Boolean?
-    val tools: Set<String>
-
-    @Serializable
-    @SerialName("remote")
-    data class Remote(
-        val remote: org.coralprotocol.coralserver.orchestrator.runtime.Remote,
-        override val options: Map<String, JsonPrimitive> = mapOf(),
-        override val systemPrompt: String? = null,
-        override val tools: Set<String> = setOf(),
-        override val blocking: Boolean? = true
-    ) :
-        GraphAgentRequest
-
-    @Serializable
-    @SerialName("local")
-    data class Local(
-        val agentType: String,
-        override val options: Map<String, JsonPrimitive> = mapOf(),
-        override val systemPrompt: String? = null,
-        override val tools: Set<String> = setOf(),
-        override val blocking: Boolean? = true
-    ) :
-        GraphAgentRequest
 }
 
 /**

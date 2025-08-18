@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.orchestrator.runtime
+package org.coralprotocol.coralserver.agent.runtime
 
 import com.chrynan.uri.core.Uri
 import com.chrynan.uri.core.pathSegments

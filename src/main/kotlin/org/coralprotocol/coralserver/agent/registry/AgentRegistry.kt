@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.orchestrator
+package org.coralprotocol.coralserver.agent.registry
 
 import kotlinx.serialization.Serializable
 

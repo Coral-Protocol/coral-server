@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalSerializationApi::class)
 
-package org.coralprotocol.coralserver.orchestrator
+package org.coralprotocol.coralserver.agent.runtime
 
 import com.chrynan.uri.core.Uri
 import kotlinx.coroutines.*
@@ -11,7 +11,6 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.session.GraphAgent
-import org.coralprotocol.coralserver.orchestrator.runtime.RuntimeParams
 import org.coralprotocol.coralserver.session.SessionManager
 
 enum class LogKind {

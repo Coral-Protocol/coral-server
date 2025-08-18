@@ -1,7 +1,7 @@
 package org.coralprotocol.coralserver.session
 
 import kotlinx.serialization.Serializable
-import org.coralprotocol.coralserver.orchestrator.AgentOptionValue
+import org.coralprotocol.coralserver.agent.registry.AgentOptionValue
 
 @JvmInline
 @Serializable
@@ -23,7 +23,7 @@ sealed interface GraphAgent {
     val blocking: Boolean
 
     data class Remote(
-        val remote: org.coralprotocol.coralserver.orchestrator.runtime.Remote,
+        val remote: org.coralprotocol.coralserver.agent.runtime.Remote,
         override val extraTools: Set<String> = setOf(),
         override val systemPrompt: String? = null,
         override val options: Map<String, AgentOptionValue> = mapOf(),
