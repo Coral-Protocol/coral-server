@@ -19,6 +19,8 @@ repositories {
     }
 
     maven("https://repo.repsy.io/mvn/chrynan/public")
+    maven("https://github.com/CaelumF/schema-kenerator/raw/develop/maven-repo")
+    mavenLocal()
 }
 
 
@@ -100,7 +102,7 @@ dependencies {
     implementation("io.github.smiley4:ktor-openapi:${ktorToolsVersion}")
     implementation("io.github.smiley4:ktor-redoc:${ktorToolsVersion}")
 
-    val schemaVersion = "2.3.0"
+    val schemaVersion = "2.4.0.1"
     implementation("io.github.smiley4:schema-kenerator-core:${schemaVersion}")
     implementation("io.github.smiley4:schema-kenerator-serialization:${schemaVersion}")
     implementation("io.github.smiley4:schema-kenerator-swagger:${schemaVersion}")
