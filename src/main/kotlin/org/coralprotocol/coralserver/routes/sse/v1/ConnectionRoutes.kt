@@ -22,26 +22,36 @@ private val logger = KotlinLogging.logger {}
  * before any message processing can begin.
  */
 fun Routing.connectionSseRoutes(servers: ConcurrentMap<String, Server>, sessionManager: SessionManager) {
-    sse("/sse/v1/{applicationId}/{privacyKey}/{coralSessionId}") {
+    suspend fun ServerSSESession.handleSseConnection(isDevMode: Boolean = false) {
         handleSseConnection(
             "coral://" + call.request.host() + ":" + call.request.port() + call.request.uri,
             call.parameters,
             this,
             servers,
             sessionManager = sessionManager,
-            isDevMode = false
+            isDevMode
         )
     }
 
+    sse("/sse/v1/{applicationId}/{privacyKey}/{coralSessionId}") {
+        handleSseConnection()
+    }
+
     sse("/sse/v1/devmode/{applicationId}/{privacyKey}/{coralSessionId}") {
-        handleSseConnection(
-            "coral://" + call.request.host() + ":" + call.request.port() + call.request.uri,
-            call.parameters,
-            this,
-            servers,
-            sessionManager = sessionManager,
-            isDevMode = true
-        )
+        handleSseConnection(true)
+    }
+
+    /*
+        The following routes are added as aliases for any piece of existing software that requires that the URL ends
+        with /sse
+     */
+
+    sse("/sse/v1/{applicationId}/{privacyKey}/{coralSessionId}/sse") {
+        handleSseConnection()
+    }
+
+    sse("/sse/v1/devmode/{applicationId}/{privacyKey}/{coralSessionId}/sse") {
+        handleSseConnection(true)
     }
 }
 
