@@ -109,7 +109,7 @@ class CoralAgentGraphSession(
             id = agentId,
             description = agentDescription ?: "",
             extraTools = agentGraph?.let {
-                it.agents[AgentName(agentId)]?.extraTools?.mapNotNull { tool -> it.tools[tool] }?.toSet()
+                it.agents[agentId]?.extraTools?.mapNotNull { tool -> it.tools[tool] }?.toSet()
             } ?: setOf(),
             mcpUrl = agentUri
         )
