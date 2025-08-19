@@ -11,6 +11,7 @@ import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 
 @Serializable
 @JsonClassDiscriminator("type")
+@Description("A local or remote provider for an agent")
 sealed class GraphAgentProvider {
     @Serializable
     @SerialName("local")
