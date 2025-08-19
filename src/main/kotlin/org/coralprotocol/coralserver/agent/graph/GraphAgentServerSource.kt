@@ -17,5 +17,5 @@ sealed class GraphAgentServerSource {
     @Serializable
     data class Indexer(
         val indexer: String
-    )
+    ) : GraphAgentServerSource()
 }

@@ -104,7 +104,7 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
             it.agents.forEach { agent ->
                 orchestrator.spawn(
                     sessionId = sessionId,
-                    type = agent.value,
+                    graphAgent = agent.value,
                     port = port,
                     agentName = agent.key.toString(),
                     relativeMcpServerUri = Uri.fromParts(scheme = "http", path = "${applicationId}/${privacyKey}/${sessionId}/sse", query = "agentId=${agent.key}"),

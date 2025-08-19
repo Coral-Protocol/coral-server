@@ -1,16 +1,17 @@
 package org.coralprotocol.coralserver.agent.registry
 
 import UnresolvedAgentOption
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import org.coralprotocol.coralserver.agent.runtime.AgentRuntime
+import org.coralprotocol.coralserver.agent.runtime.AgentRuntimes
 
 @Serializable
 data class UnresolvedRegistryAgent(
-    val runtime: AgentRuntime,
+    val runtimes: AgentRuntimes,
     val options: Map<String, UnresolvedAgentOption>
 ) {
     fun resolve(): RegistryAgent = RegistryAgent(
-        runtime = runtime,
+        runtimes = runtimes,
         options = options.mapValues { (_, option) ->
             option.resolve()
         }
@@ -19,7 +20,7 @@ data class UnresolvedRegistryAgent(
 
 @Serializable
 data class RegistryAgent(
-    val runtime: AgentRuntime,
+    val runtimes: AgentRuntimes,
     val options: Map<String, AgentOption>
 )
 

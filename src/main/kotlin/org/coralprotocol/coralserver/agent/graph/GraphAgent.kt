@@ -24,7 +24,10 @@ data class GraphAgent(
     val extraTools: Set<String>,
 
     @Description("<todo description>")
-    val blocking: Boolean
+    val blocking: Boolean,
+
+    @Description("The provider for this agent")
+    val provider: GraphAgentProvider
 )
 
 @Serializable
