@@ -20,7 +20,6 @@ repositories {
 
     maven("https://repo.repsy.io/mvn/chrynan/public")
     maven("https://github.com/CaelumF/schema-kenerator/raw/develop/maven-repo")
-    mavenLocal()
 }
 
 
