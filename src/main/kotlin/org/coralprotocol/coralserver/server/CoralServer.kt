@@ -13,6 +13,7 @@ import io.github.smiley4.schemakenerator.serialization.SerializationSteps.analyz
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.compileReferencingRoot
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.customizeTypes
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.generateSwaggerSchema
+import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.handleCoreAnnotations
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.withTitle
 import io.github.smiley4.schemakenerator.swagger.TitleBuilder
 import io.github.smiley4.schemakenerator.swagger.data.TitleType
@@ -114,6 +115,7 @@ class CoralServer(
                                 .generateSwaggerSchema({
                                     strictDiscriminatorProperty = true
                                 })
+                                .handleCoreAnnotations()
                                 .customizeTypes { _, schema ->
                                     // Mapping is broken, and one of the code generation libraries I am using checks the
                                     // references here
