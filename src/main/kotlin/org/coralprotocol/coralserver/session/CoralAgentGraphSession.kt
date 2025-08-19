@@ -4,6 +4,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.util.collections.*
 import kotlinx.coroutines.CompletableDeferred
 import org.coralprotocol.coralserver.EventBus
+import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.models.*
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import java.util.UUID

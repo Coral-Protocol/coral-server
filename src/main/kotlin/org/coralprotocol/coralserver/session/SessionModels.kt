@@ -46,7 +46,7 @@ data class CreateSessionRequest(
 
 @Serializable
 data class AgentGraphRequest(
-    val agents: HashMap<AgentName, GraphAgentRequest>,
+    val agents: HashMap<String, GraphAgentRequest>,
     val links: Set<Set<String>>,
     val tools: Map<String, CustomTool> = emptyMap(),
 )

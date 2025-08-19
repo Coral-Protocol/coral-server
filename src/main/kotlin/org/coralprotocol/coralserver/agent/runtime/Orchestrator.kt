@@ -10,7 +10,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.config.ConfigCollection
-import org.coralprotocol.coralserver.session.GraphAgent
+import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.session.SessionManager
 
 enum class LogKind {
