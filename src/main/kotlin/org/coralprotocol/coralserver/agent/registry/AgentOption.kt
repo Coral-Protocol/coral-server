@@ -6,6 +6,9 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.double
+import kotlinx.serialization.json.doubleOrNull
 
 @Serializable
 enum class AgentOptionType {
@@ -21,16 +24,16 @@ enum class AgentOptionType {
 
 @Serializable
 @JsonClassDiscriminator("type")
-sealed interface AgentOption {
-    val description: kotlin.String?
-    val required: Boolean
+sealed class AgentOption {
+    abstract val description: kotlin.String?
+    abstract val required: Boolean
 
     @Serializable
     @SerialName("string")
     data class String(
         override val description: kotlin.String? = null,
         val default: kotlin.String? = null
-    ) : AgentOption {
+    ) : AgentOption() {
         override val required: Boolean = default == null
     }
 
@@ -39,7 +42,7 @@ sealed interface AgentOption {
     data class Number(
         override val description: kotlin.String? = null,
         val default: Double? = null,
-    ) : AgentOption {
+    ) : AgentOption() {
         override val required: Boolean = default == null
     }
 
@@ -47,8 +50,20 @@ sealed interface AgentOption {
     @SerialName("secret")
     data class Secret(
         override val description: kotlin.String? = null,
-    ) : AgentOption {
+    ) : AgentOption() {
         override val required: Boolean = true
+    }
+
+    fun toValueOrNull(json: JsonPrimitive): AgentOptionValue? = when (this) {
+        is String -> {
+            if (json.isString) AgentOptionValue.String(json.content) else null
+        }
+        is Number -> {
+            if (json.doubleOrNull != null) AgentOptionValue.Number(json.double) else null
+        }
+        is Secret -> {
+            if (json.isString) AgentOptionValue.String(json.content) else null
+        }
     }
 }
 

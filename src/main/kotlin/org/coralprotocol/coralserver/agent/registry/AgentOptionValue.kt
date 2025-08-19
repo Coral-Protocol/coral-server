@@ -7,12 +7,16 @@ import kotlinx.serialization.json.doubleOrNull
 @Serializable
 sealed interface AgentOptionValue {
     val type: AgentOptionType
+    fun tryFromJson(value: JsonPrimitive): AgentOptionValue?
 
     @Serializable
     data class String(val value: kotlin.String) : AgentOptionValue {
         override val type get() = AgentOptionType.STRING
         override fun toString(): kotlin.String {
             return value
+        }
+        override fun tryFromJson(value: JsonPrimitive): AgentOptionValue? {
+            return if (value.isString) String(value.content) else null
         }
     }
 
@@ -22,13 +26,7 @@ sealed interface AgentOptionValue {
         override fun toString(): kotlin.String {
             return value.toString()
         }
-    }
-
-    companion object {
-        fun tryFromJson(value: JsonPrimitive): AgentOptionValue? {
-            if (value.isString) {
-                return String(value.content)
-            }
+        override fun tryFromJson(value: JsonPrimitive): AgentOptionValue? {
             return value.doubleOrNull?.let { Number(it) }
         }
     }
