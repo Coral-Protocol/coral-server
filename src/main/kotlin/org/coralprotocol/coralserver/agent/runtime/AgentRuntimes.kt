@@ -31,7 +31,7 @@ data class RuntimeParams(
 
 @Serializable
 @SerialName("runtime")
-class AgentRuntime(
+class AgentRuntimes(
     @SerialName("executable")
     private val executableRuntime: ExecutableRuntime? = null,
 

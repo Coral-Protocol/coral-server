@@ -13,6 +13,7 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.agent.registry.defaultAsValue
+import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.*
 
@@ -82,62 +83,51 @@ fun Routing.sessionApiRoutes(appConfig: ConfigCollection, sessionManager: Sessio
                 tools = it.tools,
                 links = it.links,
                 agents = requestedAgents.mapValues { (name, request) ->
-                    when (request.provider) {
-                        is GraphAgentProvider.Local -> {
-                            // The badAgents check above will ensure this is never null
-                            //
-                            // It'd be more idiomatic to throw the exception here, but the error is nicer when it
-                            // contains all the missing agents in the graph, not just the first one
-                            val agent = registry.importedAgents[name]!!
+                    // The badAgents check above will ensure this is never null
+                    //
+                    // It'd be more idiomatic to throw the exception here, but the error is nicer when it
+                    // contains all the missing agents in the graph, not just the first one
+                    val agent = registry.importedAgents[name]!!
 
-                            val missingRequiredOptions = agent.options.filter { option ->
-                                option.value.required && !request.options.containsKey(option.key)
-                            }
-                            if (missingRequiredOptions.isNotEmpty()) {
-                                throw RouteException(
-                                    HttpStatusCode.BadRequest,
-                                    "Agent '${name}' is missing required options: ${missingRequiredOptions.keys.joinToString()}"
-                                )
-                            }
-
-                            val missingAgentOptions = request.options.filter {
-                                !agent.options.containsKey(it.key)
-                            }
-                            if (missingAgentOptions.isNotEmpty()) {
-                                throw RouteException(
-                                    HttpStatusCode.BadRequest,
-                                    "Agent '${name}' contains non-existent options: ${missingRequiredOptions.keys.joinToString()}"
-                                )
-                            }
-
-                            val defaultOptions =
-                                agent.options.mapValues { option -> option.value.defaultAsValue() }
-                                    .filterNotNullValues()
-
-                            val setOptions = request.options.mapValues { (optionName, value) ->
-                                agent.options[optionName]!!.toValueOrNull(value) ?: throw RouteException(
-                                    HttpStatusCode.BadRequest,
-                                    "$value is an invalid value for $optionName on agent '${name}'"
-                                )
-                            }
-
-                            GraphAgent(
-                                name,
-                                blocking = request.blocking ?: true,
-                                extraTools = request.tools,
-                                systemPrompt = "", //request.systemPrompt,
-                                options = defaultOptions + setOptions
-                            )
-                        }
-
-                        is GraphAgentProvider.Remote -> {
-                            /*
-                                Remote agent implementation is not yet implemented.  Here are the steps required:
-
-                             */
-                            TODO("(alan) remote agent option resolution")
-                        }
+                    val missingRequiredOptions = agent.options.filter { option ->
+                        option.value.required && !request.options.containsKey(option.key)
                     }
+                    if (missingRequiredOptions.isNotEmpty()) {
+                        throw RouteException(
+                            HttpStatusCode.BadRequest,
+                            "Agent '${name}' is missing required options: ${missingRequiredOptions.keys.joinToString()}"
+                        )
+                    }
+
+                    val missingAgentOptions = request.options.filter {
+                        !agent.options.containsKey(it.key)
+                    }
+                    if (missingAgentOptions.isNotEmpty()) {
+                        throw RouteException(
+                            HttpStatusCode.BadRequest,
+                            "Agent '${name}' contains non-existent options: ${missingRequiredOptions.keys.joinToString()}"
+                        )
+                    }
+
+                    val defaultOptions =
+                        agent.options.mapValues { option -> option.value.defaultAsValue() }
+                            .filterNotNullValues()
+
+                    val setOptions = request.options.mapValues { (optionName, value) ->
+                        agent.options[optionName]!!.toValueOrNull(value) ?: throw RouteException(
+                            HttpStatusCode.BadRequest,
+                            "$value is an invalid value for $optionName on agent '${name}'"
+                        )
+                    }
+
+                    GraphAgent(
+                        name,
+                        blocking = request.blocking ?: true,
+                        extraTools = request.tools,
+                        systemPrompt = "", //request.systemPrompt,
+                        options = defaultOptions + setOptions,
+                        provider = request.provider
+                    )
                 }
             )
         }
@@ -146,12 +136,18 @@ fun Routing.sessionApiRoutes(appConfig: ConfigCollection, sessionManager: Sessio
         // Create a new session
         val session = when (request.sessionId != null && devMode) {
             true -> {
-                sessionManager.createSessionWithId(
-                    request.sessionId,
-                    request.applicationId,
-                    request.privacyKey,
-                    agentGraph
-                )
+                try {
+                    sessionManager.createSessionWithId(
+                        request.sessionId,
+                        request.applicationId,
+                        request.privacyKey,
+                        agentGraph
+                    )
+                }
+                catch (e: Exception) {
+                    // TODO: An exception should be made for
+                    throw e
+                }
             }
 
             false -> {

@@ -4,7 +4,6 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.util.toUpperCasePreservingASCIIRules
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
-import org.coralprotocol.coralserver.routes.api.v1.filterNotNullValues
 
 val logger = KotlinLogging.logger {}
 
@@ -28,7 +27,7 @@ data class UnresolvedAgentExport(
         val validRuntimes = runtimes.mapNotNull { (runtimeName, pricing) ->
             try {
                 val runtimeId = RuntimeId.valueOf(runtimeName.toUpperCasePreservingASCIIRules())
-                if (agent.runtime.getById(runtimeId) == null) {
+                if (agent.runtimes.getById(runtimeId) == null) {
                     logger.warn { "Runtime \"$runtimeName\" is not defined for agent \"$name\"" }
                     null
                 } else {
