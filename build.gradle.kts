@@ -19,6 +19,7 @@ repositories {
     }
 
     maven("https://repo.repsy.io/mvn/chrynan/public")
+    maven("https://github.com/CaelumF/schema-kenerator/raw/develop/maven-repo")
 }
 
 
@@ -83,11 +84,23 @@ dependencies {
     implementation("io.ktor:ktor-server-core")
     implementation("io.ktor:ktor-server-cio")
     implementation("io.ktor:ktor-server-sse")
+    implementation("io.ktor:ktor-server-html-builder")
     implementation("io.ktor:ktor-server-cors")
     implementation("io.ktor:ktor-server-content-negotiation")
+    implementation("io.ktor:ktor-server-resources")
     testImplementation("io.ktor:ktor-server-core")
     testImplementation("io.ktor:ktor-server-cio")
     testImplementation("io.ktor:ktor-server-sse")
+
+    // OpenAPI
+    val ktorToolsVersion = "5.2.0"
+    implementation("io.github.smiley4:ktor-openapi:${ktorToolsVersion}")
+    implementation("io.github.smiley4:ktor-redoc:${ktorToolsVersion}")
+
+    val schemaVersion = "2.4.0.1"
+    implementation("io.github.smiley4:schema-kenerator-core:${schemaVersion}")
+    implementation("io.github.smiley4:schema-kenerator-serialization:${schemaVersion}")
+    implementation("io.github.smiley4:schema-kenerator-swagger:${schemaVersion}")
 }
 
 tasks.test {
