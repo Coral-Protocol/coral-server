@@ -14,7 +14,7 @@ sealed interface Event {
     data class AgentStateUpdated(val agentId: String, val state: AgentState): Event
 
     @Serializable
-    data class AgentReady(val agent: AgentName): Event
+    data class AgentReady(val agent: String): Event
 
     @Serializable
     data class ThreadCreated(val id: String, val name: String, val creatorId: String, val participants: List<String>, val summary: String?): Event

@@ -84,7 +84,7 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
             for (node in adj.keys) {
                 if (visited.contains(node)) continue
                 // non-blocking agents should not be considered part of any subgraph
-                if (it.agents[AgentName(node)]?.blocking == false) continue
+                if (it.agents[node]?.blocking == false) continue
 
                 val subgraph = mutableSetOf(node)
                 val toVisit = adj[node]?.toMutableList()
@@ -92,7 +92,7 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
                     val next = toVisit.removeLast()
                     if (visited.contains(next)) continue
                     // non-blocking agents should not be considered part of any subgraph
-                    if (it.agents[AgentName(next)]?.blocking == false) continue
+                    if (it.agents[next]?.blocking == false) continue
                     subgraph.add(next)
                     visited.add(next)
                     adj[next]?.let { n -> toVisit.addAll(n) }
