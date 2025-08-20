@@ -1,7 +1,6 @@
 package org.coralprotocol.coralserver.agent.graph
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.AgentOptionValue
 
@@ -13,6 +12,9 @@ data class GraphAgentRequest(
 
     @Description("The arguments to pass to the agent")
     val options: Map<String, AgentOptionValue>,
+
+    @Description("The system prompt/developer text/preamble passed to the agent")
+    val systemPrompt: String?,
 
     @Description("<todo description>")
     val blocking: Boolean?,

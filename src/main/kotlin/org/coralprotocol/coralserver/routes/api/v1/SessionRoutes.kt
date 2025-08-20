@@ -117,7 +117,7 @@ fun Routing.sessionApiRoutes(appConfig: ConfigCollection, sessionManager: Sessio
                         name,
                         blocking = request.blocking ?: true,
                         extraTools = request.tools,
-                        systemPrompt = "", //request.systemPrompt,
+                        systemPrompt = request.systemPrompt,
                         options = defaultOptions + request.options,
                         provider = request.provider
                     )
