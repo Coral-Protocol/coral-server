@@ -28,11 +28,9 @@ sealed class GraphAgentProvider {
         val runtime: RuntimeId,
 
         @Description("A description of which servers should be queried for this remote agent request")
-        @SerialName("server_source")
         val serverSource: GraphAgentServerSource,
 
         @Description("Customisation for the scoring of servers")
-        @SerialName("server_scoring")
         val serverScoring: GraphAgentServerScoring? = GraphAgentServerScoring.Default()
     ) : GraphAgentProvider()
 }

@@ -5,15 +5,20 @@ package org.coralprotocol.coralserver.server
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.OpenApi
 import io.github.smiley4.ktoropenapi.config.OutputFormat
+import io.github.smiley4.ktoropenapi.config.SchemaGenerator
 import io.github.smiley4.ktoropenapi.openApi
 import io.github.smiley4.ktoropenapi.route
 import io.github.smiley4.schemakenerator.core.CoreSteps.addMissingSupertypeSubtypeRelations
+import io.github.smiley4.schemakenerator.core.CoreSteps.handleNameAnnotation
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.addJsonClassDiscriminatorProperty
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.analyzeTypeUsingKotlinxSerialization
+import io.github.smiley4.schemakenerator.serialization.SerializationSteps.renameMembers
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.compileReferencingRoot
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.customizeTypes
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.generateSwaggerSchema
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.handleCoreAnnotations
+import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.handleSchemaAnnotations
+import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.mergePropertyAttributesIntoType
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.withTitle
 import io.github.smiley4.schemakenerator.swagger.TitleBuilder
 import io.github.smiley4.schemakenerator.swagger.data.TitleType
@@ -53,15 +58,16 @@ import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 
+// It is important that this naming strategy is used both for deserialization and for the OpenAPI generation
+// so that the spec generates the correct property names for (de)serialization
+private val NAMING_STRATEGY = JsonNamingStrategy.SnakeCase
+
 private val json = Json {
     encodeDefaults = true
     prettyPrint = true
     explicitNulls = false
-    namingStrategy = JsonNamingStrategy.SnakeCase
+    namingStrategy = NAMING_STRATEGY
 }
-
-@Resource("/{destinationId}")
-data class DestinationId(val destinationId: String)
 
 /**
  * CoralServer class that encapsulates the SSE MCP server functionality.
@@ -104,6 +110,7 @@ class CoralServer(
                         tagGenerator = { url -> listOf(url.getOrNull(2)) }
                     }
                     schemas {
+                        generator = SchemaGenerator.kotlinx {  }
                         // Generated types from routes
                         generator = { type ->
                             type
@@ -112,10 +119,12 @@ class CoralServer(
                                 }
                                 .addMissingSupertypeSubtypeRelations()
                                 .addJsonClassDiscriminatorProperty()
+                                .handleNameAnnotation().renameMembers(NAMING_STRATEGY)
                                 .generateSwaggerSchema({
                                     strictDiscriminatorProperty = true
                                 })
                                 .handleCoreAnnotations()
+                                .handleSchemaAnnotations()
                                 .customizeTypes { _, schema ->
                                     // Mapping is broken, and one of the code generation libraries I am using checks the
                                     // references here
