@@ -6,9 +6,6 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.double
-import kotlinx.serialization.json.doubleOrNull
 
 @Serializable
 enum class AgentOptionType {
@@ -52,18 +49,6 @@ sealed class AgentOption {
         override val description: kotlin.String? = null,
     ) : AgentOption() {
         override val required: Boolean = true
-    }
-
-    fun toValueOrNull(json: JsonPrimitive): AgentOptionValue? = when (this) {
-        is String -> {
-            if (json.isString) AgentOptionValue.String(json.content) else null
-        }
-        is Number -> {
-            if (json.doubleOrNull != null) AgentOptionValue.Number(json.double) else null
-        }
-        is Secret -> {
-            if (json.isString) AgentOptionValue.String(json.content) else null
-        }
     }
 }
 
