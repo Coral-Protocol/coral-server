@@ -162,7 +162,7 @@ sealed class UserContent {
     @Suppress("unused")
     data class ToolResult(
         val id: String,
-        @SerialName("call_id") val callId: String? = null,
+        val callId: String? = null,
         val content: List<ToolResultContent>
     ): UserContent()
 
@@ -172,7 +172,7 @@ sealed class UserContent {
     data class Image(
         val data: String,
         val format: ContentFormat? = null,
-        @SerialName("media_type") val mediaType: ImageMediaType? = null,
+        val mediaType: ImageMediaType? = null,
         val detail: ImageDetail? = null
     ): UserContent()
 
@@ -182,7 +182,7 @@ sealed class UserContent {
     data class Audio(
         val data: String,
         val format: ContentFormat? = null,
-        @SerialName("media_type") val mediaType: AudioMediaType? = null,
+        val mediaType: AudioMediaType? = null,
     ): UserContent()
 
     @Serializable
@@ -192,7 +192,7 @@ sealed class UserContent {
     data class Video(
         val data: String,
         val format: ContentFormat? = null,
-        @SerialName("media_type") val mediaType: VideoMediaType? = null,
+        val mediaType: VideoMediaType? = null,
     ): UserContent()
 
     @Serializable
@@ -201,7 +201,7 @@ sealed class UserContent {
     data class Document(
         val data: String,
         val format: ContentFormat? = null,
-        @SerialName("media_type") val mediaType: DocumentMediaType? = null,
+        val mediaType: DocumentMediaType? = null,
     ): UserContent()
 }
 
@@ -219,7 +219,7 @@ sealed class AssistantContent {
     @Suppress("unused")
     data class ToolCall(
         val id: String,
-        @SerialName("call_id") val callId: String? = null,
+        val callId: String? = null,
         val function: ToolFunction
     ) : AssistantContent()
 

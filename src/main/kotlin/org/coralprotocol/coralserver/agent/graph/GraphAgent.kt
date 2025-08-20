@@ -15,11 +15,9 @@ data class GraphAgent(
     @Description("The options that are passed to the agent")
     val options: Map<String, AgentOptionValue>,
 
-    @SerialName("system_prompt")
     @Description("The system prompt/developer text/preamble passed to the agent")
     val systemPrompt: String?,
 
-    @SerialName("extra_tools")
     @Description("<todo description>")
     val extraTools: Set<String>,
 

@@ -22,7 +22,7 @@ sealed class ToolResultContent {
     data class Image(
         val data: String,
         val format: ContentFormat? = null,
-        @SerialName("media_type") val mediaType: ImageMediaType? = null,
+        val mediaType: ImageMediaType? = null,
         val detail: ImageDetail? = null
     ): ToolResultContent()
 }

@@ -8,7 +8,6 @@ import org.coralprotocol.coralserver.agent.registry.AgentOptionValue
 @Serializable
 @Description("A request for an agent")
 data class GraphAgentRequest(
-    @SerialName("agent_name")
     @Description("The name of the agent to run, this must match the name of the agent in the registry")
     val agentName: String,
 
