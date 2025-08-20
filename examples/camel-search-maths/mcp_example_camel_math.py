@@ -5,7 +5,6 @@ from time import sleep
 from camel.agents import ChatAgent
 from camel.models import ModelFactory
 from camel.toolkits import MCPToolkit, MathToolkit
-from camel.utils.mcp_client import ServerConfig
 from camel.toolkits.mcp_toolkit import MCPClient
 from camel.types import ModelPlatformType, ModelType
 from prompts import get_tools_description, get_user_message
@@ -18,10 +17,10 @@ async def main():
     # Simply add the Coral server address as a tool
     print("Starting MCP client...")
     coral_url = os.getenv("CORAL_CONNECTION_URL", default = "http://localhost:5555/devmode/exampleApplication/privkey/session1/sse?agentId=math_agent")
-    server = MCPClient(ServerConfig(url=coral_url, timeout=3000000.0, sse_read_timeout=3000000.0, terminate_on_close=True, prefer_sse=True), timeout=3000000.0)
+    server = MCPClient(coral_url, timeout=3000000.0)
     mcp_toolkit = MCPToolkit([server])
 
-    async with mcp_toolkit as connected_mcp_toolkit:
+    async with mcp_toolkit.connection() as connected_mcp_toolkit:
         tools = connected_mcp_toolkit.get_tools() + MathToolkit().get_tools()
         camel_agent = await create_math_agent(tools)
 

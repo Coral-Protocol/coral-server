@@ -1,19 +1,13 @@
-@file:OptIn(ExperimentalSerializationApi::class)
-
 package org.coralprotocol.coralserver.orchestrator
 
 import com.chrynan.uri.core.Uri
 import kotlinx.coroutines.*
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.config.AppConfigLoader
 import org.coralprotocol.coralserver.session.GraphAgent
 import org.coralprotocol.coralserver.orchestrator.runtime.AgentRuntime
 import org.coralprotocol.coralserver.orchestrator.runtime.RuntimeParams
-import org.coralprotocol.coralserver.session.SessionManager
 
 enum class LogKind {
     STDOUT,
@@ -21,35 +15,26 @@ enum class LogKind {
 }
 
 @Serializable
-@JsonClassDiscriminator("type")
 sealed interface RuntimeEvent {
     @Serializable
-    @SerialName("log")
-    data class Log(
-        val timestamp: Long = System.currentTimeMillis(),
-        val kind: LogKind,
-        val message: String
-    ) : RuntimeEvent
-
-    @Serializable
-    @SerialName("stopped")
-    data class Stopped(val timestamp: Long = System.currentTimeMillis()): RuntimeEvent
+    data class Log(val timestamp: Long = System.currentTimeMillis(), val kind: LogKind, val message: String) :
+        RuntimeEvent
 }
 
 interface Orchestrate {
     fun spawn(
         params: RuntimeParams,
-        eventBus: EventBus<RuntimeEvent>,
-        sessionManager: SessionManager?,
+        eventBus: EventBus<RuntimeEvent>
     ): OrchestratorHandle
 }
 
 interface OrchestratorHandle {
     suspend fun destroy()
+    var sessionId: String
 }
 
 class Orchestrator(
-    val app: AppConfigLoader = AppConfigLoader(null),
+    val app: AppConfigLoader = AppConfigLoader(null)
 ) {
     private val eventBusses: MutableMap<String, MutableMap<String, EventBus<RuntimeEvent>>> = mutableMapOf()
     private val handles: MutableList<OrchestratorHandle> = mutableListOf()
@@ -63,26 +48,26 @@ class Orchestrator(
         EventBus(replay = 512)
     }
 
-    fun spawn(type: AgentType, params: RuntimeParams, sessionManager: SessionManager?) {
+    fun spawn(type: AgentType, params: RuntimeParams) {
         val agent = app.config.registry?.get(type) ?: return;
-        spawn(agent, params, sessionManager = sessionManager)
+        spawn(agent, params)
     }
 
-    fun spawn(agent: RegistryAgent, params: RuntimeParams, sessionManager: SessionManager?) {
+    fun spawn(agent: RegistryAgent, params: RuntimeParams) {
         val bus = getBusOrCreate(params.sessionId, params.agentName)
         handles.add(
-            agent.runtime.spawn(params, bus, sessionManager)
+            agent.runtime.spawn(params, bus)
         )
     }
 
-    fun spawn(runtime: AgentRuntime, params: RuntimeParams, sessionManager: SessionManager?) {
+    fun spawn(runtime: AgentRuntime, params: RuntimeParams) {
         val bus = getBusOrCreate(params.sessionId, params.agentName)
         handles.add(
-            runtime.spawn(params, bus, sessionManager)
+            runtime.spawn(params, bus)
         )
     }
 
-    fun spawn(sessionId: String, type: GraphAgent, agentName: String, port: UShort, relativeMcpServerUri: Uri, sessionManager: SessionManager?) {
+    fun spawn(sessionId: String, type: GraphAgent, agentName: String, port: UShort, relativeMcpServerUri: Uri) {
         val params = RuntimeParams(
             sessionId = sessionId,
             agentName = agentName,
@@ -95,8 +80,7 @@ class Orchestrator(
             is GraphAgent.Local -> {
                 spawn(
                     type.agentType,
-                    params,
-                    sessionManager = sessionManager
+                    params
                 )
             }
 
@@ -104,13 +88,19 @@ class Orchestrator(
                 spawn(
                     type.remote,
                     params,
-                    sessionManager = sessionManager
                 )
             }
         }
     }
 
-    suspend fun destroy(): Unit = coroutineScope {
+    suspend fun destroy(sessionId: String): Unit = coroutineScope {
+        handles.filter { it.sessionId == sessionId }
+            .map { async { it.destroy() } }
+            .awaitAll()
+        handles.removeIf { it.sessionId == sessionId }
+    }
+
+    suspend fun destroyAll(): Unit = coroutineScope {
         handles.map { async { it.destroy() } }.awaitAll()
     }
 }

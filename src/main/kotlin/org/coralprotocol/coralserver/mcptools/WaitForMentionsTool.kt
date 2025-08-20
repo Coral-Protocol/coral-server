@@ -10,11 +10,11 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 import nl.adaptivity.xmlutil.serialization.XML
-import org.coralprotocol.coralserver.models.AgentState
 import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
+import java.time.Instant.*
 
-private val logger = KotlinLogging.logger {}
+private val logger = KotlinLogging.logger(name = "Mentions")
 
 /**
  * Extension function to add the wait for mentions tool to a server.
@@ -45,6 +45,7 @@ private suspend fun CoralAgentIndividualMcp.handleWaitForMentions(request: CallT
         val json = Json { ignoreUnknownKeys = true }
         val input = json.decodeFromString<WaitForMentionsInput>(request.arguments.toString())
         logger.info { "Waiting for mentions for agent $connectedAgentId with timeout ${input.timeoutMs}ms" }
+
         if(input.timeoutMs < 0) {
             return CallToolResult(
                 content = listOf(TextContent("Timeout must be greater than 0"))
@@ -55,17 +56,18 @@ private suspend fun CoralAgentIndividualMcp.handleWaitForMentions(request: CallT
                 content = listOf(TextContent("Timeout must not exceed the maximum of $maxWaitForMentionsTimeoutMs ms"))
             )
         }
-
-        coralAgentGraphSession.setAgentState(agentId = connectedAgentId, state = AgentState.Listening)
         // Use the session to wait for mentions
         val messages = coralAgentGraphSession.waitForMentions(
             agentId = connectedAgentId,
             timeoutMs = input.timeoutMs
         )
 
-        coralAgentGraphSession.setAgentState(agentId = connectedAgentId, state = AgentState.Busy)
         if (messages.isNotEmpty()) {
-            logger.info { "Received ${messages.size} messages for agent $connectedAgentId" }
+            messages.forEach { message ->
+                logger.info {
+                    "[${message.sender.id}] -> ${message.mentions}: ${message.content}"
+                }
+            }
             val formattedMessages = XML.encodeToString (messages.map { message -> message.resolve() })
             return CallToolResult(
                 content = listOf(TextContent(formattedMessages))
@@ -78,7 +80,6 @@ private suspend fun CoralAgentIndividualMcp.handleWaitForMentions(request: CallT
     } catch (e: Exception) {
         val errorMessage = "Error waiting for mentions: ${e.message}"
         logger.error(e) { errorMessage }
-        coralAgentGraphSession.setAgentState(agentId = connectedAgentId, state = AgentState.Busy)
         return CallToolResult(
             content = listOf(TextContent(errorMessage))
         )

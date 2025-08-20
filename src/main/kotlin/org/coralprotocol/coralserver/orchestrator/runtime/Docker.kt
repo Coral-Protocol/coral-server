@@ -19,7 +19,6 @@ import org.coralprotocol.coralserver.orchestrator.ConfigValue
 import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
 import org.coralprotocol.coralserver.orchestrator.RuntimeEvent
 import org.coralprotocol.coralserver.orchestrator.runtime.executable.EnvVar
-import org.coralprotocol.coralserver.session.SessionManager
 import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
@@ -38,7 +37,6 @@ data class Docker(
     override fun spawn(
         params: RuntimeParams,
         bus: EventBus<RuntimeEvent>,
-        sessionManager: SessionManager?,
     ): OrchestratorHandle {
         logger.info { "Spawning Docker container with image: $image" }
         val fullConnectionUrl =
@@ -117,6 +115,8 @@ data class Docker(
                     }
                 }
             }
+
+            override var sessionId: String = params.sessionId
         }
     }
 }

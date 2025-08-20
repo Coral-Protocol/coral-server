@@ -4,7 +4,10 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.util.collections.*
 import kotlinx.coroutines.CompletableDeferred
 import org.coralprotocol.coralserver.EventBus
-import org.coralprotocol.coralserver.models.*
+import org.coralprotocol.coralserver.models.Agent
+import org.coralprotocol.coralserver.models.Message
+import org.coralprotocol.coralserver.models.Thread
+import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
@@ -24,12 +27,13 @@ class CoralAgentGraphSession(
     val groups: List<Set<String>> = listOf(),
     var devRequiredAgentStartCount: Int = 0,
 ) {
-    private var agents = ConcurrentHashMap<String, Agent>()
+    private val agents = ConcurrentHashMap<String, Agent>()
     private val debugAgents = ConcurrentSet<String>()
 
     private val threads = ConcurrentHashMap<String, Thread>()
 
     private val agentNotifications = ConcurrentHashMap<String, CompletableDeferred<List<Message>>>()
+    private val agentSenderNotifications = ConcurrentHashMap<Pair<String, List<String>>, CompletableDeferred<List<Message>>>()
 
     private val lastReadMessageIndex = ConcurrentHashMap<Pair<String, String>, Int>()
 
@@ -38,15 +42,6 @@ class CoralAgentGraphSession(
 
     private val eventBus = EventBus<Event>()
     val events get() = eventBus.events
-
-    init {
-        agentGraph?.run {
-            for (id in agents.keys) {
-                registerAgent(id.toString())
-                setAgentState(agentId = id.toString(), state = AgentState.Connecting)
-            }
-        }
-    }
 
 
     fun getAllThreadsAgentParticipatesIn(agentId: String): List<Thread> {
@@ -62,42 +57,7 @@ class CoralAgentGraphSession(
         agentGroupScheduler.clear()
     }
 
-    fun connectAgent(agentId: String): Agent? {
-        val agent = agents[agentId] ?: return null
-//        if (agent.state.isConnected()) throw AssertionError("Agent $agentId is already connected")
-        if (agent.state.isConnected()) logger.warn { "Agent $agentId is already connected" }
-        agent.state = AgentState.Busy;
-        agentGroupScheduler.markAgentReady(agentId)
-        countBasedScheduler.markAgentReady(agent.id)
-        eventBus.emit(Event.AgentStateUpdated(agent.id, agent.state))
-        return agent
-    }
-
-    fun setAgentState(agentId: String, state: AgentState): AgentState? {
-        val agent = agents[agentId] ?: return null
-        val oldState = agent.state
-        if (oldState == AgentState.Connecting && state.isConnected()) {
-            agentGroupScheduler.markAgentReady(agentId)
-            countBasedScheduler.markAgentReady(agent.id)
-        }
-        agent.state = state
-        eventBus.emit(Event.AgentStateUpdated(agent.id, agent.state))
-        return oldState
-
-    }
-
-    fun disconnectAgent(agentId: String) {
-        val agent = agents[agentId] ?: return
-        agent.state = AgentState.Disconnected;
-        eventBus.emit(Event.AgentStateUpdated(agent.id, agent.state))
-    }
-
-    fun registerAgent(
-        agentId: String,
-        agentUri: String? = null,
-        agentDescription: String? = null,
-        force: Boolean = false
-    ): Agent? {
+    fun registerAgent(agentId: String, agentUri: String? = null, agentDescription: String? = null, force: Boolean = false): Agent? {
         if (agents.containsKey(agentId)) {
             logger.warn { "$agentId has already been registered" }
             if (!force) {
@@ -114,6 +74,9 @@ class CoralAgentGraphSession(
         )
         agents[agent.id] = agent
 
+        agentGroupScheduler.registerAgent(agent.id)
+        countBasedScheduler.registerAgent(agent.id)
+        eventBus.emit(Event.AgentRegistered(agent))
         return agent
     }
 
@@ -187,8 +150,10 @@ class CoralAgentGraphSession(
 
         if (!thread.participants.contains(participantId)) {
             thread.participants.add(participantId)
-            lastReadMessageIndex[Pair(participantId, threadId)] = thread.messages.size
+            lastReadMessageIndex[Pair(participantId, threadId)] = 0
         }
+
+        logger.info { "Adding $participantId to $thread" }
         return true
     }
 
@@ -253,6 +218,23 @@ class CoralAgentGraphSession(
                 deferred.complete(listOf(message))
             }
         }
+
+        // Notify agents waiting for messages from specific senders
+        val senderId = message.sender.id
+        val thread = threads[message.thread.id] ?: return
+
+        // For each participant in the thread
+        thread.participants.forEach { participantId ->
+            // Check if they're waiting for messages from this sender
+            agentSenderNotifications.keys
+                .filter { it.first == participantId && it.second.contains(senderId) }
+                .forEach { key ->
+                    val deferred = agentSenderNotifications[key]
+                    if (deferred != null && !deferred.isCompleted) {
+                        deferred.complete(listOf(message))
+                    }
+                }
+        }
     }
 
     suspend fun waitForMentions(agentId: String, timeoutMs: Long): List<Message> {
@@ -272,12 +254,84 @@ class CoralAgentGraphSession(
         agentNotifications[agentId] = deferred
 
         val result = kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
-            deferred.await()
+            val startTime = System.currentTimeMillis()
+            val res = deferred.await()
+            val elapsedTime = System.currentTimeMillis() - startTime
+            logger.info { "Waited for mentions for agent $agentId for $elapsedTime ms" }
+            res
         } ?: emptyList()
 
         agentNotifications.remove(agentId)
 
         updateLastReadIndices(agentId, result)
+
+        return result
+    }
+
+    /**
+     * Wait for messages from specific agents in any thread the agent participates in.
+     * 
+     * @param agentId The ID of the agent waiting for messages
+     * @param fromAgentIds The IDs of the agents to wait for messages from
+     * @param timeoutMs The maximum time to wait in milliseconds
+     * @return A list of messages from the specified agents
+     */
+    suspend fun waitForAgentMessages(agentId: String, fromAgentIds: List<String>, timeoutMs: Long): List<Message> {
+        if (timeoutMs <= 0) {
+            throw IllegalArgumentException("Timeout must be greater than 0")
+        }
+
+        val agent = agents[agentId] ?: return emptyList()
+
+        // Check if there are any unread messages from the specified agents
+        val unreadMessages = getUnreadMessagesFromAgents(agentId, fromAgentIds)
+        if (unreadMessages.isNotEmpty()) {
+            updateLastReadIndices(agentId, unreadMessages)
+            return unreadMessages
+        }
+
+        // If no unread messages, wait for new messages
+        val deferred = CompletableDeferred<List<Message>>()
+        agentSenderNotifications[Pair(agentId, fromAgentIds)] = deferred
+
+        val result = kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
+            val startTime = System.currentTimeMillis()
+            val res = deferred.await()
+            val elapsedTime = System.currentTimeMillis() - startTime
+            logger.info { "Waited for messages from agents $fromAgentIds for agent $agentId for $elapsedTime ms" }
+            res
+        } ?: emptyList()
+
+        agentSenderNotifications.remove(Pair(agentId, fromAgentIds))
+
+        updateLastReadIndices(agentId, result)
+
+        return result
+    }
+
+    /**
+     * Get unread messages from specific agents in any thread the agent participates in.
+     * 
+     * @param agentId The ID of the agent to get unread messages for
+     * @param fromAgentIds The IDs of the agents to get messages from
+     * @return A list of unread messages from the specified agents
+     */
+    fun getUnreadMessagesFromAgents(agentId: String, fromAgentIds: List<String>): List<Message> {
+        val agent = agents[agentId] ?: return emptyList()
+
+        val result = mutableListOf<Message>()
+
+        val agentThreads = getThreadsForAgent(agentId)
+
+        for (thread in agentThreads) {
+            val lastReadIndex = lastReadMessageIndex[Pair(agentId, thread.id)] ?: 0
+
+            val unreadMessages = thread.messages.subList(lastReadIndex, thread.messages.size)
+
+            result.addAll(unreadMessages.filter {
+                fromAgentIds.contains(it.sender.id)
+            })
+        }
 
         return result
     }

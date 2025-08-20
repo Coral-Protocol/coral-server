@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.routes.sse.v1
+package org.coralprotocol.coralserver.routes
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.*
@@ -11,6 +11,7 @@ import io.ktor.server.sse.*
 import io.ktor.util.collections.*
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
+import org.coralprotocol.coralserver.models.Agent
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import org.coralprotocol.coralserver.session.SessionManager
 
@@ -21,37 +22,27 @@ private val logger = KotlinLogging.logger {}
  * These endpoints establish bidirectional communication channels and must be hit
  * before any message processing can begin.
  */
-fun Routing.connectionSseRoutes(servers: ConcurrentMap<String, Server>, sessionManager: SessionManager) {
-    suspend fun ServerSSESession.handleSseConnection(isDevMode: Boolean = false) {
+fun Routing.sseRoutes(servers: ConcurrentMap<String, Server>, sessionManager: SessionManager) {
+    sse("/{applicationId}/{privacyKey}/{coralSessionId}/sse") {
         handleSseConnection(
             "coral://" + call.request.host() + ":" + call.request.port() + call.request.uri,
             call.parameters,
             this,
             servers,
             sessionManager = sessionManager,
-            isDevMode
+            isDevMode = false
         )
     }
 
-    sse("/sse/v1/{applicationId}/{privacyKey}/{coralSessionId}") {
-        handleSseConnection()
-    }
-
-    sse("/sse/v1/devmode/{applicationId}/{privacyKey}/{coralSessionId}") {
-        handleSseConnection(true)
-    }
-
-    /*
-        The following routes are added as aliases for any piece of existing software that requires that the URL ends
-        with /sse
-     */
-
-    sse("/sse/v1/{applicationId}/{privacyKey}/{coralSessionId}/sse") {
-        handleSseConnection()
-    }
-
-    sse("/sse/v1/devmode/{applicationId}/{privacyKey}/{coralSessionId}/sse") {
-        handleSseConnection(true)
+    sse("/devmode/{applicationId}/{privacyKey}/{coralSessionId}/sse") {
+        handleSseConnection(
+            "coral://" + call.request.host() + ":" + call.request.port() + call.request.uri,
+            call.parameters,
+            this,
+            servers,
+            sessionManager = sessionManager,
+            isDevMode = true
+        )
     }
 }
 
@@ -73,7 +64,7 @@ private suspend fun handleSseConnection(
     val sessionId = parameters["coralSessionId"]
     val agentId = parameters["agentId"]
     val agentDescription: String = parameters["agentDescription"] ?: agentId ?: "no description"
-    val maxWaitForMentionsTimeout = parameters["maxWaitForMentionsTimeout"]?.toLongOrNull() ?: 60000
+    val maxWaitForMentionsTimeout = parameters["maxWaitForMentionsTimeout"]?.toLongOrNull() ?: ((60000) * 3)
 
     if (agentId == null) {
         sseProducer.call.respond(HttpStatusCode.BadRequest, "Missing agentId parameter")
@@ -110,33 +101,11 @@ private suspend fun handleSseConnection(
         existingSession
     }
     val currentCount = session.getRegisteredAgentsCount()
-
-    // TODO: better route err handling
-    val agent = try {
-        val agent = when (isDevMode) {
-            true -> {
-                val agent = session.registerAgent(agentId, uri, agentDescription, force = true)
-                session.connectAgent(agentId)
-                agent!! // never null when force = true
-            }
-            false -> {
-                val agent = session.connectAgent(agentId)
-                if(agent != null) {
-                    agent.description = agentDescription
-                    agent.mcpUrl = uri
-                }
-                agent
-            }
-        }
-        if (agent == null) {
-            logger.info { "Agent ID $agentId does not exist!" }
-            sseProducer.call.respond(HttpStatusCode.NotFound, "Agent ID does not exist")
-            return false
-        }
-        agent
-    } catch (e: Exception) {
-        logger.info { "Agent ID $agentId already connected!" }
-        sseProducer.call.respond(HttpStatusCode.BadRequest, "Agent ID already connected")
+    // Register the agent
+    val agent = session.registerAgent(agentId, uri, agentDescription, force = isDevMode || true)
+    if (agent == null) {
+        logger.info {"Agent ID $agentId already registered"}
+        sseProducer.call.respond(HttpStatusCode.BadRequest, "Agent ID already exists")
         return false
     }
 
@@ -144,8 +113,8 @@ private suspend fun handleSseConnection(
     val newCount = session.getRegisteredAgentsCount()
     logger.info { "DevMode: New agent count for session ${session.id} (object id: ${session})after registering: $newCount" }
 
-    val routeSuffix = if (isDevMode) "devmode/" else ""
-    val endpoint = "/api/v1/message/$routeSuffix$applicationId/$privacyKey/$sessionId"
+    val routePrefix = if (isDevMode) "/devmode" else ""
+    val endpoint = "$routePrefix/$applicationId/$privacyKey/$sessionId/message"
     val transport = SseServerTransport(endpoint, sseProducer)
 
     val individualServer =
@@ -181,9 +150,5 @@ private suspend fun handleSseConnection(
     }
 
     individualServer.connect(transport)
-    individualServer.onClose {
-        logger.info { "Agent $agentId disconnected via server." }
-        session.disconnectAgent(agentId);
-    }
     return true
 }

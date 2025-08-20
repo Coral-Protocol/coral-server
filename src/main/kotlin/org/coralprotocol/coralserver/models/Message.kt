@@ -11,8 +11,7 @@ class Message private constructor (
     val sender: Agent,
     val content: String,
     val timestamp: Long = System.currentTimeMillis(),
-    val mentions: List<String> = emptyList(),
-    var telemetry: Telemetry?
+    val mentions: List<String> = emptyList()
 )  {
     companion object {
         fun create(thread: Thread, sender: Agent, content: String, mentions: List<String> = emptyList()): Message {
@@ -27,8 +26,7 @@ class Message private constructor (
                 thread = thread,
                 sender = sender,
                 content = content,
-                mentions = validMentions,
-                telemetry = null
+                mentions = validMentions
             )
         }
     }

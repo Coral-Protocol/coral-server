@@ -6,7 +6,6 @@ from camel.agents import ChatAgent  # creates Agents
 from camel.models import ModelFactory  # encapsulates LLM
 from camel.toolkits import HumanToolkit, MCPToolkit  # import tools
 from camel.toolkits.mcp_toolkit import MCPClient
-from camel.utils.mcp_client import ServerConfig
 from camel.types import ModelPlatformType, ModelType
 from dotenv import load_dotenv
 
@@ -19,11 +18,11 @@ from prompts import get_tools_description, get_user_message
 async def main():
     # Simply add the Coral server address as a tool
     coral_url = os.getenv("CORAL_CONNECTION_URL", default = "http://localhost:5555/devmode/exampleApplication/privkey/session1/sse?waitForAgents=3&agentId=user_interaction_agent")
-    server = MCPClient(ServerConfig(url=coral_url, timeout=3000000.0, sse_read_timeout=3000000.0, terminate_on_close=True, prefer_sse=True), timeout=3000000.0)
+    server = MCPClient(coral_url, timeout=3000000.0)
 
     mcp_toolkit = MCPToolkit([server])
 
-    async with mcp_toolkit as connected_mcp_toolkit:
+    async with mcp_toolkit.connection() as connected_mcp_toolkit:
         print("Connected to coral server.")
         camel_agent = await create_interface_agent(connected_mcp_toolkit)
 

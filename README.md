@@ -55,7 +55,15 @@ The project can be run in several modes:
 ./gradlew run --args="--sse-server 5555"
 ```
 
+### Using Java
 
+```bash
+# Build the project first
+./gradlew build
+
+# Run the JAR file
+java -jar build/libs/coral-server-1.0-SNAPSHOT.jar
+```
 ### Using Docker
 
 Install [Docker](https://docs.docker.com/desktop/)

@@ -2,16 +2,12 @@ package org.coralprotocol.coralserver.session
 
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.models.Agent
-import org.coralprotocol.coralserver.models.AgentState
 import org.coralprotocol.coralserver.models.ResolvedMessage
 
 @Serializable
 sealed interface Event {
     @Serializable
     data class AgentRegistered(val agent: Agent) : Event
-
-    @Serializable
-    data class AgentStateUpdated(val agentId: String, val state: AgentState): Event
     @Serializable
     data class AgentReady(val agent: AgentName): Event
     @Serializable

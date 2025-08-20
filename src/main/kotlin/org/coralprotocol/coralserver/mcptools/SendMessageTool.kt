@@ -32,7 +32,7 @@ fun CoralAgentIndividualMcp.addSendMessageTool() {
                 }
                 putJsonObject("mentions") {
                     put("type", "array")
-                    put("description", "List of agent IDs to mention in the message. You *must* mention an agent for them to be made aware of the message.")
+                    put("description", "List of agent IDs to mention in the message. You *must* mention an agent for them to be made aware of the message. @mentions are not supported yet, agents must be mentioned by ID with this parameter")
                     putJsonObject("items") {
                         put("type", "string")
                     }
@@ -52,6 +52,14 @@ private suspend fun CoralAgentIndividualMcp.handleSendMessage(request: CallToolR
     try {
         val json = Json { ignoreUnknownKeys = true }
         val input = json.decodeFromString<SendMessageInput>(request.arguments.toString())
+        val mentionsSelf = input.mentions.contains(this.connectedAgentId)
+        if( mentionsSelf) {
+            logger.warn { "${this.connectedAgentId} mentioned themselves in a message, which is not necessary and may reflect confusion. Failing." }
+            return CallToolResult(
+                content = listOf(TextContent("You (${this.connectedAgentId}) mentioned yourself in the message, which is not necessary and may reflect confusion. Try again with updated mentions."))
+            )
+        }
+
         val message = coralAgentGraphSession.sendMessage(
             threadId = input.threadId,
             senderId = this.connectedAgentId,
@@ -59,28 +67,18 @@ private suspend fun CoralAgentIndividualMcp.handleSendMessage(request: CallToolR
             mentions = input.mentions
         )
 
-        if (message != null) {
-            logger.info { message }
+        logger.info { message }
 
-            return CallToolResult(
-                content = listOf(
-                    TextContent(
-                        """
-                        Message sent successfully:
-                        ID: ${message.id}
-                        Thread: ${message.thread.id}
-                        Sender: ${message.sender.id}
-                        """.trimIndent()
-                    )
+        return CallToolResult(
+            content = listOf(
+                TextContent(
+                    """
+                    Message sent successfully:
+                    Mentions: ${message.mentions.joinToString(", ")} (if you need to notify an agent, you must mention them in the 'mentions' parameter)
+                    """.trimIndent()
                 )
             )
-        } else {
-            val errorMessage = "Failed to send message: Thread not found, sender not found, thread is closed, or sender is not a participant"
-            logger.error { errorMessage }
-            return CallToolResult(
-                content = listOf(TextContent(errorMessage))
-            )
-        }
+        )
     } catch (e: Exception) {
         val errorMessage = "Error sending message: ${e.message}"
         logger.error(e) { errorMessage }

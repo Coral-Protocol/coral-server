@@ -22,7 +22,7 @@ class CountBasedScheduler() {
     }
 
     @OptIn(ExperimentalAtomicApi::class)
-    fun markAgentReady(agentId: String) {
+    fun registerAgent(agentId: String) {
         registeredAgentsCount.incrementAndFetch()
 
         // Create a copy of the keys to avoid ConcurrentModificationException

@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalSerializationApi::class)
-
 package org.coralprotocol.coralserver.session
 
 import com.chrynan.uri.core.UriString
@@ -16,7 +14,6 @@ import io.modelcontextprotocol.kotlin.sdk.CallToolRequest
 import io.modelcontextprotocol.kotlin.sdk.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.TextContent
 import io.modelcontextprotocol.kotlin.sdk.Tool
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -31,6 +28,7 @@ import org.coralprotocol.coralserver.orchestrator.AgentType
 import org.coralprotocol.coralserver.orchestrator.runtime.AgentRuntime
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import java.net.URI
+import kotlin.js.ExperimentalJsExport
 
 
 private val logger = KotlinLogging.logger {}
@@ -96,7 +94,6 @@ fun CoralAgentIndividualMcp.addExtraTool(sessionId: String, agentId: String, too
 
 
 @Serializable
-@JsonClassDiscriminator("type")
 sealed interface ToolTransport {
     @SerialName("http")
     @Serializable
@@ -148,7 +145,6 @@ sealed interface ToolTransport {
 }
 
 @Serializable
-@JsonClassDiscriminator("type")
 sealed interface GraphAgentRequest {
     val options: Map<String, JsonPrimitive>
     val systemPrompt: String?

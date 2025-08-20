@@ -1,18 +1,13 @@
-@file:OptIn(ExperimentalSerializationApi::class)
-
 package org.coralprotocol.coralserver.orchestrator.runtime
 
 import com.chrynan.uri.core.Uri
-import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.orchestrator.ConfigValue
 import org.coralprotocol.coralserver.orchestrator.Orchestrate
 import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
 import org.coralprotocol.coralserver.orchestrator.RuntimeEvent
-import org.coralprotocol.coralserver.session.SessionManager
 
 
 data class RuntimeParams(
@@ -26,7 +21,6 @@ data class RuntimeParams(
 )
 
 @Serializable
-@JsonClassDiscriminator("type")
 sealed class AgentRuntime : Orchestrate {
     @Serializable
     @SerialName("remote")
@@ -39,7 +33,6 @@ sealed class AgentRuntime : Orchestrate {
         override fun spawn(
             params: RuntimeParams,
             bus: EventBus<RuntimeEvent>,
-            sessionManager: SessionManager?,
         ): OrchestratorHandle {
             TODO("request agent from remote server")
         }

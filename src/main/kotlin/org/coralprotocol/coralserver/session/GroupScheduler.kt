@@ -24,7 +24,7 @@ data class GroupScheduler(
     }
 
     @OptIn(ExperimentalAtomicApi::class)
-    fun markAgentReady(agentId: String) {
+    fun registerAgent(agentId: String) {
         // Increment the counter of agents registered for the agent's blocking group
         agentGroupMembership[agentId]?.let { group ->
             agentGroupRegisteredCount[group]?.let {

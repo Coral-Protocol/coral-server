@@ -20,7 +20,7 @@ private val logger = KotlinLogging.logger {}
 fun CoralAgentIndividualMcp.addCreateThreadTool() {
     addTool(
         name = "create_thread",
-        description = "Create a new thread with a list of participants",
+        description = "Create a new thread with a list of participants. Avoid creating multiple threads with the same purpose, and readily create new threads for semantically separate discussions. If you need to add yourself to an existing thread, use the 'add_participant' tool instead.",
         inputSchema = Tool.Input(
             properties = buildJsonObject {
                 putJsonObject("threadName") {
@@ -47,12 +47,17 @@ fun CoralAgentIndividualMcp.addCreateThreadTool() {
  */
 private fun CoralAgentIndividualMcp.handleCreateThread(request: CallToolRequest): CallToolResult {
     try {
-        val json = Json { ignoreUnknownKeys = true }
+        val json = Json { ignoreUnknownKeys = false }
         val input = json.decodeFromString<CreateThreadInput>(request.arguments.toString())
+        if(coralAgentGraphSession.getAllThreads().any { it.name == input.threadName }) {
+            return CallToolResult(
+                content = listOf(TextContent("Thread with name '${input.threadName}' already exists. Please choose a different name, or simply add yourself to the existing thread."))
+            )
+        }
         val thread = coralAgentGraphSession.createThread(
             name = input.threadName,
             creatorId = connectedAgentId,
-            participantIds = input.participantIds
+            participantIds = (input.participantIds + connectedAgentId).distinct()
         )
 
         return CallToolResult(

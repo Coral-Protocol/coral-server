@@ -5,7 +5,7 @@ plugins {
 }
 
 application {
-    mainClass.set("org.coralprotocol.coralserver.MainKt")
+    mainClass.set("org.coralprotocol.coralserver.gaia.GaiaScoringApplicationKt")
 }
 
 group = "org.coralprotocol"
@@ -19,15 +19,17 @@ repositories {
     }
 
     maven("https://repo.repsy.io/mvn/chrynan/public")
-    maven("https://github.com/CaelumF/schema-kenerator/raw/develop/maven-repo")
 }
 
 
 dependencies {
+    implementation("io.ktor:ktor-client-core-jvm:3.0.2")
+    implementation("io.ktor:ktor-client-apache:3.0.2")
     testImplementation(kotlin("test"))
     implementation("io.modelcontextprotocol:kotlin-sdk:0.5.0")
-    implementation("org.slf4j:slf4j-simple:2.0.9")
     implementation("io.github.oshai:kotlin-logging-jvm:7.0.3")
+    implementation("ch.qos.logback:logback-classic:1.5.18")
+    implementation("org.fusesource.jansi:jansi:2.4.2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
@@ -45,7 +47,6 @@ dependencies {
 
     val ktorVersion = "3.0.2"
     implementation(enforcedPlatform("io.ktor:ktor-bom:$ktorVersion"))
-    implementation("io.ktor:ktor-server-status-pages:${ktorVersion}")
 
     val uriVersion="0.5.0"
     implementation("com.chrynan.uri.core:uri-core:$uriVersion")
@@ -84,23 +85,11 @@ dependencies {
     implementation("io.ktor:ktor-server-core")
     implementation("io.ktor:ktor-server-cio")
     implementation("io.ktor:ktor-server-sse")
-    implementation("io.ktor:ktor-server-html-builder")
     implementation("io.ktor:ktor-server-cors")
     implementation("io.ktor:ktor-server-content-negotiation")
-    implementation("io.ktor:ktor-server-resources")
     testImplementation("io.ktor:ktor-server-core")
     testImplementation("io.ktor:ktor-server-cio")
     testImplementation("io.ktor:ktor-server-sse")
-
-    // OpenAPI
-    val ktorToolsVersion = "5.2.0"
-    implementation("io.github.smiley4:ktor-openapi:${ktorToolsVersion}")
-    implementation("io.github.smiley4:ktor-redoc:${ktorToolsVersion}")
-
-    val schemaVersion = "2.4.0.1"
-    implementation("io.github.smiley4:schema-kenerator-core:${schemaVersion}")
-    implementation("io.github.smiley4:schema-kenerator-serialization:${schemaVersion}")
-    implementation("io.github.smiley4:schema-kenerator-swagger:${schemaVersion}")
 }
 
 tasks.test {

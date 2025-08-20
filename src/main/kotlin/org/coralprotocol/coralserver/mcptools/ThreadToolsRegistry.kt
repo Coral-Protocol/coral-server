@@ -13,4 +13,5 @@ fun CoralAgentIndividualMcp.addThreadTools() {
     addCloseThreadTool()
     addSendMessageTool()
     addWaitForMentionsTool()
+    addWaitForAgentMessagesTool()
 }
