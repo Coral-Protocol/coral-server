@@ -1,14 +1,14 @@
 package org.coralprotocol.coralserver.mcptools
 
-import io.modelcontextprotocol.kotlin.sdk.*
+import io.github.oshai.kotlinlogging.KotlinLogging
+import io.modelcontextprotocol.kotlin.sdk.CallToolRequest
+import io.modelcontextprotocol.kotlin.sdk.CallToolResult
+import io.modelcontextprotocol.kotlin.sdk.TextContent
+import io.modelcontextprotocol.kotlin.sdk.Tool
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
-import kotlinx.serialization.json.putJsonArray
-import io.github.oshai.kotlinlogging.KotlinLogging
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 

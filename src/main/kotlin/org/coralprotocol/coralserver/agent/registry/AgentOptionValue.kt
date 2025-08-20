@@ -1,33 +1,21 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package org.coralprotocol.coralserver.agent.registry
 
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.JsonClassDiscriminator
 
 @Serializable
-sealed interface AgentOptionValue {
-    val type: AgentOptionType
-    fun tryFromJson(value: JsonPrimitive): AgentOptionValue?
+@JsonClassDiscriminator("type")
+sealed class AgentOptionValue {
 
     @Serializable
-    data class String(val value: kotlin.String) : AgentOptionValue {
-        override val type get() = AgentOptionType.STRING
-        override fun toString(): kotlin.String {
-            return value
-        }
-        override fun tryFromJson(value: JsonPrimitive): AgentOptionValue? {
-            return if (value.isString) String(value.content) else null
-        }
-    }
+    @SerialName("string")
+    data class String(val value: kotlin.String) : AgentOptionValue()
 
     @Serializable
-    data class Number(val value: Double) : AgentOptionValue {
-        override val type get() = AgentOptionType.NUMBER
-        override fun toString(): kotlin.String {
-            return value.toString()
-        }
-        override fun tryFromJson(value: JsonPrimitive): AgentOptionValue? {
-            return value.doubleOrNull?.let { Number(it) }
-        }
-    }
+    @SerialName("number")
+    data class Number(val value: Double) : AgentOptionValue()
 }

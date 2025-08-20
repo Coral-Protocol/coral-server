@@ -113,19 +113,12 @@ fun Routing.sessionApiRoutes(appConfig: ConfigCollection, sessionManager: Sessio
                         agent.options.mapValues { option -> option.value.defaultAsValue() }
                             .filterNotNullValues()
 
-                    val setOptions = request.options.mapValues { (optionName, value) ->
-                        agent.options[optionName]!!.toValueOrNull(value) ?: throw RouteException(
-                            HttpStatusCode.BadRequest,
-                            "$value is an invalid value for $optionName on agent '${name}'"
-                        )
-                    }
-
                     GraphAgent(
                         name,
                         blocking = request.blocking ?: true,
                         extraTools = request.tools,
                         systemPrompt = "", //request.systemPrompt,
-                        options = defaultOptions + setOptions,
+                        options = defaultOptions + request.options,
                         provider = request.provider
                     )
                 }
