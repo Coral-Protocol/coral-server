@@ -34,6 +34,7 @@ enum class ImageDetail {
     AUTO
 }
 
+@Serializable
 enum class ImageMediaType {
     @SerialName("jpeg")
     @Suppress("unused")
@@ -64,6 +65,7 @@ enum class ImageMediaType {
     SVG,
 }
 
+@Serializable
 enum class DocumentMediaType {
     @SerialName("pdf")
     @Suppress("unused")
