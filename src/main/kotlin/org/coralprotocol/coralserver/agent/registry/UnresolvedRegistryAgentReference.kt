@@ -47,9 +47,15 @@ sealed class UnresolvedRegistryAgentReference {
             is Marketplace -> TODO("marketplace agents not supported yet")
             is Git -> TODO("git agents not supported yet")
             is Local -> {
-                val agentTomlFile = Path.of(path, "coral-agent.toml")
-                val agent = toml.decodeFromStream<UnresolvedRegistryAgent>(agentTomlFile.inputStream())
-                return agent.resolve()
+                try {
+                    val agentTomlFile = Path.of(path, "coral-agent.toml")
+                    val agent = toml.decodeFromStream<UnresolvedRegistryAgent>(agentTomlFile.inputStream())
+                    return agent.resolve()
+                }
+                catch (e: Exception) {
+                    logger.error { "Failed to resolve local agent: $path" }
+                    throw e
+                }
             }
         }
     }
