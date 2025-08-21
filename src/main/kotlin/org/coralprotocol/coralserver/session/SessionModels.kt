@@ -4,12 +4,12 @@ package org.coralprotocol.coralserver.session
 
 import com.chrynan.uri.core.UriString
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.smiley4.schemakenerator.core.annotations.Description
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import io.ktor.client.utils.EmptyContent.contentType
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.modelcontextprotocol.kotlin.sdk.CallToolRequest
@@ -27,11 +27,9 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.*
 import net.pwall.json.schema.JSONSchema
-import org.coralprotocol.coralserver.orchestrator.AgentType
-import org.coralprotocol.coralserver.orchestrator.runtime.AgentRuntime
+import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
+import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
-import java.net.URI
-
 
 private val logger = KotlinLogging.logger {}
 
@@ -48,7 +46,7 @@ data class CreateSessionRequest(
 
 @Serializable
 data class AgentGraphRequest(
-    val agents: HashMap<AgentName, GraphAgentRequest>,
+    val agents: HashMap<String, GraphAgentRequest>,
     val links: Set<Set<String>>,
     val tools: Map<String, CustomTool> = emptyMap(),
 )
@@ -145,37 +143,6 @@ sealed interface ToolTransport {
         request: CallToolRequest,
         toolSchema: Tool
     ): CallToolResult
-}
-
-@Serializable
-@JsonClassDiscriminator("type")
-sealed interface GraphAgentRequest {
-    val options: Map<String, JsonPrimitive>
-    val systemPrompt: String?
-    val blocking: Boolean?
-    val tools: Set<String>
-
-    @Serializable
-    @SerialName("remote")
-    data class Remote(
-        val remote: AgentRuntime.Remote,
-        override val options: Map<String, JsonPrimitive> = mapOf(),
-        override val systemPrompt: String? = null,
-        override val tools: Set<String> = setOf(),
-        override val blocking: Boolean? = true
-    ) :
-        GraphAgentRequest
-
-    @Serializable
-    @SerialName("local")
-    data class Local(
-        val agentType: AgentType,
-        override val options: Map<String, JsonPrimitive> = mapOf(),
-        override val systemPrompt: String? = null,
-        override val tools: Set<String> = setOf(),
-        override val blocking: Boolean? = true
-    ) :
-        GraphAgentRequest
 }
 
 /**

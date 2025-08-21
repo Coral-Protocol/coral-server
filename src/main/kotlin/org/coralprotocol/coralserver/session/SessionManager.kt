@@ -6,7 +6,8 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withTimeoutOrNull
-import org.coralprotocol.coralserver.orchestrator.Orchestrator
+import org.coralprotocol.coralserver.agent.graph.AgentGraph
+import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import java.util.concurrent.ConcurrentHashMap
 
 fun AgentGraph.adjacencyMap(): Map<String, Set<String>> {
@@ -83,7 +84,7 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
             for (node in adj.keys) {
                 if (visited.contains(node)) continue
                 // non-blocking agents should not be considered part of any subgraph
-                if (it.agents[AgentName(node)]?.blocking == false) continue
+                if (it.agents[node]?.blocking == false) continue
 
                 val subgraph = mutableSetOf(node)
                 val toVisit = adj[node]?.toMutableList()
@@ -91,7 +92,7 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
                     val next = toVisit.removeLast()
                     if (visited.contains(next)) continue
                     // non-blocking agents should not be considered part of any subgraph
-                    if (it.agents[AgentName(next)]?.blocking == false) continue
+                    if (it.agents[next]?.blocking == false) continue
                     subgraph.add(next)
                     visited.add(next)
                     adj[next]?.let { n -> toVisit.addAll(n) }
@@ -103,7 +104,7 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
             it.agents.forEach { agent ->
                 orchestrator.spawn(
                     sessionId = sessionId,
-                    type = agent.value,
+                    graphAgent = agent.value,
                     port = port,
                     agentName = agent.key.toString(),
                     relativeMcpServerUri = Uri.fromParts(scheme = "http", path = "${applicationId}/${privacyKey}/${sessionId}/sse", query = "agentId=${agent.key}"),

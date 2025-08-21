@@ -8,8 +8,12 @@ import io.ktor.resources.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.coralprotocol.coralserver.config.AppConfigLoader
-import org.coralprotocol.coralserver.orchestrator.ConfigValue
+import org.coralprotocol.coralserver.agent.graph.AgentGraph
+import org.coralprotocol.coralserver.agent.graph.GraphAgent
+import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
+import org.coralprotocol.coralserver.config.ConfigCollection
+import org.coralprotocol.coralserver.agent.registry.defaultAsValue
+import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.*
 
@@ -25,7 +29,7 @@ class Sessions
 /**
  * Configures session-related routes.
  */
-fun Routing.sessionApiRoutes(appConfig: AppConfigLoader, sessionManager: SessionManager, devMode: Boolean) {
+fun Routing.sessionApiRoutes(appConfig: ConfigCollection, sessionManager: SessionManager, devMode: Boolean) {
     post<Sessions>({
         summary = "Create session"
         description = "Creates a new session"
@@ -42,69 +46,81 @@ fun Routing.sessionApiRoutes(appConfig: AppConfigLoader, sessionManager: Session
                     description = "Session details"
                 }
             }
-            HttpStatusCode.BadRequest to {
+            HttpStatusCode.Forbidden to {
                 description = "Invalid application ID or privacy key"
+            }
+            HttpStatusCode.BadRequest to {
+                description = "The agent graph is invalid and could not be processed"
             }
         }
     }) {
         val request = call.receive<CreateSessionRequest>()
 
-        // Validate application and privacy key
         if (!devMode && !appConfig.isValidApplication(request.applicationId, request.privacyKey)) {
-            throw RouteException(HttpStatusCode.BadRequest, "Invalid App ID or privacy key")
+            throw RouteException(HttpStatusCode.Forbidden, "Invalid App ID or privacy key")
         }
 
         val agentGraph = request.agentGraph?.let { it ->
-            val agents = it.agents;
-            val registry = appConfig.config.registry ?: return@let null
+            val requestedAgents = it.agents
+            val registry = appConfig.registry
 
-            val unknownAgents =
-                it.links.map { set -> set.filter { agent -> !it.agents.containsKey(AgentName(agent)) } }.flatten()
-            if (unknownAgents.isNotEmpty()) {
-                throw IllegalArgumentException("Unknown agent names in links: ${unknownAgents.joinToString()}")
+            val missingAgentLinks = it.links.map { set ->
+                set.filter { agent -> !it.agents.containsKey(agent) }
+            }.flatten()
+
+            if (missingAgentLinks.isNotEmpty()) {
+                throw RouteException(HttpStatusCode.BadRequest,
+                    "Links contained agents that are not in the request: ${missingAgentLinks.joinToString()}")
+            }
+
+            val missingAgents = it.agents.filter { (name, _) -> !registry.importedAgents.containsKey(name) }
+            if (missingAgents.isNotEmpty()) {
+                throw RouteException(HttpStatusCode.BadRequest,
+                    "Requested agents not found: ${missingAgentLinks.joinToString()}")
             }
 
             AgentGraph(
                 tools = it.tools,
                 links = it.links,
-                agents = agents.mapValues { agent ->
-                    when (val agentReq = agent.value) {
-                        is GraphAgentRequest.Local -> {
-                            val agentDef = registry.get(agentReq.agentType)
+                agents = requestedAgents.mapValues { (name, request) ->
+                    // The badAgents check above will ensure this is never null
+                    //
+                    // It'd be more idiomatic to throw the exception here, but the error is nicer when it
+                    // contains all the missing agents in the graph, not just the first one
+                    val agent = registry.importedAgents[name]!!
 
-                            val missing = agentDef.options.filter { option ->
-                                option.value.required && !agentReq.options.containsKey(option.key)
-                            }
-                            if (missing.isNotEmpty()) {
-                                throw IllegalArgumentException("Agent '${agent.key}' Missing required options: ${missing.keys.joinToString()}")
-                            }
-
-                            val defaultOptions =
-                                agentDef.options.mapValues { option -> option.value.defaultAsValue }
-                                    .filterNotNullValues()
-
-                            val setOptions = agentReq.options.mapValues { option ->
-                                val realOption = agentDef.options[option.key]
-                                    ?: throw IllegalArgumentException("Unknown option '${option.key}'")
-                                val value = ConfigValue.tryFromJson(option.value)
-                                    ?: throw IllegalArgumentException("Agent '${agent.key}' given invalid type for option '${option.key} - expected ${realOption.type}'")
-                                if (value.type != realOption.type) {
-                                    throw IllegalArgumentException("Agent '${agent.key}' given invalid type for option '${option.key}' - expected ${realOption.type}")
-                                }
-                                value
-                            }
-
-                            GraphAgent.Local(
-                                blocking = agentReq.blocking ?: true,
-                                agentType = agentReq.agentType,
-                                extraTools = agentReq.tools,
-                                systemPrompt = agentReq.systemPrompt,
-                                options = defaultOptions + setOptions
-                            )
-                        }
-
-                        else -> TODO("(alan) remote agent option resolution")
+                    val missingRequiredOptions = agent.options.filter { option ->
+                        option.value.required && !request.options.containsKey(option.key)
                     }
+                    if (missingRequiredOptions.isNotEmpty()) {
+                        throw RouteException(
+                            HttpStatusCode.BadRequest,
+                            "Agent '${name}' is missing required options: ${missingRequiredOptions.keys.joinToString()}"
+                        )
+                    }
+
+                    val missingAgentOptions = request.options.filter {
+                        !agent.options.containsKey(it.key)
+                    }
+                    if (missingAgentOptions.isNotEmpty()) {
+                        throw RouteException(
+                            HttpStatusCode.BadRequest,
+                            "Agent '${name}' contains non-existent options: ${missingRequiredOptions.keys.joinToString()}"
+                        )
+                    }
+
+                    val defaultOptions =
+                        agent.options.mapValues { option -> option.value.defaultAsValue() }
+                            .filterNotNullValues()
+
+                    GraphAgent(
+                        name,
+                        blocking = request.blocking ?: true,
+                        extraTools = request.tools,
+                        systemPrompt = request.systemPrompt,
+                        options = defaultOptions + request.options,
+                        provider = request.provider
+                    )
                 }
             )
         }
@@ -113,12 +129,18 @@ fun Routing.sessionApiRoutes(appConfig: AppConfigLoader, sessionManager: Session
         // Create a new session
         val session = when (request.sessionId != null && devMode) {
             true -> {
-                sessionManager.createSessionWithId(
-                    request.sessionId,
-                    request.applicationId,
-                    request.privacyKey,
-                    agentGraph
-                )
+                try {
+                    sessionManager.createSessionWithId(
+                        request.sessionId,
+                        request.applicationId,
+                        request.privacyKey,
+                        agentGraph
+                    )
+                }
+                catch (e: Exception) {
+                    // TODO: An exception should be made for
+                    throw e
+                }
             }
 
             false -> {

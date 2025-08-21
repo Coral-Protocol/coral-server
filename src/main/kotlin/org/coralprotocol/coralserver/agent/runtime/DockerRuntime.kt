@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.orchestrator.runtime
+package org.coralprotocol.coralserver.agent.runtime
 
 import com.chrynan.uri.core.Uri
 import com.chrynan.uri.core.parse
@@ -15,21 +15,19 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
-import org.coralprotocol.coralserver.orchestrator.ConfigValue
-import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
-import org.coralprotocol.coralserver.orchestrator.RuntimeEvent
-import org.coralprotocol.coralserver.orchestrator.runtime.executable.EnvVar
+import org.coralprotocol.coralserver.agent.runtime.executable.EnvVar
 import org.coralprotocol.coralserver.session.SessionManager
+import java.io.File
 import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 
 @Serializable
 @SerialName("docker")
-data class Docker(
+data class DockerRuntime(
     val image: String,
     val environment: List<EnvVar> = listOf()
-) : AgentRuntime() {
+) : Orchestrate {
     private val dockerClientConfig: DockerClientConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
         .withDockerHost(getDockerSocket())
         .build()
@@ -152,7 +150,7 @@ private fun getDockerSocket(): String {
     // Check whether colima is installed and use its socket if available
     val homeDir = System.getProperty("user.home")
     val colimaSocket = "$homeDir/.colima/default/docker.sock"
-    return if (java.io.File(colimaSocket).exists()) {
+    return if (File(colimaSocket).exists()) {
         "unix://$colimaSocket"
     } else {
         "unix:///var/run/docker.sock" // Default Docker socket

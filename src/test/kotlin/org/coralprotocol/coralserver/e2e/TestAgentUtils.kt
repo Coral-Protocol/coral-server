@@ -16,8 +16,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.newFixedThreadPoolContext
 import kotlinx.coroutines.runBlocking
-import org.coralprotocol.coralserver.config.AppConfig
-import org.coralprotocol.coralserver.config.AppConfigLoader
+import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.server.CoralServer
 import org.coralprotocol.coralserver.session.CoralAgentGraphSession
 import org.coralprotocol.coralserver.session.SessionManager
@@ -31,7 +30,6 @@ import org.eclipse.lmos.arc.client.azure.AzureAIClient
 import org.eclipse.lmos.arc.mcp.McpTools
 import java.net.URI
 import java.net.http.HttpRequest
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.toJavaDuration
 
@@ -237,7 +235,7 @@ class TestCoralServer(
             port = port,
             devmode = devmode,
             sessionManager = sessionManager,
-            appConfig = AppConfigLoader(null)
+            appConfig = ConfigCollection(null)
         )
         GlobalScope.launch(serverContext) {
             server!!.start()

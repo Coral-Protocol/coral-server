@@ -5,19 +5,25 @@ package org.coralprotocol.coralserver.server
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.OpenApi
 import io.github.smiley4.ktoropenapi.config.OutputFormat
+import io.github.smiley4.ktoropenapi.config.SchemaGenerator
 import io.github.smiley4.ktoropenapi.openApi
 import io.github.smiley4.ktoropenapi.route
 import io.github.smiley4.schemakenerator.core.CoreSteps.addMissingSupertypeSubtypeRelations
+import io.github.smiley4.schemakenerator.core.CoreSteps.handleNameAnnotation
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.addJsonClassDiscriminatorProperty
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.analyzeTypeUsingKotlinxSerialization
+import io.github.smiley4.schemakenerator.serialization.SerializationSteps.renameMembers
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.compileReferencingRoot
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.customizeTypes
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.generateSwaggerSchema
+import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.handleCoreAnnotations
+import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.handleSchemaAnnotations
+import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.mergePropertyAttributesIntoType
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.withTitle
 import io.github.smiley4.schemakenerator.swagger.TitleBuilder
 import io.github.smiley4.schemakenerator.swagger.data.TitleType
 import io.ktor.http.*
-import io.ktor.network.sockets.Socket
+import io.ktor.resources.Resource
 import io.ktor.serialization.kotlinx.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -37,7 +43,7 @@ import kotlinx.coroutines.Job
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
-import org.coralprotocol.coralserver.config.AppConfigLoader
+import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.models.SocketEvent
 import org.coralprotocol.coralserver.routes.api.v1.debugApiRoutes
 import org.coralprotocol.coralserver.routes.api.v1.agentApiRoutes
@@ -52,11 +58,15 @@ import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 
+// It is important that this naming strategy is used both for deserialization and for the OpenAPI generation
+// so that the spec generates the correct property names for (de)serialization
+private val NAMING_STRATEGY = JsonNamingStrategy.SnakeCase
+
 private val json = Json {
     encodeDefaults = true
     prettyPrint = true
     explicitNulls = false
-    namingStrategy = JsonNamingStrategy.SnakeCase
+    namingStrategy = NAMING_STRATEGY
 }
 
 /**
@@ -69,11 +79,22 @@ private val json = Json {
 class CoralServer(
     val host: String = "0.0.0.0",
     val port: UShort = 5555u,
-    val appConfig: AppConfigLoader,
+    val appConfig: ConfigCollection,
     val devmode: Boolean = false,
     val sessionManager: SessionManager = SessionManager(port = port),
 ) {
 
+    /*
+        /{destinationId}/{protocol}/{version}/depends....
+
+        /api/v2/forward/{destinationId}/ get/head/post/etc -> ...agent traffic: telemetry + sse + anything else in the future
+
+        local:
+            generic api:    /api/v1/message/{applicationId}/{privacyKey}/{coralSessionId}
+            sse:          * /sse/v1/1/{applicationId}/{privacyKey}/{coralSessionId}
+            coral studio:   /ws/v1/1/debug/{applicationId}/{privacyKey}/{coralSessionId}
+
+     */
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
         embeddedServer(CIO, host = host, port = port.toInt(), watchPaths = listOf("classes")) {
@@ -89,6 +110,7 @@ class CoralServer(
                         tagGenerator = { url -> listOf(url.getOrNull(2)) }
                     }
                     schemas {
+                        generator = SchemaGenerator.kotlinx {  }
                         // Generated types from routes
                         generator = { type ->
                             type
@@ -97,9 +119,12 @@ class CoralServer(
                                 }
                                 .addMissingSupertypeSubtypeRelations()
                                 .addJsonClassDiscriminatorProperty()
+                                .handleNameAnnotation().renameMembers(NAMING_STRATEGY)
                                 .generateSwaggerSchema({
                                     strictDiscriminatorProperty = true
                                 })
+                                .handleCoreAnnotations()
+                                .handleSchemaAnnotations()
                                 .customizeTypes { _, schema ->
                                     // Mapping is broken, and one of the code generation libraries I am using checks the
                                     // references here
@@ -188,7 +213,7 @@ class CoralServer(
      * Starts the server.
      */
     fun start(wait: Boolean = false) {
-        logger.info { "Starting sse server on port $port with ${appConfig.config.applications.size} configured applications" }
+        logger.info { "Starting sse server on port $port with ${appConfig.appConfig.applications.size} configured applications" }
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "trace");
 
         if (devmode) {
