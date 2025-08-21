@@ -29,14 +29,14 @@ sealed class Message {
         val refusal: String? = null,
         val audio: AudioAssistant? = null,
         val name: String? = null,
-        @SerialName("tool_calls") val toolCalls: List<ToolCall>
+        val toolCalls: List<ToolCall>
     ) : Message()
 
     @Serializable
     @SerialName("tool")
     @Suppress("unused")
     data class ToolMessage(
-        @SerialName("tool_call_id") val toolCallId: String,
+        val toolCallId: String,
         val content: List<ToolResultContent>
     ) : Message()
 }

@@ -2,9 +2,8 @@ package org.coralprotocol.coralserver
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
-import org.coralprotocol.coralserver.config.AppConfigLoader
-import org.coralprotocol.coralserver.orchestrator.AgentRegistry
-import org.coralprotocol.coralserver.orchestrator.Orchestrator
+import org.coralprotocol.coralserver.config.ConfigCollection
+import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.server.CoralServer
 import org.coralprotocol.coralserver.session.SessionManager
 
@@ -29,7 +28,7 @@ fun main(args: Array<String>) {
     when (command) {
 //        "--stdio" -> runMcpServerUsingStdio()
         "--sse-server" -> {
-            val appConfig = AppConfigLoader()
+            val appConfig = ConfigCollection()
 
             val orchestrator = Orchestrator(appConfig)
             val server = CoralServer(

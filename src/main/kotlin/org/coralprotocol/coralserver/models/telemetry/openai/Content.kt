@@ -41,12 +41,12 @@ sealed class UserContent {
     @Serializable
     @SerialName("image_url")
     @Suppress("unused")
-    data class Image(@SerialName("image_url") val imageUrl: ImageUrl): UserContent()
+    data class Image(val imageUrl: ImageUrl): UserContent()
 
     @Serializable
     @SerialName("audio")
     @Suppress("unused")
-    data class Audio(@SerialName("input_audio") val inputAudio: InputAudio): UserContent()
+    data class Audio(val inputAudio: InputAudio): UserContent()
 }
 
 @Serializable

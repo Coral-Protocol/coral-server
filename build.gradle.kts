@@ -92,6 +92,10 @@ dependencies {
     testImplementation("io.ktor:ktor-server-cio")
     testImplementation("io.ktor:ktor-server-sse")
 
+    // TOML serialization
+    implementation("com.akuleshov7:ktoml-core:0.7.0")
+    implementation("com.akuleshov7:ktoml-file:0.7.0")
+
     // OpenAPI
     val ktorToolsVersion = "5.2.0"
     implementation("io.github.smiley4:ktor-openapi:${ktorToolsVersion}")

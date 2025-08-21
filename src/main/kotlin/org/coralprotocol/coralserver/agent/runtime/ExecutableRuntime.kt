@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.orchestrator.runtime
+package org.coralprotocol.coralserver.agent.runtime
 
 import com.chrynan.uri.core.Uri
 import com.chrynan.uri.core.fromParts
@@ -10,23 +10,20 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.models.AgentState
-import org.coralprotocol.coralserver.orchestrator.ConfigValue
-import org.coralprotocol.coralserver.orchestrator.LogKind
-import org.coralprotocol.coralserver.orchestrator.OrchestratorHandle
-import org.coralprotocol.coralserver.orchestrator.RuntimeEvent
-import org.coralprotocol.coralserver.orchestrator.runtime.executable.EnvVar
+import org.coralprotocol.coralserver.agent.runtime.executable.EnvVar
 import org.coralprotocol.coralserver.session.SessionManager
 import java.util.concurrent.TimeUnit
+import kotlin.collections.iterator
 import kotlin.concurrent.thread
 
 private val logger = KotlinLogging.logger {}
 
 @Serializable
 @SerialName("executable")
-data class Executable(
+data class ExecutableRuntime(
     val command: List<String>,
     val environment: List<EnvVar> = listOf()
-) : AgentRuntime() {
+) : Orchestrate {
     override fun spawn(
         params: RuntimeParams,
         bus: EventBus<RuntimeEvent>,
