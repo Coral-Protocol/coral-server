@@ -5,6 +5,7 @@ import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.runtime.AgentRuntimes
+import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 
 @Serializable
 data class UnresolvedRegistryAgent(
@@ -34,10 +35,12 @@ data class RegistryAgent(
 @Serializable
 data class PublicRegistryAgent(
     val id: String,
+    val runtimes: List<RuntimeId>,
     val options: Map<String, AgentOption>
 )
 
 fun RegistryAgent.toPublic(id: String): PublicRegistryAgent = PublicRegistryAgent(
     id = id,
+    runtimes = runtimes.toRuntimeIds(),
     options = options
 )

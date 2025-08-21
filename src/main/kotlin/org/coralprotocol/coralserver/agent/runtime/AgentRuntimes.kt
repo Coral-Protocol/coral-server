@@ -50,4 +50,11 @@ class AgentRuntimes(
         RuntimeId.EXECUTABLE -> executableRuntime
         RuntimeId.DOCKER -> dockerRuntime
     }
+
+    fun toRuntimeIds(): List<RuntimeId> {
+        return buildList {
+            executableRuntime?.let { add(RuntimeId.EXECUTABLE) }
+            dockerRuntime?.let { add(RuntimeId.DOCKER) }
+        }
+    }
 }
