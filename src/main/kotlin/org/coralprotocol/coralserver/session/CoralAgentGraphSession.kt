@@ -37,7 +37,7 @@ class CoralAgentGraphSession(
     private val agentGroupScheduler = GroupScheduler(groups)
     private val countBasedScheduler = CountBasedScheduler()
 
-    private val eventBus = EventBus<Event>()
+    private val eventBus = EventBus<SessionEvent>()
     val events get() = eventBus.events
 
     init {
@@ -70,7 +70,7 @@ class CoralAgentGraphSession(
         agent.state = AgentState.Busy;
         agentGroupScheduler.markAgentReady(agentId)
         countBasedScheduler.markAgentReady(agent.id)
-        eventBus.emit(Event.AgentStateUpdated(agent.id, agent.state))
+        eventBus.emit(SessionEvent.AgentStateUpdated(agent.id, agent.state))
         return agent
     }
 
@@ -82,7 +82,7 @@ class CoralAgentGraphSession(
             countBasedScheduler.markAgentReady(agent.id)
         }
         agent.state = state
-        eventBus.emit(Event.AgentStateUpdated(agent.id, agent.state))
+        eventBus.emit(SessionEvent.AgentStateUpdated(agent.id, agent.state))
         return oldState
 
     }
@@ -90,7 +90,7 @@ class CoralAgentGraphSession(
     fun disconnectAgent(agentId: String) {
         val agent = agents[agentId] ?: return
         agent.state = AgentState.Disconnected;
-        eventBus.emit(Event.AgentStateUpdated(agent.id, agent.state))
+        eventBus.emit(SessionEvent.AgentStateUpdated(agent.id, agent.state))
     }
 
     fun registerAgent(
@@ -163,7 +163,7 @@ class CoralAgentGraphSession(
         threads[thread.id] = thread
 
         eventBus.emit(
-            Event.ThreadCreated(
+            SessionEvent.ThreadCreated(
                 id = thread.id,
                 name = name,
                 creatorId = creatorId,
@@ -231,7 +231,7 @@ class CoralAgentGraphSession(
 
         val message = Message.create(thread, sender, content, mentions)
         thread.messages.add(message)
-        eventBus.emit(Event.MessageSent(threadId, message.resolve()))
+        eventBus.emit(SessionEvent.MessageSent(threadId, message.resolve()))
         notifyMentionedAgents(message)
         return message
     }
