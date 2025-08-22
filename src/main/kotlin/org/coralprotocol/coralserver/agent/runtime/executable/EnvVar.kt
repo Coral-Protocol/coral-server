@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.agent.runtime.executable
 
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.AgentOptionValue
+import org.coralprotocol.coralserver.agent.registry.toStringValue
 
 @Serializable
 data class EnvVar(
@@ -31,12 +32,12 @@ data class EnvVar(
     fun resolve(options: Map<String, AgentOptionValue>): Pair<String, String?> {
         if (option != null) {
             val opt = options[option] ?: throw IllegalArgumentException("Undefined option '$option'")
-            return Pair(option, opt.toString())
+            return Pair(option, opt.toStringValue())
         }
         val name = name ?: throw IllegalArgumentException("name not provided")
         if(from != null) {
             val opt = options[from] ?: throw IllegalArgumentException("Undefined option '$from'")
-            return Pair(from, opt.toString())
+            return Pair(from, opt.toStringValue())
         }
         if(value != null) {
             return Pair(name, value)

@@ -15,7 +15,13 @@ sealed class AgentOptionValue {
     @SerialName("string")
     data class String(val value: kotlin.String) : AgentOptionValue()
 
+
     @Serializable
     @SerialName("number")
     data class Number(val value: Double) : AgentOptionValue()
+}
+
+fun AgentOptionValue.toStringValue(): String = when (this) {
+    is AgentOptionValue.String -> value
+    is AgentOptionValue.Number -> value.toString()
 }
