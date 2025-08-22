@@ -34,7 +34,7 @@ fun Routing.debugWsRoutes(sessionManager: SessionManager) {
 
         session.events.collect { evt ->
             logger.debug { "Received evt: $evt" }
-            sendSerialized(evt)
+            sendSerialized(SocketEvent.Session(evt))
         }
     }
 
