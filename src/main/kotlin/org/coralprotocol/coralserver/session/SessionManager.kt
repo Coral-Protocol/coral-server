@@ -107,7 +107,7 @@ class SessionManager(val orchestrator: Orchestrator = Orchestrator(), val port: 
                     graphAgent = agent.value,
                     port = port,
                     agentName = agent.key.toString(),
-                    relativeMcpServerUri = Uri.fromParts(scheme = "http", path = "${applicationId}/${privacyKey}/${sessionId}/sse", query = "agentId=${agent.key}"),
+                    relativeMcpServerUri = Uri.fromParts(scheme = "http", path = "/sse/v1/${applicationId}/${privacyKey}/${sessionId}/sse", query = "agentId=${agent.key}"),
                     sessionManager = this,
                 )
             }
