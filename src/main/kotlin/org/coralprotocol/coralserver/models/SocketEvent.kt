@@ -6,6 +6,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
+import org.coralprotocol.coralserver.session.SessionEvent as SessionEvent
 
 @Serializable
 @JsonClassDiscriminator("type")
@@ -21,4 +22,8 @@ sealed interface SocketEvent {
     @Serializable
     @SerialName("agent_list")
     data class AgentList(val agents: List<Agent>) : SocketEvent
+
+    @Serializable
+    @SerialName("session")
+    data class Session(val event: SessionEvent) : SocketEvent
 }
