@@ -111,7 +111,7 @@ fun Routing.sessionApiRoutes(appConfig: ConfigCollection, sessionManager: Sessio
                     if (missingAgentOptions.isNotEmpty()) {
                         throw RouteException(
                             HttpStatusCode.BadRequest,
-                            "Agent '${name}' contains non-existent options: ${missingRequiredOptions.keys.joinToString()}"
+                            "Agent '${name}' contains non-existent options: ${missingAgentOptions.keys.joinToString()}"
                         )
                     }
 
