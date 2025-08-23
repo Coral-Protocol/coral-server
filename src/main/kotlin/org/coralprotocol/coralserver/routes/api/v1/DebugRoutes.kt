@@ -59,9 +59,15 @@ fun Routing.debugApiRoutes(sessionManager: SessionManager) {
             }
             HttpStatusCode.NotFound to {
                 description = "Session not found"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
             HttpStatusCode.InternalServerError to {
                 description = "Error creating thread"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
         }
     }) { debugRequest ->
@@ -111,9 +117,15 @@ fun Routing.debugApiRoutes(sessionManager: SessionManager) {
             }
             HttpStatusCode.NotFound to {
                 description = "Session not found"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
             HttpStatusCode.InternalServerError to {
                 description = "Error sending message"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
         }
     }) { debugRequest ->

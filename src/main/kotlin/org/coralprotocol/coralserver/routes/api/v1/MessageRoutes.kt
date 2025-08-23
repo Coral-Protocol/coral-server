@@ -50,15 +50,27 @@ fun Routing.messageApiRoutes(servers: ConcurrentMap<String, Server>, sessionMana
             }
             HttpStatusCode.Forbidden to {
                 description = "Invalid application ID or privacy key"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
             HttpStatusCode.NotFound to {
                 description = "Invalid Coral session ID"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
             HttpStatusCode.BadRequest to {
                 description = "Invalid session ID"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
             HttpStatusCode.InternalServerError to {
                 description = "MCP error"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
         }
     }) { message ->
@@ -117,12 +129,21 @@ fun Routing.messageApiRoutes(servers: ConcurrentMap<String, Server>, sessionMana
             }
             HttpStatusCode.NotFound to {
                 description = "Invalid Coral session ID"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
             HttpStatusCode.BadRequest to {
                 description = "Invalid session ID"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
             HttpStatusCode.InternalServerError to {
                 description = "MCP error"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
         }
     }) { message ->
