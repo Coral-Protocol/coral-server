@@ -65,6 +65,9 @@ fun Routing.telemetryApiRoutes(sessionManager: SessionManager) {
             }
             HttpStatusCode.NotFound to {
                 description = "Telemetry data not found for specified message"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
         }
     }) { telemetry ->
@@ -89,6 +92,12 @@ fun Routing.telemetryApiRoutes(sessionManager: SessionManager) {
         response {
             HttpStatusCode.OK to {
                 description = "Success"
+            }
+            HttpStatusCode.NotFound to {
+                description = "Specified messages were not found"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
         }
     }) { post ->

@@ -48,9 +48,15 @@ fun Routing.sessionApiRoutes(appConfig: ConfigCollection, sessionManager: Sessio
             }
             HttpStatusCode.Forbidden to {
                 description = "Invalid application ID or privacy key"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
             HttpStatusCode.BadRequest to {
                 description = "The agent graph is invalid and could not be processed"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
         }
     }) {
