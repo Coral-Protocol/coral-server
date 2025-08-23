@@ -18,8 +18,8 @@ private val logger = KotlinLogging.logger {}
  */
 fun CoralAgentIndividualMcp.addCloseThreadTool() {
     addTool(
-        name = "close_thread",
-        description = "Close a thread with a summary",
+        name = "coral_close_thread",
+        description = "Closes a Coral thread with a summary",
         inputSchema = Tool.Input(
             properties = buildJsonObject {
                 putJsonObject("threadId") {

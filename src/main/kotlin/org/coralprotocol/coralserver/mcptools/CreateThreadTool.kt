@@ -19,8 +19,8 @@ private val logger = KotlinLogging.logger {}
  */
 fun CoralAgentIndividualMcp.addCreateThreadTool() {
     addTool(
-        name = "create_thread",
-        description = "Create a new thread with a list of participants",
+        name = "coral_create_thread",
+        description = "Create a new Coral thread with a list of participants",
         inputSchema = Tool.Input(
             properties = buildJsonObject {
                 putJsonObject("threadName") {
