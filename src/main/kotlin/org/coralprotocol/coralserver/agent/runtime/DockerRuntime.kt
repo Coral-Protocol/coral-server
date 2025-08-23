@@ -15,6 +15,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
+import org.coralprotocol.coralserver.agent.registry.toStringValue
 import org.coralprotocol.coralserver.agent.runtime.executable.EnvVar
 import org.coralprotocol.coralserver.session.SessionManager
 import java.io.File
@@ -42,10 +43,11 @@ data class DockerRuntime(
         val fullConnectionUrl =
             "http://host.docker.internal:${params.mcpServerPort}/${params.mcpServerRelativeUri.path}${params.mcpServerRelativeUri.query?.let { "?$it" } ?: ""}"
 
-        val resolvedEnvs = this.environment.map {
-            val (key, value) = it.resolve(params.options)
-            "$key=$value"
+        // todo: escape???
+        val resolvedEnvs = params.options.map { (key, value) ->
+            "$key=${value.toStringValue()}"
         }
+
         val allEnvs = resolvedEnvs + getCoralSystemEnvs(
             params,
             sessionManager.serverUrl,
