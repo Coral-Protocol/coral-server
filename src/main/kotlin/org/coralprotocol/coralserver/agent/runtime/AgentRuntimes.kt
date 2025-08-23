@@ -41,7 +41,7 @@ class AgentRuntimes(
     override fun spawn(
         params: RuntimeParams,
         eventBus: EventBus<RuntimeEvent>,
-        sessionManager: SessionManager?
+        sessionManager: SessionManager
     ): OrchestratorHandle {
         TODO("runtime must be selected")
     }

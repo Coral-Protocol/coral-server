@@ -5,6 +5,7 @@ import com.chrynan.uri.core.pathSegments
 
 fun getCoralSystemEnvs(
     params: RuntimeParams,
+    apiUrl: String,
     coralConnectionUrl: Uri,
     orchestrationRuntime: String
 ): Map<String, String> {
@@ -19,6 +20,7 @@ fun getCoralSystemEnvs(
         "CORAL_AGENT_ID" to params.agentName,
         "CORAL_ORCHESTRATION_RUNTIME" to orchestrationRuntime,
         "CORAL_SESSION_ID" to sessionId,
+        "CORAL_API_URL" to apiUrl,
         "CORAL_SSE_URL" to with(coralConnectionUrl) {
             "${scheme}://$host:$port$path"
         },

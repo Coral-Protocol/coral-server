@@ -18,12 +18,10 @@ import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.customizeTypes
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.generateSwaggerSchema
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.handleCoreAnnotations
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.handleSchemaAnnotations
-import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.mergePropertyAttributesIntoType
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.withTitle
 import io.github.smiley4.schemakenerator.swagger.TitleBuilder
 import io.github.smiley4.schemakenerator.swagger.data.TitleType
 import io.ktor.http.*
-import io.ktor.resources.Resource
 import io.ktor.serialization.kotlinx.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -43,18 +41,16 @@ import kotlinx.coroutines.Job
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
+import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.models.SocketEvent
-import org.coralprotocol.coralserver.routes.api.v1.debugApiRoutes
-import org.coralprotocol.coralserver.routes.api.v1.agentApiRoutes
-import org.coralprotocol.coralserver.routes.api.v1.documentationApiRoutes
-import org.coralprotocol.coralserver.routes.api.v1.messageApiRoutes
-import org.coralprotocol.coralserver.routes.api.v1.sessionApiRoutes
-import org.coralprotocol.coralserver.routes.api.v1.telemetryApiRoutes
+import org.coralprotocol.coralserver.routes.api.v1.*
 import org.coralprotocol.coralserver.routes.sse.v1.connectionSseRoutes
 import org.coralprotocol.coralserver.routes.ws.v1.debugWsRoutes
 import org.coralprotocol.coralserver.session.SessionManager
 import kotlin.time.Duration.Companion.seconds
+
+private val OS_NAME = System.getProperty("os.name", "").lowercase()
 
 private val logger = KotlinLogging.logger {}
 
@@ -81,8 +77,9 @@ class CoralServer(
     val port: UShort = 5555u,
     val appConfig: ConfigCollection,
     val devmode: Boolean = false,
-    val sessionManager: SessionManager = SessionManager(port = port),
+    orchestrator: Orchestrator
 ) {
+    val sessionManager = SessionManager(orchestrator, port, getServerUrl())
 
     /*
         /{destinationId}/{protocol}/{version}/depends....
@@ -219,15 +216,15 @@ class CoralServer(
         if (devmode) {
             logger.info {
                 "In development, agents can connect to " +
-                        "http://localhost:$port/sse/v1/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=exampleAgent"
+                        "${getServerUrl()}/sse/v1/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=exampleAgent"
             }
             logger.info {
                 "Connect the inspector to " +
-                        "http://localhost:$port/sse/v1/devmode/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=inspector"
+                        "${getServerUrl()}/sse/v1/devmode/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=inspector"
             }
         }
         server.monitor.subscribe(ApplicationStarted) {
-            logger.info { "Server started on $host:$port" }
+            logger.info { "Server started on ${getServerUrl()}" }
         }
         server.start(wait)
     }
@@ -241,5 +238,23 @@ class CoralServer(
         server.stop(1000, 2000)
         serverJob = null
         logger.info { "Server stopped" }
+    }
+
+
+    /**
+     * Gets the URL that the Coral server can be reached on.
+     * TODO: This should probably map 0.0.0.0 to an actual hardware address in the future!
+     * TODO: https?
+     */
+    fun getServerUrl(): String {
+        val host = if (host == "0.0.0.0" && OS_NAME.contains("windows")) {
+            "127.0.0.1"
+        }
+        else {
+            host
+        }
+
+        // no https ever? :( !
+        return "http://$host:$port"
     }
 }

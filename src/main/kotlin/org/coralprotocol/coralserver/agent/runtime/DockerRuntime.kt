@@ -36,7 +36,7 @@ data class DockerRuntime(
     override fun spawn(
         params: RuntimeParams,
         bus: EventBus<RuntimeEvent>,
-        sessionManager: SessionManager?,
+        sessionManager: SessionManager,
     ): OrchestratorHandle {
         logger.info { "Spawning Docker container with image: $image" }
         val fullConnectionUrl =
@@ -48,6 +48,7 @@ data class DockerRuntime(
         }
         val allEnvs = resolvedEnvs + getCoralSystemEnvs(
             params,
+            sessionManager.serverUrl,
             Uri.parse(fullConnectionUrl),
             "docker"
         ).map { (key, value) -> "$key=$value" }
