@@ -40,7 +40,7 @@ interface Orchestrate {
     fun spawn(
         params: RuntimeParams,
         eventBus: EventBus<RuntimeEvent>,
-        sessionManager: SessionManager?,
+        sessionManager: SessionManager,
     ): OrchestratorHandle
 }
 
@@ -63,7 +63,14 @@ class Orchestrator(
         EventBus(replay = 512)
     }
 
-    fun spawn(sessionId: String, graphAgent: GraphAgent, agentName: String, port: UShort, relativeMcpServerUri: Uri, sessionManager: SessionManager?) {
+    fun spawn(
+        sessionId: String,
+        graphAgent: GraphAgent,
+        agentName: String,
+        port: UShort,
+        relativeMcpServerUri: Uri,
+        sessionManager: SessionManager
+    ) {
         val params = RuntimeParams(
             sessionId = sessionId,
             agentName = agentName,

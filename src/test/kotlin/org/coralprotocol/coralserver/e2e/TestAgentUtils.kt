@@ -16,6 +16,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.newFixedThreadPoolContext
 import kotlinx.coroutines.runBlocking
+import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.server.CoralServer
 import org.coralprotocol.coralserver.session.CoralAgentGraphSession
@@ -219,8 +220,7 @@ fun createTestAIClient(): AzureAIClient {
 class TestCoralServer(
     val host: String = "0.0.0.0",
     val port: UShort = 5555u,
-    val devmode: Boolean = false,
-    val sessionManager: SessionManager = SessionManager(port = port),
+    val devmode: Boolean = false
 ) {
     var server: CoralServer? = null
 
@@ -229,13 +229,14 @@ class TestCoralServer(
 
     @OptIn(DelicateCoroutinesApi::class)
     fun setup() {
+        val configCollection = ConfigCollection()
         server?.stop()
         server = CoralServer(
             host = host,
             port = port,
             devmode = devmode,
-            sessionManager = sessionManager,
-            appConfig = ConfigCollection(null)
+            appConfig = configCollection,
+            orchestrator = Orchestrator(configCollection)
         )
         GlobalScope.launch(serverContext) {
             server!!.start()

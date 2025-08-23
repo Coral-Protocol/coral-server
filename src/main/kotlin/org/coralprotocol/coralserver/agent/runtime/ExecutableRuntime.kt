@@ -9,6 +9,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
+import org.coralprotocol.coralserver.agent.registry.toStringValue
 import org.coralprotocol.coralserver.models.AgentState
 import org.coralprotocol.coralserver.agent.runtime.executable.EnvVar
 import org.coralprotocol.coralserver.session.SessionManager
@@ -27,7 +28,7 @@ data class ExecutableRuntime(
     override fun spawn(
         params: RuntimeParams,
         bus: EventBus<RuntimeEvent>,
-        sessionManager: SessionManager?,
+        sessionManager: SessionManager,
     ): OrchestratorHandle {
         val processBuilder = ProcessBuilder()
         val processEnvironment = processBuilder.environment()
@@ -44,11 +45,14 @@ data class ExecutableRuntime(
             query = params.mcpServerRelativeUri.query
         )
 
-        val resolvedOptions = this.environment.associate {
-            val (key, value) = it.resolve(params.options);
-            key to (value ?: "")
-        }
-        val envsToSet = resolvedOptions + getCoralSystemEnvs(params, coralConnectionUrl, "executable")
+        val resolvedOptions = params.options.mapValues { it.value.toStringValue() }
+        val envsToSet = resolvedOptions + getCoralSystemEnvs(
+            params,
+            sessionManager.serverUrl,
+            coralConnectionUrl,
+            "executable"
+        )
+        
         for (env in envsToSet) {
             processEnvironment[env.key] = env.value
         }
