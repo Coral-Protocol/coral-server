@@ -18,8 +18,8 @@ private val logger = KotlinLogging.logger {}
  */
 fun CoralAgentIndividualMcp.addRemoveParticipantTool() {
     addTool(
-        name = "remove_participant",
-        description = "Remove a participant from a thread",
+        name = "coral_remove_participant",
+        description = "Remove a participant from a Coral thread",
         inputSchema = Tool.Input(
             properties = buildJsonObject {
                 putJsonObject("threadId") {

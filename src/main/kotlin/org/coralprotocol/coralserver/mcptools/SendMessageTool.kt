@@ -18,8 +18,8 @@ private val logger = KotlinLogging.logger {}
  */
 fun CoralAgentIndividualMcp.addSendMessageTool() {
     addTool(
-        name = "send_message",
-        description = "Send a message to a thread",
+        name = "coral_send_message",
+        description = "Send a message to a Coral thread",
         inputSchema = Tool.Input(
             properties = buildJsonObject {
                 putJsonObject("threadId") {

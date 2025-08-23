@@ -18,8 +18,8 @@ private val logger = KotlinLogging.logger {}
  */
 fun CoralAgentIndividualMcp.addAddParticipantTool() {
     addTool(
-        name = "add_participant",
-        description = "Add a participant to a thread",
+        name = "coral_add_participant",
+        description = "Add a participant to a Coral thread",
         inputSchema = Tool.Input(
             properties = buildJsonObject {
                 putJsonObject("threadId") {

@@ -21,8 +21,8 @@ private val logger = KotlinLogging.logger {}
  */
 fun CoralAgentIndividualMcp.addWaitForMentionsTool() {
     addTool(
-        name = "wait_for_mentions",
-        description = "Wait until mentioned. Call this tool when you're done or want to wait for another agent to respond. This will block until a message is received. You will see all unread messages.",
+        name = "coral_wait_for_mentions",
+        description = "Wait until mentioned in a Coral thread. Call this tool when you're done or want to wait for another agent to respond. This will block until a message is received. You will see all unread messages.",
         inputSchema = Tool.Input(
             properties = buildJsonObject {
                 putJsonObject("timeoutMs") {
