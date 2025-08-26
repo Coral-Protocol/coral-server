@@ -52,6 +52,7 @@ fun Routing.importRoutes() {
             }
         }
     }) {
-
+        // spin up the agent
+        // put it somewhere special so we know where to find it when /ws is hit
     }
 }
