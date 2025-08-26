@@ -4,10 +4,10 @@ import io.modelcontextprotocol.kotlin.sdk.Implementation
 import io.modelcontextprotocol.kotlin.sdk.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
-import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
+import io.modelcontextprotocol.kotlin.sdk.shared.Transport
 import org.coralprotocol.coralserver.mcpresources.addMessageResource
-import org.coralprotocol.coralserver.session.CoralAgentGraphSession
 import org.coralprotocol.coralserver.mcptools.addThreadTools
+import org.coralprotocol.coralserver.session.CoralAgentGraphSession
 import org.coralprotocol.coralserver.session.CustomTool
 import org.coralprotocol.coralserver.session.addExtraTool
 
@@ -21,10 +21,6 @@ import org.coralprotocol.coralserver.session.addExtraTool
  */
 class CoralAgentIndividualMcp(
     val connectedUri: String,
-    /**
-     * The latest transport used by the agent to connect to the server. It might change if the agent reconnects.
-     */
-    var latestTransport: SseServerTransport,
     /**
      * The session this agent is part of.
      */
@@ -56,8 +52,26 @@ class CoralAgentIndividualMcp(
         }
     }
 
+    /**
+     * Attaches to the given transport, starts it, and starts listening for messages.
+     *
+     * The Protocol object assumes ownership of the Transport, replacing any callbacks that have already been set, and expects that it is the only user of the Transport instance going forward.
+     */
+    override suspend fun connect(transport: Transport) {
+
+        return if (isRemote) {
+            transport.onMessage {
+
+            }
+        } else super.connect(transport)
+    }
+
+    suspend fun connectWebscoket() {
+
+    }
+
     suspend fun closeTransport() {
-        latestTransport.close()
+        transport?.close()
     }
 }
 
