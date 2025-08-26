@@ -5,6 +5,7 @@ import org.eclipse.lmos.arc.agents.agent.ask
 import org.eclipse.lmos.arc.core.Success
 import org.junit.jupiter.api.BeforeEach
 import kotlin.test.Test
+import kotlin.uuid.ExperimentalUuidApi
 
 
 class E2EResourceTest {
@@ -17,6 +18,7 @@ class E2EResourceTest {
         server.setup()
     }
 
+    @OptIn(ExperimentalUuidApi::class)
     @Test
     fun testCreateThreadAndPostMessage(): Unit = runBlocking {
         var allAssertsCompleted = false
@@ -25,7 +27,7 @@ class E2EResourceTest {
             val agent2 = agent("testAgent2", "testAgent2")
 
             onAgentsCreated = {
-                agent1.getConnected().ask("Say hello to testAgent2 in a new thread. Tell it the passcode 3243")
+                agent1.getConnected().run()
                 val sessions = server.sessionManager.getAllSessions()
                 assert(sessions.size == 1) { "There should be one session" }
                 val session = sessions.first()

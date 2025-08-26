@@ -96,115 +96,120 @@ class CoralServer(
 
      */
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
+
+    fun Application.coralSeverModule() {
+        install(OpenApi) {
+            info {
+                title = "Coral Server API"
+            }
+            spec("v1") {
+                info {
+                    version = "1.0"
+                }
+                tags {
+                    tagGenerator = { url -> listOf(url.getOrNull(2)) }
+                }
+                schemas {
+                    generator = SchemaGenerator.kotlinx {  }
+                    // Generated types from routes
+                    generator = { type ->
+                        type
+                            .analyzeTypeUsingKotlinxSerialization {
+
+                            }
+                            .addMissingSupertypeSubtypeRelations()
+                            .addJsonClassDiscriminatorProperty()
+                            .handleNameAnnotation().renameMembers(NAMING_STRATEGY)
+                            .generateSwaggerSchema({
+                                strictDiscriminatorProperty = true
+                            })
+                            .handleCoreAnnotations()
+                            .handleSchemaAnnotations()
+                            .customizeTypes { _, schema ->
+                                // Mapping is broken, and one of the code generation libraries I am using checks the
+                                // references here
+                                schema.discriminator?.mapping = null;
+                            }
+                            .withTitle(TitleType.SIMPLE)
+                            .compileReferencingRoot(
+                                explicitNullTypes = false,
+                                inlineDiscriminatedTypes = true,
+                                builder = TitleBuilder.BUILDER_OPENAPI_SIMPLE
+                            )
+                    }
+
+                    // Other types, used by SSE or WebSocket routes
+                    schema<SocketEvent>("SocketEvent")
+                }
+            }
+            specAssigner = { url: String, tags: List<String> ->
+                // when another spec version is added, determine the version based on the url here or use
+                // specVersion on the new routes
+                "v1"
+            }
+            pathFilter = { method, parts ->
+                parts.getOrNull(0) == "api"
+            }
+            outputFormat = OutputFormat.JSON
+        }
+        install(Resources)
+        install(SSE)
+        install(ContentNegotiation) {
+            json(json, contentType = ContentType.Application.Json)
+        }
+        install(WebSockets) {
+            contentConverter = KotlinxWebsocketSerializationConverter(Json)
+            pingPeriod = 5.seconds
+            timeout = 15.seconds
+            maxFrameSize = Long.MAX_VALUE
+            masking = false
+        }
+        // TODO: probably restrict this down the line
+        install(CORS) {
+            allowMethod(HttpMethod.Options)
+            allowMethod(HttpMethod.Post)
+            allowMethod(HttpMethod.Get)
+            allowHeader(HttpHeaders.AccessControlAllowOrigin)
+            allowHeader(HttpHeaders.ContentType)
+            anyHost()
+        }
+        install(StatusPages) {
+            exception<Throwable> { call, cause ->
+                // Other exceptions should still be serialized, wrap non RouteException type exceptions in a
+                // RouteException, giving a 500-status code
+                var wrapped = cause
+                if (cause !is RouteException) {
+                    wrapped = RouteException(HttpStatusCode.InternalServerError, cause.message)
+                }
+
+                call.respondText(text = json.encodeToString(wrapped), status = wrapped.status)
+            }
+        }
+        routing {
+            // api
+            debugApiRoutes(sessionManager)
+            sessionApiRoutes(appConfig, sessionManager, devmode)
+            messageApiRoutes(mcpServersByTransportId, sessionManager)
+            telemetryApiRoutes(sessionManager)
+            documentationApiRoutes()
+            agentApiRoutes(appConfig, sessionManager)
+
+            // sse
+            connectionSseRoutes(mcpServersByTransportId, sessionManager)
+
+            // websocket
+            debugWsRoutes(sessionManager)
+
+            // source of truth for OpenAPI docs/codegen
+            route("api_v1.json") {
+                openApi("v1")
+            }
+        }
+    }
+
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
         embeddedServer(CIO, host = host, port = port.toInt(), watchPaths = listOf("classes")) {
-            install(OpenApi) {
-                info {
-                    title = "Coral Server API"
-                }
-                spec("v1") {
-                    info {
-                        version = "1.0"
-                    }
-                    tags {
-                        tagGenerator = { url -> listOf(url.getOrNull(2)) }
-                    }
-                    schemas {
-                        generator = SchemaGenerator.kotlinx {  }
-                        // Generated types from routes
-                        generator = { type ->
-                            type
-                                .analyzeTypeUsingKotlinxSerialization {
-
-                                }
-                                .addMissingSupertypeSubtypeRelations()
-                                .addJsonClassDiscriminatorProperty()
-                                .handleNameAnnotation().renameMembers(NAMING_STRATEGY)
-                                .generateSwaggerSchema({
-                                    strictDiscriminatorProperty = true
-                                })
-                                .handleCoreAnnotations()
-                                .handleSchemaAnnotations()
-                                .customizeTypes { _, schema ->
-                                    // Mapping is broken, and one of the code generation libraries I am using checks the
-                                    // references here
-                                    schema.discriminator?.mapping = null;
-                                }
-                                .withTitle(TitleType.SIMPLE)
-                                .compileReferencingRoot(
-                                    explicitNullTypes = false,
-                                    inlineDiscriminatedTypes = true,
-                                    builder = TitleBuilder.BUILDER_OPENAPI_SIMPLE
-                                )
-                        }
-
-                        // Other types, used by SSE or WebSocket routes
-                        schema<SocketEvent>("SocketEvent")
-                    }
-                }
-                specAssigner = { url: String, tags: List<String> ->
-                    // when another spec version is added, determine the version based on the url here or use
-                    // specVersion on the new routes
-                    "v1"
-                }
-                pathFilter = { method, parts ->
-                     parts.getOrNull(0) == "api"
-                }
-                outputFormat = OutputFormat.JSON
-            }
-            install(Resources)
-            install(SSE)
-            install(ContentNegotiation) {
-                json(json, contentType = ContentType.Application.Json)
-            }
-            install(WebSockets) {
-                contentConverter = KotlinxWebsocketSerializationConverter(Json)
-                pingPeriod = 5.seconds
-                timeout = 15.seconds
-                maxFrameSize = Long.MAX_VALUE
-                masking = false
-            }
-            // TODO: probably restrict this down the line
-            install(CORS) {
-                allowMethod(HttpMethod.Options)
-                allowMethod(HttpMethod.Post)
-                allowMethod(HttpMethod.Get)
-                allowHeader(HttpHeaders.AccessControlAllowOrigin)
-                allowHeader(HttpHeaders.ContentType)
-                anyHost()
-            }
-            install(StatusPages) {
-                exception<Throwable> { call, cause ->
-                    // Other exceptions should still be serialized, wrap non RouteException type exceptions in a
-                    // RouteException, giving a 500-status code
-                    var wrapped = cause
-                    if (cause !is RouteException) {
-                        wrapped = RouteException(HttpStatusCode.InternalServerError, cause.message)
-                    }
-
-                    call.respondText(text = json.encodeToString(wrapped), status = wrapped.status)
-                }
-            }
-            routing {
-                // api
-                debugApiRoutes(sessionManager)
-                sessionApiRoutes(appConfig, sessionManager, devmode)
-                messageApiRoutes(mcpServersByTransportId, sessionManager)
-                telemetryApiRoutes(sessionManager)
-                documentationApiRoutes()
-                agentApiRoutes(appConfig, sessionManager)
-
-                // sse
-                connectionSseRoutes(mcpServersByTransportId, sessionManager)
-
-                // websocket
-                debugWsRoutes(sessionManager)
-
-                // source of truth for OpenAPI docs/codegen
-                route("api_v1.json") {
-                    openApi("v1")
-                }
-            }
+            coralSeverModule()
         }
     val monitor get() = server.monitor
     private var serverJob: Job? = null
