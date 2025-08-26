@@ -13,7 +13,10 @@ import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentServerSource
+import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import org.coralprotocol.coralserver.session.SessionManager
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 enum class LogKind {
     STDOUT,
@@ -54,6 +57,8 @@ class Orchestrator(
     private val eventBusses: MutableMap<String, MutableMap<String, EventBus<RuntimeEvent>>> = mutableMapOf()
     private val handles: MutableList<OrchestratorHandle> = mutableListOf()
 
+    @OptIn(ExperimentalUuidApi::class)
+    private val remoteAgents: MutableMap<Uuid, CoralAgentIndividualMcp> = mutableMapOf()
 
     fun getBus(sessionId: String, agentId: String): EventBus<RuntimeEvent>? = eventBusses[sessionId]?.get(agentId)
 
@@ -111,6 +116,9 @@ class Orchestrator(
                     4. If the list of servers is exhausted without having found a suitable server to provide the agent,
                        an exception should be thrown
                  */
+
+                // do the request
+                remoteAgents.set(returnedKey, CoralAgentIndividualMcp())
 
                 TODO("support remote runtime agents")
             }
