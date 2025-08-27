@@ -36,8 +36,10 @@ dependencies {
     implementation("io.github.pdvrieze.xmlutil:serialization:0.91.0")
     implementation("io.github.pdvrieze.xmlutil:core-jdk:0.91.0")
     implementation("io.github.pdvrieze.xmlutil:serialization-jvm:0.91.0")
-    implementation("com.github.docker-java:docker-java:3.5.1")
 
+    val dockerVersion = "3.6.0"
+    implementation("com.github.docker-java:docker-java:$dockerVersion")
+    implementation("com.github.docker-java:docker-java-transport-httpclient5:$dockerVersion")
 
     // Hoplite for configuration
     implementation("com.sksamuel.hoplite:hoplite-core:2.9.0")
