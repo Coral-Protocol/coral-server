@@ -7,8 +7,10 @@ import com.github.dockerjava.api.exception.NotModifiedException
 import com.github.dockerjava.api.model.Frame
 import com.github.dockerjava.api.model.StreamType
 import com.github.dockerjava.core.DefaultDockerClientConfig
-import com.github.dockerjava.core.DockerClientBuilder
 import com.github.dockerjava.core.DockerClientConfig
+import com.github.dockerjava.core.DockerClientImpl
+import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
+import com.github.dockerjava.transport.DockerHttpClient
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -18,6 +20,7 @@ import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.agent.registry.toStringValue
 import org.coralprotocol.coralserver.agent.runtime.executable.EnvVar
 import org.coralprotocol.coralserver.session.SessionManager
+import org.coralprotocol.coralserver.util.isWindows
 import java.io.File
 import kotlin.time.Duration.Companion.seconds
 
@@ -32,7 +35,13 @@ data class DockerRuntime(
     private val dockerClientConfig: DockerClientConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
         .withDockerHost(getDockerSocket())
         .build()
-    private val dockerClient = DockerClientBuilder.getInstance(dockerClientConfig).build()
+
+    var httpClient: DockerHttpClient = ApacheDockerHttpClient.Builder()
+        .dockerHost(dockerClientConfig.dockerHost)
+        .sslConfig(dockerClientConfig.sslConfig)
+        .build()
+
+    private val dockerClient = DockerClientImpl.getInstance(dockerClientConfig, httpClient)
 
     override fun spawn(
         params: RuntimeParams,
@@ -149,6 +158,11 @@ private fun getDockerSocket(): String {
     if (specifiedSocket != null) {
         return specifiedSocket
     }
+
+    // Required if using Docker for Windows.  Note that this also requires a transport client that supports named
+    // pipes, e.g., httpclient5
+    if (isWindows())
+        return "npipe:////./pipe/docker_engine"
 
     // Check whether colima is installed and use its socket if available
     val homeDir = System.getProperty("user.home")

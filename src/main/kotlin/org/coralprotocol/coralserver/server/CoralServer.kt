@@ -48,9 +48,8 @@ import org.coralprotocol.coralserver.routes.api.v1.*
 import org.coralprotocol.coralserver.routes.sse.v1.connectionSseRoutes
 import org.coralprotocol.coralserver.routes.ws.v1.debugWsRoutes
 import org.coralprotocol.coralserver.session.SessionManager
+import org.coralprotocol.coralserver.util.isWindows
 import kotlin.time.Duration.Companion.seconds
-
-private val OS_NAME = System.getProperty("os.name", "").lowercase()
 
 private val logger = KotlinLogging.logger {}
 
@@ -247,7 +246,7 @@ class CoralServer(
      * TODO: https?
      */
     fun getServerUrl(): String {
-        val host = if (host == "0.0.0.0" && OS_NAME.contains("windows")) {
+        val host = if (host == "0.0.0.0" && isWindows()) {
             "127.0.0.1"
         }
         else {

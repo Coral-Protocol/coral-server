@@ -32,9 +32,9 @@ data class ExecutableRuntime(
     ): OrchestratorHandle {
         val processBuilder = ProcessBuilder()
         val processEnvironment = processBuilder.environment()
-        val path = processEnvironment["PATH"] ?: ""
-        processEnvironment.clear()
-        processEnvironment["PATH"] = path
+//        val path = processEnvironment["PATH"] ?: ""
+//        //processEnvironment.clear()
+//        processEnvironment["PATH"] = path
 
         // TODO: error if someone tries passing coral system envs themselves
         val coralConnectionUrl = Uri.fromParts(
@@ -67,7 +67,7 @@ data class ExecutableRuntime(
         thread(isDaemon = true) {
             process.waitFor()
             bus.emit(RuntimeEvent.Stopped())
-            logger.warn {"Process exited for Agent {params.agentName}"};
+            logger.warn {"Process exited for Agent ${params.agentName}"};
             sessionManager?.getSession(params.sessionId)?.setAgentState(params.agentName, AgentState.Dead);
         }
 
