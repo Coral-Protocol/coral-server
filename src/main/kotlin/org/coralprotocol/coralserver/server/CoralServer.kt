@@ -48,11 +48,13 @@ import org.coralprotocol.coralserver.models.SocketEvent
 import org.coralprotocol.coralserver.routes.api.v1.debugApiRoutes
 import org.coralprotocol.coralserver.routes.api.v1.agentApiRoutes
 import org.coralprotocol.coralserver.routes.api.v1.documentationApiRoutes
+import org.coralprotocol.coralserver.routes.api.v1.importRoutes
 import org.coralprotocol.coralserver.routes.api.v1.messageApiRoutes
 import org.coralprotocol.coralserver.routes.api.v1.sessionApiRoutes
 import org.coralprotocol.coralserver.routes.api.v1.telemetryApiRoutes
 import org.coralprotocol.coralserver.routes.sse.v1.connectionSseRoutes
 import org.coralprotocol.coralserver.routes.ws.v1.debugWsRoutes
+import org.coralprotocol.coralserver.routes.ws.v1.exportedAgentRoutes
 import org.coralprotocol.coralserver.session.SessionManager
 import kotlin.time.Duration.Companion.seconds
 
@@ -82,6 +84,7 @@ class CoralServer(
     val appConfig: ConfigCollection,
     val devmode: Boolean = false,
     val sessionManager: SessionManager = SessionManager(port = port),
+    val exportManager: ExportManager = ExportManager(),
 ) {
 
     /*
@@ -193,12 +196,14 @@ class CoralServer(
             telemetryApiRoutes(sessionManager)
             documentationApiRoutes()
             agentApiRoutes(appConfig, sessionManager)
+            importRoutes(exportManager)
 
             // sse
             connectionSseRoutes(mcpServersByTransportId, sessionManager)
 
             // websocket
             debugWsRoutes(sessionManager)
+            exportedAgentRoutes(exportManager)
 
             // source of truth for OpenAPI docs/codegen
             route("api_v1.json") {

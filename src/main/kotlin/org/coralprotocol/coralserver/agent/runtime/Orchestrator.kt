@@ -118,7 +118,7 @@ class Orchestrator(
                  */
 
                 // do the request
-                remoteAgents.set(returnedKey, CoralAgentIndividualMcp())
+                //remoteAgents.set(returnedKey, CoralAgentIndividualMcp())
 
                 TODO("support remote runtime agents")
             }
