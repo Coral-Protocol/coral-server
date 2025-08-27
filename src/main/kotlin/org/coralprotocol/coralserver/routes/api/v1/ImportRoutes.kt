@@ -8,6 +8,7 @@ import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.AgentOptionValue
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.server.ExportManager
 
 private val logger = KotlinLogging.logger {}
 
@@ -41,7 +42,7 @@ class ImportedAgents(
     val agents: HashMap<String, String>,
 )
 
-fun Routing.importRoutes() {
+fun Routing.importRoutes(manager: ExportManager) {
     post<ImportedAgents>({
         summary = "Import agents"
         description = "Requests agents for import"
@@ -54,5 +55,6 @@ fun Routing.importRoutes() {
     }) {
         // spin up the agent
         // put it somewhere special so we know where to find it when /ws is hit
+//        manager.addAgent()
     }
 }

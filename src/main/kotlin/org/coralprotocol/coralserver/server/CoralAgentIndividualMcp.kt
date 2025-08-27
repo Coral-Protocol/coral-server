@@ -58,12 +58,12 @@ class CoralAgentIndividualMcp(
      * The Protocol object assumes ownership of the Transport, replacing any callbacks that have already been set, and expects that it is the only user of the Transport instance going forward.
      */
     override suspend fun connect(transport: Transport) {
-
-        return if (isRemote) {
-            transport.onMessage {
-
-            }
-        } else super.connect(transport)
+        return super.connect(transport)
+////        return if (isRemote) {
+////            transport.onMessage {
+////
+////            }
+//        } else super.connect(transport)
     }
 
     suspend fun connectWebscoket() {
