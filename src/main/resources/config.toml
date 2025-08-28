@@ -1,0 +1,5 @@
+[[applications]]
+id = "app"
+name = "Default application"
+description = "Default application for testing"
+privace_keys = ["default-key", "public", "priv"]
