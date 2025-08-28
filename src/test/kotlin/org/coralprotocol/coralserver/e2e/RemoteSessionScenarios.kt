@@ -4,7 +4,8 @@ import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.ktor.server.testing.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import org.coralprotocol.coralserver.UserMessage
+import org.coralprotocol.coralserver.utils.UserMessage
+import org.coralprotocol.coralserver.utils.createConnectedKoogAgent
 import kotlin.test.Test
 import kotlin.uuid.ExperimentalUuidApi
 

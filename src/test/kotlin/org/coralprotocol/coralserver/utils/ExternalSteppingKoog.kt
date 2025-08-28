@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver
+package org.coralprotocol.coralserver.utils
 
 import ai.koog.agents.core.agent.AIAgentLoopContext
 import ai.koog.agents.core.agent.ActAIAgent
@@ -6,6 +6,7 @@ import ai.koog.prompt.dsl.Prompt
 import ai.koog.prompt.message.Message
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
@@ -105,7 +106,7 @@ class ExternalSteppingKoog internal constructor(
     val koogAgent: KoogAgentWithExternallySteppingLoop,
     internal val channel: Channel<StepRequest>,
 ) {
-    private val scope = CoroutineScope(kotlinx.coroutines.Dispatchers.Default)
+    private val scope = CoroutineScope(Dispatchers.Default)
     private var hasRun = false
     suspend fun step(newUserMessage: UserMessage): StepResult {
         if (!hasRun) {
