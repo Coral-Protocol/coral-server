@@ -4,7 +4,6 @@ package org.coralprotocol.coralserver.session
 
 import com.chrynan.uri.core.UriString
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.github.smiley4.schemakenerator.core.annotations.Description
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -16,11 +15,7 @@ import io.modelcontextprotocol.kotlin.sdk.CallToolRequest
 import io.modelcontextprotocol.kotlin.sdk.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.TextContent
 import io.modelcontextprotocol.kotlin.sdk.Tool
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.SerializationException
+import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.buildClassSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
@@ -28,7 +23,6 @@ import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.*
 import net.pwall.json.schema.JSONSchema
 import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
-import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}

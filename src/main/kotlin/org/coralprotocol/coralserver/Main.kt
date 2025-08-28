@@ -32,7 +32,6 @@ fun main(args: Array<String>) {
 
             val orchestrator = Orchestrator(appConfig)
             val server = CoralServer(
-                port = port,
                 devmode = devMode,
                 appConfig = appConfig,
                 orchestrator = orchestrator

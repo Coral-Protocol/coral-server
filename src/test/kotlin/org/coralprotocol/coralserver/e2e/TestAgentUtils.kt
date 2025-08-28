@@ -232,8 +232,6 @@ class TestCoralServer(
         val configCollection = ConfigCollection()
         server?.stop()
         server = CoralServer(
-            host = host,
-            port = port,
             devmode = devmode,
             appConfig = configCollection,
             orchestrator = Orchestrator(configCollection)

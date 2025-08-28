@@ -1,7 +1,5 @@
 package org.coralprotocol.coralserver.session
 
-import com.chrynan.uri.core.Uri
-import com.chrynan.uri.core.fromParts
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -31,9 +29,7 @@ fun AgentGraph.adjacencyMap(): Map<String, Set<String>> {
  * Session manager to create and retrieve sessions.
  */
 class SessionManager(
-    val orchestrator: Orchestrator = Orchestrator(),
-    val port: UShort,
-    val serverUrl: String
+    val orchestrator: Orchestrator = Orchestrator()
 ) {
     private val sessions = ConcurrentHashMap<String, CoralAgentGraphSession>()
     private val sessionSemaphore = Semaphore(1)
@@ -109,9 +105,9 @@ class SessionManager(
                 orchestrator.spawn(
                     sessionId = sessionId,
                     graphAgent = agent.value,
-                    port = port,
                     agentName = agent.key,
-                    relativeMcpServerUri = Uri.fromParts(scheme = "http", path = "/sse/v1/${applicationId}/${privacyKey}/${sessionId}/sse", query = "agentId=${agent.key}"),
+                    applicationId,
+                    privacyKey,
                     sessionManager = this,
                 )
             }

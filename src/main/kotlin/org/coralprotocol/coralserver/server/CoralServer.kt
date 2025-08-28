@@ -42,6 +42,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
+import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.models.SocketEvent
 import org.coralprotocol.coralserver.routes.api.v1.*
@@ -72,28 +73,20 @@ private val json = Json {
  * @param devmode Whether the server is running in development mode
  */
 class CoralServer(
-    val host: String = "0.0.0.0",
-    val port: UShort = 5555u,
     val appConfig: ConfigCollection,
     val devmode: Boolean = false,
     orchestrator: Orchestrator
 ) {
-    val sessionManager = SessionManager(orchestrator, port, getServerUrl())
+    val sessionManager = SessionManager(orchestrator)
 
-    /*
-        /{destinationId}/{protocol}/{version}/depends....
-
-        /api/v2/forward/{destinationId}/ get/head/post/etc -> ...agent traffic: telemetry + sse + anything else in the future
-
-        local:
-            generic api:    /api/v1/message/{applicationId}/{privacyKey}/{coralSessionId}
-            sse:          * /sse/v1/1/{applicationId}/{privacyKey}/{coralSessionId}
-            coral studio:   /ws/v1/1/debug/{applicationId}/{privacyKey}/{coralSessionId}
-
-     */
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
-        embeddedServer(CIO, host = host, port = port.toInt(), watchPaths = listOf("classes")) {
+        embeddedServer(
+            CIO,
+            host = appConfig.config.network.bindAddress,
+            port = appConfig.config.network.bindPort.toInt(),
+            watchPaths = listOf("classes")
+        ) {
             install(OpenApi) {
                 info {
                     title = "Coral Server API"
@@ -209,21 +202,18 @@ class CoralServer(
      * Starts the server.
      */
     fun start(wait: Boolean = false) {
-        logger.info { "Starting sse server on port $port" }
+        logger.info { "Starting sse server on port ${appConfig.config.network.bindPort}" }
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "trace");
 
         if (devmode) {
             logger.info {
                 "In development, agents can connect to " +
-                        "${getServerUrl()}/sse/v1/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=exampleAgent"
+                        "${appConfig.config.resolveAddress(AddressConsumer.LOCAL)}/sse/v1/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=exampleAgent"
             }
             logger.info {
                 "Connect the inspector to " +
-                        "${getServerUrl()}/sse/v1/devmode/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=inspector"
+                        "${appConfig.config.resolveAddress(AddressConsumer.LOCAL)}/sse/v1/devmode/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=inspector"
             }
-        }
-        server.monitor.subscribe(ApplicationStarted) {
-            logger.info { "Server started on ${getServerUrl()}" }
         }
         server.start(wait)
     }
@@ -237,23 +227,5 @@ class CoralServer(
         server.stop(1000, 2000)
         serverJob = null
         logger.info { "Server stopped" }
-    }
-
-
-    /**
-     * Gets the URL that the Coral server can be reached on.
-     * TODO: This should probably map 0.0.0.0 to an actual hardware address in the future!
-     * TODO: https?
-     */
-    fun getServerUrl(): String {
-        val host = if (host == "0.0.0.0" && isWindows()) {
-            "127.0.0.1"
-        }
-        else {
-            host
-        }
-
-        // no https ever? :( !
-        return "http://$host:$port"
     }
 }
