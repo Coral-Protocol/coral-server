@@ -58,7 +58,6 @@ dependencies {
     testImplementation("io.ktor:ktor-client-mock")
     val arcVersion = "0.126.0"
     // Arc agents for E2E tests
-    testImplementation("io.modelcontextprotocol.sdk:mcp:0.11.0-SNAPSHOT") // Override MCP Java client for Arc 0.126.0
     testImplementation("io.mockk:mockk:1.14.2")
 
     // kotest
@@ -105,8 +104,12 @@ dependencies {
     implementation("io.github.smiley4:schema-kenerator-swagger:${schemaVersion}")
 
     val koogVersion = "0.3.0.4" // Custom temp version from fork on CaelumF/koog
-    testImplementation("ai.koog:koog-agents:$koogVersion")
-    testImplementation("ai.koog:agents-mcp:$koogVersion")
+    testImplementation("ai.koog:koog-agents:$koogVersion") {
+        exclude("io.modelcontextprotocol")
+    }
+    testImplementation("ai.koog:agents-mcp:$koogVersion") {
+        exclude("io.modelcontextprotocol")
+    }
 }
 
 tasks.test {
