@@ -3,7 +3,13 @@ package org.coralprotocol.coralserver.e2e
 import ai.koog.agents.core.agent.AIAgentLoopContext
 import ai.koog.agents.core.agent.ActAIAgent
 import ai.koog.agents.core.agent.actAIAgent
-import ai.koog.agents.core.agent.requestLLM
+import ai.koog.agents.core.agent.compressHistory
+import ai.koog.agents.core.agent.containsToolCalls
+import ai.koog.agents.core.agent.executeMultipleTools
+import ai.koog.agents.core.agent.extractToolCalls
+import ai.koog.agents.core.agent.latestTokenUsage
+import ai.koog.agents.core.agent.requestLLMMultiple
+import ai.koog.agents.core.agent.sendMultipleToolResults
 import ai.koog.agents.mcp.McpToolRegistryProvider
 import ai.koog.agents.mcp.PatchedSseClientTransport
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
@@ -18,10 +24,12 @@ import io.modelcontextprotocol.kotlin.sdk.Implementation
 import io.modelcontextprotocol.kotlin.sdk.ReadResourceRequest
 import io.modelcontextprotocol.kotlin.sdk.TextResourceContents
 import io.modelcontextprotocol.kotlin.sdk.client.Client
-import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
-import org.coralprotocol.coralserver.ExternalSteppingKoogHandle
+import org.coralprotocol.coralserver.ExternalSteppingKoog
+import org.coralprotocol.coralserver.ExternalSteppingKoogBuilder
+import org.coralprotocol.coralserver.ExternalSteppingKoogBuilder.Companion.build
 import org.coralprotocol.coralserver.server.CoralServer
+import org.coralprotocol.coralserver.session.CoralAgentGraphSession
 import kotlin.uuid.ExperimentalUuidApi
 
 private suspend fun getMcpClient(serverUrl: String): Client {
@@ -47,17 +55,47 @@ suspend fun AIAgentLoopContext.updateSystemResources(client: Client, coralConnec
     }
 }
 
+private val defaultSystemPrompt = """
+You have access to communication tools to interact with other agents.
+
+You can emit as many messages as you like before finishing with other agents.
+
+Don't try to guess facts; ask other agents or use resources.
+
+If given a simple task, wait briefly for mentions and then return the result.
+""".trimIndent()
+
+suspend fun createConnectedKoogAgent(
+    server: CoralServer,
+    namePassedToServer: String,
+    descriptionPassedToServer: String = namePassedToServer,
+    systemPrompt: String = defaultSystemPrompt,
+    modelName: LLModel = OpenAIModels.Chat.GPT4o,
+    session: CoralAgentGraphSession
+): ExternalSteppingKoog = createConnectedKoogAgent(
+    protocol = "http",
+    host = server.host,
+    descriptionPassedToServer = descriptionPassedToServer,
+    port = server.port,
+    namePassedToServer = namePassedToServer,
+    systemPrompt = systemPrompt,
+    modelName = modelName,
+    sessionId = session.id,
+    privacyKey = session.privacyKey,
+    applicationId = session.applicationId,
+)
+
 @OptIn(ExperimentalUuidApi::class)
 suspend fun createConnectedKoogAgent(
     server: CoralServer,
     namePassedToServer: String,
     descriptionPassedToServer: String = namePassedToServer,
-    systemPrompt: String = "You are a helpful assistant.",
+    systemPrompt: String = defaultSystemPrompt,
     modelName: LLModel = OpenAIModels.Chat.GPT4o,
     sessionId: String = "session1",
     privacyKey: String = "privkey",
     applicationId: String = "exampleApplication",
-): ActAIAgent<Nothing?, Unit> = createConnectedKoogAgent(
+): ExternalSteppingKoog = createConnectedKoogAgent(
     protocol = "http",
     host = server.host,
     descriptionPassedToServer = descriptionPassedToServer,
@@ -98,10 +136,6 @@ You are an agent connected to Coral.
 """.trimIndent()
 
 
-@JvmInline
-@OptIn(ExperimentalUuidApi::class)
-value class ExternallySteppedKoogAgent private constructor(val koogAgent: ActAIAgent<Nothing?, Unit>)
-
 @OptIn(ExperimentalUuidApi::class)
 suspend fun createConnectedKoogAgent(
     protocol: String = "http",
@@ -109,15 +143,15 @@ suspend fun createConnectedKoogAgent(
     port: UShort,
     namePassedToServer: String,
     descriptionPassedToServer: String = namePassedToServer,
-    systemPrompt: String = "You are a helpful assistant.",
+    systemPrompt: String = defaultSystemPrompt,
     devmode: Boolean = true,
     modelName: LLModel = OpenAIModels.Chat.GPT4o,
     sessionId: String = "session1",
     privacyKey: String = "privkey",
     applicationId: String = "exampleApplication",
-): ActAIAgent<Nothing?, Unit> {
+): ExternalSteppingKoog {
     val devmodePath = if (devmode) "devmode/" else ""
-    val coralUrl =
+    val serverUrl =
         "$protocol://$host:$port/sse/v1/$devmodePath$applicationId/$privacyKey/$sessionId/sse?agentId=$namePassedToServer&agentDescription=$descriptionPassedToServer"
 
     val executor: PromptExecutor = simpleOpenAIExecutor(
@@ -125,21 +159,33 @@ suspend fun createConnectedKoogAgent(
             ?: throw IllegalArgumentException("OPENAI_API_KEY not set")
     )
 
-    val mcpClient = runBlocking { getMcpClient(coralUrl) }
+    val mcpClient = getMcpClient(serverUrl)
     val toolRegistry = McpToolRegistryProvider.fromClient(mcpClient)
-    val externalSteppingKoogHandle = ExternalSteppingKoogHandle(agent = null, beforeStep = {
-        updateSystemResources(mcpClient, coralUrl)
+    return ExternalSteppingKoogBuilder(loopStep = { newInputMessage ->
+        updateSystemResources(mcpClient, serverUrl)
+        var responses = requestLLMMultiple(newInputMessage.content)
+
+        while (responses.containsToolCalls()) {
+            updateSystemResources(mcpClient, serverUrl)
+            val tools = extractToolCalls(responses)
+
+//            if (latestTokenUsage() > 100500) {
+//                compressHistory()
+//            }
+
+            val results = executeMultipleTools(tools)
+            responses = sendMultipleToolResults(results)
+        }
+        println("Response: $responses")
+
     })
-    val agent = actAIAgent(
-        prompt = systemPrompt,
-        promptExecutor = executor,
-        model = modelName,
-        toolRegistry = toolRegistry,
-        loop = externalSteppingKoogHandle.getLoop() as suspend AIAgentLoopContext.(Nothing?) -> Unit,
-    )
-
-    externalSteppingKoogHandle.agent = agent
-    externalSteppingKoogHandle.build() // gives you real handle
-
-    return agent as ActAIAgent<Nothing?, Unit>
+        .withKoogAgent { loop: suspend AIAgentLoopContext.(Nothing?) -> Unit ->
+            actAIAgent(
+                prompt = systemPrompt,
+                promptExecutor = executor,
+                model = modelName,
+                toolRegistry = toolRegistry,
+                loop = loop
+            ) as ActAIAgent<Nothing?, Unit>
+        }.build()
 }

@@ -30,12 +30,12 @@ fun main(args: Array<String>) {
         "--sse-server" -> {
             val appConfig = ConfigCollection()
 
-            val orchestrator = Orchestrator(appConfig)
+            val orchestrator = Orchestrator(appConfig, port)
             val server = CoralServer(
                 port = port,
                 devmode = devMode,
                 appConfig = appConfig,
-                sessionManager = SessionManager(orchestrator, port = port)
+                sessionManager = SessionManager(orchestrator = orchestrator, port = port)
             )
 
             // Add shutdown hook to stop the server gracefully

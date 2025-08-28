@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.routes.api.v1
 
+import com.chrynan.uri.core.Uri
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.resources.post
 import io.github.smiley4.schemakenerator.core.annotations.Description
@@ -82,7 +83,7 @@ fun Routing.importRoutes(manager: ExportManager, orchestrator: Orchestrator) {
                 ),
                 agentName = agent.type,
                 port = orchestrator.port,
-                relativeMcpServerUri = ,
+                relativeMcpServerUri = TODO(),
                 sessionManager = TODO(),
             )
         }
