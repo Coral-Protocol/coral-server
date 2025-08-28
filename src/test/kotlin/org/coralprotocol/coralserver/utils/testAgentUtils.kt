@@ -1,13 +1,11 @@
-package org.coralprotocol.coralserver.e2e
+package org.coralprotocol.coralserver.utils
 
 import ai.koog.agents.core.agent.AIAgentLoopContext
 import ai.koog.agents.core.agent.ActAIAgent
 import ai.koog.agents.core.agent.actAIAgent
-import ai.koog.agents.core.agent.compressHistory
 import ai.koog.agents.core.agent.containsToolCalls
 import ai.koog.agents.core.agent.executeMultipleTools
 import ai.koog.agents.core.agent.extractToolCalls
-import ai.koog.agents.core.agent.latestTokenUsage
 import ai.koog.agents.core.agent.requestLLMMultiple
 import ai.koog.agents.core.agent.sendMultipleToolResults
 import ai.koog.agents.mcp.McpToolRegistryProvider
@@ -25,9 +23,7 @@ import io.modelcontextprotocol.kotlin.sdk.ReadResourceRequest
 import io.modelcontextprotocol.kotlin.sdk.TextResourceContents
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import kotlinx.datetime.Clock
-import org.coralprotocol.coralserver.ExternalSteppingKoog
-import org.coralprotocol.coralserver.ExternalSteppingKoogBuilder
-import org.coralprotocol.coralserver.ExternalSteppingKoogBuilder.Companion.build
+import org.coralprotocol.coralserver.utils.ExternalSteppingKoogBuilder.Companion.build
 import org.coralprotocol.coralserver.server.CoralServer
 import org.coralprotocol.coralserver.session.CoralAgentGraphSession
 import kotlin.uuid.ExperimentalUuidApi
@@ -168,11 +164,6 @@ suspend fun createConnectedKoogAgent(
         while (responses.containsToolCalls()) {
             updateSystemResources(mcpClient, serverUrl)
             val tools = extractToolCalls(responses)
-
-//            if (latestTokenUsage() > 100500) {
-//                compressHistory()
-//            }
-
             val results = executeMultipleTools(tools)
             responses = sendMultipleToolResults(results)
         }
