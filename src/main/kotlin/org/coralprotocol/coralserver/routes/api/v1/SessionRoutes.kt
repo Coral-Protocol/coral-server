@@ -62,10 +62,6 @@ fun Routing.sessionApiRoutes(appConfig: ConfigCollection, sessionManager: Sessio
     }) {
         val request = call.receive<CreateSessionRequest>()
 
-        if (!devMode && !appConfig.isValidApplication(request.applicationId, request.privacyKey)) {
-            throw RouteException(HttpStatusCode.Forbidden, "Invalid App ID or privacy key")
-        }
-
         val agentGraph = request.agentGraph?.let { it ->
             val requestedAgents = it.agents
             val registry = appConfig.registry
