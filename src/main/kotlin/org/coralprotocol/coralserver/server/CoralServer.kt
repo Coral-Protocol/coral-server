@@ -209,7 +209,7 @@ class CoralServer(
      * Starts the server.
      */
     fun start(wait: Boolean = false) {
-        logger.info { "Starting sse server on port $port with ${appConfig.config.applications.size} configured applications" }
+        logger.info { "Starting sse server on port $port" }
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "trace");
 
         if (devmode) {

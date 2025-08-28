@@ -79,16 +79,7 @@ fun Path.watch(vararg events: WatchEvent.Kind<out Any>) =
 class ConfigCollection(
     val configPath: Path? = getConfigPath(CONFIG_FILE),
     val registryPath: Path? = getConfigPath(REGISTRY_FILE),
-    val defaultConfig: Config = Config(
-        applications = listOf(
-            ApplicationConfig(
-                id = "default-app",
-                name = "Default Application",
-                description = "Default application (fallback)",
-                privacyKeys = listOf("default-key", "public")
-            )
-        )
-    ),
+    val defaultConfig: Config = Config(),
     val defaultRegistry: AgentRegistry = AgentRegistry(
         mapOf(),
         mapOf()
@@ -131,7 +122,7 @@ class ConfigCollection(
             // Try to load from resources if no config path set
             return when (val configPath = System.getenv("CONFIG_PATH")) {
                 null -> if(Path.of("./$file").toFile().exists()) {
-                    Path.of("./$file") // Check local application.yaml
+                    Path.of("./$file")
                 } else Path.of("./src/main/resources/$file") // Assume running from source when config path not specified
 
                 else -> (Path.of(configPath, file))
@@ -189,21 +180,6 @@ class ConfigCollection(
         logger.error(e) { "Unexpected exception loading registry" }
         logger.warn{ "Using default registry" }
         defaultRegistry
-    }
-
-    /**
-     * Validates if the application ID and privacy key are valid.
-     */
-    fun isValidApplication(applicationId: String, privacyKey: String): Boolean {
-        val application = config.applications.find { it.id == applicationId }
-        return application != null && application.privacyKeys.contains(privacyKey)
-    }
-
-    /**
-     * Gets an application by ID.
-     */
-    fun getApplication(applicationId: String): ApplicationConfig? {
-        return config.applications.find { it.id == applicationId }
     }
 }
 
