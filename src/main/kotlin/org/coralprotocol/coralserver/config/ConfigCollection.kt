@@ -19,6 +19,9 @@ import kotlin.io.path.listDirectoryEntries
 
 private val logger = KotlinLogging.logger {}
 
+private const val CONFIG_FILE = "config.toml"
+private const val REGISTRY_FILE = "registry.toml"
+
 /**
  * Creates a flow WatchEvent from a watchService
  */
@@ -74,9 +77,9 @@ fun Path.watch(vararg events: WatchEvent.Kind<out Any>) =
  * Loads application configuration from resources.
  */
 class ConfigCollection(
-    val appConfigPath: Path? = getConfigPath("application.yaml"),
-    val registryPath: Path? = getConfigPath("registry.toml"),
-    val defaultConfig: AppConfig = AppConfig(
+    val configPath: Path? = getConfigPath(CONFIG_FILE),
+    val registryPath: Path? = getConfigPath(REGISTRY_FILE),
+    val defaultConfig: Config = Config(
         applications = listOf(
             ApplicationConfig(
                 id = "default-app",
@@ -89,20 +92,32 @@ class ConfigCollection(
     val defaultRegistry: AgentRegistry = AgentRegistry(
         mapOf(),
         mapOf()
-    )
+    ),
+
 ) {
-    var appConfig: AppConfig = loadAppConfig(appConfigPath)
+    val toml = Toml(
+        inputConfig = TomlInputConfig(
+            ignoreUnknownNames = true,
+            allowEmptyValues = true,
+            allowNullValues = true,
+            allowEscapedQuotesInLiteralStrings = true,
+            allowEmptyToml = true,
+            ignoreDefaultValues = false,
+        )
+    )
+
+    var config: Config = loadConfig(configPath)
         private set
 
     var registry: AgentRegistry = loadRegistry(registryPath)
         private set
 
-    private val watchJob: Job? = appConfigPath?.let {
+    private val watchJob: Job? = configPath?.let {
         CoroutineScope(Dispatchers.Default).launch {
             logger.info{ "Watching for config changes in '${it.parent}'..." }
-            it.parent.listDirectoryEntriesFlow("application.yaml*").distinctUntilChanged().collect {
-                logger.info { "application.yaml changed. Reloading..." }
-                appConfig = loadAppConfig(appConfigPath)
+            it.parent.listDirectoryEntriesFlow("$CONFIG_FILE*").distinctUntilChanged().collect {
+                logger.info { "$CONFIG_FILE changed. Reloading..." }
+                config = loadConfig(configPath)
             }
         }
     }
@@ -125,24 +140,19 @@ class ConfigCollection(
     }
 
     /**
-     * Loads the application configuration from the resources.
-     * If the configuration is already loaded, returns the cached instance.
+     * Loads the main configuration file (config.toml)
      */
-    private fun loadAppConfig(path: Path?): AppConfig = try {
+    private fun loadConfig(path: Path?): Config = try {
         val file = path?.toFile()
         if (file != null) {
             if (!file.exists()) {
                 throw FileNotFoundException(file.absolutePath)
             }
 
-            val c =
-                Yaml(configuration = YamlConfiguration(polymorphismStyle = PolymorphismStyle.Property)).decodeFromStream<AppConfig>(
-                    file.inputStream()
-                )
-            appConfig = c
+            config = toml.decodeFromStream<Config>(file.inputStream())
 
-            logger.info { "Loaded configuration with ${c.applications.size} applications" }
-            c
+            logger.info { "Loaded config" }
+            config
         } else {
             throw Exception("Failed to lookup resource.")
         }
@@ -152,7 +162,7 @@ class ConfigCollection(
     }
 
     /**
-     * Loads the agent registry from the specified path.
+     * Loads the Agent registry
      */
     private fun loadRegistry(path: Path?): AgentRegistry = try {
         val file = path?.toFile()
@@ -160,23 +170,6 @@ class ConfigCollection(
             if (!file.exists()) {
                 throw FileNotFoundException(file.absolutePath)
             }
-
-            val toml = Toml(
-                inputConfig = TomlInputConfig(
-                    // allow/prohibit unknown names during the deserialization, default false
-                    ignoreUnknownNames = true,
-                    // allow/prohibit empty values like "a = # comment", default true
-                    allowEmptyValues = true,
-                    // allow/prohibit null values like "a = null", default true
-                    allowNullValues = true,
-                    // allow/prohibit escaping of single quotes in literal strings, default true
-                    allowEscapedQuotesInLiteralStrings = true,
-                    // allow/prohibit processing of empty toml, if false - throws an InternalDecodingException exception, default is true
-                    allowEmptyToml = true,
-                    // allow/prohibit default values during the deserialization, default is false
-                    ignoreDefaultValues = false,
-                )
-            )
 
             val reg = toml.decodeFromStream<UnresolvedAgentRegistry>(file.inputStream())
                 .resolve(toml)
@@ -202,7 +195,7 @@ class ConfigCollection(
      * Validates if the application ID and privacy key are valid.
      */
     fun isValidApplication(applicationId: String, privacyKey: String): Boolean {
-        val application = appConfig.applications.find { it.id == applicationId }
+        val application = config.applications.find { it.id == applicationId }
         return application != null && application.privacyKeys.contains(privacyKey)
     }
 
@@ -210,8 +203,8 @@ class ConfigCollection(
      * Gets an application by ID.
      */
     fun getApplication(applicationId: String): ApplicationConfig? {
-        return appConfig.applications.find { it.id == applicationId }
+        return config.applications.find { it.id == applicationId }
     }
 }
 
-fun ConfigCollection.Companion.custom(config: AppConfig) = ConfigCollection(defaultConfig = config)
+fun ConfigCollection.Companion.custom(config: Config) = ConfigCollection(defaultConfig = config)
