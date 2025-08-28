@@ -7,7 +7,7 @@ import org.coralprotocol.coralserver.utils.createConnectedKoogAgent
 import kotlin.test.Test
 import kotlin.uuid.ExperimentalUuidApi
 
-class SimpleLocalSessionScenarios {
+class LocalSessionScenarios {
 
     @OptIn(ExperimentalUuidApi::class)
     @Test
