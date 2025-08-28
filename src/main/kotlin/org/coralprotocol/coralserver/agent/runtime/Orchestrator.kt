@@ -2,17 +2,18 @@
 
 package org.coralprotocol.coralserver.agent.runtime
 
-import com.chrynan.uri.core.Uri
-import kotlinx.coroutines.*
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.EventBus
-import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentServerSource
+import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.session.SessionManager
 
 enum class LogKind {
@@ -41,6 +42,7 @@ interface Orchestrate {
         params: RuntimeParams,
         eventBus: EventBus<RuntimeEvent>,
         sessionManager: SessionManager,
+        applicationRuntimeContext: ApplicationRuntimeContext
     ): OrchestratorHandle
 }
 
@@ -53,7 +55,7 @@ class Orchestrator(
 ) {
     private val eventBusses: MutableMap<String, MutableMap<String, EventBus<RuntimeEvent>>> = mutableMapOf()
     private val handles: MutableList<OrchestratorHandle> = mutableListOf()
-
+    private val applicationRuntimeContext: ApplicationRuntimeContext = ApplicationRuntimeContext(app)
 
     fun getBus(sessionId: String, agentId: String): EventBus<RuntimeEvent>? = eventBusses[sessionId]?.get(agentId)
 
@@ -67,17 +69,17 @@ class Orchestrator(
         sessionId: String,
         graphAgent: GraphAgent,
         agentName: String,
-        port: UShort,
-        relativeMcpServerUri: Uri,
+        applicationId: String,
+        privacyKey: String,
         sessionManager: SessionManager
     ) {
         val params = RuntimeParams(
             sessionId = sessionId,
             agentName = agentName,
-            mcpServerPort = port,
-            mcpServerRelativeUri = relativeMcpServerUri,
+            applicationId = applicationId,
+            privacyKey = privacyKey,
             systemPrompt = graphAgent.systemPrompt,
-            options = graphAgent.options
+            options = graphAgent.options,
         )
 
         val agent = app.registry.importedAgents[graphAgent.name]
@@ -91,7 +93,8 @@ class Orchestrator(
                 handles.add(runtime.spawn(
                     params,
                     getBusOrCreate(params.sessionId, params.agentName),
-                    sessionManager)
+                    sessionManager,
+                    applicationRuntimeContext)
                 )
             }
             is GraphAgentProvider.Remote -> {

@@ -1,16 +1,9 @@
 package org.coralprotocol.coralserver.agent.runtime
 
-import com.chrynan.uri.core.Uri
-import com.chrynan.uri.core.parse
 import com.github.dockerjava.api.async.ResultCallback
 import com.github.dockerjava.api.exception.NotModifiedException
 import com.github.dockerjava.api.model.Frame
 import com.github.dockerjava.api.model.StreamType
-import com.github.dockerjava.core.DefaultDockerClientConfig
-import com.github.dockerjava.core.DockerClientConfig
-import com.github.dockerjava.core.DockerClientImpl
-import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
-import com.github.dockerjava.transport.DockerHttpClient
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -19,9 +12,8 @@ import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.agent.registry.toStringValue
 import org.coralprotocol.coralserver.agent.runtime.executable.EnvVar
+import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.session.SessionManager
-import org.coralprotocol.coralserver.util.isWindows
-import java.io.File
 import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
@@ -30,27 +22,20 @@ private val logger = KotlinLogging.logger {}
 @SerialName("docker")
 data class DockerRuntime(
     val image: String,
-    val environment: List<EnvVar> = listOf()
+    val environment: List<EnvVar> = listOf(),
 ) : Orchestrate {
-    private val dockerClientConfig: DockerClientConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
-        .withDockerHost(getDockerSocket())
-        .build()
-
-    var httpClient: DockerHttpClient = ApacheDockerHttpClient.Builder()
-        .dockerHost(dockerClientConfig.dockerHost)
-        .sslConfig(dockerClientConfig.sslConfig)
-        .build()
-
-    private val dockerClient = DockerClientImpl.getInstance(dockerClientConfig, httpClient)
 
     override fun spawn(
         params: RuntimeParams,
         bus: EventBus<RuntimeEvent>,
         sessionManager: SessionManager,
+        applicationRuntimeContext: ApplicationRuntimeContext
     ): OrchestratorHandle {
+        val dockerClient = applicationRuntimeContext.dockerClient
         logger.info { "Spawning Docker container with image: $image" }
-        val fullConnectionUrl =
-            "http://host.docker.internal:${params.mcpServerPort}/${params.mcpServerRelativeUri.path}${params.mcpServerRelativeUri.query?.let { "?$it" } ?: ""}"
+
+        val apiUrl = applicationRuntimeContext.getApiUrl(AddressConsumer.LOCAL)
+        val mcpUrl = applicationRuntimeContext.getMcpUrl(params, AddressConsumer.LOCAL)
 
         // todo: escape???
         val resolvedEnvs = params.options.map { (key, value) ->
@@ -58,14 +43,14 @@ data class DockerRuntime(
         }
 
         val allEnvs = resolvedEnvs + getCoralSystemEnvs(
-            params,
-            sessionManager.serverUrl,
-            Uri.parse(fullConnectionUrl),
-            "docker"
+            params = params,
+            apiUrl = apiUrl,
+            mcpUrl = mcpUrl,
+            orchestrationRuntime = "docker"
         ).map { (key, value) -> "$key=$value" }
 
         val containerCreation = dockerClient.createContainerCmd(image)
-            .withName(getDockerContainerName(params.mcpServerRelativeUri, params.agentName))
+            .withName(getDockerContainerName(params.sessionId, params.agentName))
             .withEnv(allEnvs)
             .withAttachStdout(true)
             .withAttachStderr(true)
@@ -147,29 +132,8 @@ private fun String.asDockerContainerName(): String {
         .trim('_')
 }
 
-private fun getDockerContainerName(relativeMcpServerUri: Uri, agentName: String): String {
-    // SessionID is too long for Docker container names, so we use a hash of the URI for deduplication.
-    val randomSuffix = relativeMcpServerUri.toUriString().hashCode().toString(16).take(11)
+private fun getDockerContainerName(sessionId: String, agentName: String): String {
+    // SessionID is too long for Docker container names, so we use a hash for deduplication.
+    val randomSuffix = sessionId.hashCode().toString(16).take(11)
     return "${agentName.take(52)}_$randomSuffix".asDockerContainerName()
-}
-
-private fun getDockerSocket(): String {
-    val specifiedSocket = System.getenv("CORAL_DOCKER_SOCKET")
-    if (specifiedSocket != null) {
-        return specifiedSocket
-    }
-
-    // Required if using Docker for Windows.  Note that this also requires a transport client that supports named
-    // pipes, e.g., httpclient5
-    if (isWindows())
-        return "npipe:////./pipe/docker_engine"
-
-    // Check whether colima is installed and use its socket if available
-    val homeDir = System.getProperty("user.home")
-    val colimaSocket = "$homeDir/.colima/default/docker.sock"
-    return if (File(colimaSocket).exists()) {
-        "unix://$colimaSocket"
-    } else {
-        "unix:///var/run/docker.sock" // Default Docker socket
-    }
 }

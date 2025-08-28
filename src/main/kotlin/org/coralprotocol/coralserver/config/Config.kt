@@ -1,18 +1,106 @@
 package org.coralprotocol.coralserver.config
 
+import io.ktor.http.URLBuilder
+import io.ktor.http.URLProtocol
+import io.ktor.http.Url
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.util.isWindows
+import java.io.File
 
 @Serializable
 data class Network(
+    /**
+     * The network address to bind the HTTP server to
+     */
     @SerialName("bind_address")
     val bindAddress: String = "0.0.0.0",
 
+    /**
+     * The external address that can be used to access this server.  E.g., domain name.
+     * This should not include a port
+     */
+    @SerialName("external_address")
+    val externalAddress: String = bindAddress,
+
+    /**
+     * The port to bind the HTTP server to
+     */
     @SerialName("bind_port")
-    val bindPort: Int = 5555,
+    val bindPort: UShort = 5555u,
+)
+
+@Serializable
+data class Docker(
+    /**
+     * Optional docker socket path
+     */
+    val socket: String = if (isWindows()) {
+        // Required if using Docker for Windows.  Note that this also requires a transport client that supports named
+        // pipes, e.g., httpclient5
+        "npipe:////./pipe/docker_engine"
+    }
+    else {
+        // Check whether colima is installed and use its socket if available
+        val homeDir = System.getProperty("user.home")
+        val colimaSocket = "$homeDir/.colima/default/docker.sock"
+
+        if (File(colimaSocket).exists()) {
+            "unix://$colimaSocket"
+        }
+        else {
+            // Default Docker socket
+            "unix:///var/run/docker.sock"
+        }
+    },
+
+    /**
+     * An address that can be used to access the host machine from inside a Docker container.  Note if nested Docker is
+     * used, the default here might not be correct.
+     */
+    val address: String = "host.docker.internal"
 )
 
 @Serializable
 data class Config(
     val network: Network = Network(),
-)
+    val docker: Docker = Docker()
+) {
+    /**
+     * Calculates the address required to access the server for a given consumer.
+     */
+    fun resolveAddress(consumer: AddressConsumer): String {
+        return when (consumer) {
+            AddressConsumer.EXTERNAL -> network.externalAddress
+            AddressConsumer.CONTAINER -> docker.address
+            AddressConsumer.LOCAL -> "localhost"
+        }
+    }
+
+    /**
+     * Calculates the base URL required to access the server for a given consumer.
+     */
+    fun resolveBaseUrl(consumer: AddressConsumer): Url =
+        URLBuilder(
+            protocol = URLProtocol.HTTP,
+            host = resolveAddress(consumer),
+            port = network.bindPort.toInt()
+        ).build()
+}
+
+enum class AddressConsumer {
+    /**
+     * Another computer/server
+     */
+    EXTERNAL,
+
+    /**
+     * A container ran on the same machine as the server
+     */
+    CONTAINER,
+
+    /**
+     * A process running on the same machine as the server
+     */
+    LOCAL
+}

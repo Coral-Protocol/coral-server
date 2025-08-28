@@ -2,7 +2,6 @@
 
 package org.coralprotocol.coralserver.agent.runtime
 
-import com.chrynan.uri.core.Uri
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -22,9 +21,8 @@ enum class RuntimeId {
 data class RuntimeParams(
     val sessionId: String,
     val agentName: String,
-    val mcpServerPort: UShort,
-    val mcpServerRelativeUri: Uri,
-
+    val applicationId: String,
+    val privacyKey: String,
     val systemPrompt: String?,
     val options: Map<String, AgentOptionValue>,
 )
@@ -41,7 +39,8 @@ class AgentRuntimes(
     override fun spawn(
         params: RuntimeParams,
         eventBus: EventBus<RuntimeEvent>,
-        sessionManager: SessionManager
+        sessionManager: SessionManager,
+        applicationRuntimeContext: ApplicationRuntimeContext
     ): OrchestratorHandle {
         TODO("runtime must be selected")
     }
