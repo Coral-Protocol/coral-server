@@ -196,7 +196,7 @@ class CoralServer(
             telemetryApiRoutes(sessionManager)
             documentationApiRoutes()
             agentApiRoutes(appConfig, sessionManager)
-            importRoutes(exportManager)
+            importRoutes(exportManager, orchestrator = sessionManager.orchestrator)
 
             // sse
             connectionSseRoutes(mcpServersByTransportId, sessionManager)

@@ -3,6 +3,23 @@
 package org.coralprotocol.coralserver.agent.runtime
 
 import com.chrynan.uri.core.Uri
+import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.content
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.Url
+import io.ktor.http.appendEncodedPathSegments
+import io.ktor.http.appendPathSegments
+import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
@@ -13,10 +30,14 @@ import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentServerSource
+import org.coralprotocol.coralserver.routes.api.v1.ImportAgentRequest
+import org.coralprotocol.coralserver.routes.api.v1.ImportRequest
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import org.coralprotocol.coralserver.session.SessionManager
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
+
+private val logger = KotlinLogging.logger {}
 
 enum class LogKind {
     STDOUT,
@@ -36,7 +57,7 @@ sealed interface RuntimeEvent {
 
     @Serializable
     @SerialName("stopped")
-    data class Stopped(val timestamp: Long = System.currentTimeMillis()): RuntimeEvent
+    data class Stopped(val timestamp: Long = System.currentTimeMillis()) : RuntimeEvent
 }
 
 interface Orchestrate {
@@ -53,7 +74,9 @@ interface OrchestratorHandle {
 
 class Orchestrator(
     val app: ConfigCollection = ConfigCollection(null),
+    val port: UShort,
 ) {
+    private val remoteScope = CoroutineScope(Dispatchers.IO)
     private val eventBusses: MutableMap<String, MutableMap<String, EventBus<RuntimeEvent>>> = mutableMapOf()
     private val handles: MutableList<OrchestratorHandle> = mutableListOf()
 
@@ -68,7 +91,14 @@ class Orchestrator(
         EventBus(replay = 512)
     }
 
-    fun spawn(sessionId: String, graphAgent: GraphAgent, agentName: String, port: UShort, relativeMcpServerUri: Uri, sessionManager: SessionManager?) {
+    fun spawn(
+        sessionId: String,
+        graphAgent: GraphAgent,
+        agentName: String,
+        port: UShort,
+        relativeMcpServerUri: Uri,
+        sessionManager: SessionManager?
+    ) {
         val params = RuntimeParams(
             sessionId = sessionId,
             agentName = agentName,
@@ -83,15 +113,18 @@ class Orchestrator(
 
         when (val provider = graphAgent.provider) {
             is GraphAgentProvider.Local -> {
-                val runtime = agent.runtimes.getById(provider.runtime) ?:
-                    throw IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported on agent ${graphAgent.name}")
+                val runtime = agent.runtimes.getById(provider.runtime)
+                    ?: throw IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported on agent ${graphAgent.name}")
 
-                handles.add(runtime.spawn(
-                    params,
-                    getBusOrCreate(params.sessionId, params.agentName),
-                    sessionManager)
+                handles.add(
+                    runtime.spawn(
+                        params,
+                        getBusOrCreate(params.sessionId, params.agentName),
+                        sessionManager
+                    )
                 )
             }
+
             is GraphAgentProvider.Remote -> {
                 val rankedServers = when (provider.serverSource) {
                     is GraphAgentServerSource.Servers -> {
@@ -99,8 +132,10 @@ class Orchestrator(
                             provider.serverScoring?.getScore(it) ?: 1.0
                         }
                     }
+
                     is GraphAgentServerSource.Indexer -> TODO("indexer server source not yet supported")
                 }
+
 
                 /*
                     Workflow:
@@ -118,14 +153,43 @@ class Orchestrator(
                  */
 
                 // do the request
-                //remoteAgents.set(returnedKey, CoralAgentIndividualMcp())
+                val job = remoteScope.launch {
+                    for (server in rankedServers) {
+                        val client = HttpClient(CIO) {
+                            install(ContentNegotiation) {
+                                json()
+                            }
+                        }
+                        val response = client.post(server.address) {
+                            url {
+                                appendPathSegments("api", "v1", "agents", "import")
+                            }
+                            contentType(ContentType.Application.Json)
+                            setBody(ImportRequest(agents = listOf(ImportAgentRequest(
+                                name = agentName,
+                                type = graphAgent.name,
+                                options = graphAgent.options,
+                                systemPrompt = graphAgent.systemPrompt,
+                                extraTools = graphAgent.extraTools,
+                                runtime = provider.runtime
+                            ))))
+                        }
+                        if (response.status != HttpStatusCode.OK) {
+                            val body = response.bodyAsText()
+                            logger.warn {"Failed to connect to ${server.address} (${response.status}): $body" }
+                            continue
+                        }
+                        logger.info { response }
+                    }
+                }
 
-                TODO("support remote runtime agents")
+                //remoteAgents.set(returnedKey, CoralAgentIndividualMcp())
             }
         }
     }
 
     suspend fun destroy(): Unit = coroutineScope {
+        remoteScope.cancel()
         handles.map { async { it.destroy() } }.awaitAll()
     }
 }
