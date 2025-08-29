@@ -43,6 +43,7 @@ import kotlinx.coroutines.Job
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
+import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.models.SocketEvent
 import org.coralprotocol.coralserver.routes.api.v1.debugApiRoutes
@@ -53,6 +54,7 @@ import org.coralprotocol.coralserver.routes.api.v1.messageApiRoutes
 import org.coralprotocol.coralserver.routes.api.v1.sessionApiRoutes
 import org.coralprotocol.coralserver.routes.api.v1.telemetryApiRoutes
 import org.coralprotocol.coralserver.routes.sse.v1.connectionSseRoutes
+import org.coralprotocol.coralserver.routes.sse.v1.exportedAgentSseRoutes
 import org.coralprotocol.coralserver.routes.ws.v1.debugWsRoutes
 import org.coralprotocol.coralserver.routes.ws.v1.exportedAgentRoutes
 import org.coralprotocol.coralserver.session.SessionManager
@@ -83,7 +85,8 @@ class CoralServer(
     val port: UShort = 5555u,
     val appConfig: ConfigCollection,
     val devmode: Boolean = false,
-    val sessionManager: SessionManager = SessionManager(port = port),
+    val sessionManager: SessionManager = SessionManager(),
+    val orchestrator: Orchestrator = Orchestrator(port = port),
     val exportManager: ExportManager = ExportManager(),
 ) {
 
@@ -192,17 +195,18 @@ class CoralServer(
             // api
             debugApiRoutes(sessionManager)
             sessionApiRoutes(appConfig, sessionManager, devmode)
-            messageApiRoutes(mcpServersByTransportId, sessionManager)
+            messageApiRoutes(mcpServersByTransportId, sessionManager, exportManager)
             telemetryApiRoutes(sessionManager)
             documentationApiRoutes()
             agentApiRoutes(appConfig, sessionManager)
-            importRoutes(exportManager, orchestrator = sessionManager.orchestrator)
+            importRoutes(exportManager, orchestrator = orchestrator)
 
             // sse
             connectionSseRoutes(mcpServersByTransportId, sessionManager)
+            exportedAgentSseRoutes(mcpServersByTransportId, exportManager)
 
             // websocket
-            debugWsRoutes(sessionManager)
+            debugWsRoutes(sessionManager, orchestrator)
             exportedAgentRoutes(exportManager)
 
             // source of truth for OpenAPI docs/codegen

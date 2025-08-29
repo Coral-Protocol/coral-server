@@ -88,6 +88,7 @@ dependencies {
     testImplementation("io.ktor:ktor-server-sse")
     testImplementation("io.ktor:ktor-server-test-host")
 
+    implementation("com.eygraber:uri-kmp:0.0.20")
 
     // TOML serialization
     implementation("com.akuleshov7:ktoml-core:0.7.0")

@@ -5,13 +5,14 @@ import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
+import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.models.SocketEvent
 import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.session.SessionManager
 
 private val logger = KotlinLogging.logger {}
 
-fun Routing.debugWsRoutes(sessionManager: SessionManager) {
+fun Routing.debugWsRoutes(sessionManager: SessionManager, orchestrator: Orchestrator) {
     webSocket("/ws/v1/debug/{applicationId}/{privacyKey}/{coralSessionId}/") {
         val applicationId = call.parameters["applicationId"]
         val privacyKey = call.parameters["privacyKey"]
@@ -44,7 +45,7 @@ fun Routing.debugWsRoutes(sessionManager: SessionManager) {
         val sessionId = call.parameters["coralSessionId"] ?: throw IllegalArgumentException("Missing sessionId")
         val agentId = call.parameters["agentId"] ?: throw IllegalArgumentException("Missing agentId")
 
-        val bus = sessionManager.orchestrator.getBus(sessionId, agentId) ?: run {
+        val bus = orchestrator.getBus(sessionId, agentId) ?: run {
             call.respond(HttpStatusCode.NotFound, "Agent not found")
             return@webSocket;
         };
