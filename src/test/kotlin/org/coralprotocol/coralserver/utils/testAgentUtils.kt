@@ -134,9 +134,11 @@ You are an agent connected to Coral.
 
 @OptIn(ExperimentalUuidApi::class)
 suspend fun createConnectedKoogAgent(
-    protocol: String = "http",
-    host: String = "localhost",
-    port: UShort,
+    serverUrl: ((devmode: Boolean, applicationId: String, privacyKey: String, sessionId: String) -> String) = ()<() -> Unit, (devmode: Boolean, applicationId: String, privacyKey: String, sessionId: String) -> String> {
+        val devmodePath = if (devmode) "devmode/" else ""
+        val serverUrl =
+            "$protocol://$host:$port/sse/v1/$devmodePath$applicationId/$privacyKey/$sessionId/sse?agentId=$namePassedToServer&agentDescription=$descriptionPassedToServer"
+    },
     namePassedToServer: String,
     descriptionPassedToServer: String = namePassedToServer,
     systemPrompt: String = defaultSystemPrompt,
@@ -146,9 +148,6 @@ suspend fun createConnectedKoogAgent(
     privacyKey: String = "privkey",
     applicationId: String = "exampleApplication",
 ): ExternalSteppingKoog {
-    val devmodePath = if (devmode) "devmode/" else ""
-    val serverUrl =
-        "$protocol://$host:$port/sse/v1/$devmodePath$applicationId/$privacyKey/$sessionId/sse?agentId=$namePassedToServer&agentDescription=$descriptionPassedToServer"
 
     val executor: PromptExecutor = simpleOpenAIExecutor(
         System.getenv("OPENAI_API_KEY")
