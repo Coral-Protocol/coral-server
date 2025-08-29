@@ -23,6 +23,7 @@ class ApplicationRuntimeContext(
         .sslConfig(dockerClientConfig.sslConfig)
         .responseTimeout(Duration.ofSeconds(app.config.docker.responseTimeout))
         .connectionTimeout(Duration.ofSeconds(app.config.docker.connectionTimeout))
+        .maxConnections(app.config.docker.maxConnections)
         .build()
 
     val dockerClient = DockerClientImpl.getInstance(dockerClientConfig, httpClient) ?:

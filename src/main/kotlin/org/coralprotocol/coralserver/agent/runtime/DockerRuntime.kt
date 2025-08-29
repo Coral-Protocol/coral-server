@@ -1,8 +1,11 @@
 package org.coralprotocol.coralserver.agent.runtime
 
+import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.async.ResultCallback
+import com.github.dockerjava.api.exception.NotFoundException
 import com.github.dockerjava.api.exception.NotModifiedException
 import com.github.dockerjava.api.model.Frame
+import com.github.dockerjava.api.model.PullResponseItem
 import com.github.dockerjava.api.model.StreamType
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.withContext
@@ -14,6 +17,9 @@ import org.coralprotocol.coralserver.agent.registry.toStringValue
 import org.coralprotocol.coralserver.agent.runtime.executable.EnvVar
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.session.SessionManager
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
@@ -33,6 +39,9 @@ data class DockerRuntime(
     ): OrchestratorHandle {
         val dockerClient = applicationRuntimeContext.dockerClient
         logger.info { "Spawning Docker container with image: $image" }
+
+        dockerClient.pullImageIfNeeded(image)
+        dockerClient.checkAndWarnForLatestTag(image)
 
         val apiUrl = applicationRuntimeContext.getApiUrl(AddressConsumer.CONTAINER)
         val mcpUrl = applicationRuntimeContext.getMcpUrl(params, AddressConsumer.CONTAINER)
@@ -143,4 +152,55 @@ private fun getDockerContainerName(sessionId: String, agentName: String): String
     // SessionID is too long for Docker container names, so we use a hash for deduplication.
     val randomSuffix = sessionId.hashCode().toString(16).take(11)
     return "${agentName.take(52)}_$randomSuffix".asDockerContainerName()
+}
+
+
+/**
+ * Checks if the specified Docker image exists locally.
+ * @param imageName The name of the image to check
+ * @return true if the image exists locally, false otherwise
+ */
+private fun DockerClient.imageExists(imageName: String): Boolean {
+    return try {
+        inspectImageCmd(imageName).exec()
+        true
+    } catch (e: NotFoundException) {
+        false
+    }
+}
+
+/**
+ * Pulls a Docker image if it doesn't exist locally.
+ * @param imageName The name of the image to pull
+ */
+private fun DockerClient.pullImageIfNeeded(imageName: String) {
+    if (!imageExists(imageName)) {
+        logger.info { "Docker image $imageName not found locally, pulling..." }
+        val callback = object : ResultCallback.Adapter<PullResponseItem>() {}
+        pullImageCmd(imageName).exec(callback)
+        callback.awaitCompletion()
+        logger.info { "Docker image $imageName pulled successfully" }
+    }
+}
+
+/**
+ * Checks if the image is using the 'latest' tag and logs a warning if it is.
+ * Also includes the image creation date in the warning.
+ * @param imageName The name of the image to check
+ */
+private fun DockerClient.checkAndWarnForLatestTag(imageName: String) {
+    if (imageName.endsWith(":latest") || !imageName.contains(":")) {
+        val imageInfo = inspectImageCmd(imageName).exec()
+        val createdAt = imageInfo.created
+
+        logger.warn { "$imageName is using the 'latest' tag.  This can cause unpredictable behavior.  Consider using a specific version tag instead." }
+
+        if (createdAt != null)  {
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+                .withZone(ZoneId.systemDefault())
+            val formattedDate = formatter.format(Instant.parse(createdAt))
+
+            logger.warn { "$imageName image creation date: $formattedDate" }
+        }
+    }
 }
