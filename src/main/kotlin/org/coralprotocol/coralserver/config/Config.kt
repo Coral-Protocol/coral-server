@@ -58,7 +58,18 @@ data class Docker(
      * An address that can be used to access the host machine from inside a Docker container.  Note if nested Docker is
      * used, the default here might not be correct.
      */
-    val address: String = "host.docker.internal"
+    val address: String = "host.docker.internal",
+
+    /**
+     * The number of seconds to wait for a response from a Docker container before timing out.
+     */
+    val responseTimeout: Long = 30,
+
+    /**
+     * The number of seconds to wait for a connection to a Docker container before timing out.
+     * Note that on Docker for Windows, if the Docker engine is not running, this timeout will be met.
+     */
+    val connectionTimeout: Long = 30
 )
 
 @Serializable

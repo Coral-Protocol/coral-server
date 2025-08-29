@@ -34,8 +34,8 @@ data class DockerRuntime(
         val dockerClient = applicationRuntimeContext.dockerClient
         logger.info { "Spawning Docker container with image: $image" }
 
-        val apiUrl = applicationRuntimeContext.getApiUrl(AddressConsumer.LOCAL)
-        val mcpUrl = applicationRuntimeContext.getMcpUrl(params, AddressConsumer.LOCAL)
+        val apiUrl = applicationRuntimeContext.getApiUrl(AddressConsumer.CONTAINER)
+        val mcpUrl = applicationRuntimeContext.getMcpUrl(params, AddressConsumer.CONTAINER)
 
         // todo: escape???
         val resolvedEnvs = params.options.map { (key, value) ->
@@ -49,69 +49,76 @@ data class DockerRuntime(
             orchestrationRuntime = "docker"
         ).map { (key, value) -> "$key=$value" }
 
-        val containerCreation = dockerClient.createContainerCmd(image)
-            .withName(getDockerContainerName(params.sessionId, params.agentName))
-            .withEnv(allEnvs)
-            .withAttachStdout(true)
-            .withAttachStderr(true)
-            .withAttachStdin(false) // Stdin makes no sense with orchestration
-            .exec()
+        try {
+            val containerCreation = dockerClient.createContainerCmd(image)
+                .withName(getDockerContainerName(params.sessionId, params.agentName))
+                .withEnv(allEnvs)
+                .withAttachStdout(true)
+                .withAttachStderr(true)
+                .withStopTimeout(1)
+                .withAttachStdin(false) // Stdin makes no sense with orchestration
+                .exec()
 
-        dockerClient.startContainerCmd(containerCreation.id).exec()
+            dockerClient.startContainerCmd(containerCreation.id).exec()
 
-        // Attach to container streams for output redirection
-        val attachCmd = dockerClient.attachContainerCmd(containerCreation.id)
-            .withStdOut(true)
-            .withStdErr(true)
-            .withFollowStream(true)
-            .withLogs(true)
+            // Attach to container streams for output redirection
+            val attachCmd = dockerClient.attachContainerCmd(containerCreation.id)
+                .withStdOut(true)
+                .withStdErr(true)
+                .withFollowStream(true)
+                .withLogs(true)
 
-        val streamCallback = attachCmd.exec(object : ResultCallback.Adapter<Frame>() {
-            override fun onNext(frame: Frame) {
-                val message = String(frame.payload).trimEnd('\n')
-                when (frame.streamType) {
-                    StreamType.STDOUT -> {
-                        logger.info { "[STDOUT] ${params.agentName}: $message" }
-                    }
-
-                    StreamType.STDERR -> {
-                        logger.info { "[STDERR] ${params.agentName}: $message" }
-                    }
-
-                    else -> {
-                        logger.warn { "[UNKNOWN] ${params.agentName}: $message" }
-                    }
-                }
-            }
-        })
-
-        return object : OrchestratorHandle {
-            override suspend fun destroy() {
-                withContext(processContext) {
-                    try {
-                        streamCallback.close()
-                    } catch (e: Exception) {
-                        logger.warn { "Failed to close stream callback: ${e.message}" }
-                    }
-
-                    warnOnNotModifiedExceptions { dockerClient.stopContainerCmd(containerCreation.id).exec() }
-                    warnOnNotModifiedExceptions {
-                        withTimeoutOrNull(30.seconds) {
-                            dockerClient.removeContainerCmd(containerCreation.id)
-                                .withRemoveVolumes(true)
-                                .exec()
-                            return@withTimeoutOrNull true
-                        } ?: let {
-                            logger.warn { "Docker container ${params.agentName} did not stop in time, force removing it" }
-                            dockerClient.removeContainerCmd(containerCreation.id)
-                                .withRemoveVolumes(true)
-                                .withForce(true)
-                                .exec()
+            val streamCallback = attachCmd.exec(object : ResultCallback.Adapter<Frame>() {
+                override fun onNext(frame: Frame) {
+                    val message = String(frame.payload).trimEnd('\n')
+                    when (frame.streamType) {
+                        StreamType.STDOUT -> {
+                            logger.info { "[STDOUT] ${params.agentName}: $message" }
                         }
-                        logger.info { "Docker container ${params.agentName} stopped and removed" }
+
+                        StreamType.STDERR -> {
+                            logger.info { "[STDERR] ${params.agentName}: $message" }
+                        }
+
+                        else -> {
+                            logger.warn { "[UNKNOWN] ${params.agentName}: $message" }
+                        }
+                    }
+                }
+            })
+
+            return object : OrchestratorHandle {
+                override suspend fun destroy() {
+                    withContext(processContext) {
+                        try {
+                            streamCallback.close()
+                        } catch (e: Exception) {
+                            logger.warn { "Failed to close stream callback: ${e.message}" }
+                        }
+
+                        warnOnNotModifiedExceptions { dockerClient.stopContainerCmd(containerCreation.id).exec() }
+                        warnOnNotModifiedExceptions {
+                            withTimeoutOrNull(30.seconds) {
+                                dockerClient.removeContainerCmd(containerCreation.id)
+                                    .withRemoveVolumes(true)
+                                    .exec()
+                                return@withTimeoutOrNull true
+                            } ?: let {
+                                logger.warn { "Docker container ${params.agentName} did not stop in time, force removing it" }
+                                dockerClient.removeContainerCmd(containerCreation.id)
+                                    .withRemoveVolumes(true)
+                                    .withForce(true)
+                                    .exec()
+                            }
+                            logger.info { "Docker container ${params.agentName} stopped and removed" }
+                        }
                     }
                 }
             }
+        }
+        catch (e: Exception) {
+            logger.error { "Failed to start Docker container: ${e.message}" }
+            throw e
         }
     }
 }
