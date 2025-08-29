@@ -9,6 +9,7 @@ import io.ktor.http.URLBuilder
 import io.ktor.http.Url
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.ConfigCollection
+import java.time.Duration
 
 class ApplicationRuntimeContext(
     val app: ConfigCollection
@@ -20,6 +21,8 @@ class ApplicationRuntimeContext(
     var httpClient: DockerHttpClient = ApacheDockerHttpClient.Builder()
         .dockerHost(dockerClientConfig.dockerHost)
         .sslConfig(dockerClientConfig.sslConfig)
+        .responseTimeout(Duration.ofSeconds(app.config.docker.responseTimeout))
+        .connectionTimeout(Duration.ofSeconds(app.config.docker.connectionTimeout))
         .build()
 
     val dockerClient = DockerClientImpl.getInstance(dockerClientConfig, httpClient) ?:
