@@ -1,15 +1,24 @@
 package org.coralprotocol.coralserver.e2e
 
+import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldNotThrowAny
+import io.ktor.http.Url
 import io.ktor.server.testing.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.coralprotocol.coralserver.server.CoralServer
+import org.coralprotocol.coralserver.server.ExportManager
 import org.coralprotocol.coralserver.utils.UserMessage
 import org.coralprotocol.coralserver.utils.createConnectedKoogAgent
 import kotlin.test.Test
 import kotlin.uuid.ExperimentalUuidApi
 
 class RemoteSessionScenarios {
+
+    /**
+     * Sets up
+     */
+    fun CoralServer.proxyAgent(agentId: String): Url = Url("http://${host}:${port}/sse/v1/export/{agentId}")
 
     @OptIn(ExperimentalUuidApi::class)
     @Test
@@ -20,13 +29,24 @@ class RemoteSessionScenarios {
             val importingServer = TestCoralServer(port = 14392u, devmode = true).apply { setup() }
 
             val session = importingServer.sessionManager.getOrCreateSession("test", "aaa", "aaa", null)
-            // TODO: Create DSL for building groups and waiting for them properly
-            val agent = createConnectedKoogAgent(importingServer.server!!, "testAgent", session = session)
-            // TODO: Create DSL for building groups and waiting for them properly
             launch { session.waitForAgentCount(1, 2000) }
-            val response = agent.step(UserMessage("Please create a thread called test and say hello in it"))
+            // TODO: Create DSL for building groups and waiting for them properly
+            val importServerAgentId = "importingServerAgent"
+            val importingServerAgent =
+                createConnectedKoogAgent(importingServer.server!!, importServerAgentId, session = session)
+            val exportingServerAgentUrl = exportingServer.server!!.proxyAgent(importServerAgentId)
 
-            assert(session.getAllThreads().any { it.name == "test" }) { "Thread 'test' should be created" }
+            val exportingServerAgent =
+                createConnectedKoogAgent(
+                    host = exportingServerAgentUrl.host,
+                    port = exportingServerAgentUrl.port.toUShort(),
+                    protocol = exportingServerAgentUrl.protocol.name,
+                    namePassedToServer = "exportingServerAgent",
+                    session = session,
+                )
+
+
+            importingServerAgent.step("Create a new thread with importingServerAgent and tell it the code 3251")
             //TODO: WIP
             // Create an agent connecting to the exporting server
             // Create an agent connecting to the importing server
@@ -35,20 +55,16 @@ class RemoteSessionScenarios {
     }
 
     @Test
-    fun testRemoteAgentOrchestration() {
-        testApplication {
+    fun testRemoteAgentOrchestration() = runBlocking {
+        shouldNotThrowAny {
             val exportingServer = TestCoralServer(port = 14391u, devmode = true).apply { setup() }
             val importingServer = TestCoralServer(port = 14392u, devmode = true).apply { setup() }
 
-            application {
-                with(exportingServer.server!!) {
-                    coralSeverModule()
-                }
-                // Get remote agent on importing server
-                // Create session post to importing server
-                //    with 2 agents, one local, one remote
-                // mock the execution of the agents and confirm they get executed
-            }
+
+            // Get remote agent on importing server
+            // Create session post to importing server
+            //    with 2 agents, one local, one remote
+            // mock the execution of the agents and confirm they get executed
         }
     }
 }

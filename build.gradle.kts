@@ -83,6 +83,7 @@ dependencies {
     implementation("io.ktor:ktor-server-cors")
     implementation("io.ktor:ktor-server-content-negotiation")
     implementation("io.ktor:ktor-server-resources")
+    implementation("io.ktor:ktor-serialization-kotlinx-json")
     testImplementation("io.ktor:ktor-server-core")
     testImplementation("io.ktor:ktor-server-cio")
     testImplementation("io.ktor:ktor-server-sse")
