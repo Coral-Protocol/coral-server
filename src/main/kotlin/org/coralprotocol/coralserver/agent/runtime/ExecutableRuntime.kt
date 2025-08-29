@@ -68,7 +68,7 @@ data class ExecutableRuntime(
                 run {
                     bus.emit(RuntimeEvent.Log(kind = LogKind.STDOUT, message = line))
                     logger.info {
-                        "[STDOUT] ${params.agentName}: $line"
+                        "${params.agentName}: $line"
                     }
                 }
             }
@@ -79,7 +79,7 @@ data class ExecutableRuntime(
                 run {
                     bus.emit(RuntimeEvent.Log(kind = LogKind.STDERR, message = line))
                     logger.error {
-                        "[STDERR] ${params.agentName}: $line"
+                        "${params.agentName}: $line"
                     }
                 }
             }

@@ -26,7 +26,6 @@ repositories {
 dependencies {
     testImplementation(kotlin("test"))
     implementation("io.modelcontextprotocol:kotlin-sdk:0.5.0")
-    implementation("org.slf4j:slf4j-simple:2.0.9")
     implementation("io.github.oshai:kotlin-logging-jvm:7.0.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1")
@@ -36,6 +35,8 @@ dependencies {
     implementation("io.github.pdvrieze.xmlutil:serialization:0.91.0")
     implementation("io.github.pdvrieze.xmlutil:core-jdk:0.91.0")
     implementation("io.github.pdvrieze.xmlutil:serialization-jvm:0.91.0")
+    implementation("ch.qos.logback:logback-classic:1.5.18")
+    implementation("org.fusesource.jansi:jansi:2.4.2")
 
     val dockerVersion = "3.6.0"
     implementation("com.github.docker-java:docker-java:$dockerVersion")
