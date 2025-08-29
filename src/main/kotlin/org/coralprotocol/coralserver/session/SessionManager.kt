@@ -30,7 +30,7 @@ fun AgentGraph.adjacencyMap(): Map<String, Set<String>> {
 /**
  * Session manager to create and retrieve sessions.
  */
-class SessionManager(val port: UShort, val orchestrator: Orchestrator = Orchestrator(port = port)) {
+class SessionManager() {
     private val sessions = ConcurrentHashMap<String, CoralAgentGraphSession>()
     private val sessionSemaphore = Semaphore(1)
 
@@ -101,16 +101,16 @@ class SessionManager(val port: UShort, val orchestrator: Orchestrator = Orchestr
                 visited.add(node)
             }
 
-            it.agents.forEach { agent ->
-                orchestrator.spawn(
-                    sessionId = sessionId,
-                    graphAgent = agent.value,
-                    port = port,
-                    agentName = agent.key.toString(),
-                    relativeMcpServerUri = Uri.fromParts(scheme = "http", path = "/sse/v1/${applicationId}/${privacyKey}/${sessionId}/sse", query = "agentId=${agent.key}"),
-                    sessionManager = this,
-                )
-            }
+//            it.agents.forEach { agent ->
+//                orchestrator.spawn(
+//                    sessionId = sessionId,
+//                    graphAgent = agent.value,
+//                    port = port,
+//                    agentName = agent.key.toString(),
+//                    relativeMcpServerUri = Uri.fromParts(scheme = "http", path = "/sse/v1/${applicationId}/${privacyKey}/${sessionId}/sse", query = "agentId=${agent.key}"),
+//                    sessionManager = this,
+//                )
+//            }
             subgraphs
         }
         val session = CoralAgentGraphSession(sessionId, applicationId, privacyKey, agentGraph = agentGraph, groups = subgraphs?.toList() ?: emptyList())
