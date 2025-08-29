@@ -1,0 +1,16 @@
+<configuration>
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener" />
+    <conversionRule conversionWord="msgHighlight" converterClass="org.coralprotocol.coralserver.logging.MessageHighlighter" />
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- does not work with intellij... -->
+        <withJansi>false</withJansi>
+        <encoder>
+            <charset>UTF-8</charset>
+            <pattern>%highlight(%-5level) [%d{HH:mm:ss.SSS}] %cyan({%20.20logger}) %msgHighlight(%msg%n)</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>
