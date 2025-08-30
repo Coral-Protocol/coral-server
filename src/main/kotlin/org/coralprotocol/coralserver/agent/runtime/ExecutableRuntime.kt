@@ -30,6 +30,8 @@ data class ExecutableRuntime(
         sessionManager: SessionManager,
         applicationRuntimeContext: ApplicationRuntimeContext
     ): OrchestratorHandle {
+        val agentLogger = KotlinLogging.logger("ExecutableRuntime:${params.agentName}")
+
         val processBuilder = ProcessBuilder()
         val processEnvironment = processBuilder.environment()
 
@@ -67,9 +69,7 @@ data class ExecutableRuntime(
             reader.forEachLine { line ->
                 run {
                     bus.emit(RuntimeEvent.Log(kind = LogKind.STDOUT, message = line))
-                    logger.info {
-                        "${params.agentName}: $line"
-                    }
+                    agentLogger.info { line }
                 }
             }
         }
@@ -78,9 +78,7 @@ data class ExecutableRuntime(
             reader.forEachLine { line ->
                 run {
                     bus.emit(RuntimeEvent.Log(kind = LogKind.STDERR, message = line))
-                    logger.error {
-                        "${params.agentName}: $line"
-                    }
+                    agentLogger.warn { line }
                 }
             }
         }
