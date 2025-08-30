@@ -22,7 +22,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.time.Duration.Companion.seconds
 
-private val logger = KotlinLogging.logger {}
+private val dockerLogger = KotlinLogging.logger {}
 
 @Serializable
 @SerialName("docker")
@@ -37,8 +37,10 @@ data class DockerRuntime(
         sessionManager: SessionManager,
         applicationRuntimeContext: ApplicationRuntimeContext
     ): OrchestratorHandle {
+        val agentLogger = KotlinLogging.logger("DockerRuntime:${params.agentName}")
+
         val dockerClient = applicationRuntimeContext.dockerClient
-        logger.info { "Spawning Docker container with image: $image" }
+        dockerLogger.info { "Spawning Docker container with image: $image" }
 
         dockerClient.pullImageIfNeeded(image)
         dockerClient.checkAndWarnForLatestTag(image)
@@ -82,15 +84,15 @@ data class DockerRuntime(
                     val message = String(frame.payload).trimEnd('\n')
                     when (frame.streamType) {
                         StreamType.STDOUT -> {
-                            logger.info { "[STDOUT] ${params.agentName}: $message" }
+                            agentLogger.info { message }
                         }
 
                         StreamType.STDERR -> {
-                            logger.info { "[STDERR] ${params.agentName}: $message" }
+                            agentLogger.warn { message }
                         }
 
                         else -> {
-                            logger.warn { "[UNKNOWN] ${params.agentName}: $message" }
+                            agentLogger.warn { message }
                         }
                     }
                 }
@@ -102,7 +104,7 @@ data class DockerRuntime(
                         try {
                             streamCallback.close()
                         } catch (e: Exception) {
-                            logger.warn { "Failed to close stream callback: ${e.message}" }
+                            dockerLogger.warn { "Failed to close stream callback: ${e.message}" }
                         }
 
                         warnOnNotModifiedExceptions { dockerClient.stopContainerCmd(containerCreation.id).exec() }
@@ -113,20 +115,20 @@ data class DockerRuntime(
                                     .exec()
                                 return@withTimeoutOrNull true
                             } ?: let {
-                                logger.warn { "Docker container ${params.agentName} did not stop in time, force removing it" }
+                                dockerLogger.warn { "Docker container ${params.agentName} did not stop in time, force removing it" }
                                 dockerClient.removeContainerCmd(containerCreation.id)
                                     .withRemoveVolumes(true)
                                     .withForce(true)
                                     .exec()
                             }
-                            logger.info { "Docker container ${params.agentName} stopped and removed" }
+                            dockerLogger.info { "Docker container ${params.agentName} stopped and removed" }
                         }
                     }
                 }
             }
         }
         catch (e: Exception) {
-            logger.error { "Failed to start Docker container: ${e.message}" }
+            dockerLogger.error { "Failed to start Docker container: ${e.message}" }
             throw e
         }
     }
@@ -136,7 +138,7 @@ private suspend fun warnOnNotModifiedExceptions(block: suspend () -> Unit): Unit
     try {
         block()
     } catch (e: NotModifiedException) {
-        logger.warn { "Docker operation was not modified: ${e.message}" }
+        dockerLogger.warn { "Docker operation was not modified: ${e.message}" }
     } catch (e: Exception) {
         throw e
     }
@@ -174,12 +176,19 @@ private fun DockerClient.imageExists(imageName: String): Boolean {
  * @param imageName The name of the image to pull
  */
 private fun DockerClient.pullImageIfNeeded(imageName: String) {
+    try {
+        inspectImageCmd(imageName).exec()
+    }
+    catch (e: Exception) {
+        dockerLogger.warn(e) { "Failed to inspect image $imageName, assuming it doesn't exist locally" }
+    }
+
     if (!imageExists(imageName)) {
-        logger.info { "Docker image $imageName not found locally, pulling..." }
+        dockerLogger.info { "Docker image $imageName not found locally, pulling..." }
         val callback = object : ResultCallback.Adapter<PullResponseItem>() {}
         pullImageCmd(imageName).exec(callback)
         callback.awaitCompletion()
-        logger.info { "Docker image $imageName pulled successfully" }
+        dockerLogger.info { "Docker image $imageName pulled successfully" }
     }
 }
 
@@ -193,14 +202,14 @@ private fun DockerClient.checkAndWarnForLatestTag(imageName: String) {
         val imageInfo = inspectImageCmd(imageName).exec()
         val createdAt = imageInfo.created
 
-        logger.warn { "$imageName is using the 'latest' tag.  This can cause unpredictable behavior.  Consider using a specific version tag instead." }
+        dockerLogger.warn { "$imageName is using the 'latest' tag.  This can cause unpredictable behavior.  Consider using a specific version tag instead." }
 
         if (createdAt != null)  {
             val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
                 .withZone(ZoneId.systemDefault())
             val formattedDate = formatter.format(Instant.parse(createdAt))
 
-            logger.warn { "$imageName image creation date: $formattedDate" }
+            dockerLogger.warn { "$imageName image creation date: $formattedDate" }
         }
     }
 }
