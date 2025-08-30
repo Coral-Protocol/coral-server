@@ -2,7 +2,6 @@ package org.coralprotocol.coralserver.agent.runtime
 
 import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.async.ResultCallback
-import com.github.dockerjava.api.exception.NotFoundException
 import com.github.dockerjava.api.exception.NotModifiedException
 import com.github.dockerjava.api.model.Frame
 import com.github.dockerjava.api.model.PullResponseItem
@@ -158,17 +157,16 @@ private fun getDockerContainerName(sessionId: String, agentName: String): String
 
 
 /**
- * Checks if the specified Docker image exists locally.
- * @param imageName The name of the image to check
- * @return true if the image exists locally, false otherwise
+ * @param imageName The name of the image to search for
+ * @return true if the image is found locally, false otherwise
  */
 private fun DockerClient.imageExists(imageName: String): Boolean {
-    return try {
-        inspectImageCmd(imageName).exec()
-        true
-    } catch (e: NotFoundException) {
-        false
+    var name = imageName
+    if (!imageName.contains(":")) {
+        name = "$name:latest"
     }
+
+    return listImagesCmd().exec().firstOrNull { it.repoTags.contains(name) } != null
 }
 
 /**
