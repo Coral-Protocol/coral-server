@@ -46,14 +46,17 @@ object UnresolvedRegistryAgentSerializer : KSerializer<UnresolvedRegistryAgentRe
         }
 
         try {
-            /*
-             * This works for :
-             * 1) marketplace = "0.1.0"
-             * and:
-             * 2) marketplace = { version = "0.1.1" }
-             *
-             * ... but I'm not sure if it is designed intentionally to work this way
-             */
+            return decoder.decodeSerializableValue(NameReference.serializer())
+        } catch (_: Exception) {
+
+        }
+
+        try {
+            // This will decode the syntax:
+            // ```toml
+            // [agent-import]
+            // agent = "1.0.0"
+            // ```
             return NameReference(decoder.decodeString(), "coral")
         } catch (_: Exception) {
 
