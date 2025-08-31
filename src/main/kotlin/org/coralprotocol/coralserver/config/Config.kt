@@ -98,6 +98,7 @@ data class Docker(
 
 @Serializable
 data class Registry(
+    @SerialName("indexers")
     private val configIndexers: LinkedHashMap<String, AgentIndexer> = linkedMapOf()
 ) {
     /**
