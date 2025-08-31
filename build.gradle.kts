@@ -37,6 +37,7 @@ dependencies {
     implementation("io.github.pdvrieze.xmlutil:serialization-jvm:0.91.0")
     implementation("ch.qos.logback:logback-classic:1.5.18")
     implementation("org.fusesource.jansi:jansi:2.4.2")
+    implementation("com.github.sya-ri:kgit:1.1.0")
 
     val dockerVersion = "3.6.0"
     implementation("com.github.docker-java:docker-java:$dockerVersion")

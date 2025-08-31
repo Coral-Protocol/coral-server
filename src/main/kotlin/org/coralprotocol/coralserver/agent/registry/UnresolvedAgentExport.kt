@@ -1,11 +1,11 @@
 package org.coralprotocol.coralserver.agent.registry
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.util.toUpperCasePreservingASCIIRules
+import io.ktor.util.*
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 
-val logger = KotlinLogging.logger {}
+private val logger = KotlinLogging.logger {}
 
 @Serializable
 data class UnresolvedAgentExport(

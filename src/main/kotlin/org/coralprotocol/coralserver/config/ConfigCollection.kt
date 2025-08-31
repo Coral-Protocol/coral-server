@@ -3,19 +3,17 @@ package org.coralprotocol.coralserver.config
 import com.akuleshov7.ktoml.Toml
 import com.akuleshov7.ktoml.TomlInputConfig
 import com.akuleshov7.ktoml.source.decodeFromStream
-import com.charleskorn.kaml.PolymorphismStyle
-import com.charleskorn.kaml.Yaml
-import com.charleskorn.kaml.YamlConfiguration
-import com.charleskorn.kaml.decodeFromStream
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.io.files.FileNotFoundException
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.RegistryException
+import org.coralprotocol.coralserver.agent.registry.RegistryResolutionContext
 import org.coralprotocol.coralserver.agent.registry.UnresolvedAgentRegistry
 import java.nio.file.*
 import kotlin.io.path.listDirectoryEntries
+import kotlin.system.measureTimeMillis
 
 private val logger = KotlinLogging.logger {}
 
@@ -140,9 +138,16 @@ class ConfigCollection(
                 throw FileNotFoundException(file.absolutePath)
             }
 
-            config = toml.decodeFromStream<Config>(file.inputStream())
+            val decodeTime = measureTimeMillis {
+                config = toml.decodeFromStream<Config>(file.inputStream())
+            }
+            logger.info { "Decoded config in $decodeTime ms" }
 
-            logger.info { "Loaded config" }
+            val indexUpdateTime = measureTimeMillis {
+                config.updateIndexes()
+            }
+            logger.info { "Updated indexes in $indexUpdateTime ms" }
+
             config
         } else {
             throw Exception("Failed to lookup resource.")
@@ -162,17 +167,19 @@ class ConfigCollection(
                 throw FileNotFoundException(file.absolutePath)
             }
 
-            val reg = toml.decodeFromStream<UnresolvedAgentRegistry>(file.inputStream())
-                .resolve(toml)
+            val unresolved = toml.decodeFromStream<UnresolvedAgentRegistry>(file.inputStream())
+            val context = RegistryResolutionContext(
+                serializer = toml,
+                config = config
+            )
 
-            logger.info { "Loaded registry with ${reg.importedAgents.size} imported agents and ${reg.exportedAgents.size} exported agents" }
-            reg
+            unresolved.resolve(context)
         } else {
             throw Exception("Failed to load registry file")
         }
     }
     catch (e: RegistryException) {
-        logger.error{ "Error with registry file: ${e.message}" }
+        logger.error{ "Error with registry: ${e.message}" }
         logger.warn{ "Using default registry" }
         defaultRegistry
     }
