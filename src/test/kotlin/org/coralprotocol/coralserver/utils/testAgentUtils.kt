@@ -69,40 +69,20 @@ suspend fun createConnectedKoogAgent(
     modelName: LLModel = OpenAIModels.Chat.GPT4o,
     session: CoralAgentGraphSession
 ): ExternalSteppingKoog = createConnectedKoogAgent(
-    protocol = "http",
-    host = server.host,
-    descriptionPassedToServer = descriptionPassedToServer,
-    port = server.port,
-    namePassedToServer = namePassedToServer,
+    ServerConnectionCoreDetails(
+        protocol = "http",
+        host = server.host,
+        port = server.port,
+        applicationId = session.applicationId,
+        privacyKey = session.privacyKey,
+        sessionId = session.id,
+        namePassedToServer = namePassedToServer,
+        descriptionPassedToServer = descriptionPassedToServer
+    ),
     systemPrompt = systemPrompt,
     modelName = modelName,
-    sessionId = session.id,
-    privacyKey = session.privacyKey,
-    applicationId = session.applicationId,
 )
 
-@OptIn(ExperimentalUuidApi::class)
-suspend fun createConnectedKoogAgent(
-    server: CoralServer,
-    namePassedToServer: String,
-    descriptionPassedToServer: String = namePassedToServer,
-    systemPrompt: String = defaultSystemPrompt,
-    modelName: LLModel = OpenAIModels.Chat.GPT4o,
-    sessionId: String = "session1",
-    privacyKey: String = "privkey",
-    applicationId: String = "exampleApplication",
-): ExternalSteppingKoog = createConnectedKoogAgent(
-    protocol = "http",
-    host = server.host,
-    descriptionPassedToServer = descriptionPassedToServer,
-    port = server.port,
-    namePassedToServer = namePassedToServer,
-    systemPrompt = systemPrompt,
-    modelName = modelName,
-    sessionId = sessionId,
-    privacyKey = privacyKey,
-    applicationId = applicationId,
-)
 
 private suspend fun injectedWithMcpResources(client: Client, original: String): String {
     val resourceRegex = "<resource>(.*?)</resource>".toRegex()
@@ -132,36 +112,63 @@ You are an agent connected to Coral.
 """.trimIndent()
 
 
+interface ServerConnectionCoreDetails {
+    val protocol: String
+    val host: String
+    val port: UShort
+    val namePassedToServer: String
+    val descriptionPassedToServer: String
+}
+data class ServerConnectionCoreDetailsImpl(
+    override val protocol: String,
+    override val host: String,
+    override val port: UShort,
+    override val namePassedToServer: String,
+    override val descriptionPassedToServer: String = namePassedToServer,
+) : ServerConnectionCoreDetails
+
+interface ServerConnectionLocalDetails : ServerConnectionCoreDetails {
+    val applicationId: String
+    val privacyKey: String
+    val sessionId: String
+}
+
+data class ServerConnectionLocalDetailsImpl(
+    override val protocol: String,
+    override val host: String,
+    override val port: UShort,
+    override val applicationId: String,
+    override val privacyKey: String,
+    override val sessionId: String,
+    override val namePassedToServer: String,
+    override val descriptionPassedToServer: String = namePassedToServer,
+) : ServerConnectionLocalDetails
+
+fun ServerConnectionCoreDetails.renderDevmode()= "$protocol://$host:$port/sse/v1/devmode/$applicationId/$privacyKey/$sessionId/sse?agentId=$namePassedToServer&agentDescription=$descriptionPassedToServer"
+fun ServerConnectionCoreDetails.renderDevmodeExporting()= "$protocol://$host:$port/sse/v1/devmode/$applicationId/$privacyKey/$sessionId/sse?agentId=$namePassedToServer&agentDescription=$descriptionPassedToServer"
+
+
 @OptIn(ExperimentalUuidApi::class)
 suspend fun createConnectedKoogAgent(
-    serverUrl: ((devmode: Boolean, applicationId: String, privacyKey: String, sessionId: String) -> String) = ()<() -> Unit, (devmode: Boolean, applicationId: String, privacyKey: String, sessionId: String) -> String> {
-        val devmodePath = if (devmode) "devmode/" else ""
-        val serverUrl =
-            "$protocol://$host:$port/sse/v1/$devmodePath$applicationId/$privacyKey/$sessionId/sse?agentId=$namePassedToServer&agentDescription=$descriptionPassedToServer"
-    },
-    namePassedToServer: String,
-    descriptionPassedToServer: String = namePassedToServer,
+    server: ServerConnectionCoreDetails,
+    renderServerUrl: ServerConnectionCoreDetails.() -> String = { renderDevmode() },
     systemPrompt: String = defaultSystemPrompt,
-    devmode: Boolean = true,
     modelName: LLModel = OpenAIModels.Chat.GPT4o,
-    sessionId: String = "session1",
-    privacyKey: String = "privkey",
-    applicationId: String = "exampleApplication",
 ): ExternalSteppingKoog {
-
+    val renderedServerUrl = renderServerUrl(server)
     val executor: PromptExecutor = simpleOpenAIExecutor(
         System.getenv("OPENAI_API_KEY")
             ?: throw IllegalArgumentException("OPENAI_API_KEY not set")
     )
 
-    val mcpClient = getMcpClient(serverUrl)
+    val mcpClient = getMcpClient(renderedServerUrl)
     val toolRegistry = McpToolRegistryProvider.fromClient(mcpClient)
     return ExternalSteppingKoogBuilder(loopStep = { newInputMessage ->
-        updateSystemResources(mcpClient, serverUrl)
+        updateSystemResources(mcpClient, renderedServerUrl)
         var responses = requestLLMMultiple(newInputMessage.content)
 
         while (responses.containsToolCalls()) {
-            updateSystemResources(mcpClient, serverUrl)
+            updateSystemResources(mcpClient, renderedServerUrl)
             val tools = extractToolCalls(responses)
             val results = executeMultipleTools(tools)
             responses = sendMultipleToolResults(results)
