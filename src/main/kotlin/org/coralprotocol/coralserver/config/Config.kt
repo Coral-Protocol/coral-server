@@ -1,10 +1,19 @@
 package org.coralprotocol.coralserver.config
 
 import io.ktor.http.*
+import io.ktor.server.html.insert
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
+import org.coralprotocol.coralserver.agent.registry.indexer.AgentIndexer
+import org.coralprotocol.coralserver.agent.registry.RegistryException
+import org.coralprotocol.coralserver.agent.registry.indexer.GitAgentIndexer
+import org.coralprotocol.coralserver.agent.registry.indexer.NamedAgentIndexer
 import org.coralprotocol.coralserver.util.isWindows
 import java.io.File
+import java.nio.file.Path
+import kotlin.collections.component1
+import kotlin.collections.component2
 
 private fun defaultDockerSocket(): String {
     val specifiedSocket = System.getProperty("CORAL_DOCKER_SOCKET")?.takeIf { it.isNotBlank() }
@@ -85,15 +94,80 @@ data class Docker(
      * Max number of connections to running Docker containers.
      */
     val maxConnections: Int = 1024,
+)
 
+@Serializable
+data class Registry(
+    private val configIndexers: LinkedHashMap<String, AgentIndexer> = linkedMapOf()
+) {
+    /**
+     * Default Coral indexer.  For now this will be the temporary Git indexer.
+     */
+    @Transient
+    private val coralIndexer = NamedAgentIndexer("coral", GitAgentIndexer("https://github.com/Coral-Protocol/marketplace", 0))
 
-    )
+    /**
+     * A list of indexers including the built-in Coral indexer.
+     */
+    val indexers: Map<String, AgentIndexer>
+        get() {
+            val map = configIndexers.toMutableMap()
+            map["coral"] = coralIndexer.indexer
 
+            return map
+        }
+
+    /**
+     * If the given name is null, returns the indexer with the highest priority.  If a name is specified, return an
+     * indexer with a matching name or throw a RegistryException.  If the given name is null and there are no defined
+     * indexers, this returns the default Coral indexer.
+     *
+     * The name "coral" is reserved for the Coral indexer and can be used to explicitly request it.
+     */
+    fun getIndexer(name: String?): NamedAgentIndexer {
+        return when (name) {
+            "coral" -> {
+                coralIndexer
+            }
+            null -> {
+                configIndexers.map { (name, indexer) ->
+                    NamedAgentIndexer(name, indexer)
+                }.maxByOrNull { it.indexer.priority } ?: coralIndexer
+            }
+            else -> {
+                NamedAgentIndexer(name, configIndexers[name] ?: throw RegistryException("No indexer found with name $name"))
+            }
+        }
+    }
+}
+
+@Serializable
+data class Cache(
+    @SerialName("root_path")
+    private val rootPathString: String = Path.of(System.getProperty("user.home"), ".coral").toString(),
+
+    @SerialName("indexer_cache_path")
+    private val indexerCachePath: String = Path.of(rootPathString, "registry").toString(),
+
+    @SerialName("agent_cache_path")
+    private val agentCacheString: String = Path.of(rootPathString, "agent").toString(),
+) {
+    @Transient
+    val root = Path.of(rootPathString)
+
+    @Transient
+    val index = Path.of(indexerCachePath)
+
+    @Transient
+    val agent = Path.of(agentCacheString)
+}
 
 @Serializable
 data class Config(
     val network: Network = Network(),
-    val docker: Docker = Docker()
+    val docker: Docker = Docker(),
+    val registry: Registry = Registry(),
+    val cache: Cache = Cache(),
 ) {
     /**
      * Calculates the address required to access the server for a given consumer.
@@ -115,6 +189,15 @@ data class Config(
             host = resolveAddress(consumer),
             port = network.bindPort.toInt()
         ).build()
+
+    /**
+     * Runs the update method on all configured indexers
+     */
+    fun updateIndexes() {
+        registry.indexers.forEach { (name, indexer) ->
+            indexer.update(this, name)
+        }
+    }
 }
 
 enum class AddressConsumer {
