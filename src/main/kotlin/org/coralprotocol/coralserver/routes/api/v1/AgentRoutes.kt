@@ -16,7 +16,6 @@ import org.coralprotocol.coralserver.agent.registry.PublicRegistryAgent
 import org.coralprotocol.coralserver.agent.registry.defaultAsValue
 import org.coralprotocol.coralserver.agent.registry.toPublic
 import org.coralprotocol.coralserver.config.ConfigCollection
-import org.coralprotocol.coralserver.models.agent.ClaimAgentsModel
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.SessionManager
@@ -102,10 +101,8 @@ fun Routing.agentApiRoutes(
             throw RouteException(HttpStatusCode.BadRequest, "Agents with remote providers cannot be claimed")
         }
 
-        val exportedAgent = registry.exportedAgents[request.agentName]
-            ?: throw RouteException(HttpStatusCode.NotFound, "Agent '${request.agentName}' is not exported")
-
-        val agent = exportedAgent.agent
+        val agent = registry.exportedAgents[request.registryAgentName]?.agent
+            ?: throw RouteException(HttpStatusCode.NotFound, "Agent '${request.registryAgentName}' is not exported")
 
         val missingRequiredOptions = agent.options.filter { option ->
             option.value.required && !request.options.containsKey(option.key)
@@ -113,7 +110,7 @@ fun Routing.agentApiRoutes(
         if (missingRequiredOptions.isNotEmpty()) {
             throw RouteException(
                 HttpStatusCode.BadRequest,
-                "Agent '${request.agentName}' is missing required options: ${missingRequiredOptions.keys.joinToString()}"
+                "Agent '${request.registryAgentName}' is missing required options: ${missingRequiredOptions.keys.joinToString()}"
             )
         }
 
@@ -123,7 +120,7 @@ fun Routing.agentApiRoutes(
         if (missingAgentOptions.isNotEmpty()) {
             throw RouteException(
                 HttpStatusCode.BadRequest,
-                "Agent '${request.agentName}' contains non-existent options: ${missingRequiredOptions.keys.joinToString()}"
+                "Agent '${request.registryAgentName}' contains non-existent options: ${missingRequiredOptions.keys.joinToString()}"
             )
         }
 
@@ -133,7 +130,7 @@ fun Routing.agentApiRoutes(
 
         call.respond(HttpStatusCode.OK, remoteSessionManager.createClaim(
             GraphAgent(
-                name = request.agentName,
+                name = request.registryAgentName,
                 blocking = request.blocking == true,
                 extraTools = request.tools,
                 systemPrompt = request.systemPrompt,

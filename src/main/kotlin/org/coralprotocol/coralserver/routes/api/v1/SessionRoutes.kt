@@ -75,7 +75,9 @@ fun Routing.sessionApiRoutes(appConfig: ConfigCollection, sessionManager: Sessio
                     "Links contained agents that are not in the request: ${missingAgentLinks.joinToString()}")
             }
 
-            val missingAgents = it.agents.filter { (name, _) -> !registry.importedAgents.containsKey(name) }
+            val missingAgents = it.agents.filter { (_, agent) ->
+                !registry.importedAgents.containsKey(agent.registryAgentName)
+            }
             if (missingAgents.isNotEmpty()) {
                 throw RouteException(HttpStatusCode.BadRequest,
                     "Requested agents not found: ${missingAgentLinks.joinToString()}")
@@ -84,12 +86,12 @@ fun Routing.sessionApiRoutes(appConfig: ConfigCollection, sessionManager: Sessio
             AgentGraph(
                 tools = it.tools,
                 links = it.links,
-                agents = requestedAgents.mapValues { (name, request) ->
+                agents = requestedAgents.mapValues { (agentName, request) ->
                     // The badAgents check above will ensure this is never null
                     //
                     // It'd be more idiomatic to throw the exception here, but the error is nicer when it
                     // contains all the missing agents in the graph, not just the first one
-                    val agent = registry.importedAgents[name]!!
+                    val agent = registry.importedAgents[request.registryAgentName]!!
 
                     val missingRequiredOptions = agent.options.filter { option ->
                         option.value.required && !request.options.containsKey(option.key)
@@ -97,7 +99,7 @@ fun Routing.sessionApiRoutes(appConfig: ConfigCollection, sessionManager: Sessio
                     if (missingRequiredOptions.isNotEmpty()) {
                         throw RouteException(
                             HttpStatusCode.BadRequest,
-                            "Agent '${name}' is missing required options: ${missingRequiredOptions.keys.joinToString()}"
+                            "Agent '${agentName}' (${request.registryAgentName}) is missing required options: ${missingRequiredOptions.keys.joinToString()}"
                         )
                     }
 
@@ -107,7 +109,7 @@ fun Routing.sessionApiRoutes(appConfig: ConfigCollection, sessionManager: Sessio
                     if (missingAgentOptions.isNotEmpty()) {
                         throw RouteException(
                             HttpStatusCode.BadRequest,
-                            "Agent '${name}' contains non-existent options: ${missingAgentOptions.keys.joinToString()}"
+                            "Agent '${agentName}' (${request.registryAgentName}) contains non-existent options: ${missingAgentOptions.keys.joinToString()}"
                         )
                     }
 
@@ -116,7 +118,7 @@ fun Routing.sessionApiRoutes(appConfig: ConfigCollection, sessionManager: Sessio
                             .filterNotNullValues()
 
                     GraphAgent(
-                        name,
+                        request.registryAgentName,
                         blocking = request.blocking ?: true,
                         extraTools = request.tools,
                         systemPrompt = request.systemPrompt,
