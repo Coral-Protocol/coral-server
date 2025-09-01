@@ -87,6 +87,9 @@ fun Routing.agentApiRoutes(
                     description = "Claim ID"
                 }
             }
+            HttpStatusCode.NotFound to {
+                description = "Agent doesn't exist or is not exported"
+            }
             HttpStatusCode.BadRequest to {
                 description = "Request contains invalid agents"
             }
@@ -99,58 +102,34 @@ fun Routing.agentApiRoutes(
             throw RouteException(HttpStatusCode.BadRequest, "Agents with remote providers cannot be claimed")
         }
 
-        // todo: verify
-//
-//        // todo: check quantity of agent
-//
-//        // This server must export all the requested agents to be claimed
-//        val missingAgents = request.agents.filter { (name, _) ->
-//            !registry.exportedAgents.containsKey(name)
-//        }
-//        if (missingAgents.isNotEmpty()) {
-//            throw RouteException(HttpStatusCode.BadRequest,
-//                "One or more agents are not exported: ${missingAgents.joinToString()}")
-//        }
-//
-//        val agents = request.agents.map { request ->
-//            // This is safe, exported agents must come from exported agents, and an exception is thrown above if any
-//            // of the request agents are not exported agents
-//            val name = request.type // todo: better naming of this variable and others
-//            val agent = registry.importedAgents[request.type]!!
-//
-//            val missingRequiredOptions = agent.options.filter { option ->
-//                option.value.required && !request.options.containsKey(option.key)
-//            }
-//            if (missingRequiredOptions.isNotEmpty()) {
-//                throw RouteException(
-//                    HttpStatusCode.BadRequest,
-//                    "Agent '${name}' is missing required options: ${missingRequiredOptions.keys.joinToString()}"
-//                )
-//            }
-//
-//            val missingAgentOptions = request.options.filter {
-//                !agent.options.containsKey(it.key)
-//            }
-//            if (missingAgentOptions.isNotEmpty()) {
-//                throw RouteException(
-//                    HttpStatusCode.BadRequest,
-//                    "Agent '${name}' contains non-existent options: ${missingRequiredOptions.keys.joinToString()}"
-//                )
-//            }
-//
-//            val defaultOptions =
-//                agent.options.mapValues { option -> option.value.defaultAsValue() }
-//                    .filterNotNullValues()
-//
-//            GraphAgent(
-//                name,
-//                blocking = false,
-//                extraTools = request.extraTools,
-//                systemPrompt = request.systemPrompt,
-//                options = defaultOptions + request.options,
-//                provider = GraphAgentProvider.Local(request.runtime)
-//            )
-//        }
+        val exportedAgent = registry.exportedAgents[request.agentName]
+            ?: throw RouteException(HttpStatusCode.NotFound, "Agent '${request.agentName}' is not exported")
+
+        val agent = exportedAgent.agent
+
+        val missingRequiredOptions = agent.options.filter { option ->
+            option.value.required && !request.options.containsKey(option.key)
+        }
+        if (missingRequiredOptions.isNotEmpty()) {
+            throw RouteException(
+                HttpStatusCode.BadRequest,
+                "Agent '${request.agentName}' is missing required options: ${missingRequiredOptions.keys.joinToString()}"
+            )
+        }
+
+        val missingAgentOptions = request.options.filter {
+            !agent.options.containsKey(it.key)
+        }
+        if (missingAgentOptions.isNotEmpty()) {
+            throw RouteException(
+                HttpStatusCode.BadRequest,
+                "Agent '${request.agentName}' contains non-existent options: ${missingRequiredOptions.keys.joinToString()}"
+            )
+        }
+
+        val defaultOptions =
+            agent.options.mapValues { option -> option.value.defaultAsValue() }
+                .filterNotNullValues()
 
         call.respond(HttpStatusCode.OK, remoteSessionManager.createClaim(
             GraphAgent(
@@ -158,7 +137,7 @@ fun Routing.agentApiRoutes(
                 blocking = request.blocking == true,
                 extraTools = request.tools,
                 systemPrompt = request.systemPrompt,
-                options = mapOf(),
+                options = defaultOptions + request.options,
                 provider = request.provider
             )
         ))
