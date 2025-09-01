@@ -9,6 +9,7 @@ import io.ktor.server.routing.Routing
 import io.ktor.util.collections.*
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
+import org.coralprotocol.coralserver.server.ExportManager
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.SessionManager
 import kotlin.NoSuchElementException
@@ -22,12 +23,15 @@ class Message(val applicationId: String, val privacyKey: String, val coralSessio
 @Resource("/api/v1/message/devmode/{applicationId}/{privacyKey}/{coralSessionId}")
 class DevModeMessage(val applicationId: String, val privacyKey: String, val coralSessionId: String)
 
+@Resource("/api/v1/message/export/{exportedAgentId}")
+class ExportingAgentMessage(val exportedAgentId: String)
+
 /**
  * Configures message-related routes.
  * 
  * @param servers A concurrent map to store server instances by transport session ID
  */
-fun Routing.messageApiRoutes(servers: ConcurrentMap<String, Server>, sessionManager: SessionManager) {
+fun Routing.messageApiRoutes(servers: ConcurrentMap<String, Server>, sessionManager: SessionManager, exportManager: ExportManager) {
     // Message endpoint with application, privacy key, and session parameters
     post<Message>({
         summary = "Send message"
@@ -173,5 +177,23 @@ fun Routing.messageApiRoutes(servers: ConcurrentMap<String, Server>, sessionMana
             logger.error(e) { "This error likely comes from an inspector or non-essential client and can probably be ignored. See https://github.com/modelcontextprotocol/kotlin-sdk/issues/7" }
             call.respond(HttpStatusCode.InternalServerError, "Error handling message: ${e.message}")
         }
+    }
+
+
+    post<ExportingAgentMessage>({
+        summary = "Send message"
+        description = "Sends a message"
+        operationId = "sendMessage"
+        hidden = true
+    }) { message ->
+        logger.debug { "Received Exported Agent Message" }
+        val transport = exportManager.agents[message.exportedAgentId]?.transport ?: throw RouteException(HttpStatusCode.NotFound, "Agent not found")
+        try {
+            transport.handlePostMessage(call)
+        } catch (e: NoSuchElementException) {
+            logger.error(e) { "This error likely comes from an inspector or non-essential client and can probably be ignored. See https://github.com/modelcontextprotocol/kotlin-sdk/issues/7" }
+            call.respond(HttpStatusCode.InternalServerError, "Error handling message: ${e.message}")
+        }
+
     }
 }

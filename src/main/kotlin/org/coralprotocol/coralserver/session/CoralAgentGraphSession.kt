@@ -21,7 +21,6 @@ class CoralAgentGraphSession(
     val applicationId: String,
     val privacyKey: String,
     val agentGraph: AgentGraph?,
-    val coralAgentConnections: MutableList<CoralAgentIndividualMcp> = mutableListOf(),
     val groups: List<Set<String>> = listOf(),
     var devRequiredAgentStartCount: Int = 0,
 ) {
