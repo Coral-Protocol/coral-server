@@ -1,63 +1,99 @@
 package org.coralprotocol.coralserver.server
 
-import io.ktor.serialization.suitableCharset
-import io.ktor.server.application.ApplicationCall
-import io.ktor.server.websocket.WebSocketServerSession
-import io.ktor.server.websocket.converter
-import io.ktor.server.websocket.receiveDeserialized
-import io.ktor.server.websocket.sendSerialized
-import io.ktor.util.reflect.typeInfo
-import io.ktor.utils.io.charsets.Charset
-import io.ktor.websocket.Frame
-import io.ktor.websocket.readText
-import io.modelcontextprotocol.kotlin.sdk.JSONRPCMessage
+import io.ktor.server.application.*
+import io.ktor.server.websocket.*
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.consumeAsFlow
-import kotlinx.coroutines.flow.filterIsInstance
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.receiveAsFlow
+import org.coralprotocol.coralserver.agent.graph.GraphAgent
+import org.coralprotocol.coralserver.agent.runtime.Orchestrator
+import java.util.*
 
 data class ExportAgent(
     var transport: SseServerTransport? = null,
     var wsDeferred: CompletableDeferred<WebSocketServerSession> = CompletableDeferred(),
 )
 
-class ExportManager {
+enum class ClaimState {
+    PENDING,
+    ACTIVE,
+}
+
+data class ExportedAgentClaim(
+    val id: String = UUID.randomUUID().toString(),
+    val agents: List<GraphAgent>,
+    var state: ClaimState = ClaimState.PENDING,
+)
+
+/**
+ * Virtual session that represents a reference to an importing server's Session
+ */
+data class ExportedSession(
+    val id: String,
+    // [agent name] = transport
+    val transport: Map<String, CompletableDeferred<SseServerTransport>>,
+)
+
+class ExportManager(
+    val orchestrator: Orchestrator
+){
+    private val scope = CoroutineScope(Dispatchers.IO)
 
     var agents: MutableMap<String, ExportAgent> = mutableMapOf()
+    val claims: MutableMap<String, ExportedAgentClaim> = mutableMapOf()
+
+    /**
+     * Registers a new claim for agents
+     */
+    fun createClaim(agents: List<GraphAgent>): String {
+        val claim = ExportedAgentClaim(agents = agents)
+        claims[claim.id] = claim
+
+        return claim.id
+    }
 
     /**
      *
      */
-    suspend fun connectAgentTransport(id: String, charset: Charset, transport: SseServerTransport) {
-        // TODO: we actually shouldnt getOrPut here, the putting should be done when a remote agent is orchestrated
-        val agent = agents.getOrPut(id) { ExportAgent() }
-        agent.transport = transport
+    fun executeClaim(id: String): ExportedSession {
+        val claim = claims[id] ?: throw IllegalArgumentException("Bad claim ID")
 
-        transport.onMessage { message ->
-            val ws = agent.wsDeferred.await()
-            ws.sendSerialized<JSONRPCMessage>(message)
-        }
+        if (claim.state != ClaimState.PENDING)
+            throw IllegalStateException("Claim has already been executed")
 
-        transport.start()
+        claim.state = ClaimState.ACTIVE
 
-        val ws = agent.wsDeferred.await()
-
-        if (ws.converter == null) throw IllegalStateException("No converter for websocket!")
-        ws.incoming.receiveAsFlow()
-            .mapNotNull { ws.converter?.deserialize(charset, typeInfo<JSONRPCMessage>(), it) as JSONRPCMessage? }
-            .onEach { message ->
-                transport.send(message)
-            }.launchIn(CoroutineScope(Dispatchers.IO))
+        // todo: orchestrate agents, return handle
+        //orchestrator.spawn()
 
     }
+    /**
+     *
+     */
+//    suspend fun connectAgentTransport(id: String, charset: Charset, transport: SseServerTransport) {
+//        // TODO: we actually shouldnt getOrPut here, the putting should be done when a remote agent is orchestrated
+//        val agent = agents.getOrPut(id) { ExportAgent() }
+//        agent.transport = transport
+//
+//        scope.launch {
+//            transport.onMessage { message ->
+//                val ws = agent.wsDeferred.await()
+//                ws.sendSerialized<JSONRPCMessage>(message)
+//            }
+//
+//            val ws = agent.wsDeferred.await()
+//            if (ws.converter == null) throw IllegalStateException("No converter for websocket!")
+//            ws.incoming.receiveAsFlow()
+//                .mapNotNull { ws.converter?.deserialize(charset, typeInfo<JSONRPCMessage>(), it) as JSONRPCMessage? }
+//                .onEach { message ->
+//                    transport.send(message)
+//                }.launchIn(CoroutineScope(Dispatchers.I
+//        }
+//
+//        // returns when sse dies
+//        transport.start()
+//    }
 
     fun connectAgentWS(id: String, ws: WebSocketServerSession) {
         agents.getOrPut(id) { ExportAgent() }.wsDeferred.complete(ws)
@@ -65,5 +101,9 @@ class ExportManager {
 
     suspend fun handlePostMessage(agentId: String, call: ApplicationCall) {
         val agent = agents[agentId] ?: return
+    }
+
+    fun registerSseTransport() {
+        // read sse on threads
     }
 }

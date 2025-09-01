@@ -30,8 +30,8 @@ import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentServerSource
-import org.coralprotocol.coralserver.routes.api.v1.ImportAgentRequest
-import org.coralprotocol.coralserver.routes.api.v1.ImportRequest
+import org.coralprotocol.coralserver.agent.remote.RemoteGraphAgentRequest
+import org.coralprotocol.coralserver.models.agent.ClaimAgentsModel
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import org.coralprotocol.coralserver.session.SessionManager
 import kotlin.uuid.ExperimentalUuidApi
@@ -153,7 +153,7 @@ class Orchestrator(
                  */
 
                 // do the request
-                val job = remoteScope.launch {
+                remoteScope.launch {
                     for (server in rankedServers) {
                         val client = HttpClient(CIO) {
                             install(ContentNegotiation) {
@@ -162,10 +162,10 @@ class Orchestrator(
                         }
                         val response = client.post(server.address) {
                             url {
-                                appendPathSegments("api", "v1", "agents", "import")
+                                appendPathSegments("api", "v1", "agents", "claim")
                             }
                             contentType(ContentType.Application.Json)
-                            setBody(ImportRequest(agents = listOf(ImportAgentRequest(
+                            setBody(ClaimAgentsModel(agents = listOf(RemoteGraphAgentRequest(
                                 name = agentName,
                                 type = graphAgent.name,
                                 options = graphAgent.options,
@@ -180,6 +180,10 @@ class Orchestrator(
                             continue
                         }
                         logger.info { response }
+
+                        // websocket id
+                        // connect
+                        // exit when websocket die
                     }
                 }
 

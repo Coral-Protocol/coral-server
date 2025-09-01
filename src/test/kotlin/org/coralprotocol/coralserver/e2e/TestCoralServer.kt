@@ -10,10 +10,10 @@ import org.coralprotocol.coralserver.server.CoralServer
 import org.coralprotocol.coralserver.session.SessionManager
 
 class TestCoralServer(
-    val host: String = "0.0.0.0",
+    val host: String = "127.0.0.1",
     val port: UShort = 5555u,
     val devmode: Boolean = false,
-    val sessionManager: SessionManager = SessionManager(port = port),
+    val sessionManager: SessionManager = SessionManager(),
 ) {
     var server: CoralServer? = null
 

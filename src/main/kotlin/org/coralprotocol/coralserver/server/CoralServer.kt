@@ -49,7 +49,6 @@ import org.coralprotocol.coralserver.models.SocketEvent
 import org.coralprotocol.coralserver.routes.api.v1.debugApiRoutes
 import org.coralprotocol.coralserver.routes.api.v1.agentApiRoutes
 import org.coralprotocol.coralserver.routes.api.v1.documentationApiRoutes
-import org.coralprotocol.coralserver.routes.api.v1.importRoutes
 import org.coralprotocol.coralserver.routes.api.v1.messageApiRoutes
 import org.coralprotocol.coralserver.routes.api.v1.sessionApiRoutes
 import org.coralprotocol.coralserver.routes.api.v1.telemetryApiRoutes
@@ -81,13 +80,13 @@ private val json = Json {
  * @param devmode Whether the server is running in development mode
  */
 class CoralServer(
-    val host: String = "0.0.0.0",
+    val host: String = "127.0.0.1",
     val port: UShort = 5555u,
     val appConfig: ConfigCollection,
     val devmode: Boolean = false,
     val sessionManager: SessionManager = SessionManager(),
     val orchestrator: Orchestrator = Orchestrator(port = port),
-    val exportManager: ExportManager = ExportManager(),
+    val exportManager: ExportManager = ExportManager(orchestrator),
 ) {
 
     /*
@@ -198,8 +197,7 @@ class CoralServer(
             messageApiRoutes(mcpServersByTransportId, sessionManager, exportManager)
             telemetryApiRoutes(sessionManager)
             documentationApiRoutes()
-            agentApiRoutes(appConfig, sessionManager)
-            importRoutes(exportManager, orchestrator = orchestrator)
+            agentApiRoutes(appConfig, sessionManager, exportManager)
 
             // sse
             connectionSseRoutes(mcpServersByTransportId, sessionManager)

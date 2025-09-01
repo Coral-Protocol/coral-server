@@ -24,8 +24,6 @@ import io.modelcontextprotocol.kotlin.sdk.TextResourceContents
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import kotlinx.datetime.Clock
 import org.coralprotocol.coralserver.utils.ExternalSteppingKoogBuilder.Companion.build
-import org.coralprotocol.coralserver.server.CoralServer
-import org.coralprotocol.coralserver.session.CoralAgentGraphSession
 import kotlin.uuid.ExperimentalUuidApi
 
 private suspend fun getMcpClient(serverUrl: String): Client {
@@ -61,27 +59,27 @@ Don't try to guess facts; ask other agents or use resources.
 If given a simple task, wait briefly for mentions and then return the result.
 """.trimIndent()
 
-suspend fun createConnectedKoogAgent(
-    server: CoralServer,
-    namePassedToServer: String,
-    descriptionPassedToServer: String = namePassedToServer,
-    systemPrompt: String = defaultSystemPrompt,
-    modelName: LLModel = OpenAIModels.Chat.GPT4o,
-    session: CoralAgentGraphSession
-): ExternalSteppingKoog = createConnectedKoogAgent(
-    ServerConnectionCoreDetails(
-        protocol = "http",
-        host = server.host,
-        port = server.port,
-        applicationId = session.applicationId,
-        privacyKey = session.privacyKey,
-        sessionId = session.id,
-        namePassedToServer = namePassedToServer,
-        descriptionPassedToServer = descriptionPassedToServer
-    ),
-    systemPrompt = systemPrompt,
-    modelName = modelName,
-)
+//suspend fun createConnectedKoogAgent(
+//    server: CoralServer,
+//    namePassedToServer: String,
+//    descriptionPassedToServer: String = namePassedToServer,
+//    systemPrompt: String = defaultSystemPrompt,
+//    modelName: LLModel = OpenAIModels.Chat.GPT4o,
+//    session: CoralAgentGraphSession
+//): ExternalSteppingKoog = createConnectedKoogAgent(
+//    ServerConnectionCoreDetailsImpl(
+//        protocol = "http",
+//        host = server.host,
+//        port = server.port,
+//        applicationId = session.applicationId,
+//        privacyKey = session.privacyKey,
+//        sessionId = session.id,
+//        namePassedToServer = namePassedToServer,
+//        descriptionPassedToServer = descriptionPassedToServer
+//    ),
+//    systemPrompt = systemPrompt,
+//    modelName = modelName,
+//)
 
 
 private suspend fun injectedWithMcpResources(client: Client, original: String): String {
@@ -144,14 +142,14 @@ data class ServerConnectionLocalDetailsImpl(
     override val descriptionPassedToServer: String = namePassedToServer,
 ) : ServerConnectionLocalDetails
 
-fun ServerConnectionCoreDetails.renderDevmode()= "$protocol://$host:$port/sse/v1/devmode/$applicationId/$privacyKey/$sessionId/sse?agentId=$namePassedToServer&agentDescription=$descriptionPassedToServer"
-fun ServerConnectionCoreDetails.renderDevmodeExporting()= "$protocol://$host:$port/sse/v1/devmode/$applicationId/$privacyKey/$sessionId/sse?agentId=$namePassedToServer&agentDescription=$descriptionPassedToServer"
+fun ServerConnectionLocalDetails.renderDevmode()= "$protocol://$host:$port/sse/v1/devmode/$applicationId/$privacyKey/$sessionId/sse?agentId=$namePassedToServer&agentDescription=$descriptionPassedToServer"
+//fun ServerConnectionCoreDetailsImpl.renderDevmodeExporting()= "$protocol://$host:$port/sse/v1/export/$namePassedToServer&agentDescription=$descriptionPassedToServer"
 
 
 @OptIn(ExperimentalUuidApi::class)
 suspend fun createConnectedKoogAgent(
     server: ServerConnectionCoreDetails,
-    renderServerUrl: ServerConnectionCoreDetails.() -> String = { renderDevmode() },
+    renderServerUrl: ServerConnectionCoreDetails.() -> String,
     systemPrompt: String = defaultSystemPrompt,
     modelName: LLModel = OpenAIModels.Chat.GPT4o,
 ): ExternalSteppingKoog {
