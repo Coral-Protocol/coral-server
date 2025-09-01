@@ -22,7 +22,6 @@ import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.withTitle
 import io.github.smiley4.schemakenerator.swagger.TitleBuilder
 import io.github.smiley4.schemakenerator.swagger.data.TitleType
 import io.ktor.http.*
-import io.ktor.http.invoke
 import io.ktor.serialization.kotlinx.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -31,7 +30,6 @@ import io.ktor.server.engine.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.statuspages.*
-import io.ktor.server.plugins.statuspages.exception
 import io.ktor.server.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -52,6 +50,7 @@ import org.coralprotocol.coralserver.routes.sse.v1.connectionSseRoutes
 import org.coralprotocol.coralserver.routes.sse.v1.exportedAgentSseRoutes
 import org.coralprotocol.coralserver.routes.ws.v1.debugWsRoutes
 import org.coralprotocol.coralserver.routes.ws.v1.exportedAgentRoutes
+import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 import org.coralprotocol.coralserver.session.SessionManager
 import kotlin.time.Duration.Companion.seconds
 
@@ -81,14 +80,14 @@ class CoralServer(
     orchestrator: Orchestrator
 ) {
     val sessionManager = SessionManager(orchestrator)
-    val exportManager = ExportManager(orchestrator)
+    val remoteSessionManager = RemoteSessionManager(orchestrator)
 
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
         embeddedServer(
             CIO,
-            host = appConfig.config.network.bindAddress,
-            port = appConfig.config.network.bindPort.toInt(),
+            host = appConfig.config.networkConfig.bindAddress,
+            port = appConfig.config.networkConfig.bindPort.toInt(),
             watchPaths = listOf("classes")
         ) {
             install(OpenApi) {
@@ -177,18 +176,18 @@ class CoralServer(
                 // api
                 debugApiRoutes(sessionManager)
                 sessionApiRoutes(appConfig, sessionManager, devmode)
-                messageApiRoutes(mcpServersByTransportId, sessionManager, exportManager)
+                messageApiRoutes(mcpServersByTransportId, sessionManager, remoteSessionManager)
                 telemetryApiRoutes(sessionManager)
                 documentationApiRoutes()
-                agentApiRoutes(appConfig, sessionManager, exportManager)
+                agentApiRoutes(appConfig, sessionManager, remoteSessionManager)
 
                 // sse
                 connectionSseRoutes(mcpServersByTransportId, sessionManager)
-                exportedAgentSseRoutes(mcpServersByTransportId, exportManager)
+                exportedAgentSseRoutes(mcpServersByTransportId, remoteSessionManager)
 
                 // websocket
                 debugWsRoutes(sessionManager, orchestrator)
-                exportedAgentRoutes(exportManager)
+                exportedAgentRoutes(remoteSessionManager)
 
                 // source of truth for OpenAPI docs/codegen
                 route("api_v1.json") {
@@ -204,7 +203,7 @@ class CoralServer(
      * Starts the server.
      */
     fun start(wait: Boolean = false) {
-        logger.info { "Starting sse server on port ${appConfig.config.network.bindPort}" }
+        logger.info { "Starting sse server on port ${appConfig.config.networkConfig.bindPort}" }
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "trace");
 
         if (devmode) {
