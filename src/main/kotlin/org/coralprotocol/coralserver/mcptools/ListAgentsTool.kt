@@ -18,7 +18,7 @@ private val logger = KotlinLogging.logger {}
  */
 fun CoralAgentIndividualMcp.addListAgentsTool() {
     addTool(
-        name = "corla_list_agents",
+        name = "coral_list_agents",
         description = "List all the available Coral agents",
         inputSchema = Tool.Input(
             properties = buildJsonObject {
