@@ -9,10 +9,10 @@ import java.util.concurrent.ConcurrentHashMap
 
 class SessionManagerTest {
 
-    var sessionManager = SessionManager(port = 0u)
+    var sessionManager = SessionManager()
     @BeforeEach
     fun setup() {
-        sessionManager = SessionManager(port = 0u)
+        sessionManager = SessionManager()
     }
 
     @Test

@@ -75,7 +75,8 @@ private suspend fun handleSseConnection(
 
     // TODO: better route err handling
     val agent = try {
-        exportManager.connectAgentTransport(agentId, charset = call.suitableCharset(), transport)
+        exportManager.registerSseTransport()
+        //exportManager.connectAgentTransport(agentId, charset = call.suitableCharset(), transport)
     } catch (e: Exception) {
         logger.info { "Agent ID $agentId already connected!" }
         sseProducer.call.respond(HttpStatusCode.BadRequest, "Agent ID already connected")
