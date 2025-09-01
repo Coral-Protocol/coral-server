@@ -18,7 +18,7 @@ data class NameReference(
     ): RegistryAgent {
         return context
             .config
-            .registry
+            .registryConfig
             .getIndexer(indexer)
             .resolveAgent(context, name, version)
     }

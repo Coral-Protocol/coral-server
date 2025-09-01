@@ -82,7 +82,6 @@ class ConfigCollection(
         mapOf(),
         mapOf()
     ),
-
 ) {
     val toml = Toml(
         inputConfig = TomlInputConfig(
