@@ -1,19 +1,16 @@
 package org.coralprotocol.coralserver.config
 
 import io.ktor.http.*
-import io.ktor.server.html.insert
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import org.coralprotocol.coralserver.agent.registry.indexer.AgentIndexer
 import org.coralprotocol.coralserver.agent.registry.RegistryException
+import org.coralprotocol.coralserver.agent.registry.indexer.AgentIndexer
 import org.coralprotocol.coralserver.agent.registry.indexer.GitAgentIndexer
 import org.coralprotocol.coralserver.agent.registry.indexer.NamedAgentIndexer
 import org.coralprotocol.coralserver.util.isWindows
 import java.io.File
 import java.nio.file.Path
-import kotlin.collections.component1
-import kotlin.collections.component2
 
 private fun defaultDockerSocket(): String {
     val specifiedSocket = System.getProperty("CORAL_DOCKER_SOCKET")?.takeIf { it.isNotBlank() }
@@ -45,7 +42,7 @@ private fun defaultDockerSocket(): String {
 }
 
 @Serializable
-data class Network(
+data class NetworkConfig(
     /**
      * The network address to bind the HTTP server to
      */
@@ -67,7 +64,7 @@ data class Network(
 )
 
 @Serializable
-data class Docker(
+data class DockerConfig(
     /**
      * Optional docker socket path
      */
@@ -97,7 +94,7 @@ data class Docker(
 )
 
 @Serializable
-data class Registry(
+data class RegistryConfig(
     @SerialName("indexers")
     private val configIndexers: LinkedHashMap<String, AgentIndexer> = linkedMapOf()
 ) {
@@ -143,7 +140,7 @@ data class Registry(
 }
 
 @Serializable
-data class Cache(
+data class CacheConfig(
     @SerialName("root_path")
     private val rootPathString: String = Path.of(System.getProperty("user.home"), ".coral").toString(),
 
@@ -165,18 +162,25 @@ data class Cache(
 
 @Serializable
 data class Config(
-    val network: Network = Network(),
-    val docker: Docker = Docker(),
-    val registry: Registry = Registry(),
-    val cache: Cache = Cache(),
+    @SerialName("network")
+    val networkConfig: NetworkConfig = NetworkConfig(),
+
+    @SerialName("docker")
+    val dockerConfig: DockerConfig = DockerConfig(),
+
+    @SerialName("registry")
+    val registryConfig: RegistryConfig = RegistryConfig(),
+
+    @SerialName("cache")
+    val cache: CacheConfig = CacheConfig(),
 ) {
     /**
      * Calculates the address required to access the server for a given consumer.
      */
     fun resolveAddress(consumer: AddressConsumer): String {
         return when (consumer) {
-            AddressConsumer.EXTERNAL -> network.externalAddress
-            AddressConsumer.CONTAINER -> docker.address
+            AddressConsumer.EXTERNAL -> networkConfig.externalAddress
+            AddressConsumer.CONTAINER -> dockerConfig.address
             AddressConsumer.LOCAL -> "localhost"
         }
     }
@@ -188,14 +192,14 @@ data class Config(
         URLBuilder(
             protocol = URLProtocol.HTTP,
             host = resolveAddress(consumer),
-            port = network.bindPort.toInt()
+            port = networkConfig.bindPort.toInt()
         ).build()
 
     /**
      * Runs the update method on all configured indexers
      */
     fun updateIndexes() {
-        registry.indexers.forEach { (name, indexer) ->
+        registryConfig.indexers.forEach { (name, indexer) ->
             indexer.update(this, name)
         }
     }
