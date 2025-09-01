@@ -15,7 +15,6 @@ import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.agent.registry.toStringValue
 import org.coralprotocol.coralserver.agent.runtime.executable.EnvVar
 import org.coralprotocol.coralserver.config.AddressConsumer
-import org.coralprotocol.coralserver.session.SessionManager
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -33,7 +32,6 @@ data class DockerRuntime(
     override fun spawn(
         params: RuntimeParams,
         bus: EventBus<RuntimeEvent>,
-        sessionManager: SessionManager,
         applicationRuntimeContext: ApplicationRuntimeContext
     ): OrchestratorHandle {
         val agentLogger = KotlinLogging.logger("DockerRuntime:${params.agentName}")
@@ -59,9 +57,14 @@ data class DockerRuntime(
             orchestrationRuntime = "docker"
         ).map { (key, value) -> "$key=$value" }
 
+        val sessionId = when (params) {
+            is RuntimeParams.Local -> params.sessionId
+            is RuntimeParams.Remote -> params.remoteSessionId
+        }
+
         try {
             val containerCreation = dockerClient.createContainerCmd(image)
-                .withName(getDockerContainerName(params.sessionId, params.agentName))
+                .withName(getDockerContainerName(sessionId, params.agentName))
                 .withEnv(allEnvs)
                 .withAttachStdout(true)
                 .withAttachStderr(true)

@@ -8,12 +8,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.agent.registry.toStringValue
-import org.coralprotocol.coralserver.models.AgentState
 import org.coralprotocol.coralserver.agent.runtime.executable.EnvVar
 import org.coralprotocol.coralserver.config.AddressConsumer
-import org.coralprotocol.coralserver.session.SessionManager
 import java.util.concurrent.TimeUnit
-import kotlin.collections.iterator
 import kotlin.concurrent.thread
 
 private val logger = KotlinLogging.logger {}
@@ -27,7 +24,6 @@ data class ExecutableRuntime(
     override fun spawn(
         params: RuntimeParams,
         bus: EventBus<RuntimeEvent>,
-        sessionManager: SessionManager,
         applicationRuntimeContext: ApplicationRuntimeContext
     ): OrchestratorHandle {
         val agentLogger = KotlinLogging.logger("ExecutableRuntime:${params.agentName}")
@@ -61,7 +57,8 @@ data class ExecutableRuntime(
             process.waitFor()
             bus.emit(RuntimeEvent.Stopped())
             logger.warn {"Process exited for Agent ${params.agentName}"};
-            sessionManager?.getSession(params.sessionId)?.setAgentState(params.agentName, AgentState.Dead);
+            // todo: fix
+            //sessionManager?.getSession(params.sessioAnId)?.setAgentState(params.agentName, AgentState.Dead);
         }
 
         thread(isDaemon = true) {
