@@ -107,8 +107,7 @@ class SessionManager(
                     graphAgent = agent.value,
                     agentName = agent.key,
                     applicationId,
-                    privacyKey,
-                    sessionManager = this,
+                    privacyKey
                 )
             }
             subgraphs

@@ -9,7 +9,7 @@ import io.ktor.server.routing.Routing
 import io.ktor.util.collections.*
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
-import org.coralprotocol.coralserver.server.ExportManager
+import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.SessionManager
 import kotlin.NoSuchElementException
@@ -23,15 +23,15 @@ class Message(val applicationId: String, val privacyKey: String, val coralSessio
 @Resource("/api/v1/message/devmode/{applicationId}/{privacyKey}/{coralSessionId}")
 class DevModeMessage(val applicationId: String, val privacyKey: String, val coralSessionId: String)
 
-@Resource("/api/v1/message/export/{exportedAgentId}")
-class ExportingAgentMessage(val exportedAgentId: String)
+@Resource("/api/v1/message/export/{remoteSessionId}")
+class ExportingAgentMessage(val remoteSessionId: String)
 
 /**
  * Configures message-related routes.
  * 
  * @param servers A concurrent map to store server instances by transport session ID
  */
-fun Routing.messageApiRoutes(servers: ConcurrentMap<String, Server>, sessionManager: SessionManager, exportManager: ExportManager) {
+fun Routing.messageApiRoutes(servers: ConcurrentMap<String, Server>, sessionManager: SessionManager, remoteSessionManager: RemoteSessionManager) {
     // Message endpoint with application, privacy key, and session parameters
     post<Message>({
         summary = "Send message"
@@ -179,7 +179,6 @@ fun Routing.messageApiRoutes(servers: ConcurrentMap<String, Server>, sessionMana
         }
     }
 
-
     post<ExportingAgentMessage>({
         summary = "Send message"
         description = "Sends a message"
@@ -187,13 +186,14 @@ fun Routing.messageApiRoutes(servers: ConcurrentMap<String, Server>, sessionMana
         hidden = true
     }) { message ->
         logger.debug { "Received Exported Agent Message" }
-        val transport = exportManager.agents[message.exportedAgentId]?.transport ?: throw RouteException(HttpStatusCode.NotFound, "Agent not found")
+        val transport = remoteSessionManager.findSession(message.remoteSessionId)?.deferredMcpTransport
+            ?: throw RouteException(HttpStatusCode.NotFound, "Remote session not found")
+
         try {
-            transport.handlePostMessage(call)
+            transport.await().handlePostMessage(call)
         } catch (e: NoSuchElementException) {
             logger.error(e) { "This error likely comes from an inspector or non-essential client and can probably be ignored. See https://github.com/modelcontextprotocol/kotlin-sdk/issues/7" }
             call.respond(HttpStatusCode.InternalServerError, "Error handling message: ${e.message}")
         }
-
     }
 }
