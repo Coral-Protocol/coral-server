@@ -31,6 +31,7 @@ private suspend fun getMcpClient(serverUrl: String): Client {
         client = HttpClient { install(SSE) },
         urlString = serverUrl,
     )
+
     val client = Client(clientInfo = Implementation("koog-mcp-client", "1.0"))
     client.connect(transport)
     return client
