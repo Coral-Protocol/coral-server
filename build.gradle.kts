@@ -18,6 +18,8 @@ repositories {
         name = "sonatypeSnapshots"
     }
 
+    maven("https://github.com/CaelumF/koog/raw/master/maven-repo")
+
     maven("https://repo.repsy.io/mvn/chrynan/public")
     maven("https://github.com/CaelumF/schema-kenerator/raw/develop/maven-repo")
 }
@@ -60,20 +62,13 @@ dependencies {
     testImplementation("io.ktor:ktor-client-mock")
     val arcVersion = "0.126.0"
     // Arc agents for E2E tests
-    testImplementation("org.eclipse.lmos:arc-agents:$arcVersion")
-    testImplementation("org.eclipse.lmos:arc-mcp:$arcVersion")
-    testImplementation("org.eclipse.lmos:arc-server:$arcVersion")
-    testImplementation("org.eclipse.lmos:arc-azure-client:$arcVersion")
-    testImplementation("org.eclipse.lmos:arc-langchain4j-client:$arcVersion")
-    testImplementation("io.modelcontextprotocol.sdk:mcp:0.11.0-SNAPSHOT") // Override MCP Java client for Arc 0.126.0
     testImplementation("io.mockk:mockk:1.14.2")
 
     // kotest
-    // TODO: Use kotest for some or all tests
-//    val kotestVersion = "5.9.1"
-//    testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
-//    testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
-//    testImplementation("io.kotest:kotest-property:$kotestVersion")
+    val kotestVersion = "6.0.1"
+    testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
+    testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
+    testImplementation("io.kotest:kotest-property:$kotestVersion")
 
     // Ktor client dependencies
     implementation("io.ktor:ktor-client-logging")
@@ -92,9 +87,13 @@ dependencies {
     implementation("io.ktor:ktor-server-cors")
     implementation("io.ktor:ktor-server-content-negotiation")
     implementation("io.ktor:ktor-server-resources")
+    implementation("io.ktor:ktor-serialization-kotlinx-json")
     testImplementation("io.ktor:ktor-server-core")
     testImplementation("io.ktor:ktor-server-cio")
     testImplementation("io.ktor:ktor-server-sse")
+    testImplementation("io.ktor:ktor-server-test-host")
+
+    implementation("com.eygraber:uri-kmp:0.0.20")
 
     // TOML serialization
     implementation("com.akuleshov7:ktoml-core:0.7.0")
@@ -109,6 +108,14 @@ dependencies {
     implementation("io.github.smiley4:schema-kenerator-core:${schemaVersion}")
     implementation("io.github.smiley4:schema-kenerator-serialization:${schemaVersion}")
     implementation("io.github.smiley4:schema-kenerator-swagger:${schemaVersion}")
+
+    val koogVersion = "0.3.0.4" // Custom temp version from fork on CaelumF/koog
+    testImplementation("ai.koog:koog-agents:$koogVersion") {
+        exclude("io.modelcontextprotocol")
+    }
+    testImplementation("ai.koog:agents-mcp:$koogVersion") {
+        exclude("io.modelcontextprotocol")
+    }
 }
 
 tasks.test {

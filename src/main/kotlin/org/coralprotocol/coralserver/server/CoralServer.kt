@@ -22,6 +22,7 @@ import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.withTitle
 import io.github.smiley4.schemakenerator.swagger.TitleBuilder
 import io.github.smiley4.schemakenerator.swagger.data.TitleType
 import io.ktor.http.*
+import io.ktor.http.invoke
 import io.ktor.serialization.kotlinx.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -30,6 +31,7 @@ import io.ktor.server.engine.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.plugins.statuspages.exception
 import io.ktor.server.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -47,9 +49,10 @@ import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.models.SocketEvent
 import org.coralprotocol.coralserver.routes.api.v1.*
 import org.coralprotocol.coralserver.routes.sse.v1.connectionSseRoutes
+import org.coralprotocol.coralserver.routes.sse.v1.exportedAgentSseRoutes
 import org.coralprotocol.coralserver.routes.ws.v1.debugWsRoutes
+import org.coralprotocol.coralserver.routes.ws.v1.exportedAgentRoutes
 import org.coralprotocol.coralserver.session.SessionManager
-import org.coralprotocol.coralserver.util.isWindows
 import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
@@ -78,6 +81,7 @@ class CoralServer(
     orchestrator: Orchestrator
 ) {
     val sessionManager = SessionManager(orchestrator)
+    val exportManager = ExportManager(orchestrator)
 
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
@@ -89,47 +93,42 @@ class CoralServer(
         ) {
             install(OpenApi) {
                 info {
-                    title = "Coral Server API"
+                    version = "1.0"
                 }
-                spec("v1") {
-                    info {
-                        version = "1.0"
-                    }
-                    tags {
-                        tagGenerator = { url -> listOf(url.getOrNull(2)) }
-                    }
-                    schemas {
-                        generator = SchemaGenerator.kotlinx {  }
-                        // Generated types from routes
-                        generator = { type ->
-                            type
-                                .analyzeTypeUsingKotlinxSerialization {
+                tags {
+                    tagGenerator = { url -> listOf(url.getOrNull(2)) }
+                }
+                schemas {
+                    generator = SchemaGenerator.kotlinx {  }
+                    // Generated types from routes
+                    generator = { type ->
+                        type
+                            .analyzeTypeUsingKotlinxSerialization {
 
-                                }
-                                .addMissingSupertypeSubtypeRelations()
-                                .addJsonClassDiscriminatorProperty()
-                                .handleNameAnnotation().renameMembers(NAMING_STRATEGY)
-                                .generateSwaggerSchema({
-                                    strictDiscriminatorProperty = true
-                                })
-                                .handleCoreAnnotations()
-                                .handleSchemaAnnotations()
-                                .customizeTypes { _, schema ->
-                                    // Mapping is broken, and one of the code generation libraries I am using checks the
-                                    // references here
-                                    schema.discriminator?.mapping = null;
-                                }
-                                .withTitle(TitleType.SIMPLE)
-                                .compileReferencingRoot(
-                                    explicitNullTypes = false,
-                                    inlineDiscriminatedTypes = true,
-                                    builder = TitleBuilder.BUILDER_OPENAPI_SIMPLE
-                                )
-                        }
-
-                        // Other types, used by SSE or WebSocket routes
-                        schema<SocketEvent>("SocketEvent")
+                            }
+                            .addMissingSupertypeSubtypeRelations()
+                            .addJsonClassDiscriminatorProperty()
+                            .handleNameAnnotation().renameMembers(NAMING_STRATEGY)
+                            .generateSwaggerSchema({
+                                strictDiscriminatorProperty = true
+                            })
+                            .handleCoreAnnotations()
+                            .handleSchemaAnnotations()
+                            .customizeTypes { _, schema ->
+                                // Mapping is broken, and one of the code generation libraries I am using checks the
+                                // references here
+                                schema.discriminator?.mapping = null;
+                            }
+                            .withTitle(TitleType.SIMPLE)
+                            .compileReferencingRoot(
+                                explicitNullTypes = false,
+                                inlineDiscriminatedTypes = true,
+                                builder = TitleBuilder.BUILDER_OPENAPI_SIMPLE
+                            )
                     }
+
+                    // Other types, used by SSE or WebSocket routes
+                    schema<SocketEvent>("SocketEvent")
                 }
                 specAssigner = { url: String, tags: List<String> ->
                     // when another spec version is added, determine the version based on the url here or use
@@ -137,7 +136,7 @@ class CoralServer(
                     "v1"
                 }
                 pathFilter = { method, parts ->
-                     parts.getOrNull(0) == "api"
+                    parts.getOrNull(0) == "api"
                 }
                 outputFormat = OutputFormat.JSON
             }
@@ -178,16 +177,18 @@ class CoralServer(
                 // api
                 debugApiRoutes(sessionManager)
                 sessionApiRoutes(appConfig, sessionManager, devmode)
-                messageApiRoutes(mcpServersByTransportId, sessionManager)
+                messageApiRoutes(mcpServersByTransportId, sessionManager, exportManager)
                 telemetryApiRoutes(sessionManager)
                 documentationApiRoutes()
-                agentApiRoutes(appConfig, sessionManager)
+                agentApiRoutes(appConfig, sessionManager, exportManager)
 
                 // sse
                 connectionSseRoutes(mcpServersByTransportId, sessionManager)
+                exportedAgentSseRoutes(mcpServersByTransportId, exportManager)
 
                 // websocket
-                debugWsRoutes(sessionManager)
+                debugWsRoutes(sessionManager, orchestrator)
+                exportedAgentRoutes(exportManager)
 
                 // source of truth for OpenAPI docs/codegen
                 route("api_v1.json") {
@@ -195,6 +196,7 @@ class CoralServer(
                 }
             }
         }
+
     val monitor get() = server.monitor
     private var serverJob: Job? = null
 
