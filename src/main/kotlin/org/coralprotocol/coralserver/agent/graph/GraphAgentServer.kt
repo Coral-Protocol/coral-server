@@ -10,6 +10,7 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 @Serializable
 data class GraphAgentServer(
     val address: String,
+    val port: UShort,
     val attributes: List<GraphAgentServerAttribute>
 )
 
