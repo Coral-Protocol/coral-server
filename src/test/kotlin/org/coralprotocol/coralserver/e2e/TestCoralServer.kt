@@ -5,7 +5,11 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.newFixedThreadPoolContext
+import org.coralprotocol.coralserver.agent.registry.AgentRegistry
+import org.coralprotocol.coralserver.agent.runtime.Orchestrator
+import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.config.ConfigCollection
+import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.server.CoralServer
 import org.coralprotocol.coralserver.session.SessionManager
 
@@ -13,7 +17,7 @@ class TestCoralServer(
     val host: String = "127.0.0.1",
     val port: UShort = 5555u,
     val devmode: Boolean = false,
-    val sessionManager: SessionManager = SessionManager(),
+
 ) {
     var server: CoralServer? = null
 
@@ -23,12 +27,21 @@ class TestCoralServer(
     @OptIn(DelicateCoroutinesApi::class)
     suspend fun setup() {
         server?.stop()
+        val config = ConfigCollection(
+            defaultConfig = Config(NetworkConfig(bindAddress = host, bindPort = port)),
+            configPath = null,
+            registryPath = null,
+            defaultRegistry = AgentRegistry(
+                importedAgents = mapOf(),
+                exportedAgents = mapOf()
+            )
+        )
+        val orchestrator: Orchestrator = Orchestrator(config)
         server = CoralServer(
-            host = host,
-            port = port,
             devmode = devmode,
-            sessionManager = sessionManager,
-            appConfig = ConfigCollection(null)
+//            sessionManager = sessionManager,
+            appConfig = config,
+            orchestrator = orchestrator
         )
         GlobalScope.launch(serverContext) {
             server!!.start()
@@ -37,5 +50,7 @@ class TestCoralServer(
         // TODO: Poll for readiness
         // TODO: Use test http clients
     }
+
+    fun getSessionManager() = server!!.sessionManager
 }
 
