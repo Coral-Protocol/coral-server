@@ -13,12 +13,14 @@ import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
 
+const val CLOSE_THREAD_TOOL_NAME = "coral_close_thread"
+
 /**
  * Extension function to add the close thread tool to a server.
  */
 fun CoralAgentIndividualMcp.addCloseThreadTool() {
     addTool(
-        name = "coral_close_thread",
+        name = CLOSE_THREAD_TOOL_NAME,
         description = "Closes a Coral thread with a summary",
         inputSchema = Tool.Input(
             properties = buildJsonObject {
@@ -38,14 +40,14 @@ fun CoralAgentIndividualMcp.addCloseThreadTool() {
     }
 }
 
-/**
+ /**
  * Handles the close thread tool request.
  */
 private fun CoralAgentIndividualMcp.handleCloseThread(request: CallToolRequest): CallToolResult {
     try {
         val json = Json { ignoreUnknownKeys = true }
         val input = json.decodeFromString<CloseThreadInput>(request.arguments.toString())
-        val success = coralAgentGraphSession.closeThread(
+        val success = localSession.closeThread(
             threadId = input.threadId,
             summary = input.summary
         )

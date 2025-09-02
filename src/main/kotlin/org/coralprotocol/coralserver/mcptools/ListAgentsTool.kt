@@ -13,12 +13,14 @@ import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
 
+const val LIST_AGENTS_TOOL_NAME = "coral_list_agents"
+
 /**
  * Extension function to add the list agents tool to a server.
  */
 fun CoralAgentIndividualMcp.addListAgentsTool() {
     addTool(
-        name = "coral_list_agents",
+        name = LIST_AGENTS_TOOL_NAME,
         description = "List all the available Coral agents",
         inputSchema = Tool.Input(
             properties = buildJsonObject {
@@ -41,7 +43,7 @@ private fun CoralAgentIndividualMcp.handleListAgents(request: CallToolRequest): 
     try {
         val json = Json { ignoreUnknownKeys = true }
         val input = json.decodeFromString<ListAgentsInput>(request.arguments.toString())
-        val agents = coralAgentGraphSession.getAllAgents()
+        val agents = localSession.getAllAgents()
 
         if (agents.isNotEmpty()) {
             val agentsList = if (input.includeDetails) {

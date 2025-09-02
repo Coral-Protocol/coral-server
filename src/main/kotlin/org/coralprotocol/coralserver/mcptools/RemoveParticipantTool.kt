@@ -13,12 +13,14 @@ import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
 
+const val REMOVE_PARTICIPANT_TOOL_NAME = "coral_remove_participant"
+
 /**
  * Extension function to add the remove participant tool to a server.
  */
 fun CoralAgentIndividualMcp.addRemoveParticipantTool() {
     addTool(
-        name = "coral_remove_participant",
+        name = REMOVE_PARTICIPANT_TOOL_NAME,
         description = "Remove a participant from a Coral thread",
         inputSchema = Tool.Input(
             properties = buildJsonObject {
@@ -45,7 +47,7 @@ private fun CoralAgentIndividualMcp.handleRemoveParticipant(request: CallToolReq
     try {
         val json = Json { ignoreUnknownKeys = true }
         val input = json.decodeFromString<RemoveParticipantInput>(request.arguments.toString())
-        val success = coralAgentGraphSession.removeParticipantFromThread(
+        val success = localSession.removeParticipantFromThread(
             threadId = input.threadId,
             participantId = input.participantId
         )

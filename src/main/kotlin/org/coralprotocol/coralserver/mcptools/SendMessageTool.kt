@@ -13,12 +13,14 @@ import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
 
+const val SEND_MESSAGE_TOOL_NAME = "coral_send_message"
+
 /**
  * Extension function to add the send message tool to a server.
  */
 fun CoralAgentIndividualMcp.addSendMessageTool() {
     addTool(
-        name = "coral_send_message",
+        name = SEND_MESSAGE_TOOL_NAME,
         description = "Send a message to a Coral thread",
         inputSchema = Tool.Input(
             properties = buildJsonObject {
@@ -52,7 +54,7 @@ private suspend fun CoralAgentIndividualMcp.handleSendMessage(request: CallToolR
     try {
         val json = Json { ignoreUnknownKeys = true }
         val input = json.decodeFromString<SendMessageInput>(request.arguments.toString())
-        val message = coralAgentGraphSession.sendMessage(
+        val message = localSession.sendMessage(
             threadId = input.threadId,
             senderId = this.connectedAgentId,
             content = input.content,
