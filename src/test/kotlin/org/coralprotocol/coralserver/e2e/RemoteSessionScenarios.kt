@@ -7,9 +7,12 @@ import kotlinx.coroutines.runBlocking
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentServer
+import org.coralprotocol.coralserver.agent.runtime.Orchestrator
+import org.coralprotocol.coralserver.agent.runtime.RemoteRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.agent.runtime.RuntimeParams
 import org.coralprotocol.coralserver.server.CoralServer
-import org.coralprotocol.coralserver.session.CoralAgentGraphSession
+import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.utils.ServerConnectionCoreDetails
 import org.coralprotocol.coralserver.utils.ServerConnectionCoreDetailsImpl
 import org.coralprotocol.coralserver.utils.UserMessage
@@ -33,7 +36,7 @@ class RemoteSessionScenarios {
     /**
      * Used in local cases
      */
-    fun ServerConnectionCoreDetails.renderWithSessionDetails(session: CoralAgentGraphSession) =
+    fun ServerConnectionCoreDetails.renderWithSessionDetails(session: LocalSession) =
         "$protocol://$host:$port/sse/v1/devmode/${session.applicationId}/${session.privacyKey}/${session.id}/sse?agentId=${namePassedToServer}&agentDescription=$descriptionPassedToServer"
 
 
@@ -51,24 +54,24 @@ class RemoteSessionScenarios {
         )
     }
 
-//    fun test() {
-//        val websocketClient = HttpClient(CIO) {
-//            install(ContentNegotiation) {
-//                json()
-//            }
-//            install(WebSockets)
-//        }
-//
-//        runBlocking {
-//            websocketClient.webSocket(
-//                host = server.address,
-//                port = server.port.toInt(),
-//                path = "/ws/v1/exported/$remoteSessionId",
-//            ) {
-//                // something!
-//            }
-//        }
-//    }
+
+    fun establishConnection(server: GraphAgentServer, orchestrator: Orchestrator) {
+        val runtime = RemoteRuntime(server, "123")
+        val params = RuntimeParams.Local(
+            session = session,
+            agentName = agentName,
+            applicationId = applicationId,
+            privacyKey = privacyKey,
+            systemPrompt = graphAgent.systemPrompt,
+            options = graphAgent.options,
+        )
+
+        runtime.spawn(
+            params,
+            getBusOrCreate(params.session.id, params.agentName),
+            applicationRuntimeContext
+        )
+    }
 
     @OptIn(ExperimentalUuidApi::class)
     @Test
@@ -103,7 +106,7 @@ class RemoteSessionScenarios {
             // SHOULD HAVE STARTED THE AGENT
             val gas = GraphAgentServer(exportingServer.host, exportingServer.port, emptyList())
             launch {
-                importingServer.server!!.sessionManager.orchestrator.establishConnection(gas, claimId)
+                importingServer.server!!.localSessionManager.establishConnection(gas, claimId)
             }
 
             delay(1000)

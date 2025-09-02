@@ -4,7 +4,7 @@ import UnresolvedAgentOption
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import org.coralprotocol.coralserver.agent.runtime.AgentRuntimes
+import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 
 @Serializable
@@ -13,7 +13,7 @@ data class UnresolvedRegistryAgent(
     val agentInfo: AgentInfo,
 
     @Description("The runtimes that this agent supports")
-    val runtimes: AgentRuntimes,
+    val runtimes: LocalAgentRuntimes,
 
     @Description("The options that this agent supports, for example the API keys required for the agent to function")
     val options: Map<String, UnresolvedAgentOption>
@@ -28,7 +28,7 @@ data class UnresolvedRegistryAgent(
 
 @Serializable
 data class RegistryAgent(
-    val runtimes: AgentRuntimes,
+    val runtimes: LocalAgentRuntimes,
     val options: Map<String, AgentOption>
 )
 

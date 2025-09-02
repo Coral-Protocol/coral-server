@@ -5,7 +5,6 @@ import kotlinx.coroutines.runBlocking
 import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.server.CoralServer
-import org.coralprotocol.coralserver.session.SessionManager
 
 private val logger = KotlinLogging.logger {}
 

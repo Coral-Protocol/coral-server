@@ -51,7 +51,7 @@ import org.coralprotocol.coralserver.routes.sse.v1.exportedAgentSseRoutes
 import org.coralprotocol.coralserver.routes.ws.v1.debugWsRoutes
 import org.coralprotocol.coralserver.routes.ws.v1.exportedAgentRoutes
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
-import org.coralprotocol.coralserver.session.SessionManager
+import org.coralprotocol.coralserver.session.LocalSessionManager
 import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
@@ -79,7 +79,7 @@ class CoralServer(
     val devmode: Boolean = false,
     orchestrator: Orchestrator
 ) {
-    val sessionManager = SessionManager(orchestrator)
+    val localSessionManager = LocalSessionManager(orchestrator)
     val remoteSessionManager = RemoteSessionManager(orchestrator)
 
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
@@ -174,19 +174,19 @@ class CoralServer(
             }
             routing {
                 // api
-                debugApiRoutes(sessionManager)
-                sessionApiRoutes(appConfig, sessionManager, devmode)
-                messageApiRoutes(mcpServersByTransportId, sessionManager, remoteSessionManager)
-                telemetryApiRoutes(sessionManager)
+                debugApiRoutes(localSessionManager)
+                sessionApiRoutes(appConfig, localSessionManager, devmode)
+                messageApiRoutes(mcpServersByTransportId, localSessionManager, remoteSessionManager)
+                telemetryApiRoutes(localSessionManager)
                 documentationApiRoutes()
-                agentApiRoutes(appConfig, sessionManager, remoteSessionManager)
+                agentApiRoutes(appConfig, localSessionManager, remoteSessionManager)
 
                 // sse
-                connectionSseRoutes(mcpServersByTransportId, sessionManager)
+                connectionSseRoutes(mcpServersByTransportId, localSessionManager)
                 exportedAgentSseRoutes(mcpServersByTransportId, remoteSessionManager)
 
                 // websocket
-                debugWsRoutes(sessionManager, orchestrator)
+                debugWsRoutes(localSessionManager, orchestrator)
                 exportedAgentRoutes(remoteSessionManager)
 
                 // source of truth for OpenAPI docs/codegen

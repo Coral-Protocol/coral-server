@@ -10,6 +10,7 @@ import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.agent.registry.toStringValue
 import org.coralprotocol.coralserver.agent.runtime.executable.EnvVar
 import org.coralprotocol.coralserver.config.AddressConsumer
+import org.coralprotocol.coralserver.models.AgentState
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
@@ -57,8 +58,13 @@ data class ExecutableRuntime(
             process.waitFor()
             bus.emit(RuntimeEvent.Stopped())
             logger.warn {"Process exited for Agent ${params.agentName}"};
-            // todo: fix
-            //sessionManager?.getSession(params.sessioAnId)?.setAgentState(params.agentName, AgentState.Dead);
+
+            when (params) {
+                is RuntimeParams.Local -> params.session.setAgentState(params.agentName, AgentState.Dead)
+                is RuntimeParams.Remote -> {
+                    // we don't have the responsibility of marking remote agennt's states
+                }
+            }
         }
 
         thread(isDaemon = true) {

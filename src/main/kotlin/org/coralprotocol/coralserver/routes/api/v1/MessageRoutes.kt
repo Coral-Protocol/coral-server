@@ -11,7 +11,7 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 import org.coralprotocol.coralserver.server.RouteException
-import org.coralprotocol.coralserver.session.SessionManager
+import org.coralprotocol.coralserver.session.LocalSessionManager
 import kotlin.NoSuchElementException
 import kotlin.String
 
@@ -31,7 +31,7 @@ class ExportingAgentMessage(val remoteSessionId: String)
  * 
  * @param servers A concurrent map to store server instances by transport session ID
  */
-fun Routing.messageApiRoutes(servers: ConcurrentMap<String, Server>, sessionManager: SessionManager, remoteSessionManager: RemoteSessionManager) {
+fun Routing.messageApiRoutes(servers: ConcurrentMap<String, Server>, localSessionManager: LocalSessionManager, remoteSessionManager: RemoteSessionManager) {
     // Message endpoint with application, privacy key, and session parameters
     post<Message>({
         summary = "Send message"
@@ -80,7 +80,7 @@ fun Routing.messageApiRoutes(servers: ConcurrentMap<String, Server>, sessionMana
     }) { message ->
         logger.debug { "Received Message" }
 
-        val session = sessionManager.getSession(message.coralSessionId)
+        val session = localSessionManager.getSession(message.coralSessionId)
         if (session == null) {
             call.respond(HttpStatusCode.NotFound, "Session not found")
             return@post
@@ -154,7 +154,7 @@ fun Routing.messageApiRoutes(servers: ConcurrentMap<String, Server>, sessionMana
         logger.debug { "Received DevMode Message" }
 
         // Get the session. It should exist even in dev mode as it was created in the sse endpoint
-        val session = sessionManager.getSession(message.coralSessionId)
+        val session = localSessionManager.getSession(message.coralSessionId)
         if (session == null) {
             call.respond(HttpStatusCode.NotFound, "Session not found")
             return@post

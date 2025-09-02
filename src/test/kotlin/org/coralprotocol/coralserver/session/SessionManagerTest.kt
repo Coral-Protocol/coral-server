@@ -1,24 +1,22 @@
 package org.coralprotocol.coralserver.session
 
 import kotlinx.coroutines.runBlocking
-import org.coralprotocol.coralserver.models.Agent
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import java.util.concurrent.ConcurrentHashMap
 
 class SessionManagerTest {
 
-    var sessionManager = SessionManager()
+    var localSessionManager = LocalSessionManager()
     @BeforeEach
     fun setup() {
-        sessionManager = SessionManager()
+        localSessionManager = LocalSessionManager()
     }
 
     @Test
     fun `test create session with random ID`() {
         // Create a session with a random ID
-        val session = sessionManager.createSession("app1", "key1")
+        val session = localSessionManager.createSession("app1", "key1")
 
         // Verify session was created with correct properties
         assertNotNull(session)
@@ -27,14 +25,14 @@ class SessionManagerTest {
         assertTrue(session.id.isNotEmpty())
 
         // Verify session can be retrieved
-        val retrievedSession = sessionManager.getSession(session.id)
+        val retrievedSession = localSessionManager.getSession(session.id)
         assertEquals(session, retrievedSession)
     }
 
     @Test
     fun `test create session with specific ID`() {
         // Create a session with a specific ID
-        val session = sessionManager.createSessionWithId("session1", "app1", "key1")
+        val session = localSessionManager.createSessionWithId("session1", "app1", "key1")
 
         // Verify session was created with correct properties
         assertNotNull(session)
@@ -43,17 +41,17 @@ class SessionManagerTest {
         assertEquals("key1", session.privacyKey)
 
         // Verify session can be retrieved
-        val retrievedSession = sessionManager.getSession("session1")
+        val retrievedSession = localSessionManager.getSession("session1")
         assertEquals(session, retrievedSession)
     }
 
     @Test
     fun `test get or create session - existing session`() = runBlocking {
         // Create a session first
-        sessionManager.createSessionWithId("session2", "app1", "key1")
+        localSessionManager.createSessionWithId("session2", "app1", "key1")
 
         // Get the existing session
-        val session = sessionManager.getOrCreateSession("session2", "app2", "key2")
+        val session = localSessionManager.getOrCreateSession("session2", "app2", "key2")
 
         // Verify the existing session is returned (not a new one with updated properties)
         assertEquals("session2", session.id)
@@ -64,7 +62,7 @@ class SessionManagerTest {
     @Test
     fun `test get or create session - new session`() = runBlocking {
         // Get or create a new session
-        val session = sessionManager.getOrCreateSession("session3", "app3", "key3")
+        val session = localSessionManager.getOrCreateSession("session3", "app3", "key3")
 
         // Verify a new session was created
         assertEquals("session3", session.id)
@@ -72,14 +70,14 @@ class SessionManagerTest {
         assertEquals("key3", session.privacyKey)
 
         // Verify session can be retrieved
-        val retrievedSession = sessionManager.getSession("session3")
+        val retrievedSession = localSessionManager.getSession("session3")
         assertEquals(session, retrievedSession)
     }
 
     @Test
     fun `test get session - non-existent session`() {
         // Try to get a non-existent session
-        val session = sessionManager.getSession("nonexistent")
+        val session = localSessionManager.getSession("nonexistent")
 
         // Verify null is returned
         assertNull(session)
@@ -88,12 +86,12 @@ class SessionManagerTest {
     @Test
     fun `test get all sessions`() {
         // Create multiple sessions
-        val session1 = sessionManager.createSessionWithId("session1", "app1", "key1")
-        val session2 = sessionManager.createSessionWithId("session2", "app2", "key2")
-        val session3 = sessionManager.createSessionWithId("session3", "app3", "key3")
+        val session1 = localSessionManager.createSessionWithId("session1", "app1", "key1")
+        val session2 = localSessionManager.createSessionWithId("session2", "app2", "key2")
+        val session3 = localSessionManager.createSessionWithId("session3", "app3", "key3")
 
         // Get all sessions
-        val sessions = sessionManager.getAllSessions()
+        val sessions = localSessionManager.getAllSessions()
 
         // Verify all sessions are returned
         assertEquals(3, sessions.size)
@@ -105,8 +103,8 @@ class SessionManagerTest {
     @Test
     fun `test threads are not available across sessions with different privacy keys`() {
         // Create two sessions with different privacy keys
-        val session1 = sessionManager.createSessionWithId("session1", "app1", "key1")
-        val session2 = sessionManager.createSessionWithId("session2", "app1", "key2")
+        val session1 = localSessionManager.createSessionWithId("session1", "app1", "key1")
+        val session2 = localSessionManager.createSessionWithId("session2", "app1", "key2")
 
         // Register agents in both sessions
         val creator1 = session1.registerAgent(agentId = "creator1") ?: throw AssertionError("could not register agent")
@@ -155,8 +153,8 @@ class SessionManagerTest {
     @Test
     fun `test agents are not available across sessions with different privacy keys`() {
         // Create two sessions with different privacy keys
-        val session1 = sessionManager.createSessionWithId("session1", "app1", "key1")
-        val session2 = sessionManager.createSessionWithId("session2", "app1", "key2")
+        val session1 = localSessionManager.createSessionWithId("session1", "app1", "key1")
+        val session2 = localSessionManager.createSessionWithId("session2", "app1", "key2")
 
         // Register agents in both sessions with the same IDs
         val agent1 = session1.registerAgent(agentId = "agent1") ?: throw AssertionError("could not register agent")
