@@ -13,12 +13,14 @@ import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
 
+const val ADD_PARTICIPANT_TOOL_NAME = "coral_add_participant"
+
 /**
  * Extension function to add the add participant tool to a server.
  */
 fun CoralAgentIndividualMcp.addAddParticipantTool() {
     addTool(
-        name = "coral_add_participant",
+        name = ADD_PARTICIPANT_TOOL_NAME,
         description = "Add a participant to a Coral thread",
         inputSchema = Tool.Input(
             properties = buildJsonObject {
@@ -45,7 +47,7 @@ private fun CoralAgentIndividualMcp.handleAddParticipant(request: CallToolReques
     try {
         val json = Json { ignoreUnknownKeys = true }
         val input = json.decodeFromString<AddParticipantInput>(request.arguments.toString())
-        val success = coralAgentGraphSession.addParticipantToThread(
+        val success = localSession.addParticipantToThread(
             threadId = input.threadId,
             participantId = input.participantId
         )

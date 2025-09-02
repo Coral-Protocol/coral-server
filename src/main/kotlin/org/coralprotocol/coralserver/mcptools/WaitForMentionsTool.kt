@@ -16,12 +16,14 @@ import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
 
+const val WAIT_FOR_MENTIONS_TOOL_NAME = "coral_wait_for_mentions"
+
 /**
  * Extension function to add the wait for mentions tool to a server.
  */
 fun CoralAgentIndividualMcp.addWaitForMentionsTool() {
     addTool(
-        name = "coral_wait_for_mentions",
+        name = WAIT_FOR_MENTIONS_TOOL_NAME,
         description = "Wait until mentioned in a Coral thread. Call this tool when you're done or want to wait for another agent to respond. This will block until a message is received. You will see all unread messages.",
         inputSchema = Tool.Input(
             properties = buildJsonObject {
@@ -56,14 +58,14 @@ private suspend fun CoralAgentIndividualMcp.handleWaitForMentions(request: CallT
             )
         }
 
-        coralAgentGraphSession.setAgentState(agentId = connectedAgentId, state = AgentState.Listening)
+        localSession.setAgentState(agentId = connectedAgentId, state = AgentState.Listening)
         // Use the session to wait for mentions
-        val messages = coralAgentGraphSession.waitForMentions(
+        val messages = localSession.waitForMentions(
             agentId = connectedAgentId,
             timeoutMs = input.timeoutMs
         )
 
-        coralAgentGraphSession.setAgentState(agentId = connectedAgentId, state = AgentState.Busy)
+        localSession.setAgentState(agentId = connectedAgentId, state = AgentState.Busy)
         if (messages.isNotEmpty()) {
             logger.info { "Received ${messages.size} messages for agent $connectedAgentId" }
             val formattedMessages = XML.encodeToString (messages.map { message -> message.resolve() })
@@ -78,7 +80,7 @@ private suspend fun CoralAgentIndividualMcp.handleWaitForMentions(request: CallT
     } catch (e: Exception) {
         val errorMessage = "Error waiting for mentions: ${e.message}"
         logger.error(e) { errorMessage }
-        coralAgentGraphSession.setAgentState(agentId = connectedAgentId, state = AgentState.Busy)
+        localSession.setAgentState(agentId = connectedAgentId, state = AgentState.Busy)
         return CallToolResult(
             content = listOf(TextContent(errorMessage))
         )

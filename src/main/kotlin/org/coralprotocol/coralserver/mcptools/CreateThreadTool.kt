@@ -14,12 +14,14 @@ import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
 
+const val CREATE_THREAD_TOOL_NAME = "coral_create_thread"
+
 /**
  * Extension function to add the create thread tool to a server.
  */
 fun CoralAgentIndividualMcp.addCreateThreadTool() {
     addTool(
-        name = "coral_create_thread",
+        name = CREATE_THREAD_TOOL_NAME,
         description = "Create a new Coral thread with a list of participants",
         inputSchema = Tool.Input(
             properties = buildJsonObject {
@@ -49,7 +51,7 @@ private fun CoralAgentIndividualMcp.handleCreateThread(request: CallToolRequest)
     try {
         val json = Json { ignoreUnknownKeys = true }
         val input = json.decodeFromString<CreateThreadInput>(request.arguments.toString())
-        val thread = coralAgentGraphSession.createThread(
+        val thread = localSession.createThread(
             name = input.threadName,
             creatorId = connectedAgentId,
             participantIds = input.participantIds
