@@ -15,7 +15,7 @@ import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.CreateSessionRequest
 import org.coralprotocol.coralserver.session.CreateSessionResponse
-import org.coralprotocol.coralserver.session.SessionManager
+import org.coralprotocol.coralserver.session.LocalSessionManager
 
 private val logger = KotlinLogging.logger {}
 
@@ -29,7 +29,7 @@ class Sessions
 /**
  * Configures session-related routes.
  */
-fun Routing.sessionApiRoutes(appConfig: ConfigCollection, sessionManager: SessionManager, devMode: Boolean) {
+fun Routing.sessionApiRoutes(appConfig: ConfigCollection, localSessionManager: LocalSessionManager, devMode: Boolean) {
     post<Sessions>({
         summary = "Create session"
         description = "Creates a new session"
@@ -134,7 +134,7 @@ fun Routing.sessionApiRoutes(appConfig: ConfigCollection, sessionManager: Sessio
         val session = when (request.sessionId != null && devMode) {
             true -> {
                 try {
-                    sessionManager.createSessionWithId(
+                    localSessionManager.createSessionWithId(
                         request.sessionId,
                         request.applicationId,
                         request.privacyKey,
@@ -148,7 +148,7 @@ fun Routing.sessionApiRoutes(appConfig: ConfigCollection, sessionManager: Sessio
             }
 
             false -> {
-                sessionManager.createSession(request.applicationId, request.privacyKey, agentGraph)
+                localSessionManager.createSession(request.applicationId, request.privacyKey, agentGraph)
             }
         }
 
@@ -178,7 +178,7 @@ fun Routing.sessionApiRoutes(appConfig: ConfigCollection, sessionManager: Sessio
             }
         }
     }) {
-        val sessions = sessionManager.getAllSessions()
+        val sessions = localSessionManager.getAllSessions()
         call.respond(HttpStatusCode.OK, sessions.map { it.id })
     }
 }

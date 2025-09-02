@@ -12,7 +12,7 @@ import io.ktor.util.collections.*
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
-import org.coralprotocol.coralserver.session.SessionManager
+import org.coralprotocol.coralserver.session.LocalSessionManager
 
 private val logger = KotlinLogging.logger {}
 
@@ -21,14 +21,14 @@ private val logger = KotlinLogging.logger {}
  * These endpoints establish bidirectional communication channels and must be hit
  * before any message processing can begin.
  */
-fun Routing.connectionSseRoutes(servers: ConcurrentMap<String, Server>, sessionManager: SessionManager) {
+fun Routing.connectionSseRoutes(servers: ConcurrentMap<String, Server>, localSessionManager: LocalSessionManager) {
     suspend fun ServerSSESession.handleSseConnection(isDevMode: Boolean = false) {
         handleSseConnection(
             "coral://" + call.request.host() + ":" + call.request.port() + call.request.uri,
             call.parameters,
             this,
             servers,
-            sessionManager = sessionManager,
+            localSessionManager = localSessionManager,
             isDevMode
         )
     }
@@ -65,7 +65,7 @@ private suspend fun handleSseConnection(
     parameters: Parameters,
     sseProducer: ServerSSESession,
     servers: ConcurrentMap<String, Server>,
-    sessionManager: SessionManager,
+    localSessionManager: LocalSessionManager,
     isDevMode: Boolean
 ): Boolean {
     val applicationId = parameters["applicationId"]
@@ -87,7 +87,7 @@ private suspend fun handleSseConnection(
 
     val session = if (isDevMode) {
         val waitForAgents = sseProducer.call.request.queryParameters["waitForAgents"]?.toIntOrNull() ?: 0
-        val createdSession = sessionManager.getOrCreateSession(sessionId, applicationId, privacyKey, null)
+        val createdSession = localSessionManager.getOrCreateSession(sessionId, applicationId, privacyKey, null)
 
         if (waitForAgents > 0) {
             createdSession.devRequiredAgentStartCount = waitForAgents
@@ -96,7 +96,7 @@ private suspend fun handleSseConnection(
 
         createdSession
     } else {
-        val existingSession = sessionManager.getSession(sessionId)
+        val existingSession = localSessionManager.getSession(sessionId)
         if (existingSession == null) {
             sseProducer.call.respond(HttpStatusCode.NotFound, "Session not found")
             return false
@@ -140,7 +140,7 @@ private suspend fun handleSseConnection(
         return false
     }
 
-    logger.info { "DevMode: Current agent count for session ${session.id} (object id: ${session}) (from sessionmanager: ${sessionManager}): $currentCount, waiting for: ${session.devRequiredAgentStartCount}" }
+    logger.info { "DevMode: Current agent count for session ${session.id} (object id: ${session}) (from sessionmanager: ${localSessionManager}): $currentCount, waiting for: ${session.devRequiredAgentStartCount}" }
     val newCount = session.getRegisteredAgentsCount()
     logger.info { "DevMode: New agent count for session ${session.id} (object id: ${session})after registering: $newCount" }
 

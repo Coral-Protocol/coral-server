@@ -4,7 +4,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import org.coralprotocol.coralserver.models.Agent
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -12,12 +11,12 @@ import org.junit.jupiter.api.assertThrows
 import java.util.concurrent.atomic.AtomicBoolean
 
 class SessionTest {
-    private lateinit var session: CoralAgentGraphSession
+    private lateinit var session: LocalSession
 
     @BeforeEach
     fun setup() {
         // Create a new session for each test
-        session = CoralAgentGraphSession("test-session", "test-app", "test-key", agentGraph = null)
+        session = LocalSession("test-session", "test-app", "test-key", agentGraph = null)
         // Clear any existing data
         session.clearAll()
     }

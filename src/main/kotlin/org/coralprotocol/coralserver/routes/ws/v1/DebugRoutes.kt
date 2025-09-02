@@ -8,11 +8,11 @@ import io.ktor.server.websocket.*
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.models.SocketEvent
 import org.coralprotocol.coralserver.models.resolve
-import org.coralprotocol.coralserver.session.SessionManager
+import org.coralprotocol.coralserver.session.LocalSessionManager
 
 private val logger = KotlinLogging.logger {}
 
-fun Routing.debugWsRoutes(sessionManager: SessionManager, orchestrator: Orchestrator) {
+fun Routing.debugWsRoutes(localSessionManager: LocalSessionManager, orchestrator: Orchestrator) {
     webSocket("/ws/v1/debug/{applicationId}/{privacyKey}/{coralSessionId}/") {
         val applicationId = call.parameters["applicationId"]
         val privacyKey = call.parameters["privacyKey"]
@@ -21,7 +21,7 @@ fun Routing.debugWsRoutes(sessionManager: SessionManager, orchestrator: Orchestr
 
         val timeout = call.parameters["timeout"]?.toLongOrNull() ?: 1000
 
-        val session = sessionManager.waitForSession(sessionId, timeout);
+        val session = localSessionManager.waitForSession(sessionId, timeout);
         if (session == null) {
             call.respond(HttpStatusCode.NotFound, "Session not found")
             return@webSocket

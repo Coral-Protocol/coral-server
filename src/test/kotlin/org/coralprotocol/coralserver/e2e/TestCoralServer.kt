@@ -11,7 +11,6 @@ import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.server.CoralServer
-import org.coralprotocol.coralserver.session.SessionManager
 
 class TestCoralServer(
     val host: String = "127.0.0.1",
@@ -51,6 +50,6 @@ class TestCoralServer(
         // TODO: Use test http clients
     }
 
-    fun getSessionManager() = server!!.sessionManager
+    fun getSessionManager() = server!!.localSessionManager
 }
 

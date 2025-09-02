@@ -11,7 +11,7 @@ import org.coralprotocol.coralserver.mcptools.CreateThreadInput
 import org.coralprotocol.coralserver.mcptools.SendMessageInput
 import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.RouteException
-import org.coralprotocol.coralserver.session.SessionManager
+import org.coralprotocol.coralserver.session.LocalSessionManager
 
 private val logger = KotlinLogging.logger {}
 
@@ -31,7 +31,7 @@ class DebugSendMessage(
     val debugAgentId: String
 )
 
-fun Routing.debugApiRoutes(sessionManager: SessionManager) {
+fun Routing.debugApiRoutes(localSessionManager: LocalSessionManager) {
     post<DebugCreateThread>({
         summary = "Create thread"
         description = "Creates a new thread"
@@ -72,7 +72,7 @@ fun Routing.debugApiRoutes(sessionManager: SessionManager) {
         }
     }) { debugRequest ->
         // TODO (alan): proper appId/privacyKey based lookups when session manager is updated
-        val session = sessionManager.getSession(debugRequest.coralSessionId)
+        val session = localSessionManager.getSession(debugRequest.coralSessionId)
             ?: throw RouteException(HttpStatusCode.NotFound, "Session not found")
 
         try {
@@ -130,7 +130,7 @@ fun Routing.debugApiRoutes(sessionManager: SessionManager) {
         }
     }) { debugRequest ->
         // TODO (alan): proper appId/privacyKey based lookups when session manager is updated
-        val session = sessionManager.getSession(debugRequest.coralSessionId)
+        val session = localSessionManager.getSession(debugRequest.coralSessionId)
             ?: throw RouteException(HttpStatusCode.NotFound, "Session not found")
 
         try {

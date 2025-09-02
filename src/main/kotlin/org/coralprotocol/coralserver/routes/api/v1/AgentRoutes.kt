@@ -18,7 +18,7 @@ import org.coralprotocol.coralserver.agent.registry.toPublic
 import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 import org.coralprotocol.coralserver.server.RouteException
-import org.coralprotocol.coralserver.session.SessionManager
+import org.coralprotocol.coralserver.session.LocalSessionManager
 
 private val logger = KotlinLogging.logger {}
 
@@ -33,7 +33,7 @@ class ClaimAgents
 
 fun Routing.agentApiRoutes(
     appConfig: ConfigCollection,
-    sessionManager: SessionManager,
+    localSessionManager: LocalSessionManager,
     remoteSessionManager: RemoteSessionManager
 ) {
     get<Agents>({

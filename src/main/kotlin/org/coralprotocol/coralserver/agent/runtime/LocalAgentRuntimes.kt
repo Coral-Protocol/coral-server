@@ -6,8 +6,6 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
-import org.coralprotocol.coralserver.agent.registry.AgentOptionValue
-import org.coralprotocol.coralserver.session.SessionManager
 
 @Serializable
 enum class RuntimeId {
@@ -18,31 +16,9 @@ enum class RuntimeId {
     DOCKER
 }
 
-sealed interface RuntimeParams {
-    val agentName: String
-    val systemPrompt: String?
-    val options: Map<String, AgentOptionValue>
-
-    data class Local(
-        val sessionId: String,
-        val applicationId: String,
-        val privacyKey: String,
-        override val agentName: String,
-        override val systemPrompt: String?,
-        override val options: Map<String, AgentOptionValue>,
-    ): RuntimeParams
-
-    data class Remote(
-        val remoteSessionId: String,
-        override val agentName: String,
-        override val systemPrompt: String?,
-        override val options: Map<String, AgentOptionValue>,
-    ): RuntimeParams
-}
-
 @Serializable
 @SerialName("runtime")
-class AgentRuntimes(
+class LocalAgentRuntimes(
     @SerialName("executable")
     private val executableRuntime: ExecutableRuntime? = null,
 
