@@ -9,18 +9,17 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
+import org.coralprotocol.coralserver.mcp.McpTooling.REMOVE_PARTICIPANT_TOOL_NAME
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
-
-const val REMOVE_PARTICIPANT_TOOL_NAME = "coral_remove_participant"
 
 /**
  * Extension function to add the remove participant tool to a server.
  */
 fun CoralAgentIndividualMcp.addRemoveParticipantTool() {
     addTool(
-        name = REMOVE_PARTICIPANT_TOOL_NAME,
+        name = REMOVE_PARTICIPANT_TOOL_NAME.toString(),
         description = "Remove a participant from a Coral thread",
         inputSchema = Tool.Input(
             properties = buildJsonObject {

@@ -9,19 +9,18 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
+import org.coralprotocol.coralserver.mcp.McpTooling.CREATE_THREAD_TOOL_NAME
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 
 private val logger = KotlinLogging.logger {}
-
-const val CREATE_THREAD_TOOL_NAME = "coral_create_thread"
 
 /**
  * Extension function to add the create thread tool to a server.
  */
 fun CoralAgentIndividualMcp.addCreateThreadTool() {
     addTool(
-        name = CREATE_THREAD_TOOL_NAME,
+        name = CREATE_THREAD_TOOL_NAME.toString(),
         description = "Create a new Coral thread with a list of participants",
         inputSchema = Tool.Input(
             properties = buildJsonObject {

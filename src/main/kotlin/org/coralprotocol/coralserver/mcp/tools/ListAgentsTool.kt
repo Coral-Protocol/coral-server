@@ -9,18 +9,17 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
+import org.coralprotocol.coralserver.mcp.McpTooling.LIST_AGENTS_TOOL_NAME
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
-
-const val LIST_AGENTS_TOOL_NAME = "coral_list_agents"
 
 /**
  * Extension function to add the list agents tool to a server.
  */
 fun CoralAgentIndividualMcp.addListAgentsTool() {
     addTool(
-        name = LIST_AGENTS_TOOL_NAME,
+        name = LIST_AGENTS_TOOL_NAME.toString(),
         description = "List all the available Coral agents",
         inputSchema = Tool.Input(
             properties = buildJsonObject {

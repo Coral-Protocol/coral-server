@@ -9,18 +9,19 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
+import org.coralprotocol.coralserver.mcp.McpTooling.CLOSE_THREAD_TOOL_NAME
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
 
-const val CLOSE_THREAD_TOOL_NAME = "coral_close_thread"
+
 
 /**
  * Extension function to add the close thread tool to a server.
  */
 fun CoralAgentIndividualMcp.addCloseThreadTool() {
     addTool(
-        name = CLOSE_THREAD_TOOL_NAME,
+        name = CLOSE_THREAD_TOOL_NAME.toString(),
         description = "Closes a Coral thread with a summary",
         inputSchema = Tool.Input(
             properties = buildJsonObject {

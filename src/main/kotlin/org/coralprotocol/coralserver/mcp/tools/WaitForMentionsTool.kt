@@ -10,20 +10,19 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 import nl.adaptivity.xmlutil.serialization.XML
+import org.coralprotocol.coralserver.mcp.McpTooling.WAIT_FOR_MENTIONS_TOOL_NAME
 import org.coralprotocol.coralserver.models.AgentState
 import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
 
-const val WAIT_FOR_MENTIONS_TOOL_NAME = "coral_wait_for_mentions"
-
 /**
  * Extension function to add the wait for mentions tool to a server.
  */
 fun CoralAgentIndividualMcp.addWaitForMentionsTool() {
     addTool(
-        name = WAIT_FOR_MENTIONS_TOOL_NAME,
+        name = WAIT_FOR_MENTIONS_TOOL_NAME.toString(),
         description = "Wait until mentioned in a Coral thread. Call this tool when you're done or want to wait for another agent to respond. This will block until a message is received. You will see all unread messages.",
         inputSchema = Tool.Input(
             properties = buildJsonObject {
