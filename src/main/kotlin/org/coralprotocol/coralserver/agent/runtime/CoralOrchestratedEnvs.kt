@@ -13,8 +13,8 @@ fun getCoralSystemEnvs(
         "CORAL_AGENT_ID" to params.agentName,
         "CORAL_ORCHESTRATION_RUNTIME" to orchestrationRuntime,
         "CORAL_SESSION_ID" to when (params) {
-            is RuntimeParams.Local -> params.sessionId
-            is RuntimeParams.Remote -> params.remoteSessionId
+            is RuntimeParams.Local -> params.session.id
+            is RuntimeParams.Remote -> params.session.id
         },
         "CORAL_API_URL" to apiUrl.toString(),
         "CORAL_SSE_URL" to with(mcpUrl) {

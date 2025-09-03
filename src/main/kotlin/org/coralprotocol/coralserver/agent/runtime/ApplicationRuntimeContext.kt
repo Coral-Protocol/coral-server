@@ -46,7 +46,7 @@ class ApplicationRuntimeContext(
                     "v1",
                     params.applicationId,
                     params.privacyKey,
-                    params.sessionId,
+                    params.session.id,
                     "sse"
                 )
             }
@@ -55,7 +55,7 @@ class ApplicationRuntimeContext(
                     "sse",
                     "v1",
                     "export",
-                    params.remoteSessionId,
+                    params.session.id,
                     "sse"
                 )
             }
