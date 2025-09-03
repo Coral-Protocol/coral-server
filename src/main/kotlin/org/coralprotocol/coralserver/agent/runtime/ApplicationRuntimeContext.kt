@@ -7,22 +7,22 @@ import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
 import com.github.dockerjava.transport.DockerHttpClient
 import io.ktor.http.*
 import org.coralprotocol.coralserver.config.AddressConsumer
-import org.coralprotocol.coralserver.config.ConfigCollection
+import org.coralprotocol.coralserver.config.Config
 import java.time.Duration
 
 class ApplicationRuntimeContext(
-    val app: ConfigCollection
+    val config: Config
 ) {
     private val dockerClientConfig: DockerClientConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
-        .withDockerHost(app.config.dockerConfig.socket)
+        .withDockerHost(config.dockerConfig.socket)
         .build()
 
     var httpClient: DockerHttpClient = ApacheDockerHttpClient.Builder()
         .dockerHost(dockerClientConfig.dockerHost)
         .sslConfig(dockerClientConfig.sslConfig)
-        .responseTimeout(Duration.ofSeconds(app.config.dockerConfig.responseTimeout))
-        .connectionTimeout(Duration.ofSeconds(app.config.dockerConfig.connectionTimeout))
-        .maxConnections(app.config.dockerConfig.maxConnections)
+        .responseTimeout(Duration.ofSeconds(config.dockerConfig.responseTimeout))
+        .connectionTimeout(Duration.ofSeconds(config.dockerConfig.connectionTimeout))
+        .maxConnections(config.dockerConfig.maxConnections)
         .build()
 
     val dockerClient = DockerClientImpl.getInstance(dockerClientConfig, httpClient) ?:
@@ -30,7 +30,7 @@ class ApplicationRuntimeContext(
 
     fun getApiUrl(addressConsumer: AddressConsumer): Url {
         // todo: remote!
-        return app.config.resolveBaseUrl(addressConsumer)
+        return config.resolveBaseUrl(addressConsumer)
     }
 
     fun getMcpUrl(params: RuntimeParams, addressConsumer: AddressConsumer): Url {

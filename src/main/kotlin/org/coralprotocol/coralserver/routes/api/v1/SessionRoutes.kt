@@ -10,8 +10,8 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
+import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.defaultAsValue
-import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.CreateSessionRequest
 import org.coralprotocol.coralserver.session.CreateSessionResponse
@@ -29,7 +29,11 @@ class Sessions
 /**
  * Configures session-related routes.
  */
-fun Routing.sessionApiRoutes(appConfig: ConfigCollection, localSessionManager: LocalSessionManager, devMode: Boolean) {
+fun Routing.sessionApiRoutes(
+    registry: AgentRegistry,
+    localSessionManager: LocalSessionManager,
+    devMode: Boolean
+) {
     post<Sessions>({
         summary = "Create session"
         description = "Creates a new session"
@@ -64,7 +68,6 @@ fun Routing.sessionApiRoutes(appConfig: ConfigCollection, localSessionManager: L
 
         val agentGraph = request.agentGraph?.let { it ->
             val requestedAgents = it.agents
-            val registry = appConfig.registry
 
             val missingAgentLinks = it.links.map { set ->
                 set.filter { agent -> !it.agents.containsKey(agent) }
