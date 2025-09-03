@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.mcptools
+package org.coralprotocol.coralserver.mcp.tools
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.modelcontextprotocol.kotlin.sdk.CallToolRequest
@@ -13,15 +13,15 @@ import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
 
-const val ADD_PARTICIPANT_TOOL_NAME = "coral_add_participant"
+const val REMOVE_PARTICIPANT_TOOL_NAME = "coral_remove_participant"
 
 /**
- * Extension function to add the add participant tool to a server.
+ * Extension function to add the remove participant tool to a server.
  */
-fun CoralAgentIndividualMcp.addAddParticipantTool() {
+fun CoralAgentIndividualMcp.addRemoveParticipantTool() {
     addTool(
-        name = ADD_PARTICIPANT_TOOL_NAME,
-        description = "Add a participant to a Coral thread",
+        name = REMOVE_PARTICIPANT_TOOL_NAME,
+        description = "Remove a participant from a Coral thread",
         inputSchema = Tool.Input(
             properties = buildJsonObject {
                 putJsonObject("threadId") {
@@ -30,41 +30,41 @@ fun CoralAgentIndividualMcp.addAddParticipantTool() {
                 }
                 putJsonObject("participantId") {
                     put("type", "string")
-                    put("description", "ID of the agent to add")
+                    put("description", "ID of the agent to remove")
                 }
             },
             required = listOf("threadId", "participantId")
         )
     ) { request ->
-        handleAddParticipant(request)
+        handleRemoveParticipant(request)
     }
 }
 
 /**
- * Handles the add participant tool request.
+ * Handles the remove participant tool request.
  */
-private fun CoralAgentIndividualMcp.handleAddParticipant(request: CallToolRequest): CallToolResult {
+private fun CoralAgentIndividualMcp.handleRemoveParticipant(request: CallToolRequest): CallToolResult {
     try {
         val json = Json { ignoreUnknownKeys = true }
-        val input = json.decodeFromString<AddParticipantInput>(request.arguments.toString())
-        val success = localSession.addParticipantToThread(
+        val input = json.decodeFromString<RemoveParticipantInput>(request.arguments.toString())
+        val success = localSession.removeParticipantFromThread(
             threadId = input.threadId,
             participantId = input.participantId
         )
 
         if (success) {
             return CallToolResult(
-                content = listOf(TextContent("Participant added successfully to thread ${input.threadId}"))
+                content = listOf(TextContent("Participant removed successfully from thread ${input.threadId}"))
             )
         } else {
-            val errorMessage = "Failed to add participant: Thread not found, participant not found, or thread is closed"
+            val errorMessage = "Failed to remove participant: Thread not found, participant not found, or thread is closed"
             logger.error { errorMessage }
             return CallToolResult(
                 content = listOf(TextContent(errorMessage))
             )
         }
     } catch (e: Exception) {
-        val errorMessage = "Error adding participant: ${e.message}"
+        val errorMessage = "Error removing participant: ${e.message}"
         logger.error(e) { errorMessage }
         return CallToolResult(
             content = listOf(TextContent(errorMessage))
