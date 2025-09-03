@@ -1,29 +1,25 @@
 package org.coralprotocol.coralserver.mcp.tools
 
-import io.github.oshai.kotlinlogging.KotlinLogging
-import io.modelcontextprotocol.kotlin.sdk.CallToolRequest
-import io.modelcontextprotocol.kotlin.sdk.CallToolResult
-import io.modelcontextprotocol.kotlin.sdk.TextContent
 import io.modelcontextprotocol.kotlin.sdk.Tool
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
-import org.coralprotocol.coralserver.mcp.McpTooling.CLOSE_THREAD_TOOL_NAME
+import org.coralprotocol.coralserver.mcp.McpTool
+import org.coralprotocol.coralserver.mcp.McpToolName
+import org.coralprotocol.coralserver.mcp.tools.models.CloseThreadInput
+import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
-private val logger = KotlinLogging.logger {}
+internal class CloseThreadTool: McpTool<CloseThreadInput>() {
+    override val name: McpToolName
+        get() = McpToolName.CLOSE_THREAD
 
+    override val description: String
+        get() = "Closes a Coral thread with a summary"
 
-
-/**
- * Extension function to add the close thread tool to a server.
- */
-fun CoralAgentIndividualMcp.addCloseThreadTool() {
-    addTool(
-        name = CLOSE_THREAD_TOOL_NAME.toString(),
-        description = "Closes a Coral thread with a summary",
-        inputSchema = Tool.Input(
+    override val inputSchema: Tool.Input
+        get() = Tool.Input(
             properties = buildJsonObject {
                 putJsonObject("threadId") {
                     put("type", "string")
@@ -36,39 +32,19 @@ fun CoralAgentIndividualMcp.addCloseThreadTool() {
             },
             required = listOf("threadId", "summary")
         )
-    ) { request ->
-        handleCloseThread(request)
-    }
-}
 
- /**
- * Handles the close thread tool request.
- */
-private fun CoralAgentIndividualMcp.handleCloseThread(request: CallToolRequest): CallToolResult {
-    try {
-        val json = Json { ignoreUnknownKeys = true }
-        val input = json.decodeFromString<CloseThreadInput>(request.arguments.toString())
-        val success = localSession.closeThread(
-            threadId = input.threadId,
-            summary = input.summary
-        )
+    override val argumentsSerializer: KSerializer<CloseThreadInput>
+        get() = CloseThreadInput.serializer()
 
-        if (success) {
-            return CallToolResult(
-                content = listOf(TextContent("Thread closed successfully with summary: ${input.summary}"))
-            )
-        } else {
-            val errorMessage = "Failed to close thread: Thread not found"
-            logger.error { errorMessage }
-            return CallToolResult(
-                content = listOf(TextContent(errorMessage))
-            )
+    override suspend fun execute(mcpServer: CoralAgentIndividualMcp, arguments: CloseThreadInput): McpToolResult {
+        return if (mcpServer.localSession.closeThread(
+                threadId = arguments.threadId,
+                summary = arguments.summary
+            )) {
+            McpToolResult.CloseThreadSuccess
         }
-    } catch (e: Exception) {
-        val errorMessage = "Error closing thread: ${e.message}"
-        logger.error(e) { errorMessage }
-        return CallToolResult(
-            content = listOf(TextContent(errorMessage))
-        )
+        else {
+            McpToolResult.Error("Failed to close thread: Thread not found")
+        }
     }
 }

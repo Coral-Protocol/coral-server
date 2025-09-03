@@ -1,30 +1,29 @@
 package org.coralprotocol.coralserver.mcp.tools
 
-import io.github.oshai.kotlinlogging.KotlinLogging
-import io.modelcontextprotocol.kotlin.sdk.CallToolRequest
-import io.modelcontextprotocol.kotlin.sdk.CallToolResult
-import io.modelcontextprotocol.kotlin.sdk.TextContent
 import io.modelcontextprotocol.kotlin.sdk.Tool
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
-import nl.adaptivity.xmlutil.serialization.XML
-import org.coralprotocol.coralserver.mcp.McpTooling.WAIT_FOR_MENTIONS_TOOL_NAME
+import org.coralprotocol.coralserver.mcp.McpTool
+import org.coralprotocol.coralserver.mcp.McpToolName
+import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
+import org.coralprotocol.coralserver.mcp.tools.models.WaitForMentionsInput
 import org.coralprotocol.coralserver.models.AgentState
 import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
-private val logger = KotlinLogging.logger {}
+internal class WaitForMentionsTool: McpTool<WaitForMentionsInput>() {
+    private val maxWaitForMentionsTimeoutMs = 1000 * 60 * 10
 
-/**
- * Extension function to add the wait for mentions tool to a server.
- */
-fun CoralAgentIndividualMcp.addWaitForMentionsTool() {
-    addTool(
-        name = WAIT_FOR_MENTIONS_TOOL_NAME.toString(),
-        description = "Wait until mentioned in a Coral thread. Call this tool when you're done or want to wait for another agent to respond. This will block until a message is received. You will see all unread messages.",
-        inputSchema = Tool.Input(
+    override val name: McpToolName
+        get() = McpToolName.WAIT_FOR_MENTIONS
+
+    override val description: String
+        get() = "Wait until mentioned in a Coral thread. Call this tool when you're done or want to wait for another agent to respond. This will block until a message is received. You will see all unread messages."
+
+    override val inputSchema: Tool.Input
+        get() = Tool.Input(
             properties = buildJsonObject {
                 putJsonObject("timeoutMs") {
                     put("type", "number")
@@ -33,55 +32,39 @@ fun CoralAgentIndividualMcp.addWaitForMentionsTool() {
             },
             required = listOf("timeoutMs")
         )
-    ) { request: CallToolRequest ->
-        handleWaitForMentions(request)
-    }
-}
 
-/**
- * Handles the wait for mentions tool request.
- */
-private suspend fun CoralAgentIndividualMcp.handleWaitForMentions(request: CallToolRequest): CallToolResult {
-    try {
-        val json = Json { ignoreUnknownKeys = true }
-        val input = json.decodeFromString<WaitForMentionsInput>(request.arguments.toString())
-        logger.info { "Waiting for mentions for agent $connectedAgentId with timeout ${input.timeoutMs}ms" }
-        if(input.timeoutMs < 0) {
-            return CallToolResult(
-                content = listOf(TextContent("Timeout must be greater than 0"))
-            )
-        }
-        if(input.timeoutMs > maxWaitForMentionsTimeoutMs) {
-            return CallToolResult(
-                content = listOf(TextContent("Timeout must not exceed the maximum of $maxWaitForMentionsTimeoutMs ms"))
-            )
-        }
+    override val argumentsSerializer: KSerializer<WaitForMentionsInput>
+        get() = WaitForMentionsInput.serializer()
 
-        localSession.setAgentState(agentId = connectedAgentId, state = AgentState.Listening)
-        // Use the session to wait for mentions
-        val messages = localSession.waitForMentions(
-            agentId = connectedAgentId,
-            timeoutMs = input.timeoutMs
-        )
+    override suspend fun execute(mcpServer: CoralAgentIndividualMcp, arguments: WaitForMentionsInput): McpToolResult {
+        try {
+            logger.info { "Waiting for mentions for agent ${mcpServer.connectedAgentId} with timeout ${arguments.timeoutMs}ms" }
 
-        localSession.setAgentState(agentId = connectedAgentId, state = AgentState.Busy)
-        if (messages.isNotEmpty()) {
-            logger.info { "Received ${messages.size} messages for agent $connectedAgentId" }
-            val formattedMessages = XML.encodeToString (messages.map { message -> message.resolve() })
-            return CallToolResult(
-                content = listOf(TextContent(formattedMessages))
+            if (arguments.timeoutMs < 0)
+                return McpToolResult.Error("Timeout must be greater than 0")
+
+            if (arguments.timeoutMs > maxWaitForMentionsTimeoutMs)
+                return McpToolResult.Error("Timeout must not exceed the maximum of $maxWaitForMentionsTimeoutMs ms")
+
+            mcpServer.localSession.setAgentState(agentId = mcpServer.connectedAgentId, state = AgentState.Listening)
+
+            val messages = mcpServer.localSession.waitForMentions(
+                agentId = mcpServer.connectedAgentId,
+                timeoutMs = arguments.timeoutMs
             )
-        } else {
-            return CallToolResult(
-                content = listOf(TextContent("No new messages received within the timeout period"))
-            )
+
+            mcpServer.localSession.setAgentState(agentId = mcpServer.connectedAgentId, state = AgentState.Busy)
+
+            if (messages.isNotEmpty()) {
+                logger.info { "Received ${messages.size} messages for agent ${mcpServer.connectedAgentId}" }
+                return McpToolResult.WaitForMentionsSuccess(messages.map { it.resolve() })
+            }
+            else {
+                return McpToolResult.WaitForMentionsTimeout
+            }
         }
-    } catch (e: Exception) {
-        val errorMessage = "Error waiting for mentions: ${e.message}"
-        logger.error(e) { errorMessage }
-        localSession.setAgentState(agentId = connectedAgentId, state = AgentState.Busy)
-        return CallToolResult(
-            content = listOf(TextContent(errorMessage))
-        )
+        finally {
+            mcpServer.localSession.setAgentState(agentId = mcpServer.connectedAgentId, state = AgentState.Busy)
+        }
     }
 }

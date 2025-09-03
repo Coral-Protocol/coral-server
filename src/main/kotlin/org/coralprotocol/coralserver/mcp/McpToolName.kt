@@ -8,29 +8,29 @@ import kotlinx.serialization.Serializable
  * when exporting the OpenAPI spec
  */
 @Serializable
-enum class McpTooling {
+enum class McpToolName {
     @SerialName("coral_add_participant")
-    ADD_PARTICIPANT_TOOL_NAME,
+    ADD_PARTICIPANT,
 
     @SerialName("coral_close_thread")
-    CLOSE_THREAD_TOOL_NAME,
+    CLOSE_THREAD,
 
     @SerialName("coral_create_thread")
-    CREATE_THREAD_TOOL_NAME,
+    CREATE_THREAD,
 
     @SerialName("coral_list_agents")
-    LIST_AGENTS_TOOL_NAME,
+    LIST_AGENTS,
 
     @SerialName("coral_remove_participant")
-    REMOVE_PARTICIPANT_TOOL_NAME,
+    REMOVE_PARTICIPANT,
 
     @SerialName("coral_send_message")
-    SEND_MESSAGE_TOOL_NAME,
+    SEND_MESSAGE,
 
     @SerialName("coral_wait_for_mentions")
-    WAIT_FOR_MENTIONS_TOOL_NAME;
+    WAIT_FOR_MENTIONS;
 
     override fun toString(): String {
-        return McpTooling.serializer().descriptor.getElementName(ordinal)
+        return McpToolName.serializer().descriptor.getElementName(ordinal)
     }
 }

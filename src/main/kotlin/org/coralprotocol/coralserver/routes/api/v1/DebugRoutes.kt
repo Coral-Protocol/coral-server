@@ -7,8 +7,8 @@ import io.ktor.resources.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.coralprotocol.coralserver.mcp.tools.CreateThreadInput
-import org.coralprotocol.coralserver.mcp.tools.SendMessageInput
+import org.coralprotocol.coralserver.mcp.tools.models.CreateThreadInput
+import org.coralprotocol.coralserver.mcp.tools.models.SendMessageInput
 import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.LocalSessionManager

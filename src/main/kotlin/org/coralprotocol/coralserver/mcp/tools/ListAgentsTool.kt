@@ -1,27 +1,25 @@
 package org.coralprotocol.coralserver.mcp.tools
 
-import io.github.oshai.kotlinlogging.KotlinLogging
-import io.modelcontextprotocol.kotlin.sdk.CallToolRequest
-import io.modelcontextprotocol.kotlin.sdk.CallToolResult
-import io.modelcontextprotocol.kotlin.sdk.TextContent
 import io.modelcontextprotocol.kotlin.sdk.Tool
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
-import org.coralprotocol.coralserver.mcp.McpTooling.LIST_AGENTS_TOOL_NAME
+import org.coralprotocol.coralserver.mcp.McpTool
+import org.coralprotocol.coralserver.mcp.McpToolName
+import org.coralprotocol.coralserver.mcp.tools.models.ListAgentsInput
+import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
-private val logger = KotlinLogging.logger {}
+internal class ListAgentsTool: McpTool<ListAgentsInput>() {
+    override val name: McpToolName
+        get() = McpToolName.LIST_AGENTS
 
-/**
- * Extension function to add the list agents tool to a server.
- */
-fun CoralAgentIndividualMcp.addListAgentsTool() {
-    addTool(
-        name = LIST_AGENTS_TOOL_NAME.toString(),
-        description = "List all the available Coral agents",
-        inputSchema = Tool.Input(
+    override val description: String
+        get() = "List all the available Coral agents"
+
+    override val inputSchema: Tool.Input
+        get() = Tool.Input(
             properties = buildJsonObject {
                 putJsonObject("includeDetails") {
                     put("type", "boolean")
@@ -30,56 +28,17 @@ fun CoralAgentIndividualMcp.addListAgentsTool() {
             },
             required = listOf("includeDetails")
         )
-    ) { request ->
-        handleListAgents(request)
-    }
-}
 
-/**
- * Handles the list agents tool request.
- */
-private fun CoralAgentIndividualMcp.handleListAgents(request: CallToolRequest): CallToolResult {
-    try {
-        val json = Json { ignoreUnknownKeys = true }
-        val input = json.decodeFromString<ListAgentsInput>(request.arguments.toString())
-        val agents = localSession.getAllAgents()
+    override val argumentsSerializer: KSerializer<ListAgentsInput>
+        get() = ListAgentsInput.serializer()
 
-        if (agents.isNotEmpty()) {
-            val agentsList = if (input.includeDetails) {
-                agents.joinToString("\n") { agent -> 
-                    val description = if (agent.description.isNotEmpty()) {
-                        ", Description: ${agent.description}"
-                    } else {
-                        ""
-                    }
-                    "ID: ${agent.id}, $description"
-                }
-            } else {
-                agents.joinToString(", ") { agent -> agent.id }
-            }
+    override suspend fun execute(mcpServer: CoralAgentIndividualMcp, arguments: ListAgentsInput): McpToolResult {
+        val agents = mcpServer.localSession.getAllAgents()
 
-            return CallToolResult(
-                content = listOf(
-                    TextContent(
-                        """
-                        Registered Agents (${agents.size}):
-                        $agentsList
-                        """.trimIndent()
-                    )
-                )
-            )
+        return if (arguments.includeDetails) {
+            McpToolResult.AgentList(agents)
         } else {
-            return CallToolResult(
-                content = listOf(TextContent("No agents are currently registered in the system"))
-            )
+            McpToolResult.AgentNameList(agents.map { agent -> agent.id })
         }
-    } catch (e: Exception) {
-        val errorMessage = "Error listing agents: ${e.message}"
-        logger.error(e) { errorMessage }
-
-        // Return a user-friendly error message
-        return CallToolResult(
-            content = listOf(TextContent(errorMessage))
-        )
     }
 }
