@@ -6,7 +6,6 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.plugins.websocket.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -19,12 +18,12 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
-import org.coralprotocol.coralserver.agent.graph.GraphAgentServer
+import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
 import org.coralprotocol.coralserver.agent.graph.GraphAgentServerSource
-import org.coralprotocol.coralserver.agent.remote.RemoteGraphAgentRequest
 import org.coralprotocol.coralserver.config.ConfigCollection
-import org.coralprotocol.coralserver.models.agent.ClaimAgentsModel
-import org.coralprotocol.coralserver.session.remote.createRemoteSessionClient
+import org.coralprotocol.coralserver.server.apiJsonConfig
+import org.coralprotocol.coralserver.session.LocalSession
+import org.coralprotocol.coralserver.session.remote.RemoteSession
 import kotlin.uuid.ExperimentalUuidApi
 
 private val logger = KotlinLogging.logger {}
@@ -81,14 +80,14 @@ class Orchestrator(
     }
 
     fun spawn(
-        sessionId: String,
+        session: LocalSession,
         graphAgent: GraphAgent,
         agentName: String,
         applicationId: String,
         privacyKey: String
     ) {
         val params = RuntimeParams.Local(
-            sessionId = sessionId,
+            session = session,
             agentName = agentName,
             applicationId = applicationId,
             privacyKey = privacyKey,
@@ -106,7 +105,7 @@ class Orchestrator(
 
                 handles.add(runtime.spawn(
                     params,
-                    getBusOrCreate(params.sessionId, params.agentName),
+                    getBusOrCreate(params.session.id, params.agentName),
                     applicationRuntimeContext)
                 )
             }
@@ -141,47 +140,46 @@ class Orchestrator(
                 // do the request
                 remoteScope.launch {
                     for (server in rankedServers) {
+
+                        // todo: support https somehow?
+                        val url = URLBuilder(
+                            protocol = URLProtocol.HTTP,
+                            host = server.address,
+                            port = server.port.toInt(),
+                            pathSegments = listOf("api", "v1", "agents", "claim"),
+                        ).build()
+
                         val client = HttpClient(CIO) {
                             install(ContentNegotiation) {
-                                json()
+                                json(apiJsonConfig)
                             }
                         }
-                        val response = client.post(server.address) {
-                            url {
-                                appendPathSegments("api", "v1", "agents", "claim")
-                            }
+                        val response = client.post(url) {
                             contentType(ContentType.Application.Json)
-                            setBody(
-                                ClaimAgentsModel(
-                                    agents = listOf(
-                                        RemoteGraphAgentRequest(
-                                            name = agentName,
-                                            type = graphAgent.name,
-                                            options = graphAgent.options,
-                                            systemPrompt = graphAgent.systemPrompt,
-                                            extraTools = graphAgent.extraTools,
-                                            runtime = provider.runtime
-                                        )
-                                    )
-                                )
-                            )
+                            setBody(GraphAgentRequest(
+                                registryAgentName = graphAgent.name,
+                                agentName = graphAgent.name,
+                                options = graphAgent.options,
+                                systemPrompt = graphAgent.systemPrompt,
+                                blocking = graphAgent.blocking,
+                                tools = graphAgent.extraTools,
+                                provider = GraphAgentProvider.Local(provider.runtime)
+                            ))
                         }
                         if (response.status != HttpStatusCode.OK) {
                             val body = response.bodyAsText()
                             logger.warn {"Failed to connect to ${server.address} (${response.status}): $body" }
                             continue
                         }
-                        logger.info { response }
 
-
-                        // websocket id
-                        // connect
-                        // exit when websocket die
-                        establishConnection(server, sessionId)
+                        val runtime = RemoteRuntime(server, response.bodyAsText())
+                        handles.add(runtime.spawn(
+                            params,
+                            getBusOrCreate(params.session.id, params.agentName),
+                            applicationRuntimeContext
+                        ))
                     }
                 }
-
-                //remoteAgents.set(returnedKey, CoralAgentIndividualMcp())
             }
         }
     }
@@ -193,12 +191,12 @@ class Orchestrator(
      * was requested by another server.
      */
     fun spawnRemote(
-        remoteSessionId: String,
+        session: RemoteSession,
         graphAgent: GraphAgent,
         agentName: String
     ) {
         val params = RuntimeParams.Remote(
-            remoteSessionId = remoteSessionId,
+            session = session,
             agentName = agentName,
             systemPrompt = graphAgent.systemPrompt,
             options = graphAgent.options,
@@ -215,38 +213,9 @@ class Orchestrator(
 
                 handles.add(runtime.spawn(
                     params,
-                    getBusOrCreate(params.remoteSessionId, params.agentName),
+                    getBusOrCreate(params.session.id, params.agentName),
                     applicationRuntimeContext)
                 )
-            }
-        }
-    }
-
-    /**
-     * Remote agent function!
-     *
-     * This function should be called by an importing server to establish a connection to an agent that is running on
-     * an external server.  A WebSocket connection to an agent running on an external server has a lot of similarities
-     * between to a local agent's Runtime.
-     */
-    fun establishConnection(
-        server: GraphAgentServer,
-        claimId: String,
-    ) {
-        val webSocketClient = HttpClient(CIO) {
-            install(ContentNegotiation) {
-                json()
-            }
-            install(WebSockets)
-        }
-
-        runBlocking {
-            webSocketClient.webSocket(
-                host = server.address,
-                port = server.port.toInt(),
-                path = "/ws/v1/exported/$claimId",
-            ) {
-                createRemoteSessionClient()
             }
         }
     }

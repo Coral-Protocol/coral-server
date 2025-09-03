@@ -149,7 +149,7 @@ private suspend fun handleSseConnection(
     val transport = SseServerTransport(endpoint, sseProducer)
 
     val individualServer =
-        CoralAgentIndividualMcp(uri, session, agentId, maxWaitForMentionsTimeout, extraTools = agent.extraTools)
+        CoralAgentIndividualMcp(session, agentId, maxWaitForMentionsTimeout, extraTools = agent.extraTools)
 
     val transportSessionId = transport.sessionId
     servers[transportSessionId] = individualServer
