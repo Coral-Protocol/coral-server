@@ -5,8 +5,7 @@ import com.github.dockerjava.core.DockerClientConfig
 import com.github.dockerjava.core.DockerClientImpl
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
 import com.github.dockerjava.transport.DockerHttpClient
-import io.ktor.http.URLBuilder
-import io.ktor.http.Url
+import io.ktor.http.*
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.ConfigCollection
 import java.time.Duration

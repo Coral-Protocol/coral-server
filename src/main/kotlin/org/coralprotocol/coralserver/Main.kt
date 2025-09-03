@@ -2,8 +2,8 @@ package org.coralprotocol.coralserver
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
-import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
+import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.server.CoralServer
 
 private val logger = KotlinLogging.logger {}

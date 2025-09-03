@@ -16,9 +16,9 @@ import org.coralprotocol.coralserver.agent.registry.PublicRegistryAgent
 import org.coralprotocol.coralserver.agent.registry.defaultAsValue
 import org.coralprotocol.coralserver.agent.registry.toPublic
 import org.coralprotocol.coralserver.config.ConfigCollection
-import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.LocalSessionManager
+import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 
 private val logger = KotlinLogging.logger {}
 

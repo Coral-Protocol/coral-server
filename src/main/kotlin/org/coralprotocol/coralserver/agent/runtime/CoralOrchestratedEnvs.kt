@@ -1,6 +1,6 @@
 package org.coralprotocol.coralserver.agent.runtime
 
-import io.ktor.http.Url
+import io.ktor.http.*
 
 fun getCoralSystemEnvs(
     params: RuntimeParams,

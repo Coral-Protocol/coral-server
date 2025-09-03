@@ -6,7 +6,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
-import org.coralprotocol.coralserver.session.SessionEvent as SessionEvent
+import org.coralprotocol.coralserver.session.SessionEvent
 
 @Serializable
 @JsonClassDiscriminator("type")
