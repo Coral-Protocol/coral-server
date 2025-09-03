@@ -11,11 +11,7 @@ import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
-import org.coralprotocol.coralserver.agent.registry.AgentExport
-import org.coralprotocol.coralserver.agent.registry.PublicRegistryAgent
-import org.coralprotocol.coralserver.agent.registry.defaultAsValue
-import org.coralprotocol.coralserver.agent.registry.toPublic
-import org.coralprotocol.coralserver.config.ConfigCollection
+import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
@@ -32,7 +28,7 @@ class ExportedAgents
 class ClaimAgents
 
 fun Routing.agentApiRoutes(
-    appConfig: ConfigCollection,
+    registry: AgentRegistry,
     localSessionManager: LocalSessionManager,
     remoteSessionManager: RemoteSessionManager
 ) {
@@ -49,7 +45,7 @@ fun Routing.agentApiRoutes(
             }
         }
     }) {
-        val agents = appConfig.registry.importedAgents.map { entry -> entry.value.toPublic(entry.key) }
+        val agents = registry.importedAgents.map { entry -> entry.value.toPublic(entry.key) }
         call.respond(HttpStatusCode.OK, agents)
     }
 
@@ -66,7 +62,7 @@ fun Routing.agentApiRoutes(
             }
         }
     }) {
-        val agents = appConfig.registry.exportedAgents.map { entry -> entry.value.toPublic(entry.key) }
+        val agents = registry.exportedAgents.map { entry -> entry.value.toPublic(entry.key) }
         call.respond(HttpStatusCode.OK, agents)
     }
 
@@ -94,7 +90,6 @@ fun Routing.agentApiRoutes(
             }
         }
     }) {
-        val registry = appConfig.registry
         val request = call.receive<GraphAgentRequest>()
 
         if (request.provider is GraphAgentProvider.Remote) {

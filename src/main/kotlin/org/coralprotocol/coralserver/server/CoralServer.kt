@@ -41,9 +41,10 @@ import kotlinx.coroutines.Job
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNamingStrategy
+import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.AddressConsumer
-import org.coralprotocol.coralserver.config.ConfigCollection
+import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.models.SocketEvent
 import org.coralprotocol.coralserver.routes.api.v1.*
 import org.coralprotocol.coralserver.routes.sse.v1.connectionSseRoutes
@@ -75,7 +76,8 @@ val apiJsonConfig = Json {
  * @param devmode Whether the server is running in development mode
  */
 class CoralServer(
-    val appConfig: ConfigCollection,
+    val config: Config,
+    val registry: AgentRegistry,
     val devmode: Boolean = false,
     orchestrator: Orchestrator
 ) {
@@ -86,8 +88,8 @@ class CoralServer(
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
         embeddedServer(
             CIO,
-            host = appConfig.config.networkConfig.bindAddress,
-            port = appConfig.config.networkConfig.bindPort.toInt(),
+            host = config.networkConfig.bindAddress,
+            port = config.networkConfig.bindPort.toInt(),
             watchPaths = listOf("classes")
         ) {
             install(OpenApi) {
@@ -175,11 +177,11 @@ class CoralServer(
             routing {
                 // api
                 debugApiRoutes(localSessionManager)
-                sessionApiRoutes(appConfig, localSessionManager, devmode)
+                sessionApiRoutes(registry, localSessionManager, devmode)
                 messageApiRoutes(mcpServersByTransportId, localSessionManager, remoteSessionManager)
                 telemetryApiRoutes(localSessionManager)
                 documentationApiRoutes()
-                agentApiRoutes(appConfig, localSessionManager, remoteSessionManager)
+                agentApiRoutes(registry, localSessionManager, remoteSessionManager)
 
                 // sse
                 connectionSseRoutes(mcpServersByTransportId, localSessionManager)
@@ -203,17 +205,17 @@ class CoralServer(
      * Starts the server.
      */
     fun start(wait: Boolean = false) {
-        logger.info { "Starting sse server on port ${appConfig.config.networkConfig.bindPort}" }
+        logger.info { "Starting sse server on port ${config.networkConfig.bindPort}" }
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "trace");
 
         if (devmode) {
             logger.info {
                 "In development, agents can connect to " +
-                        "${appConfig.config.resolveAddress(AddressConsumer.LOCAL)}/sse/v1/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=exampleAgent"
+                        "${config.resolveAddress(AddressConsumer.LOCAL)}/sse/v1/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=exampleAgent"
             }
             logger.info {
                 "Connect the inspector to " +
-                        "${appConfig.config.resolveAddress(AddressConsumer.LOCAL)}/sse/v1/devmode/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=inspector"
+                        "${config.resolveAddress(AddressConsumer.LOCAL)}/sse/v1/devmode/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=inspector"
             }
         }
         server.start(wait)

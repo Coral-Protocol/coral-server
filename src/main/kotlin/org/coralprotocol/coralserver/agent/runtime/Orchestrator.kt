@@ -20,7 +20,8 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
 import org.coralprotocol.coralserver.agent.graph.GraphAgentServerSource
-import org.coralprotocol.coralserver.config.ConfigCollection
+import org.coralprotocol.coralserver.agent.registry.AgentRegistry
+import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.remote.RemoteSession
@@ -62,14 +63,15 @@ interface OrchestratorHandle {
 }
 
 class Orchestrator(
-    val app: ConfigCollection = ConfigCollection(null)
+    val config: Config = Config(),
+    val registry: AgentRegistry = AgentRegistry(),
 ) {
     private val remoteScope = CoroutineScope(Dispatchers.IO)
     private val eventBusses: MutableMap<String, MutableMap<String, EventBus<RuntimeEvent>>> = mutableMapOf()
     private val handles: MutableList<OrchestratorHandle> = mutableListOf()
 
     @OptIn(ExperimentalUuidApi::class)
-    private val applicationRuntimeContext: ApplicationRuntimeContext = ApplicationRuntimeContext(app)
+    private val applicationRuntimeContext: ApplicationRuntimeContext = ApplicationRuntimeContext(config)
 
     fun getBus(sessionId: String, agentId: String): EventBus<RuntimeEvent>? = eventBusses[sessionId]?.get(agentId)
 
@@ -95,7 +97,7 @@ class Orchestrator(
             options = graphAgent.options,
         )
 
-        val agent = app.registry.importedAgents[graphAgent.name]
+        val agent = registry.importedAgents[graphAgent.name]
             ?: throw IllegalArgumentException("Cannot spawn unknown agent: ${graphAgent.name}")
 
         when (val provider = graphAgent.provider) {
@@ -202,7 +204,7 @@ class Orchestrator(
             options = graphAgent.options,
         )
 
-        val agent = app.registry.importedAgents[graphAgent.name]
+        val agent = registry.importedAgents[graphAgent.name]
             ?: throw IllegalArgumentException("Cannot spawn unknown agent: ${graphAgent.name}")
 
         when (val provider = graphAgent.provider) {

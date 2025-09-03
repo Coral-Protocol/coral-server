@@ -8,7 +8,6 @@ import kotlinx.coroutines.newFixedThreadPoolContext
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.Config
-import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.server.CoralServer
 
@@ -26,20 +25,14 @@ class TestCoralServer(
     @OptIn(DelicateCoroutinesApi::class)
     suspend fun setup() {
         server?.stop()
-        val config = ConfigCollection(
-            defaultConfig = Config(NetworkConfig(bindAddress = host, bindPort = port)),
-            configPath = null,
-            registryPath = null,
-            defaultRegistry = AgentRegistry(
-                importedAgents = mapOf(),
-                exportedAgents = mapOf()
-            )
-        )
-        val orchestrator: Orchestrator = Orchestrator(config)
+        val config = Config(NetworkConfig(bindAddress = host, bindPort = port))
+        val registry = AgentRegistry()
+
+        val orchestrator: Orchestrator = Orchestrator(config, registry)
         server = CoralServer(
             devmode = devmode,
-//            sessionManager = sessionManager,
-            appConfig = config,
+            config = config,
+            registry = registry,
             orchestrator = orchestrator
         )
         GlobalScope.launch(serverContext) {

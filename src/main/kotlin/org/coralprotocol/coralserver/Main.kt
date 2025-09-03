@@ -2,18 +2,23 @@ package org.coralprotocol.coralserver
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
+import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
-import org.coralprotocol.coralserver.config.ConfigCollection
+import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.config.loadFromFile
 import org.coralprotocol.coralserver.server.CoralServer
 
 private val logger = KotlinLogging.logger {}
+
+// Reference to resources in main
+class Main
 
 /**
  * Start sse-server mcp on port 5555.
  *
  * @param args
  * - "--stdio": Runs an MCP server using standard input/output.
- * - "--sse-server <port>": Runs an SSE MCP server with a plain configuration.
+ * - "--sse-server": Runs an SSE MCP server with a plain configuration.
  * - "--dev": Runs the server in development mode.
  */
 fun main(args: Array<String>) {
@@ -21,25 +26,25 @@ fun main(args: Array<String>) {
 //    System.setProperty("io.ktor.development", "true")
 
     val command = args.firstOrNull() ?: "--sse-server"
-    val port = args.getOrNull(1)?.toUShortOrNull() ?: 5555u
     val devMode = args.contains("--dev")
 
     when (command) {
 //        "--stdio" -> runMcpServerUsingStdio()
         "--sse-server" -> {
-            val appConfig = ConfigCollection()
+            val config = Config.loadFromFile()
+            val registry = AgentRegistry.loadFromFile(config)
 
-            val orchestrator = Orchestrator(appConfig)
+            val orchestrator = Orchestrator(config, registry)
             val server = CoralServer(
                 devmode = devMode,
-                appConfig = appConfig,
+                config = config,
+                registry = registry,
                 orchestrator = orchestrator
             )
 
-            // Add shutdown hook to stop the server gracefully
+            // Add a shutdown hook to stop the server gracefully
             Runtime.getRuntime().addShutdownHook(Thread {
                 logger.info { "Shutting down server..." }
-                appConfig.stopWatch()
                 server.stop()
                 runBlocking {
                     orchestrator.destroy()
