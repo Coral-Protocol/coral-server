@@ -12,7 +12,7 @@ class RemoteSessionManager(
 ){
     private val scope = CoroutineScope(Dispatchers.IO)
 
-    private val claims = mutableMapOf<String, GraphAgent>()
+    val claims = mutableMapOf<String, GraphAgent>()
     private val sessions = mutableMapOf<String, RemoteSession>()
 
     /**
@@ -36,11 +36,11 @@ class RemoteSessionManager(
             deferredMcpTransport = CompletableDeferred()
         )
 
-//        orchestrator.spawnRemote(
-//            remoteSessionId = id,
-//            graphAgent = agent,
-//            agentName = agent.name
-//        )
+        orchestrator.spawnRemote(
+            session = remoteSession,
+            graphAgent = agent,
+            agentName = agent.name
+        )
 
         sessions[id] = remoteSession
         return remoteSession
