@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.e2e
 
+import io.mockk.spyk
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
@@ -26,9 +27,9 @@ class TestCoralServer(
     suspend fun setup() {
         server?.stop()
         val config = Config(NetworkConfig(bindAddress = host, bindPort = port))
-        val registry = AgentRegistry()
+        val registry = AgentRegistry(mutableMapOf(), mutableMapOf())
+        val orchestrator: Orchestrator = spyk(Orchestrator(config, registry))
 
-        val orchestrator: Orchestrator = Orchestrator(config, registry)
         server = CoralServer(
             devmode = devmode,
             config = config,
