@@ -5,6 +5,7 @@ import io.modelcontextprotocol.kotlin.sdk.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.shared.Transport
+import org.coralprotocol.coralserver.mcp.resources.addInstructionResource
 import org.coralprotocol.coralserver.mcp.resources.addMessageResource
 import org.coralprotocol.coralserver.mcp.tools.addThreadTools
 import org.coralprotocol.coralserver.session.CustomTool
@@ -43,7 +44,7 @@ class CoralAgentIndividualMcp(
     init {
         addThreadTools()
         addMessageResource()
-        //addInstructionResource()
+        addInstructionResource()
         extraTools.forEach {
             addExtraTool(localSession.id, connectedAgentId, it)
         }
