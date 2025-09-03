@@ -9,10 +9,8 @@ import io.github.smiley4.ktoropenapi.config.SchemaGenerator
 import io.github.smiley4.ktoropenapi.openApi
 import io.github.smiley4.ktoropenapi.route
 import io.github.smiley4.schemakenerator.core.CoreSteps.addMissingSupertypeSubtypeRelations
-import io.github.smiley4.schemakenerator.core.CoreSteps.handleNameAnnotation
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.addJsonClassDiscriminatorProperty
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.analyzeTypeUsingKotlinxSerialization
-import io.github.smiley4.schemakenerator.serialization.SerializationSteps.renameMembers
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.compileReferencingRoot
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.customizeTypes
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.generateSwaggerSchema
@@ -40,11 +38,12 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.coroutines.Job
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonNamingStrategy
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.mcp.McpResources
+import org.coralprotocol.coralserver.mcp.McpTooling
 import org.coralprotocol.coralserver.models.SocketEvent
 import org.coralprotocol.coralserver.routes.api.v1.*
 import org.coralprotocol.coralserver.routes.sse.v1.connectionSseRoutes
@@ -57,15 +56,10 @@ import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 
-// It is important that this naming strategy is used both for deserialization and for the OpenAPI generation
-// so that the spec generates the correct property names for (de)serialization
-private val NAMING_STRATEGY = JsonNamingStrategy.SnakeCase
-
 val apiJsonConfig = Json {
     encodeDefaults = true
     prettyPrint = true
     explicitNulls = false
-    namingStrategy = NAMING_STRATEGY
 }
 
 /**
@@ -94,6 +88,7 @@ class CoralServer(
         ) {
             install(OpenApi) {
                 info {
+                    title = "Coral Server API"
                     version = "1.0"
                 }
                 tags {
@@ -109,7 +104,6 @@ class CoralServer(
                             }
                             .addMissingSupertypeSubtypeRelations()
                             .addJsonClassDiscriminatorProperty()
-                            .handleNameAnnotation().renameMembers(NAMING_STRATEGY)
                             .generateSwaggerSchema({
                                 strictDiscriminatorProperty = true
                             })
@@ -130,6 +124,10 @@ class CoralServer(
 
                     // Other types, used by SSE or WebSocket routes
                     schema<SocketEvent>("SocketEvent")
+
+                    // Mcp types
+                    schema<McpTooling>("McpTooling")
+                    schema<McpResources>("McpResources")
                 }
                 specAssigner = { url: String, tags: List<String> ->
                     // when another spec version is added, determine the version based on the url here or use

@@ -9,18 +9,17 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
+import org.coralprotocol.coralserver.mcp.McpTooling.SEND_MESSAGE_TOOL_NAME
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
-
-const val SEND_MESSAGE_TOOL_NAME = "coral_send_message"
 
 /**
  * Extension function to add the send message tool to a server.
  */
 fun CoralAgentIndividualMcp.addSendMessageTool() {
     addTool(
-        name = SEND_MESSAGE_TOOL_NAME,
+        name = SEND_MESSAGE_TOOL_NAME.toString(),
         description = "Send a message to a Coral thread",
         inputSchema = Tool.Input(
             properties = buildJsonObject {

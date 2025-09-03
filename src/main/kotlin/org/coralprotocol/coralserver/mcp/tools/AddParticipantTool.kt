@@ -9,18 +9,17 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
+import org.coralprotocol.coralserver.mcp.McpTooling.ADD_PARTICIPANT_TOOL_NAME
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
-
-const val ADD_PARTICIPANT_TOOL_NAME = "coral_add_participant"
 
 /**
  * Extension function to add the add participant tool to a server.
  */
 fun CoralAgentIndividualMcp.addAddParticipantTool() {
     addTool(
-        name = ADD_PARTICIPANT_TOOL_NAME,
+        name = ADD_PARTICIPANT_TOOL_NAME.toString(),
         description = "Add a participant to a Coral thread",
         inputSchema = Tool.Input(
             properties = buildJsonObject {
