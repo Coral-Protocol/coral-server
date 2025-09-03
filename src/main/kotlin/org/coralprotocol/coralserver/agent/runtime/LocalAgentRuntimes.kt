@@ -5,6 +5,7 @@ package org.coralprotocol.coralserver.agent.runtime
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import org.coralprotocol.coralserver.EventBus
 
 @Serializable
@@ -13,7 +14,10 @@ enum class RuntimeId {
     EXECUTABLE,
 
     @SerialName("docker")
-    DOCKER
+    DOCKER,
+
+    @Transient
+    FUNCTION
 }
 
 @Serializable
@@ -24,6 +28,9 @@ class LocalAgentRuntimes(
 
     @SerialName("docker")
     private val dockerRuntime: DockerRuntime? = null,
+
+    @Transient
+    private val functionRuntime: FunctionRuntime? = null
 ) : Orchestrate {
     override fun spawn(
         params: RuntimeParams,
@@ -36,6 +43,7 @@ class LocalAgentRuntimes(
     fun getById(runtimeId: RuntimeId): Orchestrate? = when (runtimeId) {
         RuntimeId.EXECUTABLE -> executableRuntime
         RuntimeId.DOCKER -> dockerRuntime
+        RuntimeId.FUNCTION -> functionRuntime
     }
 
     fun toRuntimeIds(): List<RuntimeId> {
