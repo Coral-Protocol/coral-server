@@ -1,12 +1,18 @@
 package org.coralprotocol.coralserver.e2e
 
 import io.kotest.assertions.throwables.shouldNotThrowAny
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.mockkStatic
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentServer
+import org.coralprotocol.coralserver.agent.graph.GraphAgentServerSource
+import org.coralprotocol.coralserver.agent.registry.AgentRegistry
+import org.coralprotocol.coralserver.agent.registry.RegistryAgent
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.agent.runtime.RemoteRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
@@ -28,7 +34,11 @@ class RemoteSessionScenarios {
      * (Does )
      */
 
-    fun ServerConnectionCoreDetails.renderDevmodeExporting(server: CoralServer, externalId: String, agentId: String): String {
+    fun ServerConnectionCoreDetails.renderDevmodeExporting(
+        server: CoralServer,
+        externalId: String,
+        agentId: String
+    ): String {
 
         return "$protocol://$host:$port/sse/v1/export/$externalId?agentId=$agentId&agentDescription=$descriptionPassedToServer"
     }
@@ -54,25 +64,6 @@ class RemoteSessionScenarios {
         )
     }
 
-
-    fun establishConnection(server: GraphAgentServer, orchestrator: Orchestrator) {
-        val runtime = RemoteRuntime(server, "123")
-        val params = RuntimeParams.Local(
-            session = session,
-            agentName = agentName,
-            applicationId = applicationId,
-            privacyKey = privacyKey,
-            systemPrompt = graphAgent.systemPrompt,
-            options = graphAgent.options,
-        )
-
-        runtime.spawn(
-            params,
-            getBusOrCreate(params.session.id, params.agentName),
-            applicationRuntimeContext
-        )
-    }
-
     @OptIn(ExperimentalUuidApi::class)
     @Test
     fun testRemoteAgentProxying(): Unit = runBlocking {
@@ -92,24 +83,36 @@ class RemoteSessionScenarios {
                     renderServerUrl = { renderWithSessionDetails(importingServerSession) })
 
             val exportedServerAgentId = "exportingServerAgent"
-            val claimId = exportingServer.server!!.remoteSessionManager.createClaim(
-                GraphAgent(
-                    name = exportedServerAgentId,
-                    options = mapOf(),
-                    systemPrompt = "",
-                    extraTools = emptySet(),
-                    blocking = false,
-                    provider = GraphAgentProvider.Local(RuntimeId.DOCKER)
+            val graphAgent = GraphAgent(
+                name = exportedServerAgentId,
+                options = mapOf(),
+                systemPrompt = "",
+                extraTools = emptySet(),
+                blocking = false,
+                provider = GraphAgentProvider.Remote(
+                    runtime = RuntimeId.DOCKER,
+                    serverSource = GraphAgentServerSource.Servers(listOf(GraphAgentServer(exportingServer.host, exportingServer.port, emptyList()))),
+                    serverScoring = null,
                 )
             )
 
+//            val claimId = exportingServer.server!!.remoteSessionManager.createClaim(graphAgent)
+
             // SHOULD HAVE STARTED THE AGENT
-            val gas = GraphAgentServer(exportingServer.host, exportingServer.port, emptyList())
-            launch {
-                importingServer.server!!.localSessionManager.establishConnection(gas, claimId)
-            }
+
+            importingServer.server!!.localSessionManager.orchestrator.spawn(
+                importingServerSession,
+                graphAgent,
+                importServerAgentName,
+                importingServerSession.applicationId,
+                importingServerSession.privacyKey
+            )
+
 
             delay(1000)
+            println("$importingServer")
+            val claimId = exportingServer.server!!.remoteSessionManager.claims.keys.first()
+
 
             val exportingServerAgent =
                 createConnectedKoogAgent(
@@ -118,7 +121,14 @@ class RemoteSessionScenarios {
                         port = exportingServer.port,
                         protocol = "http",
                         namePassedToServer = exportedServerAgentId,
-                    ), renderServerUrl = { renderDevmodeExporting(exportingServer.server!!, claimId, exportedServerAgentId) }
+                    ),
+                    renderServerUrl = {
+                        renderDevmodeExporting(
+                            exportingServer.server!!,
+                            claimId,
+                            exportedServerAgentId
+                        )
+                    }
                 )
 
             importingServerAgent.step(um("Create a new thread with importingServerAgent and tell it the code 3251"))
