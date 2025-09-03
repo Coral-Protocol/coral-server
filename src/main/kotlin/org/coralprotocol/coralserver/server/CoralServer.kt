@@ -60,7 +60,7 @@ private val logger = KotlinLogging.logger {}
 // so that the spec generates the correct property names for (de)serialization
 private val NAMING_STRATEGY = JsonNamingStrategy.SnakeCase
 
-private val json = Json {
+val apiJsonConfig = Json {
     encodeDefaults = true
     prettyPrint = true
     explicitNulls = false
@@ -142,7 +142,7 @@ class CoralServer(
             install(Resources)
             install(SSE)
             install(ContentNegotiation) {
-                json(json, contentType = ContentType.Application.Json)
+                json(apiJsonConfig, contentType = ContentType.Application.Json)
             }
             install(WebSockets) {
                 contentConverter = KotlinxWebsocketSerializationConverter(Json)
@@ -169,7 +169,7 @@ class CoralServer(
                         wrapped = RouteException(HttpStatusCode.InternalServerError, cause.message)
                     }
 
-                    call.respondText(text = json.encodeToString(wrapped), status = wrapped.status)
+                    call.respondText(text = apiJsonConfig.encodeToString(wrapped), status = wrapped.status)
                 }
             }
             routing {
