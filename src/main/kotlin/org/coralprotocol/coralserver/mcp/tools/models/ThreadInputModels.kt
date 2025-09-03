@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.mcp.tools
+package org.coralprotocol.coralserver.mcp.tools.models
 
 import kotlinx.serialization.Serializable
 

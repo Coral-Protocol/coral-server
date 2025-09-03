@@ -1,27 +1,25 @@
 package org.coralprotocol.coralserver.mcp.tools
 
-import io.github.oshai.kotlinlogging.KotlinLogging
-import io.modelcontextprotocol.kotlin.sdk.CallToolRequest
-import io.modelcontextprotocol.kotlin.sdk.CallToolResult
-import io.modelcontextprotocol.kotlin.sdk.TextContent
 import io.modelcontextprotocol.kotlin.sdk.Tool
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
-import org.coralprotocol.coralserver.mcp.McpTooling.REMOVE_PARTICIPANT_TOOL_NAME
+import org.coralprotocol.coralserver.mcp.McpTool
+import org.coralprotocol.coralserver.mcp.McpToolName
+import org.coralprotocol.coralserver.mcp.tools.models.RemoveParticipantInput
+import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
-private val logger = KotlinLogging.logger {}
+internal class RemoveParticipantTool: McpTool<RemoveParticipantInput>() {
+    override val name: McpToolName
+        get() = McpToolName.REMOVE_PARTICIPANT
 
-/**
- * Extension function to add the remove participant tool to a server.
- */
-fun CoralAgentIndividualMcp.addRemoveParticipantTool() {
-    addTool(
-        name = REMOVE_PARTICIPANT_TOOL_NAME.toString(),
-        description = "Remove a participant from a Coral thread",
-        inputSchema = Tool.Input(
+    override val description: String
+        get() = "Remove a participant from a Coral thread"
+
+    override val inputSchema: Tool.Input
+        get() = Tool.Input(
             properties = buildJsonObject {
                 putJsonObject("threadId") {
                     put("type", "string")
@@ -34,39 +32,19 @@ fun CoralAgentIndividualMcp.addRemoveParticipantTool() {
             },
             required = listOf("threadId", "participantId")
         )
-    ) { request ->
-        handleRemoveParticipant(request)
-    }
-}
 
-/**
- * Handles the remove participant tool request.
- */
-private fun CoralAgentIndividualMcp.handleRemoveParticipant(request: CallToolRequest): CallToolResult {
-    try {
-        val json = Json { ignoreUnknownKeys = true }
-        val input = json.decodeFromString<RemoveParticipantInput>(request.arguments.toString())
-        val success = localSession.removeParticipantFromThread(
-            threadId = input.threadId,
-            participantId = input.participantId
-        )
+    override val argumentsSerializer: KSerializer<RemoveParticipantInput>
+        get() = RemoveParticipantInput.serializer()
 
-        if (success) {
-            return CallToolResult(
-                content = listOf(TextContent("Participant removed successfully from thread ${input.threadId}"))
-            )
-        } else {
-            val errorMessage = "Failed to remove participant: Thread not found, participant not found, or thread is closed"
-            logger.error { errorMessage }
-            return CallToolResult(
-                content = listOf(TextContent(errorMessage))
-            )
+    override suspend fun execute(mcpServer: CoralAgentIndividualMcp, arguments: RemoveParticipantInput): McpToolResult {
+        return if (mcpServer.localSession.removeParticipantFromThread(
+                threadId = arguments.threadId,
+                participantId = arguments.participantId
+            )) {
+            McpToolResult.RemoveParticipantSuccess
         }
-    } catch (e: Exception) {
-        val errorMessage = "Error removing participant: ${e.message}"
-        logger.error(e) { errorMessage }
-        return CallToolResult(
-            content = listOf(TextContent(errorMessage))
-        )
+        else {
+            McpToolResult.Error("Failed to remove participant: Thread not found, participant not found, or thread is closed")
+        }
     }
 }

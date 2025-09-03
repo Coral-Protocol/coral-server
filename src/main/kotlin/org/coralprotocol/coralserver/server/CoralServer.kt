@@ -43,7 +43,8 @@ import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.mcp.McpResources
-import org.coralprotocol.coralserver.mcp.McpTooling
+import org.coralprotocol.coralserver.mcp.McpToolName
+import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
 import org.coralprotocol.coralserver.models.SocketEvent
 import org.coralprotocol.coralserver.routes.api.v1.*
 import org.coralprotocol.coralserver.routes.sse.v1.connectionSseRoutes
@@ -126,8 +127,9 @@ class CoralServer(
                     schema<SocketEvent>("SocketEvent")
 
                     // Mcp types
-                    schema<McpTooling>("McpTooling")
+                    schema<McpToolName>("McpToolName")
                     schema<McpResources>("McpResources")
+                    schema<McpToolResult>("McpToolResult")
                 }
                 specAssigner = { url: String, tags: List<String> ->
                     // when another spec version is added, determine the version based on the url here or use

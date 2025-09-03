@@ -1,27 +1,26 @@
 package org.coralprotocol.coralserver.mcp.tools
 
-import io.github.oshai.kotlinlogging.KotlinLogging
-import io.modelcontextprotocol.kotlin.sdk.CallToolRequest
-import io.modelcontextprotocol.kotlin.sdk.CallToolResult
-import io.modelcontextprotocol.kotlin.sdk.TextContent
 import io.modelcontextprotocol.kotlin.sdk.Tool
-import kotlinx.serialization.json.Json
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
-import org.coralprotocol.coralserver.mcp.McpTooling.SEND_MESSAGE_TOOL_NAME
+import org.coralprotocol.coralserver.mcp.McpTool
+import org.coralprotocol.coralserver.mcp.McpToolName
+import org.coralprotocol.coralserver.mcp.tools.models.SendMessageInput
+import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
+import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
-private val logger = KotlinLogging.logger {}
+internal class SendMessageTool: McpTool<SendMessageInput>() {
+    override val name: McpToolName
+        get() = McpToolName.SEND_MESSAGE
 
-/**
- * Extension function to add the send message tool to a server.
- */
-fun CoralAgentIndividualMcp.addSendMessageTool() {
-    addTool(
-        name = SEND_MESSAGE_TOOL_NAME.toString(),
-        description = "Send a message to a Coral thread",
-        inputSchema = Tool.Input(
+    override val description: String
+        get() = "Send a message to a Coral thread"
+
+    override val inputSchema: Tool.Input
+        get() = Tool.Input(
             properties = buildJsonObject {
                 putJsonObject("threadId") {
                     put("type", "string")
@@ -41,52 +40,16 @@ fun CoralAgentIndividualMcp.addSendMessageTool() {
             },
             required = listOf("threadId", "content", "mentions")
         )
-    ) { request ->
-        handleSendMessage(request)
-    }
-}
 
-/**
- * Handles the send message tool request.
- */
-private suspend fun CoralAgentIndividualMcp.handleSendMessage(request: CallToolRequest): CallToolResult {
-    try {
-        val json = Json { ignoreUnknownKeys = true }
-        val input = json.decodeFromString<SendMessageInput>(request.arguments.toString())
-        val message = localSession.sendMessage(
-            threadId = input.threadId,
-            senderId = this.connectedAgentId,
-            content = input.content,
-            mentions = input.mentions
-        )
+    override val argumentsSerializer: KSerializer<SendMessageInput>
+        get() = SendMessageInput.serializer()
 
-        if (message != null) {
-            logger.info { message }
-
-            return CallToolResult(
-                content = listOf(
-                    TextContent(
-                        """
-                        Message sent successfully:
-                        ID: ${message.id}
-                        Thread: ${message.thread.id}
-                        Sender: ${message.sender.id}
-                        """.trimIndent()
-                    )
-                )
-            )
-        } else {
-            val errorMessage = "Failed to send message: Thread not found, sender not found, thread is closed, or sender is not a participant"
-            logger.error { errorMessage }
-            return CallToolResult(
-                content = listOf(TextContent(errorMessage))
-            )
-        }
-    } catch (e: Exception) {
-        val errorMessage = "Error sending message: ${e.message}"
-        logger.error(e) { errorMessage }
-        return CallToolResult(
-            content = listOf(TextContent(errorMessage))
-        )
+    override suspend fun execute(mcpServer: CoralAgentIndividualMcp, arguments: SendMessageInput): McpToolResult {
+        return McpToolResult.SendMessageSuccess(mcpServer.localSession.sendMessage(
+            threadId = arguments.threadId,
+            senderId = mcpServer.connectedAgentId,
+            content = arguments.content,
+            mentions = arguments.mentions
+        ).resolve())
     }
 }
