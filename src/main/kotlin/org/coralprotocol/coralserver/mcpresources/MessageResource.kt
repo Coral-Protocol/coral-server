@@ -9,8 +9,10 @@ import org.coralprotocol.coralserver.models.ResolvedThread
 import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
+const val MESSAGE_RESOURCE_URI = "Message.resource"
+
 private fun CoralAgentIndividualMcp.handler(request: ReadResourceRequest): ReadResourceResult {
-    val threadsAgentPrivyIn: List<ResolvedThread> = this.coralAgentGraphSession.getAllThreadsAgentParticipatesIn(this.connectedAgentId).map { it -> it.resolve() }
+    val threadsAgentPrivyIn: List<ResolvedThread> = this.localSession.getAllThreadsAgentParticipatesIn(this.connectedAgentId).map { it -> it.resolve() }
     val renderedThreads: String = XML.encodeToString(threadsAgentPrivyIn, rootName = QName("threads"))
     return ReadResourceResult(
         contents = listOf(
@@ -27,7 +29,7 @@ fun CoralAgentIndividualMcp.addMessageResource() {
     addResource(
         name = "message",
         description = "Message resource",
-        uri = this.connectedUri,
+        uri = MESSAGE_RESOURCE_URI,
         mimeType = "application/json",
         readHandler = { request: ReadResourceRequest ->
             handler(request)
