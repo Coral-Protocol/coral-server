@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.mcpresources
+package org.coralprotocol.coralserver.mcp.resources
 
 import io.modelcontextprotocol.kotlin.sdk.ReadResourceRequest
 import io.modelcontextprotocol.kotlin.sdk.ReadResourceResult

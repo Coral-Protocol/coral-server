@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.mcptools
+package org.coralprotocol.coralserver.mcp.tools
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.modelcontextprotocol.kotlin.sdk.CallToolRequest
