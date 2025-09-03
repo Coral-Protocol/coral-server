@@ -2,10 +2,8 @@ package org.coralprotocol.coralserver.routes.sse.v1
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.*
-import io.ktor.server.application.ApplicationCall
-import io.ktor.server.request.host
-import io.ktor.server.request.port
-import io.ktor.server.request.uri
+import io.ktor.server.application.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*

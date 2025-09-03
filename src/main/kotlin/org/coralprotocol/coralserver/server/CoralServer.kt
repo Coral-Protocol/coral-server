@@ -50,8 +50,8 @@ import org.coralprotocol.coralserver.routes.sse.v1.connectionSseRoutes
 import org.coralprotocol.coralserver.routes.sse.v1.exportedAgentSseRoutes
 import org.coralprotocol.coralserver.routes.ws.v1.debugWsRoutes
 import org.coralprotocol.coralserver.routes.ws.v1.exportedAgentRoutes
-import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 import org.coralprotocol.coralserver.session.LocalSessionManager
+import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
