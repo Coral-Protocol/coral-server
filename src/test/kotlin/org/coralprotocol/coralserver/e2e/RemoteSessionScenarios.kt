@@ -1,9 +1,7 @@
 package org.coralprotocol.coralserver.e2e
 
 import io.kotest.assertions.throwables.shouldNotThrowAny
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.mockkStatic
+import io.mockk.mockkConstructor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -11,12 +9,12 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentServer
 import org.coralprotocol.coralserver.agent.graph.GraphAgentServerSource
-import org.coralprotocol.coralserver.agent.registry.AgentRegistry
+import org.coralprotocol.coralserver.agent.registry.AgentExport
 import org.coralprotocol.coralserver.agent.registry.RegistryAgent
+import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
+import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
-import org.coralprotocol.coralserver.agent.runtime.RemoteRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
-import org.coralprotocol.coralserver.agent.runtime.RuntimeParams
 import org.coralprotocol.coralserver.server.CoralServer
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.utils.ServerConnectionCoreDetails
@@ -64,11 +62,46 @@ class RemoteSessionScenarios {
         )
     }
 
+
+    fun Orchestrator.spawnAnonymousAgent(
+        session: LocalSession,
+        graphAgent: GraphAgent,
+        agentName: String,
+        applicationId: String,
+        privacyKey: String
+    ) {
+        (registry.importedAgents as MutableMap).putIfAbsent(
+            graphAgent.name,
+            RegistryAgent(LocalAgentRuntimes(functionRuntime = FunctionRuntime({})), emptyMap())
+        )
+        spawn(
+            session,
+            graphAgent,
+            agentName,
+            applicationId,
+            privacyKey
+        )
+    }
+
+    fun Orchestrator.exportAnonymousAgent(
+        graphAgent: GraphAgent,
+    ) {
+        (registry.importedAgents as MutableMap).putIfAbsent(
+            graphAgent.name,
+            RegistryAgent(LocalAgentRuntimes(functionRuntime = FunctionRuntime({})), emptyMap())
+        )
+        (registry.exportedAgents as MutableMap).putIfAbsent(
+            graphAgent.name,
+            AgentExport(RegistryAgent(LocalAgentRuntimes(functionRuntime = FunctionRuntime({})), emptyMap()), emptyMap(), quantity = 10u)
+        )
+    }
+
     @OptIn(ExperimentalUuidApi::class)
     @Test
     fun testRemoteAgentProxying(): Unit = runBlocking {
         // Just to test proxying
         shouldNotThrowAny {
+            mockkConstructor(Orchestrator::class)
             val exportingServer = TestCoralServer(port = 4001u, devmode = true).apply { setup() }
             val importingServer = TestCoralServer(port = 4002u, devmode = true).apply { setup() }
 
@@ -90,17 +123,26 @@ class RemoteSessionScenarios {
                 extraTools = emptySet(),
                 blocking = false,
                 provider = GraphAgentProvider.Remote(
-                    runtime = RuntimeId.DOCKER,
-                    serverSource = GraphAgentServerSource.Servers(listOf(GraphAgentServer(exportingServer.host, exportingServer.port, emptyList()))),
+                    runtime = RuntimeId.FUNCTION,
+                    serverSource = GraphAgentServerSource.Servers(
+                        listOf(
+                            GraphAgentServer(
+                                exportingServer.host,
+                                exportingServer.port,
+                                emptyList()
+                            )
+                        )
+                    ),
                     serverScoring = null,
                 )
             )
 
-//            val claimId = exportingServer.server!!.remoteSessionManager.createClaim(graphAgent)
 
             // SHOULD HAVE STARTED THE AGENT
-
-            importingServer.server!!.localSessionManager.orchestrator.spawn(
+            exportingServer.server!!.localSessionManager.orchestrator.exportAnonymousAgent(
+                graphAgent
+            )
+            importingServer.server!!.localSessionManager.orchestrator.spawnAnonymousAgent(
                 importingServerSession,
                 graphAgent,
                 importServerAgentName,
@@ -141,6 +183,7 @@ class RemoteSessionScenarios {
 
     @Test
     fun testRemoteAgentOrchestration() = runBlocking {
+        TODO("Finish this test")
         shouldNotThrowAny {
             val exportingServer = TestCoralServer(port = 14391u, devmode = true).apply { setup() }
             val importingServer = TestCoralServer(port = 14392u, devmode = true).apply { setup() }

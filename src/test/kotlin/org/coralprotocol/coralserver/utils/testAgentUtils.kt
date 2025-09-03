@@ -23,7 +23,8 @@ import io.modelcontextprotocol.kotlin.sdk.ReadResourceRequest
 import io.modelcontextprotocol.kotlin.sdk.TextResourceContents
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import kotlinx.datetime.Clock
-import org.coralprotocol.coralserver.mcp.resources.MESSAGE_RESOURCE_URI
+import org.coralprotocol.coralserver.mcp.McpResources
+
 import org.coralprotocol.coralserver.utils.ExternalSteppingKoogBuilder.Companion.build
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -38,9 +39,9 @@ private suspend fun getMcpClient(serverUrl: String): Client {
     return client
 }
 
-suspend fun AIAgentLoopContext.updateSystemResources(client: Client, coralConnectionUrl: String) {
+suspend fun AIAgentLoopContext.updateSystemResources(client: Client) {
     val newSystemMessage = Message.System(
-        injectedWithMcpResources(client, getOriginalSystemPrompt(coralConnectionUrl)),
+        injectedWithMcpResources(client, getOriginalSystemPrompt()),
         RequestMetaInfo(Clock.System.now())
     )
     return llm.writeSession {
@@ -61,29 +62,6 @@ Don't try to guess facts; ask other agents or use resources.
 If given a simple task, wait briefly for mentions and then return the result.
 """.trimIndent()
 
-//suspend fun createConnectedKoogAgent(
-//    server: CoralServer,
-//    namePassedToServer: String,
-//    descriptionPassedToServer: String = namePassedToServer,
-//    systemPrompt: String = defaultSystemPrompt,
-//    modelName: LLModel = OpenAIModels.Chat.GPT4o,
-//    session: CoralAgentGraphSession
-//): ExternalSteppingKoog = createConnectedKoogAgent(
-//    ServerConnectionCoreDetailsImpl(
-//        protocol = "http",
-//        host = server.host,
-//        port = server.port,
-//        applicationId = session.applicationId,
-//        privacyKey = session.privacyKey,
-//        sessionId = session.id,
-//        namePassedToServer = namePassedToServer,
-//        descriptionPassedToServer = descriptionPassedToServer
-//    ),
-//    systemPrompt = systemPrompt,
-//    modelName = modelName,
-//)
-
-
 private suspend fun injectedWithMcpResources(client: Client, original: String): String {
     val resourceRegex = "<resource>(.*?)</resource>".toRegex()
     val matches = resourceRegex.findAll(original)
@@ -103,11 +81,11 @@ private suspend fun injectedWithMcpResources(client: Client, original: String): 
     return result
 }
 
-private fun getOriginalSystemPrompt(coralConnectionUrl: String): String = """
+private fun getOriginalSystemPrompt(): String = """
 You are an agent connected to Coral.
 
 -- Start of resources --
-<resource>${MESSAGE_RESOURCE_URI}</resource>
+<resource>${McpResources.MESSAGE_RESOURCE_URI}</resource>
 -- End of resources --
 """.trimIndent()
 
@@ -144,10 +122,6 @@ data class ServerConnectionLocalDetailsImpl(
     override val descriptionPassedToServer: String = namePassedToServer,
 ) : ServerConnectionLocalDetails
 
-fun ServerConnectionLocalDetails.renderDevmode()= "$protocol://$host:$port/sse/v1/devmode/$applicationId/$privacyKey/$sessionId/sse?agentId=$namePassedToServer&agentDescription=$descriptionPassedToServer"
-//fun ServerConnectionCoreDetailsImpl.renderDevmodeExporting()= "$protocol://$host:$port/sse/v1/export/$namePassedToServer&agentDescription=$descriptionPassedToServer"
-
-
 @OptIn(ExperimentalUuidApi::class)
 suspend fun createConnectedKoogAgent(
     server: ServerConnectionCoreDetails,
@@ -164,11 +138,11 @@ suspend fun createConnectedKoogAgent(
     val mcpClient = getMcpClient(renderedServerUrl)
     val toolRegistry = McpToolRegistryProvider.fromClient(mcpClient)
     return ExternalSteppingKoogBuilder(loopStep = { newInputMessage ->
-        updateSystemResources(mcpClient, renderedServerUrl)
+        updateSystemResources(mcpClient)
         var responses = requestLLMMultiple(newInputMessage.content)
 
         while (responses.containsToolCalls()) {
-            updateSystemResources(mcpClient, renderedServerUrl)
+            updateSystemResources(mcpClient)
             val tools = extractToolCalls(responses)
             val results = executeMultipleTools(tools)
             responses = sendMultipleToolResults(results)
