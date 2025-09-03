@@ -23,6 +23,7 @@ import io.modelcontextprotocol.kotlin.sdk.ReadResourceRequest
 import io.modelcontextprotocol.kotlin.sdk.TextResourceContents
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import kotlinx.datetime.Clock
+import org.coralprotocol.coralserver.mcpresources.MESSAGE_RESOURCE_URI
 import org.coralprotocol.coralserver.utils.ExternalSteppingKoogBuilder.Companion.build
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -106,7 +107,7 @@ private fun getOriginalSystemPrompt(coralConnectionUrl: String): String = """
 You are an agent connected to Coral.
 
 -- Start of resources --
-<resource>coral://${(coralConnectionUrl).substringAfter("http://")}</resource>
+<resource>${MESSAGE_RESOURCE_URI}</resource>
 -- End of resources --
 """.trimIndent()
 
