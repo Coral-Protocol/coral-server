@@ -58,8 +58,8 @@ data class DockerRuntime(
         ).map { (key, value) -> "$key=$value" }
 
         val sessionId = when (params) {
-            is RuntimeParams.Local -> params.sessionId
-            is RuntimeParams.Remote -> params.remoteSessionId
+            is RuntimeParams.Local -> params.session.id
+            is RuntimeParams.Remote -> params.session.id
         }
 
         try {
