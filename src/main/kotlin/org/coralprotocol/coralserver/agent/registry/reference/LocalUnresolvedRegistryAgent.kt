@@ -21,7 +21,7 @@ data class LocalUnresolvedRegistryAgent(
         val agentTomlFile = Path.of(path, AGENT_FILE)
         try {
             return listOf(resolveRegistryAgentFromStream(
-                stream = agentTomlFile.inputStream(),
+                file = agentTomlFile.toFile(),
                 context = context,
                 exportSettings = unresolvedExportSettings
             ))

@@ -36,7 +36,7 @@ data class GitRegistryAgentIndexer(
 
         try {
             return resolveRegistryAgentFromStream(
-                stream = agentTomlFile.inputStream(),
+                file = agentTomlFile.toFile(),
                 context = context,
                 exportSettings = exportSettings
             )
