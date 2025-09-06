@@ -1,7 +1,7 @@
 package org.coralprotocol.coralserver.config
 
-import com.akuleshov7.ktoml.source.decodeFromStream
 import io.github.oshai.kotlinlogging.KotlinLogging
+import net.peanuuutz.tomlkt.decodeFromNativeReader
 import org.coralprotocol.coralserver.Main
 import java.io.FileNotFoundException
 import java.io.InputStream
@@ -28,7 +28,7 @@ fun Config.Companion.loadFromFile(): Config {
 
         var config: Config
         val decodeTime = measureTimeMillis {
-            config = toml.decodeFromStream<Config>(stream)
+            config = toml.decodeFromNativeReader<Config>(stream.reader())
         }
         logger.info { "Loaded config file in $decodeTime ms" }
 

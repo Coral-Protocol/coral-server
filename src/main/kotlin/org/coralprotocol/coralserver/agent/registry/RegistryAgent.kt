@@ -1,46 +1,64 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package org.coralprotocol.coralserver.agent.registry
 
-import UnresolvedAgentOption
-import io.github.smiley4.schemakenerator.core.annotations.Description
-import kotlinx.serialization.SerialName
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import net.peanuuutz.tomlkt.decodeFromNativeReader
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.config.SecurityConfig
+import java.io.InputStream
 
-@Serializable
-data class UnresolvedRegistryAgent(
-    @SerialName("agent")
-    val agentInfo: AgentInfo,
-
-    @Description("The runtimes that this agent supports")
+class RegistryAgent(
+    val id: AgentRegistryIdentifier,
     val runtimes: LocalAgentRuntimes,
-
-    @Description("The options that this agent supports, for example the API keys required for the agent to function")
-    val options: Map<String, UnresolvedAgentOption>
+    val options: Map<String, AgentOption>,
+    unresolvedExportSettings: UnresolvedAgentExportSettingsMap
 ) {
-    fun resolve(): RegistryAgent = RegistryAgent(
-        runtimes = runtimes,
-        options = options.mapValues { (_, option) ->
-            option.resolve()
-        }
-    )
+    val exportSettings: AgentExportSettingsMap = unresolvedExportSettings.mapValues { (runtime, settings) ->
+        settings.resolve(runtime, this)
+    }
 }
 
 @Serializable
-data class RegistryAgent(
-    val runtimes: LocalAgentRuntimes,
-    val options: Map<String, AgentOption>
-)
-
-@Serializable
 data class PublicRegistryAgent(
-    val id: String,
+    val id: AgentRegistryIdentifier,
     val runtimes: List<RuntimeId>,
-    val options: Map<String, AgentOption>
+    val options: Map<String, AgentOption>,
+    val exportSettings: PublicAgentExportSettingsMap
 )
 
-fun RegistryAgent.toPublic(id: String): PublicRegistryAgent = PublicRegistryAgent(
+fun RegistryAgent.toPublic(): PublicRegistryAgent = PublicRegistryAgent(
     id = id,
     runtimes = runtimes.toRuntimeIds(),
-    options = options
+    options = options,
+    exportSettings = exportSettings.mapValues { (_, settings) -> settings.toPublic() }
 )
+
+/**
+ * This function deserializes an [UnresolvedInlineRegistryAgent] from the provided [stream], then resolves it using the
+ * provided [context].
+ *
+ * Important note! [UnresolvedInlineRegistryAgent] contains the [UnresolvedInlineRegistryAgent.agentExportSettings] field,
+ * which poses a security risk.  Users that import definitions via reference (indexed, git, path, etc.) might not want
+ * export settings in that file to take effect.
+ *
+ * If [SecurityConfig.enableReferencedExporting] is set to true and [exportSettings] is null then the provided export
+ * settings will be used.
+ */
+fun resolveRegistryAgentFromStream(
+    stream: InputStream,
+    context: RegistryResolutionContext,
+    exportSettings: UnresolvedAgentExportSettingsMap
+): RegistryAgent {
+    val unresolved = context.serializer.decodeFromNativeReader<UnresolvedInlineRegistryAgent>(stream.reader())
+    if (!context.config.security.enableReferencedExporting) {
+        unresolved.unresolvedExportSettings = exportSettings
+    }
+    else {
+        unresolved.unresolvedExportSettings += exportSettings
+    }
+
+    return unresolved.resolve(context).first()
+}

@@ -4,7 +4,7 @@ import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class AgentInfo(
+data class RegistryAgentInfo(
     @Description("The name of the agent, this should be as unique as possible")
     val name: String,
 

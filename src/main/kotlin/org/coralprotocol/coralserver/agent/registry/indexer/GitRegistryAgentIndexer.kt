@@ -1,14 +1,9 @@
 package org.coralprotocol.coralserver.agent.registry.indexer
 
-import com.akuleshov7.ktoml.source.decodeFromStream
 import com.github.syari.kgit.KGit
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.Serializable
-import org.coralprotocol.coralserver.agent.registry.RegistryAgent
-import org.coralprotocol.coralserver.agent.registry.RegistryException
-import org.coralprotocol.coralserver.agent.registry.RegistryResolutionContext
-import org.coralprotocol.coralserver.agent.registry.UnresolvedRegistryAgent
-import org.coralprotocol.coralserver.agent.registry.reference.AGENT_FILE
+import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.config.Config
 import org.eclipse.jgit.api.ResetCommand
 import java.nio.file.Path
@@ -18,15 +13,16 @@ import kotlin.io.path.isDirectory
 private val logger = KotlinLogging.logger {}
 
 @Serializable
-data class GitAgentIndexer(
+data class GitRegistryAgentIndexer(
     val url: String,
     override val priority: Int
-) : AgentIndexer {
+) : RegistryAgentIndexer {
     private fun indexerPath(cachePath: Path, indexerName: String) =
         cachePath.resolve(Path.of(indexerName))
 
     override fun resolveAgent(
         context: RegistryResolutionContext,
+        exportSettings: UnresolvedAgentExportSettingsMap,
         indexerName: String,
         agentName: String,
         version: String
@@ -39,8 +35,11 @@ data class GitAgentIndexer(
         }
 
         try {
-            val agent = context.serializer.decodeFromStream<UnresolvedRegistryAgent>(agentTomlFile.inputStream())
-            return agent.resolve()
+            return resolveRegistryAgentFromStream(
+                stream = agentTomlFile.inputStream(),
+                context = context,
+                exportSettings = exportSettings
+            )
         }
         catch (e: Exception) {
             logger.error { "Could not parse agent $agentName provided by indexer $indexerName ($agentTomlFile)" }
