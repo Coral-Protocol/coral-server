@@ -2,13 +2,17 @@
 
 package org.coralprotocol.coralserver.agent.registry
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import net.peanuuutz.tomlkt.decodeFromNativeReader
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.SecurityConfig
+import java.io.File
 import java.io.InputStream
+
+private val logger = KotlinLogging.logger {  }
 
 class RegistryAgent(
     val id: AgentRegistryIdentifier,
@@ -48,12 +52,16 @@ fun RegistryAgent.toPublic(): PublicRegistryAgent = PublicRegistryAgent(
  * settings will be used.
  */
 fun resolveRegistryAgentFromStream(
-    stream: InputStream,
+    file: File,
     context: RegistryResolutionContext,
     exportSettings: UnresolvedAgentExportSettingsMap
 ): RegistryAgent {
-    val unresolved = context.serializer.decodeFromNativeReader<UnresolvedInlineRegistryAgent>(stream.reader())
+    val unresolved = context.serializer.decodeFromNativeReader<UnresolvedInlineRegistryAgent>(file.reader())
     if (!context.config.security.enableReferencedExporting) {
+        if (unresolved.unresolvedExportSettings.isNotEmpty()) {
+            logger.warn { "Referenced agent file $file contains export settings, but [security.enableReferencedExporting] is false. Export settings in this file will be ignored" }
+        }
+
         unresolved.unresolvedExportSettings = exportSettings
     }
     else {

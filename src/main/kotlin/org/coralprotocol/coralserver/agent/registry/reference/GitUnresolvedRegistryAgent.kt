@@ -78,7 +78,7 @@ data class GitUnresolvedRegistryAgent (
 
         try {
             return listOf(resolveRegistryAgentFromStream(
-                stream = fullAgentTomlPath.inputStream(),
+                file = fullAgentTomlPath.toFile(),
                 context = context,
                 exportSettings = unresolvedExportSettings
             ))
