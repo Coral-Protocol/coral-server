@@ -27,7 +27,7 @@ class TestCoralServer(
     suspend fun setup() {
         server?.stop()
         val config = Config(NetworkConfig(bindAddress = host, bindPort = port))
-        val registry = AgentRegistry(mutableMapOf(), mutableMapOf())
+        val registry = AgentRegistry()
         val orchestrator: Orchestrator = spyk(Orchestrator(config, registry))
 
         server = CoralServer(
