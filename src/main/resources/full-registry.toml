@@ -6,10 +6,21 @@
 path = "examples/camel-search-maths/interface"
 
 # The export settings section can be placed on any agent reference type.  If you want to allow other servers to import
-# this agent for a cost, the export section must be defined and the enabled key must be set to true.
+# this agent for a cost, the export section must be defined for the desired runtime; e.g., docker, executable, phala
 [local-agent.export.executable]
+
+# The quantity field describes how many concurrent agents of this type in this runtime can be exported; this is to allow
+# basic control over
 quantity = 20
+
+# The pricing table is mostly a placeholder until payments are implemented
 pricing = { min_price = 1024.0, max_price = 4096.0 }
+
+# The agent export options table allows providing values for certain options when a remote server requests this agent.
+# This is useful when you want to export an agent that takes an API key, but don't want the end user to use their own
+# api key
+[local-agent.export.executable.options]
+API_KEY = "my api key"
 
 [[git-agent]]
 
