@@ -5,14 +5,12 @@ import io.github.smiley4.ktoropenapi.resources.get
 import io.github.smiley4.ktoropenapi.resources.post
 import io.ktor.http.*
 import io.ktor.resources.*
-import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.coralprotocol.coralserver.agent.graph.GraphAgent
-import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
-import org.coralprotocol.coralserver.agent.registry.*
-import org.coralprotocol.coralserver.server.RouteException
+import org.coralprotocol.coralserver.agent.registry.AgentRegistry
+import org.coralprotocol.coralserver.agent.registry.PublicRegistryAgent
+import org.coralprotocol.coralserver.agent.registry.toPublic
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 
@@ -45,24 +43,7 @@ fun Routing.agentApiRoutes(
             }
         }
     }) {
-        val agents = registry.importedAgents.map { entry -> entry.value.toPublic(entry.key) }
-        call.respond(HttpStatusCode.OK, agents)
-    }
-
-    get<ExportedAgents>({
-        summary = "Gets exported agents"
-        description = "Fetches agents the Coral server has exported to other servers"
-        operationId = "getExportedAgents"
-        response {
-            HttpStatusCode.OK to {
-                description = "Success"
-                body<List<AgentExport>> {
-                    description = "List of exported agents"
-                }
-            }
-        }
-    }) {
-        val agents = registry.exportedAgents.map { entry -> entry.value.toPublic(entry.key) }
+        val agents = registry.agents.map { it.toPublic() }
         call.respond(HttpStatusCode.OK, agents)
     }
 

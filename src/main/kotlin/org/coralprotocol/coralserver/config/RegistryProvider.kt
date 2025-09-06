@@ -1,7 +1,7 @@
 package org.coralprotocol.coralserver.config
 
-import com.akuleshov7.ktoml.source.decodeFromStream
 import io.github.oshai.kotlinlogging.KotlinLogging
+import net.peanuuutz.tomlkt.decodeFromNativeReader
 import org.coralprotocol.coralserver.Main
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.RegistryException
@@ -33,7 +33,7 @@ fun AgentRegistry.Companion.loadFromFile(config: Config): AgentRegistry {
 
         var registry: AgentRegistry
         val time = measureTimeMillis {
-            val unresolved = toml.decodeFromStream<UnresolvedAgentRegistry>(stream)
+            val unresolved = toml.decodeFromNativeReader<UnresolvedAgentRegistry>(stream.reader())
             val context = RegistryResolutionContext(
                 serializer = toml,
                 config = config

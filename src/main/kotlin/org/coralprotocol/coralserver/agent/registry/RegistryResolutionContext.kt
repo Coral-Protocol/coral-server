@@ -1,6 +1,6 @@
 package org.coralprotocol.coralserver.agent.registry
 
-import com.akuleshov7.ktoml.Toml
+import net.peanuuutz.tomlkt.Toml
 import org.coralprotocol.coralserver.config.Config
 
 data class RegistryResolutionContext(

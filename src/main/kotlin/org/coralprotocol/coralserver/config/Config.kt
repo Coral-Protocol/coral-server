@@ -5,9 +5,9 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.coralprotocol.coralserver.agent.registry.RegistryException
-import org.coralprotocol.coralserver.agent.registry.indexer.AgentIndexer
-import org.coralprotocol.coralserver.agent.registry.indexer.GitAgentIndexer
-import org.coralprotocol.coralserver.agent.registry.indexer.NamedAgentIndexer
+import org.coralprotocol.coralserver.agent.registry.indexer.GitRegistryAgentIndexer
+import org.coralprotocol.coralserver.agent.registry.indexer.NamedRegistryAgentIndexer
+import org.coralprotocol.coralserver.agent.registry.indexer.RegistryAgentIndexer
 import org.coralprotocol.coralserver.util.isWindows
 import java.io.File
 import java.nio.file.Path
@@ -96,18 +96,18 @@ data class DockerConfig(
 @Serializable
 data class RegistryConfig(
     @SerialName("indexers")
-    private val configIndexers: LinkedHashMap<String, AgentIndexer> = linkedMapOf()
+    private val configIndexers: LinkedHashMap<String, RegistryAgentIndexer> = linkedMapOf()
 ) {
     /**
      * Default Coral indexer.  For now this will be the temporary Git indexer.
      */
     @Transient
-    private val coralIndexer = NamedAgentIndexer("coral", GitAgentIndexer("https://github.com/Coral-Protocol/marketplace", 0))
+    private val coralIndexer = NamedRegistryAgentIndexer("coral", GitRegistryAgentIndexer("https://github.com/Coral-Protocol/marketplace", 0))
 
     /**
      * A list of indexers including the built-in Coral indexer.
      */
-    val indexers: Map<String, AgentIndexer>
+    val indexers: Map<String, RegistryAgentIndexer>
         get() {
             val map = configIndexers.toMutableMap()
             map["coral"] = coralIndexer.indexer
@@ -122,18 +122,18 @@ data class RegistryConfig(
      *
      * The name "coral" is reserved for the Coral indexer and can be used to explicitly request it.
      */
-    fun getIndexer(name: String?): NamedAgentIndexer {
+    fun getIndexer(name: String?): NamedRegistryAgentIndexer {
         return when (name) {
             "coral" -> {
                 coralIndexer
             }
             null -> {
                 configIndexers.map { (name, indexer) ->
-                    NamedAgentIndexer(name, indexer)
+                    NamedRegistryAgentIndexer(name, indexer)
                 }.maxByOrNull { it.indexer.priority } ?: coralIndexer
             }
             else -> {
-                NamedAgentIndexer(name, configIndexers[name] ?: throw RegistryException("No indexer found with name $name"))
+                NamedRegistryAgentIndexer(name, configIndexers[name] ?: throw RegistryException("No indexer found with name $name"))
             }
         }
     }
@@ -161,6 +161,16 @@ data class CacheConfig(
 }
 
 @Serializable
+data class SecurityConfig(
+    /**
+     * If this is false, coral-agent.toml files imported from Git, agent indexers or local paths will not be allowed to
+     * contain an export section.  It is recommended to keep this value set to false unless you have a good reason to
+     * set it to true and understand the risks involved.
+     */
+    val enableReferencedExporting: Boolean = false,
+)
+
+@Serializable
 data class Config(
     @SerialName("network")
     val networkConfig: NetworkConfig = NetworkConfig(),
@@ -173,6 +183,9 @@ data class Config(
 
     @SerialName("cache")
     val cache: CacheConfig = CacheConfig(),
+
+    @SerialName("security")
+    val security: SecurityConfig = SecurityConfig(),
 ) {
     /**
      * Calculates the address required to access the server for a given consumer.

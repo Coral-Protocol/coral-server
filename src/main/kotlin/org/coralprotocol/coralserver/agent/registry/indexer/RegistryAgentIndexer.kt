@@ -7,14 +7,16 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.agent.registry.RegistryAgent
 import org.coralprotocol.coralserver.agent.registry.RegistryResolutionContext
+import org.coralprotocol.coralserver.agent.registry.UnresolvedAgentExportSettingsMap
 import org.coralprotocol.coralserver.config.Config
 
 @Serializable
 @JsonClassDiscriminator("type")
-sealed interface AgentIndexer {
+sealed interface RegistryAgentIndexer {
     val priority: Int
     fun resolveAgent(
         context: RegistryResolutionContext,
+        exportSettings: UnresolvedAgentExportSettingsMap,
         indexerName: String,
         agentName: String,
         version: String

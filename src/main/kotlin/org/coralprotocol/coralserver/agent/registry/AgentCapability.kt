@@ -6,7 +6,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 enum class AgentCapability {
-    @Description("The ability to refresh MCP resources before each AI model completion.  Note that full Coral server functionality requires this capability")
+    @Description("The ability to refresh MCP resources before each AI model completion.  Full Coral server functionality requires this capability")
     @SerialName("resources")
     RESOURCES,
 
