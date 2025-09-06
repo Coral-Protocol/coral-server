@@ -97,8 +97,7 @@ dependencies {
     implementation("com.eygraber:uri-kmp:0.0.20")
 
     // TOML serialization
-    implementation("com.akuleshov7:ktoml-core:0.7.0")
-    implementation("com.akuleshov7:ktoml-file:0.7.0")
+    implementation("net.peanuuutz.tomlkt:tomlkt:0.5.0")
 
     // OpenAPI
     val ktorToolsVersion = "5.2.0"
