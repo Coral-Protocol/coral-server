@@ -9,7 +9,7 @@ import org.coralprotocol.coralserver.mcp.McpTool
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
 import org.coralprotocol.coralserver.mcp.tools.models.WaitForMentionsInput
-import org.coralprotocol.coralserver.models.AgentState
+import org.coralprotocol.coralserver.session.models.SessionAgentState
 import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
@@ -46,14 +46,14 @@ internal class WaitForMentionsTool: McpTool<WaitForMentionsInput>() {
             if (arguments.timeoutMs > maxWaitForMentionsTimeoutMs)
                 return McpToolResult.Error("Timeout must not exceed the maximum of $maxWaitForMentionsTimeoutMs ms")
 
-            mcpServer.localSession.setAgentState(agentId = mcpServer.connectedAgentId, state = AgentState.Listening)
+            mcpServer.localSession.setAgentState(agentId = mcpServer.connectedAgentId, state = SessionAgentState.Listening)
 
             val messages = mcpServer.localSession.waitForMentions(
                 agentId = mcpServer.connectedAgentId,
                 timeoutMs = arguments.timeoutMs
             )
 
-            mcpServer.localSession.setAgentState(agentId = mcpServer.connectedAgentId, state = AgentState.Busy)
+            mcpServer.localSession.setAgentState(agentId = mcpServer.connectedAgentId, state = SessionAgentState.Busy)
 
             if (messages.isNotEmpty()) {
                 logger.info { "Received ${messages.size} messages for agent ${mcpServer.connectedAgentId}" }
@@ -64,7 +64,7 @@ internal class WaitForMentionsTool: McpTool<WaitForMentionsInput>() {
             }
         }
         finally {
-            mcpServer.localSession.setAgentState(agentId = mcpServer.connectedAgentId, state = AgentState.Busy)
+            mcpServer.localSession.setAgentState(agentId = mcpServer.connectedAgentId, state = SessionAgentState.Busy)
         }
     }
 }

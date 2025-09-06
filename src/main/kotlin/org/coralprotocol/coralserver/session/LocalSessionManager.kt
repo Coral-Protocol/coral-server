@@ -13,7 +13,7 @@ fun AgentGraph.adjacencyMap(): Map<String, Set<String>> {
 
     // each set in the set of links defines one strongly connected component (scc),
     // where each member of the scc is bidirectionally connected to every other member of the scc
-    links.forEach { scc ->
+    groups.forEach { scc ->
         for (a in scc) {
             for (b in scc) {
                 if (a == b) continue

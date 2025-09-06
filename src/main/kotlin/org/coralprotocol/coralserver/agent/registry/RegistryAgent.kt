@@ -9,6 +9,7 @@ import net.peanuuutz.tomlkt.decodeFromNativeReader
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.SecurityConfig
+import org.coralprotocol.coralserver.routes.api.v1.filterNotNullValues
 import java.io.File
 import java.io.InputStream
 
@@ -23,6 +24,13 @@ class RegistryAgent(
     val exportSettings: AgentExportSettingsMap = unresolvedExportSettings.mapValues { (runtime, settings) ->
         settings.resolve(runtime, this)
     }
+
+    val defaultOptions = options
+        .mapValues { (name, option) -> option.defaultAsValue() }
+        .filterNotNullValues()
+
+    val requiredOptions = options
+        .filterValues { it.required }
 }
 
 @Serializable

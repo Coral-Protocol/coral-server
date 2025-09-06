@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.models
 
+import org.coralprotocol.coralserver.session.models.SessionAgent
 import java.util.*
 
 /**
@@ -8,14 +9,14 @@ import java.util.*
 class Message private constructor (
     val id: String = UUID.randomUUID().toString(),
     val thread: Thread,
-    val sender: Agent,
+    val sender: SessionAgent,
     val content: String,
     val timestamp: Long = System.currentTimeMillis(),
     val mentions: List<String> = emptyList(),
     var telemetry: Telemetry?
 )  {
     companion object {
-        fun create(thread: Thread, sender: Agent, content: String, mentions: List<String> = emptyList()): Message {
+        fun create(thread: Thread, sender: SessionAgent, content: String, mentions: List<String> = emptyList()): Message {
             if (thread.isClosed) throw IllegalArgumentException("Thread $thread is closed")
 
             if (!thread.participants.contains(sender.id)) {
