@@ -6,6 +6,9 @@ import kotlinx.coroutines.CompletableDeferred
 import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.models.*
+import org.coralprotocol.coralserver.session.models.SessionAgent
+import org.coralprotocol.coralserver.session.models.SessionAgentState
+import org.coralprotocol.coralserver.session.models.isConnected
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -23,7 +26,7 @@ class LocalSession(
     val groups: List<Set<String>> = listOf(),
     var devRequiredAgentStartCount: Int = 0,
 ): Session {
-    private var agents = ConcurrentHashMap<String, Agent>()
+    private var agents = ConcurrentHashMap<String, SessionAgent>()
     private val debugAgents = ConcurrentSet<String>()
 
     private val threads = ConcurrentHashMap<String, Thread>()
@@ -42,7 +45,7 @@ class LocalSession(
         agentGraph?.run {
             for (id in agents.keys) {
                 registerAgent(id.toString())
-                setAgentState(agentId = id.toString(), state = AgentState.Connecting)
+                setAgentState(agentId = id.toString(), state = SessionAgentState.Connecting)
             }
         }
     }
@@ -61,21 +64,21 @@ class LocalSession(
         agentGroupScheduler.clear()
     }
 
-    fun connectAgent(agentId: String): Agent? {
+    fun connectAgent(agentId: String): SessionAgent? {
         val agent = agents[agentId] ?: return null
 //        if (agent.state.isConnected()) throw AssertionError("Agent $agentId is already connected")
         if (agent.state.isConnected()) logger.warn { "Agent $agentId is already connected" }
-        agent.state = AgentState.Busy;
+        agent.state = SessionAgentState.Busy;
         agentGroupScheduler.markAgentReady(agentId)
         countBasedScheduler.markAgentReady(agent.id)
         eventBus.emit(SessionEvent.AgentStateUpdated(agent.id, agent.state))
         return agent
     }
 
-    fun setAgentState(agentId: String, state: AgentState): AgentState? {
+    fun setAgentState(agentId: String, state: SessionAgentState): SessionAgentState? {
         val agent = agents[agentId] ?: return null
         val oldState = agent.state
-        if (oldState == AgentState.Connecting && state.isConnected()) {
+        if (oldState == SessionAgentState.Connecting && state.isConnected()) {
             agentGroupScheduler.markAgentReady(agentId)
             countBasedScheduler.markAgentReady(agent.id)
         }
@@ -87,7 +90,7 @@ class LocalSession(
 
     fun disconnectAgent(agentId: String) {
         val agent = agents[agentId] ?: return
-        agent.state = AgentState.Disconnected;
+        agent.state = SessionAgentState.Disconnected;
         eventBus.emit(SessionEvent.AgentStateUpdated(agent.id, agent.state))
     }
 
@@ -96,24 +99,24 @@ class LocalSession(
         agentUri: String? = null,
         agentDescription: String? = null,
         force: Boolean = false
-    ): Agent? {
+    ): SessionAgent? {
         if (agents.containsKey(agentId)) {
             logger.warn { "$agentId has already been registered" }
             if (!force) {
                 return null;
             }
         }
-        val agent = Agent(
+        val sessionAgent = SessionAgent(
             id = agentId,
-            description = agentDescription ?: "",
+            description = agentGraph?.agents[agentId]?.description ?: agentDescription ?: "",
             extraTools = agentGraph?.let {
-                it.agents[agentId]?.extraTools?.mapNotNull { tool -> it.tools[tool] }?.toSet()
+                it.agents[agentId]?.customToolAccess?.mapNotNull { tool -> it.customTools[tool] }?.toSet()
             } ?: setOf(),
             mcpUrl = agentUri
         )
-        agents[agent.id] = agent
+        agents[sessionAgent.id] = sessionAgent
 
-        return agent
+        return sessionAgent
     }
 
     fun getRegisteredAgentsCount(): Int = countBasedScheduler.getRegisteredAgentsCount()
@@ -124,22 +127,22 @@ class LocalSession(
     suspend fun waitForAgentCount(targetCount: Int, timeoutMs: Long): Boolean =
         countBasedScheduler.waitForAgentCount(targetCount, timeoutMs)
 
-    fun getAgent(agentId: String): Agent? = agents[agentId]
+    fun getAgent(agentId: String): SessionAgent? = agents[agentId]
 
-    fun getAllAgents(includeDebug: Boolean = false): List<Agent> = when (includeDebug) {
+    fun getAllAgents(includeDebug: Boolean = false): List<SessionAgent> = when (includeDebug) {
         true -> agents.values.toList()
         false -> agents.values.filter { !debugAgents.contains(it.id) }
     }
 
     fun getAllThreads(): List<Thread> = threads.values.toList()
 
-    fun registerDebugAgent(): Agent {
+    fun registerDebugAgent(): SessionAgent {
         val id = UUID.randomUUID().toString()
         if (agents[id] !== null) throw AssertionError("Debug agent id collision")
-        val agent = Agent(id = id, description = "", mcpUrl = "n/a")
-        agents[id] = agent
+        val sessionAgent = SessionAgent(id = id, description = "", mcpUrl = "n/a")
+        agents[id] = sessionAgent
         debugAgents.add(id)
-        return agent
+        return sessionAgent
     }
 
     fun createThread(name: String, creatorId: String, participantIds: List<String>): Thread {

@@ -15,60 +15,13 @@ import io.modelcontextprotocol.kotlin.sdk.CallToolRequest
 import io.modelcontextprotocol.kotlin.sdk.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.TextContent
 import io.modelcontextprotocol.kotlin.sdk.Tool
-import kotlinx.serialization.*
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.descriptors.buildClassSerialDescriptor
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
-import kotlinx.serialization.json.*
-import net.pwall.json.schema.JSONSchema
-import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
-
-/**
- * Data class for session creation request.
- */
-@Serializable
-data class CreateSessionRequest(
-    val applicationId: String,
-    val sessionId: String? = null,
-    val privacyKey: String,
-    val agentGraph: AgentGraphRequest?,
-)
-
-@Serializable
-data class AgentGraphRequest(
-    val agents: HashMap<String, GraphAgentRequest>,
-    val links: Set<Set<String>>,
-    val tools: Map<String, CustomTool> = emptyMap(),
-)
-
-object JSONSchemaSerializer : KSerializer<JSONSchemaWithRaw> {
-    // Serial names of descriptors should be unique, so choose app-specific name in case some library also would declare a serializer for Date.
-    override val descriptor: SerialDescriptor = buildClassSerialDescriptor("org.coralprotocol.JSONSchemaWithRaw") {
-
-    }
-
-    override fun serialize(encoder: Encoder, value: JSONSchemaWithRaw) {
-        val json = encoder as? JsonEncoder ?: throw SerializationException("Can be serialized only as JSON")
-        return json.encodeJsonElement(value.raw)
-    }
-
-    override fun deserialize(decoder: Decoder): JSONSchemaWithRaw {
-        val jsonInput = decoder as? JsonDecoder ?: error("Can be deserialized only by JSON")
-        val obj = jsonInput.decodeJsonElement().jsonObject;
-
-        return JSONSchemaWithRaw(schema = JSONSchema.parse(obj.toString()), raw = obj)
-    }
-}
-
-@Serializable(with = JSONSchemaSerializer::class)
-data class JSONSchemaWithRaw(
-    val schema: JSONSchema,
-    val raw: JsonObject,
-)
 
 @Serializable
 data class CustomTool(
@@ -138,13 +91,3 @@ sealed interface ToolTransport {
         toolSchema: Tool
     ): CallToolResult
 }
-
-/**
- * Data class for session creation response.
- */
-@Serializable
-data class CreateSessionResponse(
-    val sessionId: String,
-    val applicationId: String,
-    val privacyKey: String
-)

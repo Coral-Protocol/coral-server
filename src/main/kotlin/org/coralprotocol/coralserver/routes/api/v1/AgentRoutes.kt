@@ -5,12 +5,18 @@ import io.github.smiley4.ktoropenapi.resources.get
 import io.github.smiley4.ktoropenapi.resources.post
 import io.ktor.http.*
 import io.ktor.resources.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
+import org.coralprotocol.coralserver.agent.graph.GraphAgent
+import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.PublicRegistryAgent
+import org.coralprotocol.coralserver.agent.registry.defaultAsValue
 import org.coralprotocol.coralserver.agent.registry.toPublic
+import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 
@@ -63,56 +69,18 @@ fun Routing.agentApiRoutes(
                     description = "Claim ID"
                 }
             }
-            HttpStatusCode.NotFound to {
-                description = "Agent doesn't exist or is not exported"
-            }
             HttpStatusCode.BadRequest to {
-                description = "Request contains invalid agents"
+                description = "GraphAgentRequest is invalid in a remote context"
             }
         }
     }) {
         val request = call.receive<GraphAgentRequest>()
 
-        if (request.provider is GraphAgentProvider.Remote) {
-            throw RouteException(HttpStatusCode.BadRequest, "Agents with remote providers cannot be claimed")
+        try {
+            call.respond(HttpStatusCode.OK, remoteSessionManager.createClaim(request.toGraphAgent(registry, true)))
         }
-
-        val agent = registry.exportedAgents[request.registryAgentName]?.agent
-            ?: throw RouteException(HttpStatusCode.NotFound, "Agent '${request.registryAgentName}' is not exported")
-
-        val missingRequiredOptions = agent.options.filter { option ->
-            option.value.required && !request.options.containsKey(option.key)
+        catch (e: AgentRequestException) {
+            throw RouteException(HttpStatusCode.BadRequest, e.message)
         }
-        if (missingRequiredOptions.isNotEmpty()) {
-            throw RouteException(
-                HttpStatusCode.BadRequest,
-                "Agent '${request.registryAgentName}' is missing required options: ${missingRequiredOptions.keys.joinToString()}"
-            )
-        }
-
-        val missingAgentOptions = request.options.filter {
-            !agent.options.containsKey(it.key)
-        }
-        if (missingAgentOptions.isNotEmpty()) {
-            throw RouteException(
-                HttpStatusCode.BadRequest,
-                "Agent '${request.registryAgentName}' contains non-existent options: ${missingRequiredOptions.keys.joinToString()}"
-            )
-        }
-
-        val defaultOptions =
-            agent.options.mapValues { option -> option.value.defaultAsValue() }
-                .filterNotNullValues()
-
-        call.respond(HttpStatusCode.OK, remoteSessionManager.createClaim(
-            GraphAgent(
-                name = request.registryAgentName,
-                blocking = request.blocking == true,
-                extraTools = request.tools,
-                systemPrompt = request.systemPrompt,
-                options = defaultOptions + request.options,
-                provider = request.provider
-            )
-        ))
     }
 }

@@ -8,7 +8,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
-import org.coralprotocol.coralserver.models.Agent
+import org.coralprotocol.coralserver.session.models.SessionAgent
 import org.coralprotocol.coralserver.models.ResolvedMessage
 import org.coralprotocol.coralserver.models.ResolvedThread
 import org.coralprotocol.coralserver.server.apiJsonConfig
@@ -65,7 +65,7 @@ sealed interface McpToolResult {
     @Serializable
     @SerialName("agent_list_success_with_details")
     data class AgentList(
-        val agents: List<Agent>
+        val agents: List<SessionAgent>
     ) : McpToolResult
 }
 

@@ -7,8 +7,8 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 import org.coralprotocol.coralserver.mcp.McpTool
 import org.coralprotocol.coralserver.mcp.McpToolName
-import org.coralprotocol.coralserver.mcp.tools.models.SendMessageInput
 import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
+import org.coralprotocol.coralserver.mcp.tools.models.SendMessageInput
 import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 

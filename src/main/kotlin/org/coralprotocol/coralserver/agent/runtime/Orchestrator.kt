@@ -97,12 +97,9 @@ class Orchestrator(
             options = graphAgent.options,
         )
 
-        val agent = registry.importedAgents[graphAgent.name]
-            ?: throw IllegalArgumentException("Cannot spawn unknown agent: ${graphAgent.name}")
-
         when (val provider = graphAgent.provider) {
             is GraphAgentProvider.Local -> {
-                val runtime = agent.runtimes.getById(provider.runtime) ?:
+                val runtime = graphAgent.registryAgent.runtimes.getById(provider.runtime) ?:
                     throw IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported on agent ${graphAgent.name}")
 
                 handles.add(runtime.spawn(
@@ -158,15 +155,18 @@ class Orchestrator(
                         }
                         val response = client.post(url) {
                             contentType(ContentType.Application.Json)
-                            setBody(GraphAgentRequest(
-                                registryAgentName = graphAgent.name,
-                                agentName = graphAgent.name,
-                                options = graphAgent.options,
-                                systemPrompt = graphAgent.systemPrompt,
-                                blocking = graphAgent.blocking,
-                                tools = graphAgent.extraTools,
-                                provider = GraphAgentProvider.Local(provider.runtime)
-                            ))
+                            setBody(
+                                GraphAgentRequest(
+                                    id = graphAgent.registryAgent.id,
+                                    name = graphAgent.name,
+                                    description = graphAgent.description,
+                                    options = graphAgent.options,
+                                    systemPrompt = graphAgent.systemPrompt,
+                                    blocking = graphAgent.blocking,
+                                    customToolAccess = graphAgent.customToolAccess,
+                                    provider = GraphAgentProvider.Local(provider.runtime)
+                                )
+                            )
                         }
                         if (response.status != HttpStatusCode.OK) {
                             val body = response.bodyAsText()
@@ -204,14 +204,11 @@ class Orchestrator(
             options = graphAgent.options,
         )
 
-        val agent = registry.importedAgents[graphAgent.name]
-            ?: throw IllegalArgumentException("Cannot spawn unknown agent: ${graphAgent.name}")
-
         when (val provider = graphAgent.provider) {
             is GraphAgentProvider.Remote -> throw IllegalArgumentException("Remote agents cannot be provided by other remote servers")
             is GraphAgentProvider.Local -> {
-                val runtime = agent.runtimes.getById(provider.runtime) ?:
-                    throw IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported on agent ${graphAgent.name}")
+                val runtime = graphAgent.registryAgent.runtimes.getById(provider.runtime) ?:
+                    throw IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported on agent ${graphAgent.registryAgent.id}")
 
                 handles.add(runtime.spawn(
                     params,
