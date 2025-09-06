@@ -9,8 +9,10 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentServer
 import org.coralprotocol.coralserver.agent.graph.GraphAgentServerSource
-import org.coralprotocol.coralserver.agent.registry.AgentExport
+import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
 import org.coralprotocol.coralserver.agent.registry.RegistryAgent
+import org.coralprotocol.coralserver.agent.registry.RegistryAgentExportPricing
+import org.coralprotocol.coralserver.agent.registry.UnresolvedAgentExportSettings
 import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
@@ -70,10 +72,13 @@ class RemoteSessionScenarios {
         applicationId: String,
         privacyKey: String
     ) {
-        (registry.importedAgents as MutableMap).putIfAbsent(
-            graphAgent.name,
-            RegistryAgent(LocalAgentRuntimes(functionRuntime = FunctionRuntime({})), emptyMap())
-        )
+        (registry.agents as MutableList).add(RegistryAgent(
+            id = graphAgent.registryAgent.id,
+            runtimes = LocalAgentRuntimes(functionRuntime = FunctionRuntime {}),
+            options = mapOf(),
+            unresolvedExportSettings = mapOf()
+        ))
+        
         spawn(
             session,
             graphAgent,
@@ -86,14 +91,15 @@ class RemoteSessionScenarios {
     fun Orchestrator.exportAnonymousAgent(
         graphAgent: GraphAgent,
     ) {
-        (registry.importedAgents as MutableMap).putIfAbsent(
-            graphAgent.name,
-            RegistryAgent(LocalAgentRuntimes(functionRuntime = FunctionRuntime({})), emptyMap())
-        )
-        (registry.exportedAgents as MutableMap).putIfAbsent(
-            graphAgent.name,
-            AgentExport(RegistryAgent(LocalAgentRuntimes(functionRuntime = FunctionRuntime({})), emptyMap()), emptyMap(), quantity = 10u)
-        )
+        (registry.agents as MutableList).add(RegistryAgent(
+            id = graphAgent.registryAgent.id,
+            runtimes = LocalAgentRuntimes(functionRuntime = FunctionRuntime {}),
+            options = mapOf(),
+            unresolvedExportSettings = mapOf(RuntimeId.FUNCTION to UnresolvedAgentExportSettings(
+                quantity = 1u,
+                pricing = RegistryAgentExportPricing(0.0, 0.0)
+            ))
+        ))
     }
 
     @OptIn(ExperimentalUuidApi::class)
@@ -117,10 +123,17 @@ class RemoteSessionScenarios {
 
             val exportedServerAgentId = "exportingServerAgent"
             val graphAgent = GraphAgent(
+                registryAgent = RegistryAgent(
+                    id = AgentRegistryIdentifier("test", "1.0.0"),
+                    runtimes = LocalAgentRuntimes(functionRuntime = FunctionRuntime {}),
+                    options = mapOf(),
+                    unresolvedExportSettings = mapOf()
+                ),
+                description = "",
                 name = exportedServerAgentId,
                 options = mapOf(),
                 systemPrompt = "",
-                extraTools = emptySet(),
+                customToolAccess = emptySet(),
                 blocking = false,
                 provider = GraphAgentProvider.Remote(
                     runtime = RuntimeId.FUNCTION,
