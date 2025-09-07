@@ -104,6 +104,7 @@ class LocalSessionManager(
         }
 
         val session = LocalSession(sessionId, applicationId, privacyKey, agentGraph = agentGraph, groups = subgraphs?.toList() ?: emptyList())
+        sessions[sessionId] = session
 
         agentGraph?.agents?.forEach { agent ->
             orchestrator.spawn(
@@ -115,7 +116,6 @@ class LocalSessionManager(
             )
         }
 
-        sessions[sessionId] = session
         sessionListeners[sessionId]?.let { it ->
             it.forEach {
                 if (!it.isCompleted) {
