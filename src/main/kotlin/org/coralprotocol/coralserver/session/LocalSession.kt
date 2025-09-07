@@ -26,7 +26,7 @@ class LocalSession(
     val groups: List<Set<String>> = listOf(),
     var devRequiredAgentStartCount: Int = 0,
 ): Session {
-    private var agents = ConcurrentHashMap<String, SessionAgent>()
+    var agents = ConcurrentHashMap<String, SessionAgent>()
     private val debugAgents = ConcurrentSet<String>()
 
     private val threads = ConcurrentHashMap<String, Thread>()
