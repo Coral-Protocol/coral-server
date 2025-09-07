@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.invoke
+
 plugins {
     kotlin("jvm") version "2.1.20"
     kotlin("plugin.serialization") version "2.1.20"
@@ -22,12 +24,15 @@ repositories {
 
     maven("https://repo.repsy.io/mvn/chrynan/public")
     maven("https://github.com/CaelumF/schema-kenerator/raw/develop/maven-repo")
+    flatDir {
+        dirs("lib")
+    }
 }
-
 
 dependencies {
     testImplementation(kotlin("test"))
-    implementation("io.modelcontextprotocol:kotlin-sdk:0.6.0")
+    implementation(":blockchain-1.0.0-all")
+    implementation("io.modelcontextprotocol:kotlin-sdk:0.6.0") {}
     implementation("io.github.oshai:kotlin-logging-jvm:7.0.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1")
@@ -53,7 +58,7 @@ dependencies {
     implementation(enforcedPlatform("io.ktor:ktor-bom:$ktorVersion"))
     implementation("io.ktor:ktor-server-status-pages:${ktorVersion}")
 
-    val uriVersion="0.5.0"
+    val uriVersion = "0.5.0"
     implementation("com.chrynan.uri.core:uri-core:$uriVersion")
     implementation("com.chrynan.uri.core:uri-ktor-client:$uriVersion")
 

@@ -42,6 +42,12 @@ private fun defaultDockerSocket(): String {
 }
 
 @Serializable
+data class PaymentConfig(
+    val keypairPath: String = System.getProperty("user.home") + "/.coral/keypair.json",
+    val rpcUrl: String = "https://api.devnet.solana.com",
+)
+
+@Serializable
 data class NetworkConfig(
     /**
      * The network address to bind the HTTP server to
@@ -172,6 +178,9 @@ data class SecurityConfig(
 
 @Serializable
 data class Config(
+    @SerialName("payments")
+    val paymentConfig: PaymentConfig = PaymentConfig(),
+
     @SerialName("network")
     val networkConfig: NetworkConfig = NetworkConfig(),
 
