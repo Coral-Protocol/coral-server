@@ -2,6 +2,8 @@
 
 package org.coralprotocol.coralserver.server
 
+import com.coral.escrow.blockchain.BlockchainServiceImpl
+import com.coral.escrow.blockchain.models.SignerConfig
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.OpenApi
 import io.github.smiley4.ktoropenapi.config.OutputFormat
@@ -78,6 +80,7 @@ class CoralServer(
 ) {
     val localSessionManager = LocalSessionManager(orchestrator)
     val remoteSessionManager = RemoteSessionManager(orchestrator)
+    val blockchainService by lazy { getBlockchainService() }
 
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
@@ -153,6 +156,7 @@ class CoralServer(
                 maxFrameSize = Long.MAX_VALUE
                 masking = false
             }
+
             // TODO: probably restrict this down the line
             install(CORS) {
                 allowMethod(HttpMethod.Options)
@@ -200,6 +204,14 @@ class CoralServer(
 
     val monitor get() = server.monitor
     private var serverJob: Job? = null
+
+    private fun getBlockchainService(): BlockchainServiceImpl {
+        val keypairPath = config.paymentConfig.keypairPath
+        val rpcUrl = config.paymentConfig.rpcUrl
+        val signerConfig = SignerConfig.File(keypairPath)
+        val blockchainService = BlockchainServiceImpl(rpcUrl, "confirmed", signerConfig)
+        return blockchainService
+    }
 
     /**
      * Starts the server.
