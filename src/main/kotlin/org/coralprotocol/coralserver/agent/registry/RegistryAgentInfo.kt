@@ -16,4 +16,6 @@ data class RegistryAgentInfo(
 
     @Description("A list of agent capabilities, for example the ability to refresh MCP resources")
     val capabilities: Set<AgentCapability> = setOf(),
-)
+) {
+    val identifier: AgentRegistryIdentifier = AgentRegistryIdentifier(name, version)
+}

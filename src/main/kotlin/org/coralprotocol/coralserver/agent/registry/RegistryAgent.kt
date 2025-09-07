@@ -11,12 +11,11 @@ import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.SecurityConfig
 import org.coralprotocol.coralserver.routes.api.v1.filterNotNullValues
 import java.io.File
-import java.io.InputStream
 
 private val logger = KotlinLogging.logger {  }
 
 class RegistryAgent(
-    val id: AgentRegistryIdentifier,
+    val info: RegistryAgentInfo,
     val runtimes: LocalAgentRuntimes,
     val options: Map<String, AgentOption>,
     unresolvedExportSettings: UnresolvedAgentExportSettingsMap
@@ -42,7 +41,7 @@ data class PublicRegistryAgent(
 )
 
 fun RegistryAgent.toPublic(): PublicRegistryAgent = PublicRegistryAgent(
-    id = id,
+    id = info.identifier,
     runtimes = runtimes.toRuntimeIds(),
     options = options,
     exportSettings = exportSettings.mapValues { (_, settings) -> settings.toPublic() }

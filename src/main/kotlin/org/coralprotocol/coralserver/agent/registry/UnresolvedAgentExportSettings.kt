@@ -13,11 +13,11 @@ data class UnresolvedAgentExportSettings(
 ) {
     fun resolve(runtimeId: RuntimeId, agent: RegistryAgent): AgentExportSettings {
         if (quantity == 0u) {
-            throw RegistryException("Cannot export 0 \"${agent.id}\" agents")
+            throw RegistryException("Cannot export 0 \"${agent.info.identifier}\" agents")
         }
 
         if (agent.runtimes.getById(runtimeId) == null) {
-            throw RegistryException("Runtime \"$runtimeId\" is not defined for agent \"${agent.id}\"")
+            throw RegistryException("Runtime \"$runtimeId\" is not defined for agent \"${agent.info.identifier}\"")
         }
 
         return AgentExportSettings(

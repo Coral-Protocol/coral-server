@@ -73,7 +73,7 @@ class RemoteSessionScenarios {
         privacyKey: String
     ) {
         (registry.agents as MutableList).add(RegistryAgent(
-            id = graphAgent.registryAgent.id,
+            info = graphAgent.registryAgent.info,
             runtimes = LocalAgentRuntimes(functionRuntime = FunctionRuntime {}),
             options = mapOf(),
             unresolvedExportSettings = mapOf()
@@ -92,7 +92,7 @@ class RemoteSessionScenarios {
         graphAgent: GraphAgent,
     ) {
         (registry.agents as MutableList).add(RegistryAgent(
-            id = graphAgent.registryAgent.id,
+            info = graphAgent.registryAgent.info,
             runtimes = LocalAgentRuntimes(functionRuntime = FunctionRuntime {}),
             options = mapOf(),
             unresolvedExportSettings = mapOf(RuntimeId.FUNCTION to UnresolvedAgentExportSettings(
@@ -124,7 +124,7 @@ class RemoteSessionScenarios {
             val exportedServerAgentId = "exportingServerAgent"
             val graphAgent = GraphAgent(
                 registryAgent = RegistryAgent(
-                    id = AgentRegistryIdentifier("test", "1.0.0"),
+                    info = AgentRegistryIdentifier("test", "1.0.0").toInfo(),
                     runtimes = LocalAgentRuntimes(functionRuntime = FunctionRuntime {}),
                     options = mapOf(),
                     unresolvedExportSettings = mapOf()
