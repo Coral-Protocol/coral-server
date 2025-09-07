@@ -28,11 +28,20 @@ data class UnresolvedAgentRegistry(
     val inlineAgents: List<UnresolvedInlineRegistryAgent> = listOf(),
 ) {
     fun resolve(context: RegistryResolutionContext): AgentRegistry {
-        return AgentRegistry(
-            localAgents.flatMap { it.resolve(context) }
-                    + gitAgents.flatMap { it.resolve(context) }
-                    + indexedAgents.flatMap { it.resolve(context) }
-                    + inlineAgents.flatMap { it.resolve(context) }
-        )
+        val agents = localAgents.flatMap { it.resolve(context) } +
+                gitAgents.flatMap { it.resolve(context) } +
+                indexedAgents.flatMap { it.resolve(context) } +
+                inlineAgents.flatMap { it.resolve(context) }
+
+        val duplicates = agents
+            .groupingBy { it.id }
+            .eachCount()
+            .filter { (_, count) -> count > 1 }
+
+        if (duplicates.isNotEmpty()) {
+            throw RegistryException("Registry contains duplicate agents: ${duplicates.keys.joinToString(", ")}")
+        }
+
+        return AgentRegistry(agents)
     }
 }
