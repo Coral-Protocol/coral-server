@@ -34,7 +34,7 @@ data class UnresolvedAgentRegistry(
                 inlineAgents.flatMap { it.resolve(context) }
 
         val duplicates = agents
-            .groupingBy { it.id }
+            .groupingBy { it.info.identifier }
             .eachCount()
             .filter { (_, count) -> count > 1 }
 

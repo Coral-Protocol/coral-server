@@ -106,9 +106,11 @@ class LocalSession(
                 return null;
             }
         }
+
+        val graphAgent = agentGraph?.agents[agentId]
         val sessionAgent = SessionAgent(
             id = agentId,
-            description = agentGraph?.agents[agentId]?.description ?: agentDescription ?: "",
+            description = graphAgent?.description ?: graphAgent?.registryAgent?.info?.description ?: agentDescription ?: "",
             extraTools = agentGraph?.let {
                 it.agents[agentId]?.customToolAccess?.mapNotNull { tool -> it.customTools[tool] }?.toSet()
             } ?: setOf(),

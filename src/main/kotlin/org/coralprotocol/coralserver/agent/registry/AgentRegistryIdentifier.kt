@@ -14,4 +14,6 @@ data class AgentRegistryIdentifier(
     override fun toString(): String {
         return "$name:$version"
     }
+
+    fun toInfo(): RegistryAgentInfo = RegistryAgentInfo(name, version)
 }

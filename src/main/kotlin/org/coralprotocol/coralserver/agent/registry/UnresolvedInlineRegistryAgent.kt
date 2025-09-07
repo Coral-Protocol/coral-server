@@ -18,7 +18,7 @@ data class UnresolvedInlineRegistryAgent(
 ) : UnresolvedRegistryAgent() {
     override fun resolve(context: RegistryResolutionContext): List<RegistryAgent> {
         return listOf(RegistryAgent(
-            id = AgentRegistryIdentifier(agentInfo.name, agentInfo.version),
+            info = agentInfo,
             runtimes = runtimes,
             options = options,
             unresolvedExportSettings = unresolvedExportSettings

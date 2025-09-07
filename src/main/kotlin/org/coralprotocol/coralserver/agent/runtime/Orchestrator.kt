@@ -157,7 +157,7 @@ class Orchestrator(
                             contentType(ContentType.Application.Json)
                             setBody(
                                 GraphAgentRequest(
-                                    id = graphAgent.registryAgent.id,
+                                    id = graphAgent.registryAgent.info.identifier,
                                     name = graphAgent.name,
                                     description = graphAgent.description,
                                     options = graphAgent.options,
@@ -208,7 +208,7 @@ class Orchestrator(
             is GraphAgentProvider.Remote -> throw IllegalArgumentException("Remote agents cannot be provided by other remote servers")
             is GraphAgentProvider.Local -> {
                 val runtime = graphAgent.registryAgent.runtimes.getById(provider.runtime) ?:
-                    throw IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported on agent ${graphAgent.registryAgent.id}")
+                    throw IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported on agent ${graphAgent.registryAgent.info.identifier}")
 
                 handles.add(runtime.spawn(
                     params,
