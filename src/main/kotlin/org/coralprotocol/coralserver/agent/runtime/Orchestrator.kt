@@ -90,6 +90,7 @@ class Orchestrator(
     ) {
         val params = RuntimeParams.Local(
             session = session,
+            agentId = graphAgent.registryAgent.info.identifier,
             agentName = agentName,
             applicationId = applicationId,
             privacyKey = privacyKey,
@@ -199,6 +200,7 @@ class Orchestrator(
     ) {
         val params = RuntimeParams.Remote(
             session = session,
+            agentId = graphAgent.registryAgent.info.identifier,
             agentName = agentName,
             systemPrompt = graphAgent.systemPrompt,
             options = graphAgent.options,

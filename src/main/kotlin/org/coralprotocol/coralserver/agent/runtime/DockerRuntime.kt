@@ -12,6 +12,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
+import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
 import org.coralprotocol.coralserver.agent.registry.toStringValue
 import org.coralprotocol.coralserver.agent.runtime.executable.EnvVar
 import org.coralprotocol.coralserver.config.AddressConsumer
@@ -25,7 +26,7 @@ private val dockerLogger = KotlinLogging.logger {}
 @Serializable
 @SerialName("docker")
 data class DockerRuntime(
-    val image: String,
+    var image: String,
     val environment: List<EnvVar> = listOf(),
 ) : Orchestrate {
 
@@ -39,8 +40,9 @@ data class DockerRuntime(
         val dockerClient = applicationRuntimeContext.dockerClient
         dockerLogger.info { "Spawning Docker container with image: $image" }
 
+        image = dockerClient.sanitizeTag(image, params.agentId)
         dockerClient.pullImageIfNeeded(image)
-        dockerClient.checkAndWarnForLatestTag(image)
+
 
         val apiUrl = applicationRuntimeContext.getApiUrl(AddressConsumer.CONTAINER)
         val mcpUrl = applicationRuntimeContext.getMcpUrl(params, AddressConsumer.CONTAINER)
@@ -198,7 +200,7 @@ private fun DockerClient.pullImageIfNeeded(imageName: String) {
  * Also includes the image creation date in the warning.
  * @param imageName The name of the image to check
  */
-private fun DockerClient.checkAndWarnForLatestTag(imageName: String) {
+private fun DockerClient.sanitizeTag(imageName: String, id: AgentRegistryIdentifier): String {
     if (imageName.endsWith(":latest") || !imageName.contains(":")) {
         val imageInfo = inspectImageCmd(imageName).exec()
         val createdAt = imageInfo.created
@@ -212,5 +214,15 @@ private fun DockerClient.checkAndWarnForLatestTag(imageName: String) {
 
             dockerLogger.warn { "$imageName image creation date: $formattedDate" }
         }
+    }
+    else if (!imageName.endsWith(":${id.version}")) {
+        dockerLogger.warn { "Image $imageName does not match the agent version: ${id.version}" }
+    }
+
+    return if (imageName.contains(":")) {
+        imageName
+    }
+    else {
+        "$imageName:${id.version}"
     }
 }
