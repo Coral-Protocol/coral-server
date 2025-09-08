@@ -65,6 +65,7 @@ data class GitRegistryAgentIndexer(
 
             // todo: lockfile, caching, etc
             repo.fetch()
+            repo.pull()
             repo.reset {
                 setMode(ResetCommand.ResetType.HARD)
             }
