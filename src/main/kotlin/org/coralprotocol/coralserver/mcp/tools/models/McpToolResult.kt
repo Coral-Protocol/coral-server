@@ -17,6 +17,12 @@ import org.coralprotocol.coralserver.server.apiJsonConfig
 @JsonClassDiscriminator("result")
 sealed interface McpToolResult {
     @Serializable
+    @SerialName("tool_input_error")
+    data class ToolInputError(
+        val message: String
+    ) : McpToolResult
+
+    @Serializable
     @SerialName("error")
     data class Error(
         val message: String
