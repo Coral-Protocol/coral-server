@@ -1,6 +1,6 @@
-package com.coral.payment.utils
+package org.coralprotocol.coralserver.payment.utils
 
-import com.coral.payment.models.ErrorResponse
+import org.coralprotocol.coralserver.payment.models.ErrorResponse
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*

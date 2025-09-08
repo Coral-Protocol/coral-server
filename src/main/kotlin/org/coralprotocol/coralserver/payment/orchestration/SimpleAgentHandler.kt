@@ -1,9 +1,9 @@
-package com.coral.payment.orchestration
+package org.coralprotocol.coralserver.payment.orchestration
 
-import com.coral.escrow.blockchain.BlockchainService
-import com.coral.payment.config.AgentConfig
-import com.coral.payment.models.*
-import com.coral.payment.utils.SimpleTransactionHelper
+import org.coralprotocol.coralserver.escrow.blockchain.BlockchainService
+import org.coralprotocol.coralserver.payment.config.AgentConfig
+import org.coralprotocol.coralserver.payment.models.*
+import org.coralprotocol.coralserver.payment.utils.SimpleTransactionHelper
 import kotlinx.coroutines.*
 import mu.KotlinLogging
 import java.time.Instant

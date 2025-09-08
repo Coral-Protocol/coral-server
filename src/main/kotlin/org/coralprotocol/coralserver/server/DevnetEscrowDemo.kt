@@ -1,7 +1,7 @@
 package org.coralprotocol.coralserver.server
-import com.coral.escrow.blockchain.BlockchainServiceImpl
-import com.coral.escrow.blockchain.models.SignerConfig
-import com.coral.escrow.blockchain.builders.CoralRequestBuilders
+import org.coralprotocol.coralserver.escrow.blockchain.BlockchainServiceImpl
+import org.coralprotocol.coralserver.escrow.blockchain.models.SignerConfig
+import org.coralprotocol.coralserver.escrow.blockchain.builders.CoralRequestBuilders
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.delay
 import java.io.File

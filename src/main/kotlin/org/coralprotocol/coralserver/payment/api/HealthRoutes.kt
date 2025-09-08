@@ -1,7 +1,7 @@
-package com.coral.payment.api
+package org.coralprotocol.coralserver.payment.api
 
-import com.coral.payment.models.BlockchainHealth
-import com.coral.payment.models.HealthResponse
+import org.coralprotocol.coralserver.payment.models.BlockchainHealth
+import org.coralprotocol.coralserver.payment.models.HealthResponse
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*

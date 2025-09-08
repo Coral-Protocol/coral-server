@@ -1,6 +1,6 @@
-package com.coral.payment.orchestration
+package org.coralprotocol.coralserver.payment.orchestration
 
-import com.coral.payment.models.*
+import org.coralprotocol.coralserver.payment.models.*
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.engine.cio.*
