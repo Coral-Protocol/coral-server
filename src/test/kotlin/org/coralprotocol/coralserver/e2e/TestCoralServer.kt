@@ -26,7 +26,9 @@ class TestCoralServer(
     @OptIn(DelicateCoroutinesApi::class)
     suspend fun setup() {
         server?.stop()
-        val config = Config(NetworkConfig(bindAddress = host, bindPort = port))
+        val config = Config(
+            networkConfig = NetworkConfig(bindAddress = host, bindPort = port)
+        )
         val registry = AgentRegistry()
         val orchestrator: Orchestrator = spyk(Orchestrator(config, registry))
 
