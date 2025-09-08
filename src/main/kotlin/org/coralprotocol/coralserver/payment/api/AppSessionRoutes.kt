@@ -1,6 +1,6 @@
 package org.coralprotocol.coralserver.payment.api
 
-import org.coralprotocol.coralserver.escrow.blockchain.BlockchainService
+import com.coral.escrow.blockchain.BlockchainService
 import org.coralprotocol.coralserver.payment.config.PaymentServerConfig
 import org.coralprotocol.coralserver.payment.models.*
 import org.coralprotocol.coralserver.payment.orchestration.SessionManager
@@ -8,7 +8,6 @@ import org.coralprotocol.coralserver.payment.orchestration.InsufficientAgentsExc
 import org.coralprotocol.coralserver.payment.orchestration.SessionCreationException
 import org.coralprotocol.coralserver.payment.orchestration.SessionFundingException
 import org.coralprotocol.coralserver.payment.orchestration.InsufficientFundsException
-import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
 import org.coralprotocol.coralserver.payment.utils.ErrorHandling.respondError
 import org.coralprotocol.coralserver.payment.utils.ErrorHandling.parseSessionId
 import io.ktor.http.*

@@ -29,7 +29,7 @@ class TestCoralServer(
         val config = Config(
             networkConfig = NetworkConfig(bindAddress = host, bindPort = port)
         )
-        val registry = AgentRegistry()
+        val registry = AgentRegistry(agents = mutableListOf())
         val orchestrator: Orchestrator = spyk(Orchestrator(config, registry))
 
         server = CoralServer(

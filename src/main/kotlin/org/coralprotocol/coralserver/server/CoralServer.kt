@@ -2,8 +2,8 @@
 
 package org.coralprotocol.coralserver.server
 
-import org.coralprotocol.coralserver.escrow.blockchain.BlockchainServiceImpl
-import org.coralprotocol.coralserver.escrow.blockchain.models.SignerConfig
+import com.coral.escrow.blockchain.BlockchainServiceImpl
+import com.coral.escrow.blockchain.models.SignerConfig
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.OpenApi
 import io.github.smiley4.ktoropenapi.config.OutputFormat

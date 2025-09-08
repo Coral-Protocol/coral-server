@@ -1,6 +1,6 @@
 package org.coralprotocol.coralserver.payment.api
 
-import org.coralprotocol.coralserver.escrow.blockchain.BlockchainService
+import com.coral.escrow.blockchain.BlockchainService
 import org.coralprotocol.coralserver.payment.config.PaymentServerConfig
 import org.coralprotocol.coralserver.payment.orchestration.SimpleAgentHandler
 import org.coralprotocol.coralserver.payment.orchestration.SessionManager
@@ -48,7 +48,7 @@ fun Application.configureRouting(
                 val agentHandler = SimpleAgentHandler(blockchainService, agentConfig)
                 agentRoutes(agentHandler, config)
                 workRoutes(agentHandler, config)
-                notificationRoutes(blockchainService, config, agentHandler)
+//                notificationRoutes(blockchainService, config, agentHandler)
                 claimRoutes(blockchainService, config)
             }
         }

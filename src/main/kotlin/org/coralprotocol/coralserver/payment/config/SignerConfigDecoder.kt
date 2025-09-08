@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver.payment.config
 
-import org.coralprotocol.coralserver.escrow.blockchain.models.SignerConfig
+
+import com.coral.escrow.blockchain.models.SignerConfig
 import com.sksamuel.hoplite.*
 import com.sksamuel.hoplite.decoder.Decoder
 import com.sksamuel.hoplite.fp.Validated
