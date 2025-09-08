@@ -6,6 +6,7 @@ import io.modelcontextprotocol.kotlin.sdk.CallToolResult
 import io.modelcontextprotocol.kotlin.sdk.TextContent
 import io.modelcontextprotocol.kotlin.sdk.Tool
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerializationException
 import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
 import org.coralprotocol.coralserver.mcp.tools.models.toCallToolResult
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
@@ -22,7 +23,14 @@ abstract class McpTool<T>() {
     internal abstract suspend fun execute(mcpServer: CoralAgentIndividualMcp, arguments: T): McpToolResult
 
     internal suspend fun executeRaw(mcpServer: CoralAgentIndividualMcp, request: CallToolRequest): CallToolResult {
-        val arguments = apiJsonConfig.decodeFromString(argumentsSerializer, request.arguments.toString())
+
+        val arguments = try {
+            apiJsonConfig.decodeFromString(argumentsSerializer, request.arguments.toString())
+        }
+        catch (e: SerializationException) {
+            return McpToolResult.ToolInputError(e.message ?: "Input does not match input for the tool schema").toCallToolResult()
+        }
+
         try {
             return execute(mcpServer, arguments).toCallToolResult()
         }
