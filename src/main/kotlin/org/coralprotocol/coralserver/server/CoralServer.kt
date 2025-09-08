@@ -80,7 +80,7 @@ class CoralServer(
 ) {
     val localSessionManager = LocalSessionManager(orchestrator)
     val remoteSessionManager = RemoteSessionManager(orchestrator)
-    val blockchainService by lazy { getBlockchainService() }
+    val blockchainService by lazy { createBlockchainService() }
 
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
@@ -205,7 +205,7 @@ class CoralServer(
     val monitor get() = server.monitor
     private var serverJob: Job? = null
 
-    private fun getBlockchainService(): BlockchainServiceImpl {
+    private fun createBlockchainService(): BlockchainServiceImpl {
         val keypairPath = config.paymentConfig.keypairPath
         val rpcUrl = config.paymentConfig.rpcUrl
         val signerConfig = SignerConfig.File(keypairPath)
