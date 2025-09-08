@@ -1,4 +1,4 @@
-package com.coral.payment.models
+package org.coralprotocol.coralserver.payment.models
 
 import kotlinx.serialization.Serializable
 import coral.escrow.v1.CoralEscrow

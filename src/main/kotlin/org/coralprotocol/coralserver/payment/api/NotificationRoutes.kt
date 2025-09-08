@@ -1,10 +1,10 @@
-package com.coral.payment.api
+package org.coralprotocol.coralserver.payment.api
 
-import com.coral.escrow.blockchain.BlockchainService
-import com.coral.payment.config.PaymentServerConfig
-import com.coral.payment.models.*
-import com.coral.payment.orchestration.SimpleAgentHandler
-import com.coral.payment.utils.ErrorHandling.respondError
+import org.coralprotocol.coralserver.escrow.blockchain.BlockchainService
+import org.coralprotocol.coralserver.payment.config.PaymentServerConfig
+import org.coralprotocol.coralserver.payment.models.*
+import org.coralprotocol.coralserver.payment.orchestration.SimpleAgentHandler
+import org.coralprotocol.coralserver.payment.utils.ErrorHandling.respondError
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*

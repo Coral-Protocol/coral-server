@@ -1,4 +1,4 @@
-package com.coral.payment.utils
+package org.coralprotocol.coralserver.payment.utils
 
 import java.util.UUID
 import kotlin.math.absoluteValue

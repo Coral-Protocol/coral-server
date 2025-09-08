@@ -1,4 +1,4 @@
-package com.coral.payment.utils
+package org.coralprotocol.coralserver.payment.utils
 
 import kotlinx.coroutines.delay
 import mu.KotlinLogging

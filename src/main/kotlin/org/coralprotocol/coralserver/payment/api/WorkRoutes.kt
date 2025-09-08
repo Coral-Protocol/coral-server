@@ -1,11 +1,11 @@
-package com.coral.payment.api
+package org.coralprotocol.coralserver.payment.api
 
-import com.coral.payment.config.PaymentServerConfig
-import com.coral.payment.models.*
-import com.coral.payment.orchestration.SimpleAgentHandler
-import com.coral.payment.utils.SessionIdUtils
-import com.coral.payment.utils.ErrorHandling.respondError
-import com.coral.payment.utils.ErrorHandling.validatePositiveAmount
+import org.coralprotocol.coralserver.payment.config.PaymentServerConfig
+import org.coralprotocol.coralserver.payment.models.*
+import org.coralprotocol.coralserver.payment.orchestration.SimpleAgentHandler
+import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
+import org.coralprotocol.coralserver.payment.utils.ErrorHandling.respondError
+import org.coralprotocol.coralserver.payment.utils.ErrorHandling.validatePositiveAmount
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*

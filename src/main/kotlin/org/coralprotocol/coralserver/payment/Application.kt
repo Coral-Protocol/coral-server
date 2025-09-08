@@ -1,9 +1,9 @@
-//package com.coral.payment
+//package org.coralprotocol.coralserver.payment
 //
-//import com.coral.escrow.blockchain.BlockchainService
-//import com.coral.escrow.blockchain.BlockchainServiceImpl
-//import com.coral.payment.api.configureRouting
-//import com.coral.payment.config.PaymentServerConfig
+//import org.coralprotocol.coralserver.escrow.blockchain.BlockchainService
+//import org.coralprotocol.coralserver.escrow.blockchain.BlockchainServiceImpl
+//import org.coralprotocol.coralserver.payment.api.configureRouting
+//import org.coralprotocol.coralserver.payment.config.PaymentServerConfig
 //import com.sksamuel.hoplite.ConfigLoaderBuilder
 //import com.sksamuel.hoplite.addResourceSource
 //import io.ktor.serialization.kotlinx.json.*
@@ -17,8 +17,8 @@
 //import io.ktor.http.*
 //import kotlinx.serialization.json.Json
 //import mu.KotlinLogging
-//import com.coral.payment.models.ErrorResponse
-//import com.coral.payment.config.SignerConfigDecoder
+//import org.coralprotocol.coralserver.payment.models.ErrorResponse
+//import org.coralprotocol.coralserver.payment.config.SignerConfigDecoder
 //import kotlin.system.exitProcess
 //
 //private val logger = KotlinLogging.logger {}
