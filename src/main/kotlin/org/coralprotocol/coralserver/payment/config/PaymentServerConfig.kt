@@ -1,7 +1,6 @@
 package org.coralprotocol.coralserver.payment.config
 
 import com.coral.escrow.blockchain.models.SignerConfig
-import kotlinx.serialization.Serializable
 import com.sksamuel.hoplite.ConfigAlias
 
 data class PaymentServerConfig(

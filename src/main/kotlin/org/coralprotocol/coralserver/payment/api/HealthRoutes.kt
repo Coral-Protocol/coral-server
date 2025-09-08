@@ -1,18 +1,26 @@
 package org.coralprotocol.coralserver.payment.api
 
-import org.coralprotocol.coralserver.payment.models.BlockchainHealth
-import org.coralprotocol.coralserver.payment.models.HealthResponse
+import io.github.smiley4.ktoropenapi.resources.get
 import io.ktor.http.*
+import io.ktor.resources.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.coralprotocol.coralserver.payment.models.BlockchainHealth
+import org.coralprotocol.coralserver.payment.models.HealthResponse
+
+@Resource("/health")
+class Health
+
+@Resource("/health/detailed")
+class HealthDetailed
 
 fun Route.healthRoutes() {
-    get("/health") {
+    get<Health> {
         call.respond(HttpStatusCode.OK, mapOf("status" to "ok"))
     }
-    
-    get("/health/detailed") {
+
+    get<HealthDetailed> {
         // TODO: Add actual blockchain connectivity check
         val health = HealthResponse(
             status = "healthy",
