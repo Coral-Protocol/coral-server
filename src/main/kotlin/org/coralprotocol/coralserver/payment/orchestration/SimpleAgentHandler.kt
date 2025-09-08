@@ -1,6 +1,6 @@
 package org.coralprotocol.coralserver.payment.orchestration
 
-import org.coralprotocol.coralserver.escrow.blockchain.BlockchainService
+import com.coral.escrow.blockchain.BlockchainService
 import org.coralprotocol.coralserver.payment.config.AgentConfig
 import org.coralprotocol.coralserver.payment.models.*
 import org.coralprotocol.coralserver.payment.utils.SimpleTransactionHelper
@@ -11,6 +11,8 @@ import java.util.concurrent.ConcurrentHashMap
 
 private val logger = KotlinLogging.logger {}
 
+// TODO: Maybe can remove a lot here
+// Crossmint handle retries for us
 /**
  * Simplified agent handler for MVP.
  * - Always returns available (will integrate with coral-server later)

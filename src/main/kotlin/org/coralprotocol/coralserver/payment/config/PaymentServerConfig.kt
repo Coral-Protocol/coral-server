@@ -1,6 +1,6 @@
 package org.coralprotocol.coralserver.payment.config
 
-import org.coralprotocol.coralserver.escrow.blockchain.models.SignerConfig
+import com.coral.escrow.blockchain.models.SignerConfig
 import kotlinx.serialization.Serializable
 import com.sksamuel.hoplite.ConfigAlias
 
