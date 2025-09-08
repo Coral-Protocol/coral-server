@@ -20,7 +20,7 @@ internal class WaitForMentionsTool: McpTool<WaitForMentionsInput>() {
         get() = McpToolName.WAIT_FOR_MENTIONS
 
     override val description: String
-        get() = "Wait until mentioned in a Coral thread. Call this tool when you're done or want to wait for another agent to respond. This will block until a message is received. You will see all unread messages."
+        get() = "Wait until mentioned in all Coral threads. Call this tool when you're done or want to wait for another agent to respond. This will block until a message is received. You will see all unread messages."
 
     override val inputSchema: Tool.Input
         get() = Tool.Input(
