@@ -30,6 +30,7 @@ class TelemetryGet(val sessionId: String, val threadId: String, val messageId: S
         )
 
         // TODO: messages should be a map (@Caelum told me to do this (the bad code not the comment))
+        // (Caelum: for the record, I told @Seafra to make it a map, that is the part he is referring to as bad code...)
         return thread.messages.find { it.id == messageId } ?: throw RouteException(
             HttpStatusCode.NotFound,
             "Message not found"

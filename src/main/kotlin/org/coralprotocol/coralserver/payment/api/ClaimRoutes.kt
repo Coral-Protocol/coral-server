@@ -1,118 +1,128 @@
 package org.coralprotocol.coralserver.payment.api
 
 import com.coral.escrow.blockchain.BlockchainService
-import org.coralprotocol.coralserver.payment.config.PaymentServerConfig
-import org.coralprotocol.coralserver.payment.models.*
-import org.coralprotocol.coralserver.payment.utils.ErrorHandling.respondError
-import org.coralprotocol.coralserver.payment.utils.ErrorHandling.parseSessionId
-import org.coralprotocol.coralserver.payment.utils.ErrorHandling.validateParameter
+import io.github.smiley4.ktoropenapi.resources.get
+import io.github.smiley4.ktoropenapi.resources.post
 import io.ktor.http.*
-import io.ktor.server.application.*
+import io.ktor.resources.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import mu.KotlinLogging
+import org.coralprotocol.coralserver.payment.config.PaymentServerConfig
+import org.coralprotocol.coralserver.payment.models.*
+import org.coralprotocol.coralserver.payment.utils.ErrorHandling.parseSessionId
+import org.coralprotocol.coralserver.payment.utils.ErrorHandling.respondError
+import org.coralprotocol.coralserver.payment.utils.ErrorHandling.validateParameter
 
 private val logger = KotlinLogging.logger {}
+
+@Resource("/api/v1/internal/claim")
+class SubmitClaim
+
+@Resource("/api/v1/internal/claim/{sessionId}/{agentId}")
+class ClaimStatus(val sessionId: String, val agentId: String)
 
 fun Route.claimRoutes(
     blockchainService: BlockchainService,
     config: PaymentServerConfig
 ) {
-    route("/internal") {
-        // Submit claim (AGENT mode only)
-        post("/claim") {
-            val request = call.receive<ClaimRequest>()
-            
-            logger.info { 
-                "Processing claim for session ${request.sessionId}, agent ${request.agentId}, amount: ${request.amount}" 
-            }
-            
-            // Check auto-claim configuration
-            if (config.agent?.autoClaim?.enabled == true) {
-                val minAmount = config.agent.autoClaim.minAmount
-                if (request.amount < minAmount) {
-                    return@post call.respondError(
-                        HttpStatusCode.BadRequest,
-                        "Amount below minimum claim threshold: $minAmount"
-                    )
-                }
-            }
-            
-            // First, check if already claimed
-            val claimedResult = blockchainService.checkClaimed(request.sessionId, request.agentId)
-            if (claimedResult.isSuccess && claimedResult.getOrNull() == true) {
+    // Submit claim (AGENT mode only)
+    post<SubmitClaim> {
+        val request = call.receive<ClaimRequest>()
+
+        logger.info {
+            "Processing claim for session ${request.sessionId}, agent ${request.agentId}, amount: ${request.amount}"
+        }
+
+        // Check auto-claim configuration
+        if (config.agent?.autoClaim?.enabled == true) {
+            val minAmount = config.agent.autoClaim.minAmount
+            if (request.amount < minAmount) {
                 return@post call.respondError(
-                    HttpStatusCode.Conflict,
-                    "Agent ${request.agentId} has already claimed from session ${request.sessionId}"
+                    HttpStatusCode.BadRequest,
+                    "Amount below minimum claim threshold: $minAmount"
                 )
             }
-            
-            // Submit the claim
-            val result = blockchainService.submitClaim(
-                sessionId = request.sessionId,
-                agentId = request.agentId,
-                amount = request.amount
+        }
+
+        // First, check if already claimed
+        val claimedResult = blockchainService.checkClaimed(request.sessionId, request.agentId)
+        if (claimedResult.isSuccess && claimedResult.getOrNull() == true) {
+            return@post call.respondError(
+                HttpStatusCode.Conflict,
+                "Agent ${request.agentId} has already claimed from session ${request.sessionId}"
             )
-            
-            result.fold(
-                onSuccess = { tx ->
-                    logger.info { 
-                        "Claim successful for agent ${request.agentId} in session ${request.sessionId}: ${tx.signature}" 
-                    }
-                    
-                    // TODO: Calculate remaining amount from session query
-                    call.respond(ClaimResponse(
+        }
+
+        // Submit the claim
+        val result = blockchainService.submitClaim(
+            sessionId = request.sessionId,
+            agentId = request.agentId,
+            amount = request.amount
+        )
+
+        result.fold(
+            onSuccess = { tx ->
+                logger.info {
+                    "Claim successful for agent ${request.agentId} in session ${request.sessionId}: ${tx.signature}"
+                }
+
+                // TODO: Calculate remaining amount from session query
+                call.respond(
+                    ClaimResponse(
                         success = true,
                         transactionSignature = tx.signature,
                         claimed = request.amount,
                         remaining = 0 // Would need to query session for actual remaining
-                    ))
-                },
-                onFailure = { error ->
-                    logger.error { 
-                        "Failed to process claim for agent ${request.agentId}: ${error.message}" 
-                    }
-                    call.respondError(
-                        HttpStatusCode.BadRequest,
-                        error.message ?: "Failed to process claim"
                     )
+                )
+            },
+            onFailure = { error ->
+                logger.error {
+                    "Failed to process claim for agent ${request.agentId}: ${error.message}"
                 }
-            )
+                call.respondError(
+                    HttpStatusCode.BadRequest,
+                    error.message ?: "Failed to process claim"
+                )
+            }
+        )
+    }
+
+    // Check claim status
+    get<ClaimStatus> { params ->
+        val sessionId = try {
+            parseSessionId(params.sessionId)
+        } catch (e: IllegalArgumentException) {
+            return@get call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid session ID")
         }
-        
-        // Check claim status
-        get("/claim/{sessionId}/{agentId}") {
-            val sessionId = try {
-                parseSessionId(call.parameters["sessionId"])
-            } catch (e: IllegalArgumentException) {
-                return@get call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid session ID")
-            }
-            
-            val agentId = try {
-                validateParameter(call.parameters["agentId"], "agentId")
-            } catch (e: IllegalArgumentException) {
-                return@get call.respondError(HttpStatusCode.BadRequest, e.message ?: "Missing agent ID")
-            }
-            
-            val result = blockchainService.checkClaimed(sessionId, agentId)
-            
-            result.fold(
-                onSuccess = { claimed ->
-                    call.respond(mapOf(
+
+        val agentId = try {
+            validateParameter(params.agentId, "agentId")
+        } catch (e: IllegalArgumentException) {
+            return@get call.respondError(HttpStatusCode.BadRequest, e.message ?: "Missing agent ID")
+        }
+
+        val result = blockchainService.checkClaimed(sessionId, agentId)
+
+        result.fold(
+            onSuccess = { claimed ->
+                call.respond(
+                    mapOf(
                         "sessionId" to sessionId,
                         "agentId" to agentId,
                         "claimed" to claimed
-                    ))
-                },
-                onFailure = { error ->
-                    logger.error { "Failed to check claim status: ${error.message}" }
-                    call.respondError(
-                        HttpStatusCode.InternalServerError,
-                        "Failed to check claim status"
                     )
-                }
-            )
-        }
+                )
+            },
+            onFailure = { error ->
+                logger.error { "Failed to check claim status: ${error.message}" }
+                call.respondError(
+                    HttpStatusCode.InternalServerError,
+                    "Failed to check claim status"
+                )
+            }
+        )
     }
 }
