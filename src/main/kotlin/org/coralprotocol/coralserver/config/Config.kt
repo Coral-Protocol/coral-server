@@ -41,6 +41,9 @@ private fun defaultDockerSocket(): String {
     }
 }
 
+fun defaultDockerAddress() =
+    if (isWindows()) "host.docker.internal" else "172.17.0.1"
+
 @Serializable
 data class PaymentConfig(
     val keypairPath: String = System.getProperty("user.home") + "/.coral/keypair.json",
@@ -80,7 +83,7 @@ data class DockerConfig(
      * An address that can be used to access the host machine from inside a Docker container.  Note if nested Docker is
      * used, the default here might not be correct.
      */
-    val address: String = "host.docker.internal",
+    val address: String = defaultDockerAddress(),
 
     /**
      * The number of seconds to wait for a response from a Docker container before timing out.
