@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.payment.models
 
 import kotlinx.serialization.Serializable
 import coral.escrow.v1.CoralEscrow
+import coral.escrow.v1.CoralEscrow.AgentConfig.newBuilder
 
 // Request models
 @Serializable
@@ -19,7 +20,7 @@ data class AgentConfigRequest(
     val developer: String,  // Simplified: developer is both signer and recipient
     val endpoint: String? = null  // For notifications
 ) {
-    fun toBlockchainModel(): CoralEscrow.AgentConfig = CoralEscrow.AgentConfig.newBuilder()
+    fun toBlockchainModel(): CoralEscrow.AgentConfig = newBuilder()
         .setId(id)
         .setCap(cap)
         .setDeveloper(developer)
@@ -32,7 +33,7 @@ data class FundSessionRequest(
 )
 
 @Serializable
-data class ClaimRequest(
+data class PaymentClaimRequest(
     val sessionId: Long,
     val agentId: String,
     val amount: Long

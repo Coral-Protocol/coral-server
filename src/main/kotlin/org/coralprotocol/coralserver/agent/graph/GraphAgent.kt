@@ -70,5 +70,5 @@ data class GraphAgent(
     /**
      * @see GraphAgentRequest.provider
      */
-    val provider: GraphAgentProvider
+    val provider: GraphAgentProvider,
 )

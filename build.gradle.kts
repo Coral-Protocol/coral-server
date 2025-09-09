@@ -24,14 +24,15 @@ repositories {
 
     maven("https://repo.repsy.io/mvn/chrynan/public")
     maven("https://github.com/CaelumF/schema-kenerator/raw/develop/maven-repo")
-    flatDir {
-        dirs("lib")
+    maven {
+        url = uri("https://coral-protocol.github.io/coral-escrow-distribution/")
     }
 }
 
 dependencies {
     testImplementation(kotlin("test"))
-    implementation(":coral-blockchain-1.0.0-all")
+    implementation("org.coralprotocol.payment:blockchain:0.0.4:all")
+
     implementation("io.modelcontextprotocol:kotlin-sdk:0.6.0") {}
     implementation("io.github.oshai:kotlin-logging-jvm:7.0.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")

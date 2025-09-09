@@ -20,11 +20,13 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
 import org.coralprotocol.coralserver.agent.graph.GraphAgentServerSource
+import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.remote.RemoteSession
+import org.coralprotocol.payment.blockchain.BlockchainService
 import kotlin.uuid.ExperimentalUuidApi
 
 private val logger = KotlinLogging.logger {}
@@ -65,6 +67,7 @@ interface OrchestratorHandle {
 class Orchestrator(
     val config: Config = Config(),
     val registry: AgentRegistry = AgentRegistry(),
+    val blockchainService: BlockchainService
 ) {
     private val remoteScope = CoroutineScope(Dispatchers.IO)
     private val eventBusses: MutableMap<String, MutableMap<String, EventBus<RuntimeEvent>>> = mutableMapOf()
@@ -100,13 +103,15 @@ class Orchestrator(
 
         when (val provider = graphAgent.provider) {
             is GraphAgentProvider.Local -> {
-                val runtime = graphAgent.registryAgent.runtimes.getById(provider.runtime) ?:
-                    throw IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported on agent ${graphAgent.name}")
+                val runtime = graphAgent.registryAgent.runtimes.getById(provider.runtime)
+                    ?: throw IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported on agent ${graphAgent.name}")
 
-                handles.add(runtime.spawn(
-                    params,
-                    getBusOrCreate(params.session.id, params.agentName),
-                    applicationRuntimeContext)
+                handles.add(
+                    runtime.spawn(
+                        params,
+                        getBusOrCreate(params.session.id, params.agentName),
+                        applicationRuntimeContext
+                    )
                 )
             }
 
@@ -154,33 +159,45 @@ class Orchestrator(
                                 json(apiJsonConfig)
                             }
                         }
+
+                        val createResult = blockchainService.createEscrowSession(
+                            agents = listOf(graphAgent.registryAgent.info.identifier),
+                            mintPubkey = request.mintPubkey,
+                            sessionId = sessionIdLong
+                        )
+
                         val response = client.post(url) {
                             contentType(ContentType.Application.Json)
                             setBody(
-                                GraphAgentRequest(
-                                    id = graphAgent.registryAgent.info.identifier,
-                                    name = graphAgent.name,
-                                    description = graphAgent.description,
-                                    options = graphAgent.options,
-                                    systemPrompt = graphAgent.systemPrompt,
-                                    blocking = graphAgent.blocking,
-                                    customToolAccess = graphAgent.customToolAccess,
-                                    provider = GraphAgentProvider.Local(provider.runtime)
+                                PaidGraphAgentRequest(
+                                    GraphAgentRequest(
+                                        id = graphAgent.registryAgent.info.identifier,
+                                        name = graphAgent.name,
+                                        description = graphAgent.description,
+                                        options = graphAgent.options,
+                                        systemPrompt = graphAgent.systemPrompt,
+                                        blocking = graphAgent.blocking,
+                                        customToolAccess = graphAgent.customToolAccess,
+                                        provider = GraphAgentProvider.Local(provider.runtime)
+                                    ),
+                                    paidSessionId = session
                                 )
                             )
                         }
                         if (response.status != HttpStatusCode.OK) {
                             val body = response.bodyAsText()
-                            logger.warn {"Failed to connect to ${server.address} (${response.status}): $body" }
+                            logger.warn { "Failed to connect to ${server.address} (${response.status}): $body" }
                             continue
                         }
 
                         val runtime = RemoteRuntime(server, response.bodyAsText())
-                        handles.add(runtime.spawn(
-                            params,
-                            getBusOrCreate(params.session.id, params.agentName),
-                            applicationRuntimeContext
-                        ))
+                        handles.add(
+                            runtime.spawn(
+                                params,
+                                getBusOrCreate(params.session.id, params.agentName),
+                                applicationRuntimeContext
+                            )
+                        )
                     }
                 }
             }
@@ -209,13 +226,15 @@ class Orchestrator(
         when (val provider = graphAgent.provider) {
             is GraphAgentProvider.Remote -> throw IllegalArgumentException("Remote agents cannot be provided by other remote servers")
             is GraphAgentProvider.Local -> {
-                val runtime = graphAgent.registryAgent.runtimes.getById(provider.runtime) ?:
-                    throw IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported on agent ${graphAgent.registryAgent.info.identifier}")
+                val runtime = graphAgent.registryAgent.runtimes.getById(provider.runtime)
+                    ?: throw IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported on agent ${graphAgent.registryAgent.info.identifier}")
 
-                handles.add(runtime.spawn(
-                    params,
-                    getBusOrCreate(params.session.id, params.agentName),
-                    applicationRuntimeContext)
+                handles.add(
+                    runtime.spawn(
+                        params,
+                        getBusOrCreate(params.session.id, params.agentName),
+                        applicationRuntimeContext
+                    )
                 )
             }
         }

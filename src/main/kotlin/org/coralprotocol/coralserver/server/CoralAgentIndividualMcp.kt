@@ -5,6 +5,8 @@ import io.modelcontextprotocol.kotlin.sdk.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.shared.Transport
+import org.coralprotocol.coralserver.agent.graph.CoralMcpPlugin
+import org.coralprotocol.coralserver.mcp.addMcpTool
 import org.coralprotocol.coralserver.mcp.resources.addAgentResource
 import org.coralprotocol.coralserver.mcp.resources.addInstructionResource
 import org.coralprotocol.coralserver.mcp.resources.addMessageResource
@@ -28,6 +30,8 @@ class CoralAgentIndividualMcp(
      */
     val connectedAgentId: String,
     val extraTools: Set<CustomTool> = setOf(),
+    val plugins: Set<CoralMcpPlugin>,
+    // Maybe add a callback val for on destroy
 ) : Server(
     Implementation(
         name = "Coral Server",
@@ -49,6 +53,9 @@ class CoralAgentIndividualMcp(
         extraTools.forEach {
             addExtraTool(localSession.id, connectedAgentId, it)
         }
+        plugins.forEach {
+            it.getExtraTools<Any>().forEach(::addMcpTool)
+        }
     }
 
     /**
@@ -58,19 +65,14 @@ class CoralAgentIndividualMcp(
      */
     override suspend fun connect(transport: Transport) {
         return super.connect(transport)
-////        return if (isRemote) {
-////            transport.onMessage {
-////
-////            }
-//        } else super.connect(transport)
-    }
-
-    suspend fun connectWebscoket() {
-
     }
 
     suspend fun closeTransport() {
         transport?.close()
+    }
+
+    fun destroy() {
+
     }
 }
 

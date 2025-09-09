@@ -1,6 +1,6 @@
 package org.coralprotocol.coralserver.payment.api
 
-import com.coral.escrow.blockchain.BlockchainService
+import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.coralserver.payment.config.PaymentServerConfig
 import org.coralprotocol.coralserver.payment.orchestration.SimpleAgentHandler
 import org.coralprotocol.coralserver.payment.orchestration.SessionManager

@@ -1,6 +1,5 @@
 package org.coralprotocol.coralserver.payment.api
 
-import com.coral.escrow.blockchain.BlockchainService
 import io.github.smiley4.ktoropenapi.resources.get
 import io.github.smiley4.ktoropenapi.resources.post
 import io.ktor.http.*
@@ -8,28 +7,29 @@ import io.ktor.resources.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.coralprotocol.coralserver.payment.config.PaymentServerConfig
 import org.coralprotocol.coralserver.payment.models.*
 import org.coralprotocol.coralserver.payment.utils.ErrorHandling.parseSessionId
 import org.coralprotocol.coralserver.payment.utils.ErrorHandling.respondError
 import org.coralprotocol.coralserver.payment.utils.ErrorHandling.validateParameter
+import org.coralprotocol.payment.blockchain.BlockchainService
 
 private val logger = KotlinLogging.logger {}
 
 @Resource("/api/v1/internal/claim")
-class SubmitClaim
+class SubmitPaymentClaim
 
 @Resource("/api/v1/internal/claim/{sessionId}/{agentId}")
-class ClaimStatus(val sessionId: String, val agentId: String)
+class PaymentClaimStatus(val sessionId: String, val agentId: String)
 
 fun Route.claimRoutes(
     blockchainService: BlockchainService,
     config: PaymentServerConfig
 ) {
     // Submit claim (AGENT mode only)
-    post<SubmitClaim> {
-        val request = call.receive<ClaimRequest>()
+    post<SubmitPaymentClaim> {
+        val request = call.receive<PaymentClaimRequest>()
 
         logger.info {
             "Processing claim for session ${request.sessionId}, agent ${request.agentId}, amount: ${request.amount}"
@@ -47,7 +47,7 @@ fun Route.claimRoutes(
         }
 
         // First, check if already claimed
-        val claimedResult = blockchainService.checkClaimed(request.sessionId, request.agentId)
+        val claimedResult = blockchainService.checkEscrowClaimed(request.sessionId, request.agentId)
         if (claimedResult.isSuccess && claimedResult.getOrNull() == true) {
             return@post call.respondError(
                 HttpStatusCode.Conflict,
@@ -56,7 +56,7 @@ fun Route.claimRoutes(
         }
 
         // Submit the claim
-        val result = blockchainService.submitClaim(
+        val result = blockchainService.submitEscrowClaim(
             sessionId = request.sessionId,
             agentId = request.agentId,
             amount = request.amount
@@ -91,7 +91,7 @@ fun Route.claimRoutes(
     }
 
     // Check claim status
-    get<ClaimStatus> { params ->
+    get<PaymentClaimStatus> { params ->
         val sessionId = try {
             parseSessionId(params.sessionId)
         } catch (e: IllegalArgumentException) {
@@ -104,7 +104,7 @@ fun Route.claimRoutes(
             return@get call.respondError(HttpStatusCode.BadRequest, e.message ?: "Missing agent ID")
         }
 
-        val result = blockchainService.checkClaimed(sessionId, agentId)
+        val result = blockchainService.checkEscrowClaimed(sessionId, agentId)
 
         result.fold(
             onSuccess = { claimed ->
