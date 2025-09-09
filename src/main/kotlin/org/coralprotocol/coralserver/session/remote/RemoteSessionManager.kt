@@ -8,7 +8,7 @@ import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import java.util.*
 
 class RemoteSessionManager(
-    val orchestrator: Orchestrator
+    val orchestrator: Orchestrator,
 ){
     private val scope = CoroutineScope(Dispatchers.IO)
 
@@ -18,7 +18,7 @@ class RemoteSessionManager(
     /**
      * Claims an agent that can later be executed by executeClaim
      */
-    fun createClaim(agent: GraphAgent): String {
+    fun createClaimNoPaymentCheck(agent: GraphAgent): String {
         val id = UUID.randomUUID().toString()
         claims[id] = agent
 

@@ -1,10 +1,10 @@
 package org.coralprotocol.coralserver.payment.orchestration
 
-import com.coral.escrow.blockchain.BlockchainService
+import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.coralserver.payment.models.*
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
 import kotlinx.coroutines.*
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.time.Instant
 
 private val logger = KotlinLogging.logger {}
@@ -18,6 +18,8 @@ class SessionManager(
     private val blockchain: BlockchainService,
     private val agentClient: AgentNotificationClient
 ) {
+
+    //TODO: Move to importing server session post/ local session manager or something
     /**
      * Create and fund session atomically after checking all agents are available.
      * Fails if ANY agent is unavailable.
@@ -72,7 +74,7 @@ class SessionManager(
             "Creating session on blockchain with ${availableAgentConfigs.size} available agents" 
         }
         
-        val createResult = blockchain.createSession(
+        val createResult = blockchain.createEscrowSession(
             agents = availableAgentConfigs.map { it.toBlockchainModel() },
             mintPubkey = request.mintPubkey,
             sessionId = sessionIdLong
@@ -89,7 +91,7 @@ class SessionManager(
         // 3. Fund session immediately (atomic operation)
         logger.info { "Funding session $sessionIdLong with ${request.fundAmount} tokens" }
         
-        val fundResult = blockchain.fundSession(
+        val fundResult = blockchain.fundEscrowSession(
             sessionId = sessionIdLong,
             amount = request.fundAmount
         )
@@ -99,7 +101,7 @@ class SessionManager(
             logger.error { "Failed to fund session, attempting cleanup: ${fundResult.exceptionOrNull()?.message}" }
             
             try {
-                val refundResult = blockchain.refundLeftover(sessionIdLong, request.mintPubkey)
+                val refundResult = blockchain.refundEscrowLeftover(sessionIdLong, request.mintPubkey)
                 if (refundResult.isSuccess) {
                     logger.info { "Successfully cleaned up unfunded session $sessionIdLong" }
                 }

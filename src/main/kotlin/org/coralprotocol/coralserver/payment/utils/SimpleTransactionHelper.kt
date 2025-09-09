@@ -1,7 +1,7 @@
 package org.coralprotocol.coralserver.payment.utils
 
 import kotlinx.coroutines.delay
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
 

@@ -1,11 +1,11 @@
 package org.coralprotocol.coralserver.payment.orchestration
 
-import com.coral.escrow.blockchain.BlockchainService
+import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.coralserver.payment.config.AgentConfig
 import org.coralprotocol.coralserver.payment.models.*
 import org.coralprotocol.coralserver.payment.utils.SimpleTransactionHelper
 import kotlinx.coroutines.*
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 
@@ -81,7 +81,7 @@ class SimpleAgentHandler(
         // Submit claim with retry
         val claimResult = SimpleTransactionHelper.submitWithRetry(
             operation = {
-                blockchain.submitClaim(
+                blockchain.submitEscrowClaim(
                     sessionId = sessionId,
                     agentId = config.agentId,
                     amount = amount

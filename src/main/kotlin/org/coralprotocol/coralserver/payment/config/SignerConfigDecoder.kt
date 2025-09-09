@@ -1,12 +1,12 @@
 package org.coralprotocol.coralserver.payment.config
 
 
-import com.coral.escrow.blockchain.models.SignerConfig
+
 import com.sksamuel.hoplite.*
 import com.sksamuel.hoplite.decoder.Decoder
-import com.sksamuel.hoplite.fp.Validated
 import com.sksamuel.hoplite.fp.invalid
 import com.sksamuel.hoplite.fp.valid
+import org.coralprotocol.payment.blockchain.models.SignerConfig
 import kotlin.reflect.KType
 
 class SignerConfigDecoder : Decoder<SignerConfig> {

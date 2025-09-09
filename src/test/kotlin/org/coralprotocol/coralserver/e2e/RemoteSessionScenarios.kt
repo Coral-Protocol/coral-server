@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver.e2e
 
 import io.kotest.assertions.throwables.shouldNotThrowAny
+import io.kotest.assertions.throwables.shouldThrowExactly
 import io.mockk.mockkConstructor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -17,38 +18,19 @@ import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
-import org.coralprotocol.coralserver.server.CoralServer
+//import org.coralprotocol.coralserver.payment.orchestration.SessionNotFundedException
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.utils.ServerConnectionCoreDetails
 import org.coralprotocol.coralserver.utils.ServerConnectionCoreDetailsImpl
 import org.coralprotocol.coralserver.utils.UserMessage
 import org.coralprotocol.coralserver.utils.createConnectedKoogAgent
+import org.coralprotocol.coralserver.utils.renderDevmodeExporting
 import kotlin.test.Test
 import kotlin.uuid.ExperimentalUuidApi
 
 typealias um = UserMessage
 
 class RemoteSessionScenarios {
-
-    /**
-     * (Does )
-     */
-
-    fun ServerConnectionCoreDetails.renderDevmodeExporting(
-        server: CoralServer,
-        externalId: String,
-        agentId: String
-    ): String {
-
-        return "$protocol://$host:$port/sse/v1/export/$externalId?agentId=$agentId&agentDescription=$descriptionPassedToServer"
-    }
-
-    /**
-     * Used in local cases
-     */
-    fun ServerConnectionCoreDetails.renderWithSessionDetails(session: LocalSession) =
-        "$protocol://$host:$port/sse/v1/devmode/${session.applicationId}/${session.privacyKey}/${session.id}/sse?agentId=${namePassedToServer}&agentDescription=$descriptionPassedToServer"
-
 
     fun getServerConnectionDetails(
         server: TestCoralServer,
@@ -97,7 +79,7 @@ class RemoteSessionScenarios {
             options = mapOf(),
             unresolvedExportSettings = mapOf(RuntimeId.FUNCTION to UnresolvedAgentExportSettings(
                 quantity = 1u,
-                pricing = RegistryAgentExportPricing(0.0, 0.0)
+                pricing = RegistryAgentExportPricing(0, 0L)
             ))
         ))
     }
@@ -194,18 +176,4 @@ class RemoteSessionScenarios {
         }
     }
 
-    @Test
-    fun testRemoteAgentOrchestration() = runBlocking {
-        TODO("Finish this test")
-        shouldNotThrowAny {
-            val exportingServer = TestCoralServer(port = 14391u, devmode = true).apply { setup() }
-            val importingServer = TestCoralServer(port = 14392u, devmode = true).apply { setup() }
-
-
-            // Get remote agent on importing server
-            // Create session post to importing server
-            //    with 2 agents, one local, one remote
-            // mock the execution of the agents and confirm they get executed
-        }
-    }
 }

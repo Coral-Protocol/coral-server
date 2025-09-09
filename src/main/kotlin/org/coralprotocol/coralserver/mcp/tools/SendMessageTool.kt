@@ -45,6 +45,7 @@ internal class SendMessageTool: McpTool<SendMessageInput>() {
         get() = SendMessageInput.serializer()
 
     override suspend fun execute(mcpServer: CoralAgentIndividualMcp, arguments: SendMessageInput): McpToolResult {
+
         return McpToolResult.SendMessageSuccess(mcpServer.localSession.sendMessage(
             threadId = arguments.threadId,
             senderId = mcpServer.connectedAgentId,

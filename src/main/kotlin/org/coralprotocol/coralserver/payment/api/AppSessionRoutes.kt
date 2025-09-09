@@ -1,6 +1,8 @@
 package org.coralprotocol.coralserver.payment.api
 
-import com.coral.escrow.blockchain.BlockchainService
+//import org.coralprotocol.payment.blockchain.BlockchainService
+//import org.coralprotocol.payment.blockchain.BlockchainService
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.resources.post
 import io.ktor.http.*
 import io.ktor.resources.*
@@ -8,7 +10,6 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import mu.KotlinLogging
 import org.coralprotocol.coralserver.payment.config.PaymentServerConfig
 import org.coralprotocol.coralserver.payment.models.*
 import org.coralprotocol.coralserver.payment.orchestration.InsufficientAgentsException
@@ -18,6 +19,7 @@ import org.coralprotocol.coralserver.payment.orchestration.SessionFundingExcepti
 import org.coralprotocol.coralserver.payment.orchestration.SessionManager
 import org.coralprotocol.coralserver.payment.utils.ErrorHandling.parseSessionId
 import org.coralprotocol.coralserver.payment.utils.ErrorHandling.respondError
+import org.coralprotocol.payment.blockchain.BlockchainService
 
 private val logger = KotlinLogging.logger {}
 
@@ -104,7 +106,7 @@ fun Route.appSessionRoutes(
             }
         }
 
-        val result = blockchainService.fundSession(sessionId, request.amount)
+        val result = blockchainService.fundEscrowSession(sessionId, request.amount)
 
         result.fold(
             onSuccess = { tx ->

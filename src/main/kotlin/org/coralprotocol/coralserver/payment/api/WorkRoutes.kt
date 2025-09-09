@@ -7,7 +7,7 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import mu.KotlinLogging
+import io.github.oshai.kotlinlogging.KotlinLogging
 import org.coralprotocol.coralserver.payment.config.PaymentServerConfig
 import org.coralprotocol.coralserver.payment.models.*
 import org.coralprotocol.coralserver.payment.orchestration.SimpleAgentHandler

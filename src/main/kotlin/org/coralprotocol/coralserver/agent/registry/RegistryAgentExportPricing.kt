@@ -6,8 +6,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class RegistryAgentExportPricing(
     @SerialName("min_price")
-    val minPrice: Double,
+    val minPrice: Long,
 
     @SerialName("max_price")
-    val maxPrice: Double,
+    val maxPrice: Long,
 )

@@ -2,8 +2,7 @@
 
 package org.coralprotocol.coralserver.server
 
-import com.coral.escrow.blockchain.BlockchainServiceImpl
-import com.coral.escrow.blockchain.models.SignerConfig
+import org.coralprotocol.payment.blockchain.BlockchainServiceImpl
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.OpenApi
 import io.github.smiley4.ktoropenapi.config.OutputFormat
@@ -55,6 +54,7 @@ import org.coralprotocol.coralserver.routes.ws.v1.debugWsRoutes
 import org.coralprotocol.coralserver.routes.ws.v1.exportedAgentRoutes
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
+import org.coralprotocol.payment.blockchain.models.SignerConfig
 import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
@@ -185,7 +185,8 @@ class CoralServer(
                 messageApiRoutes(mcpServersByTransportId, localSessionManager, remoteSessionManager)
                 telemetryApiRoutes(localSessionManager)
                 documentationApiRoutes()
-                agentApiRoutes(registry, localSessionManager, remoteSessionManager)
+                agentApiRoutes(registry, blockchainService, remoteSessionManager)
+                claimRoutes(blockchainService)
 
                 // sse
                 connectionSseRoutes(mcpServersByTransportId, localSessionManager)

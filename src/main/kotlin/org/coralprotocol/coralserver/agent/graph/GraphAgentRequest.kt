@@ -1,11 +1,54 @@
 package org.coralprotocol.coralserver.agent.graph
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.registry.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
+import org.coralprotocol.coralserver.mcp.McpTool
+
+/**
+ * Changes behaviour of IndividualMcpServers
+ */
+@Serializable
+enum class CoralPluginType(val implementation: CoralMcpPlugin) {
+    SESSION_END_TOOL(NoOpCoralMcpPlugin()),
+    CHEESE(object : CoralMcpPlugin {
+        override fun <T> getExtraTools(): List<McpTool<T>> {
+            TODO("Not yet implemented")
+        }
+    })
+}
+
+
+private class NoOpCoralMcpPlugin: CoralMcpPlugin {
+    override fun <T> getExtraTools(): List<McpTool<T>> {
+        return listOf()
+    }
+}
+
+interface CoralMcpPlugin {
+    /**
+     *
+     */
+    fun <T> getExtraTools(): List<McpTool<T>>
+}
+
+sealed class CoralPluginData() {
+    @Serializable
+    @SerialName("sessionEndTool")
+    data class SessionEndToolData(
+        val toolName: String,
+        val toolDescription: String
+    ) : CoralPluginData()
+}
+
+data class CoralAgentPluginRequest(
+    val type: CoralPluginType,
+    val data: CoralPluginData
+)
 
 @Serializable
 @Description("A request for an agent.  GraphAgentRequest -> GraphAgent -> ")
@@ -30,6 +73,10 @@ data class GraphAgentRequest(
 
     @Description("A list of custom tools that this agent can access.  The custom tools must be defined in the parent AgentGraphRequest object")
     val customToolAccess: Set<String>,
+
+    @Description("Optional Coral features that this agent should have access to")
+    @SerialName("coralPlugins")
+    val plugins: Set<GraphAgentPlugin>,
 
     @Description("The server that should provide this agent and the runtime to use")
     val provider: GraphAgentProvider

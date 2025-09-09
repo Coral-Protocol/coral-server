@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.routes.api.v1
 
+import org.coralprotocol.payment.blockchain.BlockchainService
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.resources.get
 import io.github.smiley4.ktoropenapi.resources.post
@@ -9,15 +10,12 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
-import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
-import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
+import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.PublicRegistryAgent
-import org.coralprotocol.coralserver.agent.registry.defaultAsValue
 import org.coralprotocol.coralserver.agent.registry.toPublic
 import org.coralprotocol.coralserver.server.RouteException
-import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 
 private val logger = KotlinLogging.logger {}
@@ -33,7 +31,7 @@ class ClaimAgents
 
 fun Routing.agentApiRoutes(
     registry: AgentRegistry,
-    localSessionManager: LocalSessionManager,
+    blockchainService: BlockchainService,
     remoteSessionManager: RemoteSessionManager
 ) {
     get<Agents>({
@@ -58,7 +56,7 @@ fun Routing.agentApiRoutes(
         description = "Creates a claim for agents that can later be instantiated via WebSocket"
         operationId = "claimAgents"
         request {
-            body<GraphAgentRequest> {
+            body<PaidGraphAgentRequest> {
                 description = "A list of agents to claim"
             }
         }
@@ -74,13 +72,50 @@ fun Routing.agentApiRoutes(
             }
         }
     }) {
-        val request = call.receive<GraphAgentRequest>()
+        val paidGraphAgentRequest = call.receive<PaidGraphAgentRequest>()
 
         try {
-            call.respond(HttpStatusCode.OK, remoteSessionManager.createClaim(request.toGraphAgent(registry, true)))
-        }
-        catch (e: AgentRequestException) {
+            val claimId =
+                checkPaymentAndCreateClaim(paidGraphAgentRequest, registry, blockchainService, remoteSessionManager)
+            call.respond(
+                HttpStatusCode.OK,
+                claimId
+            )
+        } catch (e: AgentRequestException) {
             throw RouteException(HttpStatusCode.BadRequest, e.message)
         }
     }
 }
+
+suspend fun checkPaymentAndCreateClaim(
+    request: PaidGraphAgentRequest,
+    registry: AgentRegistry,
+    blockchainService: BlockchainService,
+    remoteSessionManager: RemoteSessionManager
+): String {
+    //TODO: Ensure that the session funder is the one claiming
+    //TODO: Check
+    val paidSession = blockchainService.getEscrowSession(request.paidSessionId).getOrThrow()
+    val matchingPaidAgentSessionEntry = paidSession?.agents?.find {
+        it.id == request.graphAgentRequest.id.name //TODO: Consider per version pricing
+    } ?: throw AgentRequestException.SessionNotFundedException("No matching agent in paid session")
+
+    val provider = request.graphAgentRequest.provider as GraphAgentProvider.Remote
+    val registryAgent = registry.findAgent(id = request.graphAgentRequest.id)
+        ?: throw AgentRequestException.SessionNotFundedException("No matching agent in registry")
+    val associatedExportSettings = registryAgent.exportSettings[provider.runtime]
+        ?: throw AgentRequestException.SessionNotFundedException("Requested runtime is not exported by agent")
+    val pricing = associatedExportSettings.pricing
+
+    if (matchingPaidAgentSessionEntry.cap !in pricing.minPrice..pricing.maxPrice) {
+        throw AgentRequestException.SessionNotFundedException("Paid session agent cap ${matchingPaidAgentSessionEntry.cap} is not within the pricing range ${pricing.minPrice} - ${pricing.maxPrice} for requested agent")
+    }
+    // TODO: Check that the paid session has funds equal to max cap of requested agents once coral-escrow has implemented
+
+    println("Creating claim for paid session ${request.paidSessionId} and agent ${request.graphAgentRequest.id}")
+
+    return remoteSessionManager.createClaimNoPaymentCheck(
+        request.toGraphAgent(registry, true)
+    )
+}
+
