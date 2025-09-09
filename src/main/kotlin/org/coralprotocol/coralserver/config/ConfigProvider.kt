@@ -3,6 +3,7 @@ package org.coralprotocol.coralserver.config
 import io.github.oshai.kotlinlogging.KotlinLogging
 import net.peanuuutz.tomlkt.decodeFromNativeReader
 import org.coralprotocol.coralserver.Main
+import org.coralprotocol.coralserver.util.isWindows
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.nio.file.Path
@@ -36,6 +37,12 @@ fun Config.Companion.loadFromFile(): Config {
             config.updateIndexes()
         }
         logger.info { "Updated indexes in $indexUpdateTime ms" }
+
+        // 😡
+        if (!isWindows() && config.dockerConfig.address == defaultDockerAddress()) {
+            logger.warn { "The configured docker address ${config.dockerConfig.address} is not reliable" }
+            logger.warn { "See https://stackoverflow.com/questions/48546124/what-is-the-linux-equivalent-of-host-docker-internal/67158212#67158212" }
+        }
 
         return config
     }
