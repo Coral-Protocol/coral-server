@@ -36,13 +36,13 @@ data class DockerRuntime(
         applicationRuntimeContext: ApplicationRuntimeContext
     ): OrchestratorHandle {
         val agentLogger = KotlinLogging.logger("DockerRuntime:${params.agentName}")
+        val sanitisedImageName = sanitizeDockerImageName(image, params.agentId)
 
         val dockerClient = applicationRuntimeContext.dockerClient
-        dockerLogger.info { "Spawning Docker container with image: $image" }
+        dockerLogger.info { "Spawning Docker container with image: $sanitisedImageName" }
 
-        image = dockerClient.sanitizeTag(image, params.agentId)
-        dockerClient.pullImageIfNeeded(image)
-
+        dockerClient.pullImageIfNeeded(sanitisedImageName)
+        dockerClient.printImageInfo(sanitisedImageName)
 
         val apiUrl = applicationRuntimeContext.getApiUrl(AddressConsumer.CONTAINER)
         val mcpUrl = applicationRuntimeContext.getMcpUrl(params, AddressConsumer.CONTAINER)
@@ -65,7 +65,7 @@ data class DockerRuntime(
         }
 
         try {
-            val containerCreation = dockerClient.createContainerCmd(image)
+            val containerCreation = dockerClient.createContainerCmd(sanitisedImageName)
                 .withName(getDockerContainerName(sessionId, params.agentName))
                 .withEnv(allEnvs)
                 .withAttachStdout(true)
@@ -160,6 +160,19 @@ private fun getDockerContainerName(sessionId: String, agentName: String): String
     return "${agentName.take(52)}_$randomSuffix".asDockerContainerName()
 }
 
+private fun sanitizeDockerImageName(imageName: String, id: AgentRegistryIdentifier): String {
+    if (imageName.contains(":")) {
+        if (!imageName.endsWith(":${id.version}")) {
+            dockerLogger.warn { "Image $imageName does not match the agent version: ${id.version}" }
+        }
+
+        return imageName
+    }
+    else {
+        return "$imageName:${id.version}"
+    }
+}
+
 
 /**
  * @param imageName The name of the image to search for
@@ -179,13 +192,6 @@ private fun DockerClient.imageExists(imageName: String): Boolean {
  * @param imageName The name of the image to pull
  */
 private fun DockerClient.pullImageIfNeeded(imageName: String) {
-    try {
-        inspectImageCmd(imageName).exec()
-    }
-    catch (e: Exception) {
-        dockerLogger.warn(e) { "Failed to inspect image $imageName, assuming it doesn't exist locally" }
-    }
-
     if (!imageExists(imageName)) {
         dockerLogger.info { "Docker image $imageName not found locally, pulling..." }
         val callback = object : ResultCallback.Adapter<PullResponseItem>() {}
@@ -200,29 +206,15 @@ private fun DockerClient.pullImageIfNeeded(imageName: String) {
  * Also includes the image creation date in the warning.
  * @param imageName The name of the image to check
  */
-private fun DockerClient.sanitizeTag(imageName: String, id: AgentRegistryIdentifier): String {
-    if (imageName.endsWith(":latest") || !imageName.contains(":")) {
-        val imageInfo = inspectImageCmd(imageName).exec()
-        val createdAt = imageInfo.created
+private fun DockerClient.printImageInfo(imageName: String) {
+    val imageInfo = inspectImageCmd(imageName).exec()
+    val createdAt = imageInfo.created
 
-        dockerLogger.warn { "$imageName is using the 'latest' tag.  This can cause unpredictable behavior.  Consider using a specific version tag instead." }
+    if (createdAt != null)  {
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+            .withZone(ZoneId.systemDefault())
+        val formattedDate = formatter.format(Instant.parse(createdAt))
 
-        if (createdAt != null)  {
-            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                .withZone(ZoneId.systemDefault())
-            val formattedDate = formatter.format(Instant.parse(createdAt))
-
-            dockerLogger.warn { "$imageName image creation date: $formattedDate" }
-        }
-    }
-    else if (!imageName.endsWith(":${id.version}")) {
-        dockerLogger.warn { "Image $imageName does not match the agent version: ${id.version}" }
-    }
-
-    return if (imageName.contains(":")) {
-        imageName
-    }
-    else {
-        "$imageName:${id.version}"
+        dockerLogger.info { "$imageName image creation date: $formattedDate" }
     }
 }
