@@ -20,13 +20,13 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
 import org.coralprotocol.coralserver.agent.graph.GraphAgentServerSource
-import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.remote.RemoteSession
 import org.coralprotocol.payment.blockchain.BlockchainService
+import kotlin.system.measureTimeMillis
 import kotlin.uuid.ExperimentalUuidApi
 
 private val logger = KotlinLogging.logger {}
@@ -75,6 +75,24 @@ class Orchestrator(
 
     @OptIn(ExperimentalUuidApi::class)
     private val applicationRuntimeContext: ApplicationRuntimeContext = ApplicationRuntimeContext(config)
+
+    init {
+        registry.agents
+            .filter { it.runtimes.dockerRuntime != null }
+            .forEach {
+                val image = it.runtimes.dockerRuntime!!.image
+                try {
+                    val time = measureTimeMillis {
+                        applicationRuntimeContext.dockerClient.pullImageCmd(image)
+                    }
+                    logger.info { "Preloaded agent ${it.info.identifier}'s docker image $image in ${time}ms" }
+                }
+                catch (e: Exception) {
+                    logger.error(e) { "Failed to pull agent ${it.info.identifier}'s docker image $image" }
+                    logger.warn { "The Docker runtime will not be available for ${it.info.identifier}" }
+                }
+            }
+    }
 
     fun getBus(sessionId: String, agentId: String): EventBus<RuntimeEvent>? = eventBusses[sessionId]?.get(agentId)
 
