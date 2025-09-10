@@ -39,7 +39,7 @@ fun Config.Companion.loadFromFile(): Config {
         logger.info { "Updated indexes in $indexUpdateTime ms" }
 
         // 😡
-        if (!isWindows() && config.dockerConfig.address == defaultDockerAddress()) {
+        if (!isWindows() && config.dockerConfig.address == "172.17.0.1") {
             logger.warn { "The configured docker address ${config.dockerConfig.address} is not reliable" }
             logger.warn { "See https://stackoverflow.com/questions/48546124/what-is-the-linux-equivalent-of-host-docker-internal/67158212#67158212" }
         }
