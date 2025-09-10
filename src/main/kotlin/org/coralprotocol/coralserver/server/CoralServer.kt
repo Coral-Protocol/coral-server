@@ -54,6 +54,7 @@ import org.coralprotocol.coralserver.routes.ws.v1.debugWsRoutes
 import org.coralprotocol.coralserver.routes.ws.v1.exportedAgentRoutes
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
+import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.models.SignerConfig
 import kotlin.time.Duration.Companion.seconds
 
@@ -75,12 +76,12 @@ val apiJsonConfig = Json {
 class CoralServer(
     val config: Config,
     val registry: AgentRegistry,
+    val blockchainService: BlockchainService,
     val devmode: Boolean = false,
     orchestrator: Orchestrator
 ) {
     val localSessionManager = LocalSessionManager(orchestrator)
     val remoteSessionManager = RemoteSessionManager(orchestrator)
-    val blockchainService by lazy { createBlockchainService() }
 
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
@@ -186,7 +187,7 @@ class CoralServer(
                 telemetryApiRoutes(localSessionManager)
                 documentationApiRoutes()
                 agentApiRoutes(registry, blockchainService, remoteSessionManager)
-                claimRoutes(blockchainService)
+                claimRoutes(blockchainService, config.paymentConfig)
 
                 // sse
                 connectionSseRoutes(mcpServersByTransportId, localSessionManager)
@@ -205,14 +206,6 @@ class CoralServer(
 
     val monitor get() = server.monitor
     private var serverJob: Job? = null
-
-    private fun createBlockchainService(): BlockchainServiceImpl {
-        val keypairPath = config.paymentConfig.keypairPath
-        val rpcUrl = config.paymentConfig.rpcUrl
-        val signerConfig = SignerConfig.File(keypairPath)
-        val blockchainService = BlockchainServiceImpl(rpcUrl, "confirmed", signerConfig)
-        return blockchainService
-    }
 
     /**
      * Starts the server.
