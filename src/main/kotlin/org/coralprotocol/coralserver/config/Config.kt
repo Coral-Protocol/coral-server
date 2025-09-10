@@ -41,8 +41,20 @@ private fun defaultDockerSocket(): String {
     }
 }
 
-fun defaultDockerAddress() =
-    if (isWindows()) "host.docker.internal" else "172.17.0.1"
+fun defaultDockerAddress(): String {
+    if (!isWindows()) {
+        val homeDir = System.getProperty("user.home")
+        val colimaSocket = "$homeDir/.colima/default/docker.sock"
+
+        // https://stackoverflow.com/questions/48546124/what-is-the-linux-equivalent-of-host-docker-internal/67158212#67158212
+        if (!File(colimaSocket).exists()) {
+            return "172.17.0.1"
+        }
+    }
+
+    // host.docker.internal works on Docker for Windows and Colima
+    return "host.docker.internal"
+}
 
 @Serializable
 data class PaymentConfig(
