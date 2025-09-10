@@ -24,22 +24,14 @@ enum class RuntimeId {
 @SerialName("runtime")
 class LocalAgentRuntimes(
     @SerialName("executable")
-    private val executableRuntime: ExecutableRuntime? = null,
+    val executableRuntime: ExecutableRuntime? = null,
 
     @SerialName("docker")
-    private val dockerRuntime: DockerRuntime? = null,
+    val dockerRuntime: DockerRuntime? = null,
 
     @Transient
-    private val functionRuntime: FunctionRuntime? = null
-) : Orchestrate {
-    override fun spawn(
-        params: RuntimeParams,
-        eventBus: EventBus<RuntimeEvent>,
-        applicationRuntimeContext: ApplicationRuntimeContext
-    ): OrchestratorHandle {
-        TODO("runtime must be selected")
-    }
-
+    val functionRuntime: FunctionRuntime? = null
+) {
     fun getById(runtimeId: RuntimeId): Orchestrate? = when (runtimeId) {
         RuntimeId.EXECUTABLE -> executableRuntime
         RuntimeId.DOCKER -> dockerRuntime
