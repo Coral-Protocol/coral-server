@@ -7,6 +7,8 @@ import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.config.loadFromFile
 import org.coralprotocol.coralserver.server.CoralServer
+import org.coralprotocol.payment.blockchain.BlockchainServiceImpl
+import org.coralprotocol.payment.blockchain.models.SignerConfig
 
 private val logger = KotlinLogging.logger {}
 
@@ -33,13 +35,15 @@ fun main(args: Array<String>) {
         "--sse-server" -> {
             val config = Config.loadFromFile()
             val registry = AgentRegistry.loadFromFile(config)
+            val blockchainService by lazy { createBlockchainService(config) }
 
-            val orchestrator = Orchestrator(config, registry)
+            val orchestrator = Orchestrator(config, registry, blockchainService)
             val server = CoralServer(
                 devmode = devMode,
                 config = config,
                 registry = registry,
-                orchestrator = orchestrator
+                orchestrator = orchestrator,
+                blockchainService = blockchainService
             )
 
             // Add a shutdown hook to stop the server gracefully
@@ -57,4 +61,12 @@ fun main(args: Array<String>) {
             logger.error { "Unknown command: $command" }
         }
     }
+}
+
+private fun createBlockchainService(config: Config): BlockchainServiceImpl {
+    val keypairPath = config.paymentConfig.keypairPath
+    val rpcUrl = config.paymentConfig.rpcUrl
+    val signerConfig = SignerConfig.File(keypairPath)
+    val blockchainService = BlockchainServiceImpl(rpcUrl, "confirmed", signerConfig)
+    return blockchainService
 }
