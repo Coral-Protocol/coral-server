@@ -11,7 +11,7 @@ private fun CoralAgentIndividualMcp.handler(request: ReadResourceRequest): ReadR
         .agents
         .filter { (name, _) -> name != connectedAgentId }
         .toList()
-        .joinToString("\n") { (name, description) -> "- $name: $description" }
+        .joinToString("\n") { (name, sessionAgent) -> "- $name: ${sessionAgent.description}" }
 
     // It's important that this list does not contain the requesting agent, they would otherwise try to communicate
     // with themselves.
