@@ -7,11 +7,12 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.toRemote
+import org.coralprotocol.coralserver.agent.payment.PaidAgent
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.Config
-import org.coralprotocol.coralserver.payment.models.AgentConfigRequest
-import org.coralprotocol.coralserver.payment.models.PaymentSession
-import org.coralprotocol.coralserver.payment.orchestration.PaymentSessionManager
+import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
+import org.coralprotocol.payment.blockchain.BlockchainService
+import org.coralprotocol.payment.blockchain.models.SessionInfo
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -38,7 +39,7 @@ fun AgentGraph.adjacencyMap(): Map<String, Set<String>> {
 class LocalSessionManager(
     val config: Config = Config(),
     val orchestrator: Orchestrator,
-    val paymentSessionManager: PaymentSessionManager
+    val blockchainService: BlockchainService
 ) {
     private val sessions = ConcurrentHashMap<String, LocalSession>()
     private val sessionSemaphore = Semaphore(1)
@@ -88,13 +89,13 @@ class LocalSessionManager(
      */
     suspend fun createPaymentSession(
         agentGraph: AgentGraph
-    ): PaymentSession? {
+    ): SessionInfo? {
         val paymentGraph = agentGraph.toPayment()
         if (paymentGraph.paidAgents.isEmpty())
             return null
 
         val paymentSessionId = UUID.randomUUID().toString()
-        val agents = mutableListOf<AgentConfigRequest>()
+        val agents = mutableListOf<PaidAgent>()
 
         var fundAmount = 0L
         for (agent in paymentGraph.paidAgents) {
@@ -106,23 +107,22 @@ class LocalSessionManager(
             fundAmount += provider.maxCost
             val resolvedRemote = provider.toRemote(id, paymentSessionId)
 
-            agents.add(AgentConfigRequest(
+            agents.add(PaidAgent(
                 id = id.toString(),
                 cap = provider.maxCost,
-                developer = resolvedRemote.wallet,
-                endpoint = null // todo @caelum
+                developer = resolvedRemote.wallet
             ))
 
             // Important! Replace the RemoteRequest with the resolved Remote type
             agent.provider = resolvedRemote
         }
 
-        return paymentSessionManager.createAndFundSession(
-            agents = agents,
-            mintPubkey = config.paymentConfig.publicWalletAddress, // todo: @caelum
-            fundAmount = fundAmount,
-            sessionId = paymentSessionId
-        )
+        // todo: add fundAmount when thing
+        return blockchainService.createEscrowSession(
+            agents = agents.map { it.toBlockchainModel() },
+            mintPubkey = config.paymentConfig.publicWalletAddress,
+            sessionId = SessionIdUtils.uuidToSessionId(SessionIdUtils.generateSessionUuid())
+        ).getOrThrow()
     }
 
 
@@ -135,7 +135,7 @@ class LocalSessionManager(
         privacyKey: String,
         agentGraph: AgentGraph? = null // Nullable for devmode
     ): LocalSession {
-        val paymentSession = agentGraph?.let { createPaymentSession(it) }
+        val sessionInfo = agentGraph?.let { createPaymentSession(it) }
 
         val subgraphs = agentGraph?.let { agentGraph ->
             val adj = agentGraph.adjacencyMap()
@@ -172,7 +172,7 @@ class LocalSessionManager(
             privacyKey = privacyKey,
             agentGraph = agentGraph,
             groups = subgraphs?.toList() ?: emptyList(),
-            paymentSession = paymentSession
+            paymentSessionId = sessionInfo?.sessionId
         )
 
         sessions[sessionId] = session
@@ -225,5 +225,15 @@ class LocalSessionManager(
      */
     fun getAllSessions(): List<LocalSession> {
         return sessions.values.toList()
+    }
+
+    /**
+     * Closes a session by ID
+     */
+    suspend fun closeSession(sessionId: String) {
+        val session = sessions[sessionId]
+            ?: throw IllegalArgumentException("invalid session id: $sessionId")
+
+        session.destroy()
     }
 }

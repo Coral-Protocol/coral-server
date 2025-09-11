@@ -12,6 +12,7 @@ import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
 import org.coralprotocol.coralserver.agent.registry.*
+import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 import org.coralprotocol.payment.blockchain.BlockchainService
@@ -111,10 +112,9 @@ suspend fun checkPaymentAndCreateClaim(
     request: PaidGraphAgentRequest,
     registry: AgentRegistry,
     blockchainService: BlockchainService,
-    remoteSessionManager: RemoteSessionManager
+    remoteSessionManager: RemoteSessionManager,
 ): String {
     //TODO: Ensure that the session funder is the one claiming
-    //TODO: Check
     val paidSession = blockchainService.getEscrowSession(request.paidSessionId).getOrThrow()
     val matchingPaidAgentSessionEntry = paidSession?.agents?.find {
         it.id == request.graphAgentRequest.id.name //TODO: Consider per version pricing
@@ -123,8 +123,10 @@ suspend fun checkPaymentAndCreateClaim(
     val provider = request.graphAgentRequest.provider as GraphAgentProvider.RemoteRequest
     val registryAgent = registry.findAgent(id = request.graphAgentRequest.id)
         ?: throw AgentRequestException.SessionNotFundedException("No matching agent in registry")
+
     val associatedExportSettings = registryAgent.exportSettings[provider.runtime]
         ?: throw AgentRequestException.SessionNotFundedException("Requested runtime is not exported by agent")
+
     val pricing = associatedExportSettings.pricing
 
     if (matchingPaidAgentSessionEntry.cap !in pricing.minPrice..pricing.maxPrice) {
@@ -132,10 +134,11 @@ suspend fun checkPaymentAndCreateClaim(
     }
     // TODO: Check that the paid session has funds equal to max cap of requested agents once coral-escrow has implemented
 
-    println("Creating claim for paid session ${request.paidSessionId} and agent ${request.graphAgentRequest.id}")
+    logger.info { "Creating claim for paid session ${request.paidSessionId} and agent ${request.graphAgentRequest.id}" }
 
     return remoteSessionManager.createClaimNoPaymentCheck(
-        request.toGraphAgent(registry, true)
+        request.toGraphAgent(registry, true),
+        paymentSessionId = paidSession.sessionId
     )
 }
 

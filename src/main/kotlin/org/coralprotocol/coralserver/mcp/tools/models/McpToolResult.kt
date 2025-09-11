@@ -73,6 +73,10 @@ sealed interface McpToolResult {
     data class AgentList(
         val agents: List<SessionAgent>
     ) : McpToolResult
+
+    @Serializable
+    @SerialName("close_session_success")
+    object CloseSessionSuccess : McpToolResult
 }
 
 fun McpToolResult.toCallToolResult(): CallToolResult {
