@@ -10,6 +10,12 @@ jobs:
     permissions:
       packages: write
     steps:
+      - name: Extract branch name
+        shell: bash
+        run: |
+          branch="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+          echo "branch=${branch##*/}" >> $GITHUB_OUTPUT
+        id: extract_branch
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -25,4 +31,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/coral-protocol/coral-server:${{ github.head_ref || github.ref_name }}
+          tags: ghcr.io/coral-protocol/coral-server:${{ steps.extract_branch.outputs.branch }}
