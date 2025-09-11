@@ -1,18 +1,9 @@
-@file:OptIn(ExperimentalSerializationApi::class)
-
-package org.coralprotocol.coralserver.agent.graph
+package org.coralprotocol.coralserver.agent.graph.server
 
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
-
-@Serializable
-data class GraphAgentServer(
-    val address: String,
-    val port: UShort,
-    val attributes: List<GraphAgentServerAttribute>
-)
 
 @Serializable
 enum class GraphAgentServerAttributeType {
@@ -27,6 +18,7 @@ enum class GraphAgentServerAttributeType {
     // todo: fill this out
 }
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 @JsonClassDiscriminator("format")
 sealed class GraphAgentServerAttribute() {
