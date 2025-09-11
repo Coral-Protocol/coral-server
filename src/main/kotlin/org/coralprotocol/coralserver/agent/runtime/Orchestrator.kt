@@ -16,6 +16,7 @@ import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.session.LocalSession
+import org.coralprotocol.coralserver.session.SessionCloseMode
 import org.coralprotocol.coralserver.session.remote.RemoteSession
 import org.coralprotocol.payment.blockchain.BlockchainService
 import kotlin.system.measureTimeMillis
@@ -63,7 +64,7 @@ class Orchestrator(
 ) {
     private val remoteScope = CoroutineScope(Dispatchers.IO)
     private val eventBusses: MutableMap<String, MutableMap<String, EventBus<RuntimeEvent>>> = mutableMapOf()
-    private val handles: MutableList<OrchestratorHandle> = mutableListOf()
+    private val handles: MutableMap<String, MutableList<OrchestratorHandle>> = mutableMapOf()
 
     @OptIn(ExperimentalUuidApi::class)
     private val applicationRuntimeContext: ApplicationRuntimeContext = ApplicationRuntimeContext(config)
@@ -78,8 +79,7 @@ class Orchestrator(
                         applicationRuntimeContext.dockerClient.pullImageCmd(image)
                     }
                     logger.info { "Preloaded agent ${it.info.identifier}'s docker image $image in ${time}ms" }
-                }
-                catch (e: Exception) {
+                } catch (e: Exception) {
                     logger.error(e) { "Failed to pull agent ${it.info.identifier}'s docker image $image" }
                     logger.warn { "The Docker runtime will not be available for ${it.info.identifier}" }
                 }
@@ -111,6 +111,8 @@ class Orchestrator(
             options = graphAgent.options,
         )
 
+        val handles = handles.getOrPut(session.id) { mutableListOf() }
+
         when (val provider = graphAgent.provider) {
             is GraphAgentProvider.Local -> {
                 val runtime = graphAgent.registryAgent.runtimes.getById(provider.runtime)
@@ -124,6 +126,7 @@ class Orchestrator(
                     )
                 )
             }
+
             is GraphAgentProvider.Remote -> remoteScope.launch {
                 val request = PaidGraphAgentRequest(
                     GraphAgentRequest(
@@ -150,6 +153,7 @@ class Orchestrator(
                     )
                 )
             }
+
             is GraphAgentProvider.RemoteRequest -> throw IllegalArgumentException("Remote requests must be resolved before orchestration")
         }
     }
@@ -177,11 +181,12 @@ class Orchestrator(
             is GraphAgentProvider.RemoteRequest, is GraphAgentProvider.Remote -> {
                 throw IllegalArgumentException("Remote agents cannot be provided by other remote servers")
             }
+
             is GraphAgentProvider.Local -> {
                 val runtime = graphAgent.registryAgent.runtimes.getById(provider.runtime)
                     ?: throw IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported on agent ${graphAgent.registryAgent.info.identifier}")
 
-                handles.add(
+                handles.getOrPut(session.id) { mutableListOf() }.add(
                     runtime.spawn(
                         params,
                         getBusOrCreate(params.session.id, params.agentName),
@@ -194,6 +199,26 @@ class Orchestrator(
 
     suspend fun destroy(): Unit = coroutineScope {
         remoteScope.cancel()
-        handles.map { async { it.destroy() } }.awaitAll()
+        handles.values.flatten().map {
+            async {
+                try {
+                    it.destroy()
+                } catch (e: Exception) {
+                    logger.error(e) { "Failed to destroy runtime" }
+                }
+            }
+        }.awaitAll()
+    }
+
+    suspend fun killForSession(sessionId: String, sessionCloseMode: SessionCloseMode): Unit = coroutineScope {
+        handles[sessionId]?.map {
+            async {
+                try {
+                    it.destroy()
+                } catch (e: Exception) {
+                    logger.error(e) { "Failed to destroy runtime for session $sessionId" }
+                }
+            }
+        }?.awaitAll()
     }
 }

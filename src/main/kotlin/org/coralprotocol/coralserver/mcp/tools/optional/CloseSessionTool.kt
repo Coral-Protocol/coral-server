@@ -1,7 +1,6 @@
-package org.coralprotocol.coralserver.mcp.tools
+package org.coralprotocol.coralserver.mcp.tools.optional
 
 import io.modelcontextprotocol.kotlin.sdk.Tool
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.KSerializer

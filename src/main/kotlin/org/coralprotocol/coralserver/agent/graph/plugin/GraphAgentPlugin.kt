@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.mcp.addMcpTool
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
-import org.coralprotocol.coralserver.mcp.tools.CloseSessionTool as CloseSessionMcpTool
+import org.coralprotocol.coralserver.mcp.tools.optional.CloseSessionTool as CloseSessionMcpTool
 
 @Serializable
 @JsonClassDiscriminator("type")

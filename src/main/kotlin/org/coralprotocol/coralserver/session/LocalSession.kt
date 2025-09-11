@@ -24,12 +24,12 @@ private val logger = KotlinLogging.logger {}
  */
 class LocalSession(
     override val id: String,
+    override val paymentSessionId: PaymentSessionId? = null,
     val applicationId: String,
     val privacyKey: String,
     val agentGraph: AgentGraph?,
     val groups: List<Set<String>> = listOf(),
     var devRequiredAgentStartCount: Int = 0,
-    override val paymentSessionId: PaymentSessionId? = null,
 ): Session() {
     var agents = ConcurrentHashMap<String, SessionAgent>()
     private val debugAgents = ConcurrentSet<String>()
@@ -325,6 +325,7 @@ class LocalSession(
     }
 
     override suspend fun destroy(sessionCloseMode: SessionCloseMode) {
-        TODO("kill agents")
+        super.destroy(sessionCloseMode)
+        clearAll()
     }
 }

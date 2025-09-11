@@ -1,25 +1,27 @@
 package org.coralprotocol.coralserver.session.remote
 
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.payment.PaymentSessionId
+import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
+import org.coralprotocol.coralserver.session.SessionCloseMode
 import java.util.*
 import kotlin.collections.set
 
 private data class Claim(
     val id: String = UUID.randomUUID().toString(),
     val agent: GraphAgent,
+    val maxCost: Long,
     val paymentSessionId: PaymentSessionId
 )
 
 class RemoteSessionManager(
     val orchestrator: Orchestrator,
+    private val aggregatedPaymentClaimManager: AggregatedPaymentClaimManager
 ){
-    private val scope = CoroutineScope(Dispatchers.IO)
-
     private val claims = mutableMapOf<String, Claim>()
     private val sessions = mutableMapOf<String, RemoteSession>()
 
@@ -36,12 +38,17 @@ class RemoteSessionManager(
     /**
      * Claims an agent that can later be executed by executeClaim
      */
-    fun createClaimNoPaymentCheck(agent: GraphAgent, paymentSessionId: PaymentSessionId): String {
+    fun createClaimNoPaymentCheck(
+        agent: GraphAgent,
+        paymentSessionId: PaymentSessionId,
+        maxCost: Long
+    ): String {
         paymentSessionCounts[paymentSessionId] = paymentSessionCounts.getOrDefault(paymentSessionId, 0u) + 1u
 
         val claim = Claim(
             agent = agent,
-            paymentSessionId = paymentSessionId
+            paymentSessionId = paymentSessionId,
+            maxCost = maxCost
         )
         claims[claim.id] = claim
 
@@ -56,8 +63,13 @@ class RemoteSessionManager(
         val remoteSession = RemoteSession(
             id = id,
             agent = claim.agent,
-            deferredMcpTransport = CompletableDeferred()
+            deferredMcpTransport = CompletableDeferred(),
+            maxCost = claim.maxCost
         )
+
+        remoteSession.sessionClosedFlow.onEach {
+            cleanupSession(remoteSession, it)
+        }.launchIn(remoteSession.coroutineScope)
 
         orchestrator.spawnRemote(
             session = remoteSession,
@@ -75,16 +87,12 @@ class RemoteSessionManager(
     /**
      * Closes a session by ID
      */
-    suspend fun closeSession(sessionId: String) {
-        val session = sessions[sessionId]
-            ?: throw IllegalArgumentException("invalid session id: $sessionId")
-
-        val paymentSessionId = session.paymentSessionId
-        if (paymentSessionId!= null) {
+    private suspend fun cleanupSession(remoteSession: RemoteSession, sessionCloseMode: SessionCloseMode) {
+        val paymentSessionId = remoteSession.paymentSessionId
+        if (paymentSessionId != null) {
             val paymentSessionCount = paymentSessionCounts.getOrDefault(paymentSessionId, 0u)
             if (paymentSessionCount == 1u) {
-                // todo: connect
-                //AggregatedPaymentClaimManager.notifyPaymentSessionCosed(paymentSessionId)
+                aggregatedPaymentClaimManager.notifyPaymentSessionCosed(paymentSessionId)
                 paymentSessionCounts.remove(paymentSessionId)
             }
             else {
@@ -92,10 +100,8 @@ class RemoteSessionManager(
             }
         }
 
-        session.destroy()
-
         // Remove the session after the session has been destroyed in case any cleanup requires a sessionId to session
         // lookup
-        sessions.remove(sessionId)
+        sessions.remove(remoteSession.id)
     }
 }
