@@ -3,7 +3,7 @@ name: deploy-docker
 on:
   push:
     branches:
-      - "*"
+      - "**"
 jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
@@ -25,4 +25,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ghcr.io/coral-protocol/coral-server:${{ github.head_ref || github.ref_name }} 
+          tags: ghcr.io/coral-protocol/coral-server:${{ github.head_ref || github.ref_name }}
