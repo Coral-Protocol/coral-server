@@ -57,7 +57,7 @@ private suspend fun handleSseConnection(
     servers: ConcurrentMap<String, Server>,
     remoteSessionManager: RemoteSessionManager,
     isDevMode: Boolean
-): Boolean {
+) {
     // TODO: Address unused variables
     val remoteSessionId = parameters["remoteSessionId"]
 //    val agentDescription: String = parameters["agentDescription"] ?: remoteSessionId ?: "no description"
@@ -65,7 +65,7 @@ private suspend fun handleSseConnection(
 
     if (remoteSessionId == null) {
         sseProducer.call.respond(HttpStatusCode.BadRequest, "Missing remoteSessionId parameter")
-        return false
+        return
     }
 
     val endpoint = "/api/v1/message/export/$remoteSessionId"
@@ -74,8 +74,8 @@ private suspend fun handleSseConnection(
     val session = remoteSessionManager.findSession(remoteSessionId)
     if (session == null) {
         sseProducer.call.respond(HttpStatusCode.BadRequest, "Remote session not found")
-        return false
+        return
     }
 
-    return session.connectMcpTransport(transport)
+    session.connectMcpTransport(transport)
 }
