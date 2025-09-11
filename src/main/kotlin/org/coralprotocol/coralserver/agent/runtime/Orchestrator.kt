@@ -3,13 +3,14 @@
 package org.coralprotocol.coralserver.agent.runtime
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.client.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
@@ -19,9 +20,12 @@ import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
-import org.coralprotocol.coralserver.agent.graph.GraphAgentServerSource
+import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
+import org.coralprotocol.coralserver.agent.graph.PaidSessionId
+import org.coralprotocol.coralserver.agent.graph.server.GraphAgentServerSource
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.payment.models.PaymentSession
 import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.remote.RemoteSession
@@ -132,93 +136,32 @@ class Orchestrator(
                     )
                 )
             }
+            is GraphAgentProvider.Remote -> remoteScope.launch {
+                val request = PaidGraphAgentRequest(
+                    GraphAgentRequest(
+                        id = graphAgent.registryAgent.info.identifier,
+                        name = graphAgent.name,
+                        description = graphAgent.description,
+                        options = graphAgent.options,
+                        systemPrompt = graphAgent.systemPrompt,
+                        blocking = graphAgent.blocking,
+                        customToolAccess = graphAgent.customToolAccess,
+                        provider = GraphAgentProvider.Local(provider.runtime)
+                    ),
+                    paidSessionId = session.paymentSession?.sessionId
+                        ?: throw IllegalStateException("Session including paid agents does not include a payment session")
+                )
 
-            is GraphAgentProvider.Remote -> {
-                val rankedServers = when (provider.serverSource) {
-                    is GraphAgentServerSource.Servers -> {
-                        provider.serverSource.servers.sortedBy {
-                            provider.serverScoring?.getScore(it) ?: 1.0
-                        }
-                    }
-
-                    is GraphAgentServerSource.Indexer -> TODO("indexer server source not yet supported")
-                }
-
-
-                /*
-                    Workflow:
-                    1. Iterate over ranked servers (maintaining order!), finding the first that responds to "pings"
-                    2. Request the agent from the server.  If they decline, move to the next server
-                    3. If they accept:
-                        a. Do payment stuff, if this fails, move to the next server
-                        b. Open WebSocket connection with the server, this WebSocket connection can be treated like a
-                           bus for a process or docker container
-                        c. Tie the life-cycle of an agent to the WebSocket connection and vice versa, again similarly to a
-                           process or container
-                        d. More payment stuff?
-                    4. If the list of servers is exhausted without having found a suitable server to provide the agent,
-                       an exception should be thrown
-                 */
-
-                // do the request
-                remoteScope.launch {
-                    for (server in rankedServers) {
-
-                        // todo: support https somehow?
-                        val url = URLBuilder(
-                            protocol = URLProtocol.HTTP,
-                            host = server.address,
-                            port = server.port.toInt(),
-                            pathSegments = listOf("api", "v1", "agents", "claim"),
-                        ).build()
-
-                        val client = HttpClient(CIO) {
-                            install(ContentNegotiation) {
-                                json(apiJsonConfig)
-                            }
-                        }
-
-                        val createResult = blockchainService.createEscrowSession(
-                            agents = listOf(graphAgent.registryAgent.info.identifier),
-                            mintPubkey = request.mintPubkey,
-                            sessionId = sessionIdLong
-                        )
-
-                        val response = client.post(url) {
-                            contentType(ContentType.Application.Json)
-                            setBody(
-                                PaidGraphAgentRequest(
-                                    GraphAgentRequest(
-                                        id = graphAgent.registryAgent.info.identifier,
-                                        name = graphAgent.name,
-                                        description = graphAgent.description,
-                                        options = graphAgent.options,
-                                        systemPrompt = graphAgent.systemPrompt,
-                                        blocking = graphAgent.blocking,
-                                        customToolAccess = graphAgent.customToolAccess,
-                                        provider = GraphAgentProvider.Local(provider.runtime)
-                                    ),
-                                    paidSessionId = session
-                                )
-                            )
-                        }
-                        if (response.status != HttpStatusCode.OK) {
-                            val body = response.bodyAsText()
-                            logger.warn { "Failed to connect to ${server.address} (${response.status}): $body" }
-                            continue
-                        }
-
-                        val runtime = RemoteRuntime(server, response.bodyAsText())
-                        handles.add(
-                            runtime.spawn(
-                                params,
-                                getBusOrCreate(params.session.id, params.agentName),
-                                applicationRuntimeContext
-                            )
-                        )
-                    }
-                }
+                val runtime = RemoteRuntime(provider.server, provider.server.createClaim(request))
+                handles.add(
+                    runtime.spawn(
+                        params,
+                        getBusOrCreate(params.session.id, params.agentName),
+                        applicationRuntimeContext
+                    )
+                )
             }
+            is GraphAgentProvider.RemoteRequest -> throw IllegalArgumentException("Remote requests must be resolved before orchestration")
         }
     }
 
@@ -242,7 +185,9 @@ class Orchestrator(
         )
 
         when (val provider = graphAgent.provider) {
-            is GraphAgentProvider.Remote -> throw IllegalArgumentException("Remote agents cannot be provided by other remote servers")
+            is GraphAgentProvider.RemoteRequest, is GraphAgentProvider.Remote -> {
+                throw IllegalArgumentException("Remote agents cannot be provided by other remote servers")
+            }
             is GraphAgentProvider.Local -> {
                 val runtime = graphAgent.registryAgent.runtimes.getById(provider.runtime)
                     ?: throw IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported on agent ${graphAgent.registryAgent.info.identifier}")

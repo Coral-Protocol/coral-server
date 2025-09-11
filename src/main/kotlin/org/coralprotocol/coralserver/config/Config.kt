@@ -58,7 +58,19 @@ fun defaultDockerAddress(): String {
 
 @Serializable
 data class PaymentConfig(
+    /**
+     * The public wallet address this server will provide to other servers looking to import an agent that we export
+     */
+    val publicWalletAddress: String = "", // todo @caelum default needs to be generated? this is required for the server to run
+
+    /**
+     * Authentication for blockchain. Crossmint or direct.
+     */
     val keypairPath: String = System.getProperty("user.home") + "/.coral/keypair.json",
+
+    /**
+     *
+     */
     val rpcUrl: String = "https://api.devnet.solana.com",
 )
 

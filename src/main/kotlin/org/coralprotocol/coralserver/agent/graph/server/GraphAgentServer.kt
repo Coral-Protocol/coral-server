@@ -7,13 +7,14 @@ import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.resources.*
+import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import org.coralprotocol.coralserver.agent.registry.AgentExportSettingsMap
+import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
 import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
 import org.coralprotocol.coralserver.agent.registry.PublicAgentExportSettingsMap
 import org.coralprotocol.coralserver.routes.api.v1.Agents
@@ -88,5 +89,25 @@ class GraphAgentServer(
 
     override fun toString(): String {
         return "${if (secure) "https://" else "http://"}$address:$port"
+    }
+
+    /**
+     * Creates a claim for an agent, returning the claim ID
+     * @throws RouteException if the request fails.
+     * @see Agents.ExportedAgent
+     */
+    suspend fun createClaim(paidGraphAgentRequest: PaidGraphAgentRequest): String {
+        val response = client.post(Agents.Claim) {
+            contentType(ContentType.Application.Json)
+            setBody(paidGraphAgentRequest)
+        }
+
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            return body // claim ID
+        }
+        else {
+            throw apiJsonConfig.decodeFromString<RouteException>(body)
+        }
     }
 }
