@@ -30,7 +30,7 @@ class CoralAgentIndividualMcp(
      */
     val connectedAgentId: String,
     val extraTools: Set<CustomTool> = setOf(),
-    val plugins: Set<CoralMcpPlugin>,
+    val plugins: Set<CoralMcpPlugin> = setOf(),
     // Maybe add a callback val for on destroy
 ) : Server(
     Implementation(

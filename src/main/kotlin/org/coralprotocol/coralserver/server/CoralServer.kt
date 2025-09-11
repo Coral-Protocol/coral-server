@@ -2,7 +2,6 @@
 
 package org.coralprotocol.coralserver.server
 
-import org.coralprotocol.payment.blockchain.BlockchainServiceImpl
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.OpenApi
 import io.github.smiley4.ktoropenapi.config.OutputFormat
@@ -47,6 +46,8 @@ import org.coralprotocol.coralserver.mcp.McpResources
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
 import org.coralprotocol.coralserver.models.SocketEvent
+import org.coralprotocol.coralserver.payment.orchestration.AgentNotificationClient
+import org.coralprotocol.coralserver.payment.orchestration.PaymentSessionManager
 import org.coralprotocol.coralserver.routes.api.v1.*
 import org.coralprotocol.coralserver.routes.sse.v1.connectionSseRoutes
 import org.coralprotocol.coralserver.routes.sse.v1.exportedAgentSseRoutes
@@ -55,7 +56,6 @@ import org.coralprotocol.coralserver.routes.ws.v1.exportedAgentRoutes
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 import org.coralprotocol.payment.blockchain.BlockchainService
-import org.coralprotocol.payment.blockchain.models.SignerConfig
 import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
@@ -80,7 +80,7 @@ class CoralServer(
     val devmode: Boolean = false,
     orchestrator: Orchestrator
 ) {
-    val localSessionManager = LocalSessionManager(orchestrator)
+    val localSessionManager = LocalSessionManager(config, orchestrator, PaymentSessionManager(blockchainService, AgentNotificationClient()))
     val remoteSessionManager = RemoteSessionManager(orchestrator)
 
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
@@ -188,6 +188,7 @@ class CoralServer(
                 documentationApiRoutes()
                 agentApiRoutes(registry, blockchainService, remoteSessionManager)
                 claimRoutes(blockchainService, config.paymentConfig)
+                publicWalletApiRoutes(config.paymentConfig.publicWalletAddress)
 
                 // sse
                 connectionSseRoutes(mcpServersByTransportId, localSessionManager)

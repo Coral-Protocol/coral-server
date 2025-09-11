@@ -1,15 +1,14 @@
 package org.coralprotocol.coralserver.e2e
 
 import io.kotest.assertions.throwables.shouldNotThrowAny
-import io.kotest.assertions.throwables.shouldThrowExactly
 import io.mockk.mockkConstructor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
-import org.coralprotocol.coralserver.agent.graph.GraphAgentServer
-import org.coralprotocol.coralserver.agent.graph.GraphAgentServerSource
+import org.coralprotocol.coralserver.agent.graph.server.GraphAgentServer
+import org.coralprotocol.coralserver.agent.graph.server.GraphAgentServerSource
 import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
 import org.coralprotocol.coralserver.agent.registry.RegistryAgent
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentExportPricing
@@ -117,7 +116,7 @@ class RemoteSessionScenarios {
                 systemPrompt = "",
                 customToolAccess = emptySet(),
                 blocking = false,
-                provider = GraphAgentProvider.Remote(
+                provider = GraphAgentProvider.RemoteRequest(
                     runtime = RuntimeId.FUNCTION,
                     serverSource = GraphAgentServerSource.Servers(
                         listOf(

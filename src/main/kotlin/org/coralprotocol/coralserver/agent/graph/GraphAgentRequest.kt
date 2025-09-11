@@ -51,7 +51,7 @@ data class CoralAgentPluginRequest(
 )
 
 @Serializable
-@Description("A request for an agent.  GraphAgentRequest -> GraphAgent -> ")
+@Description("A request for an agent.  GraphAgentRequest -> GraphAgent")
 data class GraphAgentRequest(
     @Description("The ID of this agent in the registry")
     val id: AgentRegistryIdentifier,
@@ -74,9 +74,9 @@ data class GraphAgentRequest(
     @Description("A list of custom tools that this agent can access.  The custom tools must be defined in the parent AgentGraphRequest object")
     val customToolAccess: Set<String>,
 
-    @Description("Optional Coral features that this agent should have access to")
-    @SerialName("coralPlugins")
-    val plugins: Set<GraphAgentPlugin>,
+//    @Description("Optional Coral features that this agent should have access to")
+//    @SerialName("coralPlugins")
+//    val plugins: Set<GraphAgentPlugin>,
 
     @Description("The server that should provide this agent and the runtime to use")
     val provider: GraphAgentProvider
@@ -105,7 +105,11 @@ data class GraphAgentRequest(
         allOptions += if (isRemote) {
             val runtime = when (provider) {
                 is GraphAgentProvider.Local -> provider.runtime
-                is GraphAgentProvider.Remote -> throw AgentRequestException("A request for a remote agent must also request a local provider")
+
+                // Don't allow a remote request that request another remote request
+                is GraphAgentProvider.RemoteRequest, is GraphAgentProvider.Remote -> {
+                    throw AgentRequestException("A request for a remote agent must also request a local provider")
+                }
             }
 
             registryAgent.exportSettings[runtime]?.options

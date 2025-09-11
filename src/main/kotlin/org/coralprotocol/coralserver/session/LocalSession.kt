@@ -6,6 +6,7 @@ import kotlinx.coroutines.CompletableDeferred
 import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.models.*
+import org.coralprotocol.coralserver.payment.models.PaymentSession
 import org.coralprotocol.coralserver.session.models.SessionAgent
 import org.coralprotocol.coralserver.session.models.SessionAgentState
 import org.coralprotocol.coralserver.session.models.isConnected
@@ -25,6 +26,7 @@ class LocalSession(
     val agentGraph: AgentGraph?,
     val groups: List<Set<String>> = listOf(),
     var devRequiredAgentStartCount: Int = 0,
+    val paymentSession: PaymentSession? = null,
 ): Session {
     var agents = ConcurrentHashMap<String, SessionAgent>()
     private val debugAgents = ConcurrentSet<String>()

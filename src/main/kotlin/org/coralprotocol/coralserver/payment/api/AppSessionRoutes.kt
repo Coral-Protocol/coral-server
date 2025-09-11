@@ -6,7 +6,6 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.resources.post
 import io.ktor.http.*
 import io.ktor.resources.*
-import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -16,7 +15,7 @@ import org.coralprotocol.coralserver.payment.orchestration.InsufficientAgentsExc
 import org.coralprotocol.coralserver.payment.orchestration.InsufficientFundsException
 import org.coralprotocol.coralserver.payment.orchestration.SessionCreationException
 import org.coralprotocol.coralserver.payment.orchestration.SessionFundingException
-import org.coralprotocol.coralserver.payment.orchestration.SessionManager
+import org.coralprotocol.coralserver.payment.orchestration.PaymentSessionManager
 import org.coralprotocol.coralserver.payment.utils.ErrorHandling.parseSessionId
 import org.coralprotocol.coralserver.payment.utils.ErrorHandling.respondError
 import org.coralprotocol.payment.blockchain.BlockchainService
@@ -36,7 +35,7 @@ class FundSession(val id: String)
 fun Route.appSessionRoutes(
     blockchainService: BlockchainService,
     config: PaymentServerConfig,
-    sessionManager: SessionManager
+    paymentSessionManager: PaymentSessionManager
 ) {
     // Create session with agent availability check
     post<CreateSession> {
@@ -45,7 +44,12 @@ fun Route.appSessionRoutes(
         logger.info { "Creating session with ${request.agents.size} agents" }
 
         try {
-            val response = sessionManager.createAndFundSession(request)
+            val response = paymentSessionManager.createAndFundSession(
+                agents = request.agents,
+                mintPubkey = request.mintPubkey,
+                sessionId = request.sessionId,
+                fundAmount = request.fundAmount
+            )
             call.respond(HttpStatusCode.Created, response)
         } catch (e: InsufficientAgentsException) {
             logger.error { "Insufficient agents: ${e.message}" }

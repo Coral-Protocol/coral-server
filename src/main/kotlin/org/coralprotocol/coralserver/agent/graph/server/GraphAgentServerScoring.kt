@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalSerializationApi::class)
 
-package org.coralprotocol.coralserver.agent.graph
+package org.coralprotocol.coralserver.agent.graph.server
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.ExperimentalSerializationApi

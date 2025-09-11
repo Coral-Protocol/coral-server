@@ -5,7 +5,14 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withTimeoutOrNull
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
+import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
+import org.coralprotocol.coralserver.agent.graph.toRemote
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
+import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.payment.models.AgentConfigRequest
+import org.coralprotocol.coralserver.payment.models.PaymentSession
+import org.coralprotocol.coralserver.payment.orchestration.PaymentSessionManager
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 fun AgentGraph.adjacencyMap(): Map<String, Set<String>> {
@@ -29,7 +36,9 @@ fun AgentGraph.adjacencyMap(): Map<String, Set<String>> {
  * Session manager to create and retrieve sessions.
  */
 class LocalSessionManager(
-    val orchestrator: Orchestrator = Orchestrator()
+    val config: Config = Config(),
+    val orchestrator: Orchestrator,
+    val paymentSessionManager: PaymentSessionManager
 ) {
     private val sessions = ConcurrentHashMap<String, LocalSession>()
     private val sessionSemaphore = Semaphore(1)
@@ -62,18 +71,72 @@ class LocalSessionManager(
     /**
      * Create a new session with a random ID.
      */
-    fun createSession(applicationId: String, privacyKey: String, agentGraph: AgentGraph? = null): LocalSession =
-        createSessionWithId(java.util.UUID.randomUUID().toString(), applicationId, privacyKey, agentGraph)
+    suspend fun createSession(applicationId: String, privacyKey: String, agentGraph: AgentGraph? = null): LocalSession =
+        createSessionWithId(UUID.randomUUID().toString(), applicationId, privacyKey, agentGraph)
+
+    /**
+     * This function should be called on any agent graph that contains remote agents.  This function is responsible for
+     * starting the transaction required to pay for the requested remote agents.
+     *
+     * This function will:
+     * - Choose the best server to provide a remote agent
+     *      * this can fail, if all servers reject us or our desired max payment
+     *      * this can also fail if no servers at all were found to provide the remote agent
+     * - Replace the RemoteRequest provider type with the Remote provider type, gathering:
+     *      * The chosen server's wallet address
+     *      * The chosen server's actual max cost
+     */
+    suspend fun createPaymentSession(
+        agentGraph: AgentGraph
+    ): PaymentSession? {
+        val paymentGraph = agentGraph.toPayment()
+        if (paymentGraph.paidAgents.isEmpty())
+            return null
+
+        val paymentSessionId = UUID.randomUUID().toString()
+        val agents = mutableListOf<AgentConfigRequest>()
+
+        var fundAmount = 0L
+        for (agent in paymentGraph.paidAgents) {
+            val id = agent.registryAgent.info.identifier
+            val provider = agent.provider
+            if (provider !is GraphAgentProvider.RemoteRequest)
+                throw IllegalArgumentException("createPaymentSession given non remote agent ${agent.name}")
+
+            fundAmount += provider.maxCost
+            val resolvedRemote = provider.toRemote(id, paymentSessionId)
+
+            agents.add(AgentConfigRequest(
+                id = id.toString(),
+                cap = provider.maxCost,
+                developer = resolvedRemote.wallet,
+                endpoint = null // todo @caelum
+            ))
+
+            // Important! Replace the RemoteRequest with the resolved Remote type
+            agent.provider = resolvedRemote
+        }
+
+        return paymentSessionManager.createAndFundSession(
+            agents = agents,
+            mintPubkey = config.paymentConfig.publicWalletAddress, // todo: @caelum
+            fundAmount = fundAmount,
+            sessionId = paymentSessionId
+        )
+    }
+
 
     /**
      * Create a new session with a specific ID.
      */
-    fun createSessionWithId(
+    suspend fun createSessionWithId(
         sessionId: String,
         applicationId: String,
         privacyKey: String,
-        agentGraph: AgentGraph? = null
+        agentGraph: AgentGraph? = null // Nullable for devmode
     ): LocalSession {
+        val paymentSession = agentGraph?.let { createPaymentSession(it) }
+
         val subgraphs = agentGraph?.let { agentGraph ->
             val adj = agentGraph.adjacencyMap()
             val visited = mutableSetOf<String>()
@@ -103,7 +166,15 @@ class LocalSessionManager(
             subgraphs
         }
 
-        val session = LocalSession(sessionId, applicationId, privacyKey, agentGraph = agentGraph, groups = subgraphs?.toList() ?: emptyList())
+        val session = LocalSession(
+            id = sessionId,
+            applicationId = applicationId,
+            privacyKey = privacyKey,
+            agentGraph = agentGraph,
+            groups = subgraphs?.toList() ?: emptyList(),
+            paymentSession = paymentSession
+        )
+
         sessions[sessionId] = session
 
         agentGraph?.agents?.forEach { agent ->
