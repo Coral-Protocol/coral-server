@@ -3,7 +3,7 @@ package org.coralprotocol.coralserver.payment.api
 import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.coralserver.payment.config.PaymentServerConfig
 import org.coralprotocol.coralserver.payment.orchestration.SimpleAgentHandler
-import org.coralprotocol.coralserver.payment.orchestration.SessionManager
+import org.coralprotocol.coralserver.payment.orchestration.PaymentSessionManager
 import org.coralprotocol.coralserver.payment.orchestration.AgentNotificationClient
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
@@ -39,8 +39,8 @@ fun Application.configureRouting(
                 val agentClient = AgentNotificationClient(
                     defaultTimeoutMs = config.notifications?.timeout?.let { parseDuration(it) } ?: 5000
                 )
-                val sessionManager = SessionManager(blockchainService, agentClient)
-                appSessionRoutes(blockchainService, config, sessionManager)
+                val paymentSessionManager = PaymentSessionManager(blockchainService, agentClient)
+                appSessionRoutes(blockchainService, config, paymentSessionManager)
             }
             
             // Include agent routes if agent config exists

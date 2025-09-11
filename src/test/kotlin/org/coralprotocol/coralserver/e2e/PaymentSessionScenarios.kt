@@ -9,8 +9,8 @@ import kotlinx.coroutines.runBlocking
 import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
-import org.coralprotocol.coralserver.agent.graph.GraphAgentServer
-import org.coralprotocol.coralserver.agent.graph.GraphAgentServerSource
+import org.coralprotocol.coralserver.agent.graph.server.GraphAgentServer
+import org.coralprotocol.coralserver.agent.graph.server.GraphAgentServerSource
 import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
 import org.coralprotocol.coralserver.agent.registry.RegistryAgent
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentExportPricing
@@ -123,7 +123,7 @@ class PaymentSessionScenarios {
                 systemPrompt = "",
                 customToolAccess = emptySet(),
                 blocking = false,
-                provider = GraphAgentProvider.Remote(
+                provider = GraphAgentProvider.RemoteRequest(
                     runtime = RuntimeId.FUNCTION,
                     serverSource = GraphAgentServerSource.Servers(
                         listOf(

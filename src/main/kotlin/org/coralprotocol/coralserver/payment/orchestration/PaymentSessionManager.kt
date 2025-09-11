@@ -5,7 +5,6 @@ import org.coralprotocol.coralserver.payment.models.*
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
 import kotlinx.coroutines.*
 import io.github.oshai.kotlinlogging.KotlinLogging
-import java.time.Instant
 
 private val logger = KotlinLogging.logger {}
 
@@ -14,7 +13,7 @@ private val logger = KotlinLogging.logger {}
  * Implements the agent-first pattern where sessions are only created
  * after confirming agent availability.
  */
-class SessionManager(
+class PaymentSessionManager(
     private val blockchain: BlockchainService,
     private val agentClient: AgentNotificationClient
 ) {
@@ -25,38 +24,41 @@ class SessionManager(
      * Fails if ANY agent is unavailable.
      */
     suspend fun createAndFundSession(
-        request: CreateSessionRequest
-    ): CreateSessionResponse {
+        agents: List<AgentConfigRequest>,
+        mintPubkey: String,
+        sessionId: String? = null,
+        fundAmount: Long? = null
+    ): PaymentSession {
         // Validate request
-        require(request.fundAmount != null && request.fundAmount > 0) {
+        require(fundAmount != null && fundAmount > 0) {
             "Fund amount must be specified and greater than 0"
         }
         
         // Generate session ID
-        val sessionIdLong = if (request.sessionId != null) {
-            SessionIdUtils.uuidToSessionId(request.sessionId)
+        val sessionIdLong = if (sessionId != null) {
+            SessionIdUtils.uuidToSessionId(sessionId)
         } else {
             SessionIdUtils.uuidToSessionId(SessionIdUtils.generateSessionUuid())
         }
         
         // Pre-check wallet balance
-        val balanceResult = preCheckBalance(request.fundAmount)
+        val balanceResult = preCheckBalance(fundAmount)
         if (balanceResult.isFailure) {
             throw balanceResult.exceptionOrNull()!!
         }
         
         logger.info { 
             "Creating session with availability check: " +
-            "sessionId=$sessionIdLong, agents=${request.agents.size}" 
+            "sessionId=$sessionIdLong, agents=${agents.size}"
         }
         
         // 1. Check agent availability (parallel)
         val availabilityResult = checkAgentAvailability(
             CheckAvailabilityRequest(
                 sessionId = sessionIdLong.toString(),
-                agents = request.agents,
-                minimumAgents = request.agents.size,  // ALL agents must be available
-                timeoutMs = 10000   // 10 second timeout
+                agents = agents,
+                minimumAgents = agents.size,  // ALL agents must be available
+                timeoutMs = 10000   // 10-second timeout
             )
         )
         
@@ -67,8 +69,8 @@ class SessionManager(
             )
         }
         
-        // 2. Create session on blockchain with all agents
-        val availableAgentConfigs = request.agents
+        // 2. Create a session on a blockchain with all agents
+        val availableAgentConfigs = agents
         
         logger.info { 
             "Creating session on blockchain with ${availableAgentConfigs.size} available agents" 
@@ -76,7 +78,7 @@ class SessionManager(
         
         val createResult = blockchain.createEscrowSession(
             agents = availableAgentConfigs.map { it.toBlockchainModel() },
-            mintPubkey = request.mintPubkey,
+            mintPubkey = mintPubkey,
             sessionId = sessionIdLong
         )
         
@@ -89,11 +91,11 @@ class SessionManager(
         val sessionInfo = createResult.getOrThrow()
         
         // 3. Fund session immediately (atomic operation)
-        logger.info { "Funding session $sessionIdLong with ${request.fundAmount} tokens" }
+        logger.info { "Funding session $sessionIdLong with ${fundAmount} tokens" }
         
         val fundResult = blockchain.fundEscrowSession(
             sessionId = sessionIdLong,
-            amount = request.fundAmount
+            amount = fundAmount
         )
         
         if (fundResult.isFailure) {
@@ -101,7 +103,7 @@ class SessionManager(
             logger.error { "Failed to fund session, attempting cleanup: ${fundResult.exceptionOrNull()?.message}" }
             
             try {
-                val refundResult = blockchain.refundEscrowLeftover(sessionIdLong, request.mintPubkey)
+                val refundResult = blockchain.refundEscrowLeftover(sessionIdLong, mintPubkey)
                 if (refundResult.isSuccess) {
                     logger.info { "Successfully cleaned up unfunded session $sessionIdLong" }
                 }
@@ -116,10 +118,10 @@ class SessionManager(
             )
         }
         
-        // 4. Notify agents that session is funded
+        // 4. Notify agents that the session has been funded
         notifyAgentsFunded(sessionIdLong, availableAgentConfigs)
         
-        return CreateSessionResponse(
+        return PaymentSession(
             sessionId = sessionIdLong,
             transactionSignature = fundResult.getOrThrow().signature,
             status = "FUNDED",

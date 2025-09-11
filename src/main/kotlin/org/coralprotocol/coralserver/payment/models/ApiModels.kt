@@ -41,7 +41,7 @@ data class PaymentClaimRequest(
 
 // Response models
 @Serializable
-data class CreateSessionResponse(
+data class PaymentSession(
     val sessionId: Long,  // Blockchain session ID
     val transactionSignature: String,
     val status: String,  // CREATED or FUNDED

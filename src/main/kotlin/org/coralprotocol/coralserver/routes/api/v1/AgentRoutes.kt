@@ -12,7 +12,11 @@ import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
+import org.coralprotocol.coralserver.agent.registry.AgentExportSettings
+import org.coralprotocol.coralserver.agent.registry.AgentExportSettingsMap
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
+import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
+import org.coralprotocol.coralserver.agent.registry.PublicAgentExportSettingsMap
 import org.coralprotocol.coralserver.agent.registry.PublicRegistryAgent
 import org.coralprotocol.coralserver.agent.registry.toPublic
 import org.coralprotocol.coralserver.server.RouteException
@@ -21,13 +25,13 @@ import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 private val logger = KotlinLogging.logger {}
 
 @Resource("/api/v1/agents")
-class Agents
+class Agents() {
+    @Resource("claim")
+    class Claim(val parent: Agents = Agents())
 
-@Resource("/api/v1/agents/exported")
-class ExportedAgents
-
-@Resource("/api/v1/agents/claim")
-class ClaimAgents
+    @Resource("exported/{name}/{version}")
+    class ExportedAgent(val parent: Agents = Agents(), val name: String, val version: String)
+}
 
 fun Routing.agentApiRoutes(
     registry: AgentRegistry,
@@ -51,7 +55,7 @@ fun Routing.agentApiRoutes(
         call.respond(HttpStatusCode.OK, agents)
     }
 
-    post<ClaimAgents>({
+    post<Agents.Claim>({
         summary = "Claim agents"
         description = "Creates a claim for agents that can later be instantiated via WebSocket"
         operationId = "claimAgents"
@@ -85,6 +89,28 @@ fun Routing.agentApiRoutes(
             throw RouteException(HttpStatusCode.BadRequest, e.message)
         }
     }
+
+    get<Agents.ExportedAgent>({
+        summary = "Get exported agent info"
+        description = "Returns export information for a specific agent"
+        operationId = "getExportedAgent"
+        response {
+            HttpStatusCode.OK to {
+                description = "Success"
+                body<PublicAgentExportSettingsMap> {
+                    description = "Agent settings map, keyed by runtime"
+                }
+            }
+            HttpStatusCode.NotFound to {
+                description = "Agent was not found or is not exported"
+            }
+        }
+    }) {
+        val agent = registry.findAgent(AgentRegistryIdentifier(it.name, it.version))
+            ?: throw RouteException(HttpStatusCode.NotFound, "Agent with ${it.name}:${it.version} not found")
+
+        call.respond(agent.exportSettings.toPublic())
+    }
 }
 
 suspend fun checkPaymentAndCreateClaim(
@@ -100,7 +126,7 @@ suspend fun checkPaymentAndCreateClaim(
         it.id == request.graphAgentRequest.id.name //TODO: Consider per version pricing
     } ?: throw AgentRequestException.SessionNotFundedException("No matching agent in paid session")
 
-    val provider = request.graphAgentRequest.provider as GraphAgentProvider.Remote
+    val provider = request.graphAgentRequest.provider as GraphAgentProvider.RemoteRequest
     val registryAgent = registry.findAgent(id = request.graphAgentRequest.id)
         ?: throw AgentRequestException.SessionNotFundedException("No matching agent in registry")
     val associatedExportSettings = registryAgent.exportSettings[provider.runtime]

@@ -25,3 +25,9 @@ fun AgentExportSettings.toPublic(): PublicAgentExportSettings {
         pricing = pricing
     )
 }
+
+fun AgentExportSettingsMap.toPublic(): PublicAgentExportSettingsMap {
+    return mapValues { (runtime, settings) ->
+        settings.toPublic()
+    }
+}

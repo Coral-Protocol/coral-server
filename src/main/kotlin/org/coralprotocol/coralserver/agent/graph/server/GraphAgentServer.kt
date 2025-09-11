@@ -15,6 +15,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.coralprotocol.coralserver.agent.registry.AgentExportSettingsMap
 import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
+import org.coralprotocol.coralserver.agent.registry.PublicAgentExportSettingsMap
 import org.coralprotocol.coralserver.routes.api.v1.Agents
 import org.coralprotocol.coralserver.routes.api.v1.PublicWallet
 import org.coralprotocol.coralserver.server.RouteException
@@ -68,7 +69,7 @@ class GraphAgentServer(
      * @throws RouteException if the request fails.
      * @see Agents.ExportedAgent
      */
-    suspend fun getAgentExportSettings(id: AgentRegistryIdentifier): AgentExportSettingsMap {
+    suspend fun getAgentExportSettings(id: AgentRegistryIdentifier): PublicAgentExportSettingsMap {
         val response = client.get(Agents.ExportedAgent(
             name = id.name,
             version = id.version
@@ -78,7 +79,7 @@ class GraphAgentServer(
 
         val body = response.bodyAsText()
         if (response.status == HttpStatusCode.OK) {
-            return apiJsonConfig.decodeFromString<AgentExportSettingsMap>(body)
+            return apiJsonConfig.decodeFromString<PublicAgentExportSettingsMap>(body)
         }
         else {
             throw apiJsonConfig.decodeFromString<RouteException>(body)
