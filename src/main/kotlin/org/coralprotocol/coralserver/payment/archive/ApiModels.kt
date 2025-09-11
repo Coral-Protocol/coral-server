@@ -32,12 +32,6 @@
 //    val amount: Long
 //)
 //
-//@Serializable
-//data class PaymentClaimRequest(
-//    val sessionId: Long,
-//    val agentId: String,
-//    val amount: Long
-//)
 //
 //// Response models
 //@Serializable

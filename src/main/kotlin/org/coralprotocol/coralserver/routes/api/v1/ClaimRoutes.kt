@@ -8,13 +8,8 @@ import io.ktor.resources.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.config.PaymentConfig
-import org.coralprotocol.coralserver.payment.api.PaymentClaimStatus
-import org.coralprotocol.coralserver.payment.models.ClaimResponse
-import org.coralprotocol.coralserver.payment.models.PaymentClaimRequest
-import org.coralprotocol.coralserver.payment.utils.ErrorHandling.parseSessionId
-import org.coralprotocol.coralserver.payment.utils.ErrorHandling.respondError
-import org.coralprotocol.coralserver.payment.utils.ErrorHandling.validateParameter
 import org.coralprotocol.payment.blockchain.BlockchainService
 
 private val logger = KotlinLogging.logger {}
@@ -55,10 +50,10 @@ fun Route.claimRoutes(
         // First, check if already claimed
         val claimedResult = blockchainService.checkEscrowClaimed(request.sessionId, request.agentId)
         if (claimedResult.isSuccess && claimedResult.getOrNull() == true) {
-            return@post call.respondError(
-                HttpStatusCode.Conflict,
-                "Agent ${request.agentId} has already claimed from session ${request.sessionId}"
-            )
+//            return@post call.respondError(
+//                HttpStatusCode.Conflict,
+//                "Agent ${request.agentId} has already claimed from session ${request.sessionId}"
+//            )
         }
 
         // Submit the claim
@@ -75,60 +70,66 @@ fun Route.claimRoutes(
                 }
 
                 // TODO: Calculate remaining amount from session query
-                call.respond(
-                    ClaimResponse(
-                        success = true,
-                        transactionSignature = tx.signature,
-                        claimed = request.amount,
-                        remaining = 0 // Would need to query session for actual remaining
-                    )
-                )
+//                call.respond(
+//                    ClaimResponse(
+//                        success = true,
+//                        transactionSignature = tx.signature,
+//                        claimed = request.amount,
+//                        remaining = 0 // Would need to query session for actual remaining
+//                    )
+//                )
             },
             onFailure = { error ->
                 logger.error {
                     "Failed to process claim for agent ${request.agentId}: ${error.message}"
                 }
-                call.respondError(
-                    HttpStatusCode.BadRequest,
-                    error.message ?: "Failed to process claim"
-                )
+//                call.respondError(
+//                    HttpStatusCode.BadRequest,
+//                    error.message ?: "Failed to process claim"
+//                )
             }
         )
     }
 
     // Check claim status
     get<PaymentClaimStatus> { params ->
-        val sessionId = try {
-            parseSessionId(params.sessionId)
-        } catch (e: IllegalArgumentException) {
-            return@get call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid session ID")
-        }
+//        val sessionId = try {
+//            parseSessionId(params.sessionId)
+//        } catch (e: IllegalArgumentException) {
+//            return@get call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid session ID")
+//        }
 
-        val agentId = try {
-            validateParameter(params.agentId, "agentId")
-        } catch (e: IllegalArgumentException) {
-            return@get call.respondError(HttpStatusCode.BadRequest, e.message ?: "Missing agent ID")
-        }
+//        val agentId = try {
+//            validateParameter(params.agentId, "agentId")
+//        } catch (e: IllegalArgumentException) {
+//            return@get call.respondError(HttpStatusCode.BadRequest, e.message ?: "Missing agent ID")
+//        }
 
-        val result = blockchainService.checkEscrowClaimed(sessionId, agentId)
+//        val result = blockchainService.checkEscrowClaimed(sessionId, agentId)
 
-        result.fold(
-            onSuccess = { claimed ->
-                call.respond(
-                    mapOf(
-                        "sessionId" to sessionId,
-                        "agentId" to agentId,
-                        "claimed" to claimed
-                    )
-                )
-            },
-            onFailure = { error ->
-                logger.error { "Failed to check claim status: ${error.message}" }
-                call.respondError(
-                    HttpStatusCode.InternalServerError,
-                    "Failed to check claim status"
-                )
-            }
-        )
+//        result.fold(
+//            onSuccess = { claimed ->
+//                call.respond(
+//                    mapOf(
+//                        "sessionId" to sessionId,
+//                        "agentId" to agentId,
+//                        "claimed" to claimed
+//                    )
+//                )
+//            },
+//            onFailure = { error ->
+//                logger.error { "Failed to check claim status: ${error.message}" }
+//                call.respondError(
+//                    HttpStatusCode.InternalServerError,
+//                    "Failed to check claim status"
+//                )
+//            }
+//        )
     }
 }
+@Serializable
+data class PaymentClaimRequest(
+    val sessionId: Long,
+    val agentId: String,
+    val amount: Long
+)
