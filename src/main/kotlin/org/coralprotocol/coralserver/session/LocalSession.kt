@@ -8,10 +8,11 @@ import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.models.Message
 import org.coralprotocol.coralserver.models.Thread
 import org.coralprotocol.coralserver.models.resolve
-import org.coralprotocol.coralserver.payment.models.PaymentSession
+import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.session.models.SessionAgent
 import org.coralprotocol.coralserver.session.models.SessionAgentState
 import org.coralprotocol.coralserver.session.models.isConnected
+import org.coralprotocol.payment.blockchain.models.SessionInfo
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
@@ -28,8 +29,8 @@ class LocalSession(
     val agentGraph: AgentGraph?,
     val groups: List<Set<String>> = listOf(),
     var devRequiredAgentStartCount: Int = 0,
-    val paymentSession: PaymentSession? = null,
-): Session {
+    override val paymentSessionId: PaymentSessionId? = null,
+): Session() {
     var agents = ConcurrentHashMap<String, SessionAgent>()
     private val debugAgents = ConcurrentSet<String>()
 
@@ -321,5 +322,9 @@ class LocalSession(
                 lastReadMessageIndex[Pair(agentId, thread.id)] = maxIndex + 1
             }
         }
+    }
+
+    override suspend fun destroy(sessionCloseMode: SessionCloseMode) {
+        TODO("kill agents")
     }
 }

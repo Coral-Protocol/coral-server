@@ -4,8 +4,10 @@ import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import kotlinx.coroutines.CompletableDeferred
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.session.Session
+import org.coralprotocol.coralserver.session.SessionCloseMode
 
 /**
+ * (exporting-side)
  * A Coral server can export agents to be used in another Coral server's sessions.  A remote session is the exporting
  * server's representation of the importing server's session.  It only contains the information required for agents
  * this server runs to communicate with the session from the importing server.
@@ -30,15 +32,17 @@ class RemoteSession(
      * The transport between this server and the agent
      */
     val deferredMcpTransport: CompletableDeferred<SseServerTransport>
-): Session {
-    private val lifecycle = CompletableDeferred<Boolean>()
+): Session() {
+    private val lifecycle = CompletableDeferred<SessionCloseMode>()
 
-    suspend fun connectMcpTransport(transport: SseServerTransport): Boolean {
+    val onCloseListeners = mutableListOf<CompletableDeferred<SessionCloseMode>>()
+    suspend fun connectMcpTransport(transport: SseServerTransport): SessionCloseMode {
         deferredMcpTransport.complete(transport)
         return lifecycle.await()
     }
 
-    fun close(status: Boolean) {
-        lifecycle.complete(status)
+    override suspend fun destroy(sessionCloseMode: SessionCloseMode) {
+        lifecycle.complete(sessionCloseMode)
+        onCloseListeners.forEach { it.complete(sessionCloseMode) }
     }
 }

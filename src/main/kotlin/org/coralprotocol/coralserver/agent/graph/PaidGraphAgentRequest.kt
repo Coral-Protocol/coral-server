@@ -3,12 +3,13 @@ package org.coralprotocol.coralserver.agent.graph
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
+import org.coralprotocol.coralserver.payment.PaymentSessionId
 
 @Serializable
-@Description("A paid request for an agent.  GraphAgentRequest -> GraphAgent -> ")
+@Description("A paid request for an agent.  GraphAgentRequest -> GraphAgent")
 data class PaidGraphAgentRequest(
     val graphAgentRequest: GraphAgentRequest,
-    val paidSessionId: PaidSessionId
+    val paidSessionId: PaymentSessionId
 ) {
     /**
      * Given a reference to the agent registry [AgentRegistry], this function will attempt to convert this request into
@@ -20,5 +21,3 @@ data class PaidGraphAgentRequest(
     fun toGraphAgent(registry: AgentRegistry, isRemote: Boolean = false): GraphAgent = graphAgentRequest.toGraphAgent(registry, isRemote)
 
 }
-
-typealias PaidSessionId = Long

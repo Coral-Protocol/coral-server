@@ -137,7 +137,7 @@ class Orchestrator(
                         plugins = graphAgent.plugins,
                         provider = GraphAgentProvider.Local(provider.runtime),
                     ),
-                    paidSessionId = session.paymentSession?.sessionId
+                    paidSessionId = session.paymentSessionId
                         ?: throw IllegalStateException("Session including paid agents does not include a payment session")
                 )
 

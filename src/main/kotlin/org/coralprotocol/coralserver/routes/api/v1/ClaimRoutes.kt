@@ -3,10 +3,8 @@ package org.coralprotocol.coralserver.routes.api.v1
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.resources.get
 import io.github.smiley4.ktoropenapi.resources.post
-import io.ktor.http.*
 import io.ktor.resources.*
 import io.ktor.server.request.*
-import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.config.PaymentConfig
@@ -33,7 +31,7 @@ fun Route.claimRoutes(
         val request = call.receive<PaymentClaimRequest>()
 
         logger.info {
-            "Processing claim for session ${request.sessionId}, agent ${request.agentId}, amount: ${request.amount}"
+            "Processing claim for session ${request.paymentSessionId}, agent ${request.agentId}, amount: ${request.amount}"
         }
 
         // Check auto-claim configuration
@@ -48,7 +46,7 @@ fun Route.claimRoutes(
 //        }
 
         // First, check if already claimed
-        val claimedResult = blockchainService.checkEscrowClaimed(request.sessionId, request.agentId)
+        val claimedResult = blockchainService.checkEscrowClaimed(request.paymentSessionId, request.agentId)
         if (claimedResult.isSuccess && claimedResult.getOrNull() == true) {
 //            return@post call.respondError(
 //                HttpStatusCode.Conflict,
@@ -58,7 +56,7 @@ fun Route.claimRoutes(
 
         // Submit the claim
         val result = blockchainService.submitEscrowClaim(
-            sessionId = request.sessionId,
+            sessionId = request.paymentSessionId,
             agentId = request.agentId,
             amount = request.amount
         )
@@ -66,7 +64,7 @@ fun Route.claimRoutes(
         result.fold(
             onSuccess = { tx ->
                 logger.info {
-                    "Claim successful for agent ${request.agentId} in session ${request.sessionId}: ${tx.signature}"
+                    "Claim successful for agent ${request.agentId} in session ${request.paymentSessionId}: ${tx.signature}"
                 }
 
                 // TODO: Calculate remaining amount from session query
@@ -129,7 +127,7 @@ fun Route.claimRoutes(
 }
 @Serializable
 data class PaymentClaimRequest(
-    val sessionId: Long,
+    val paymentSessionId: Long,
     val agentId: String,
     val amount: Long
 )

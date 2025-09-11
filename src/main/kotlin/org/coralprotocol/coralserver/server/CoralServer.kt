@@ -46,8 +46,6 @@ import org.coralprotocol.coralserver.mcp.McpResources
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
 import org.coralprotocol.coralserver.models.SocketEvent
-import org.coralprotocol.coralserver.payment.orchestration.AgentNotificationClient
-import org.coralprotocol.coralserver.payment.orchestration.PaymentSessionManager
 import org.coralprotocol.coralserver.routes.api.v1.*
 import org.coralprotocol.coralserver.routes.sse.v1.connectionSseRoutes
 import org.coralprotocol.coralserver.routes.sse.v1.exportedAgentSseRoutes
@@ -80,7 +78,7 @@ class CoralServer(
     val devmode: Boolean = false,
     orchestrator: Orchestrator
 ) {
-    val localSessionManager = LocalSessionManager(config, orchestrator, PaymentSessionManager(blockchainService, AgentNotificationClient()))
+    val localSessionManager = LocalSessionManager(config, orchestrator, blockchainService)
     val remoteSessionManager = RemoteSessionManager(orchestrator)
 
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
