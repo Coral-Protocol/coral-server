@@ -6,6 +6,7 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.shared.Transport
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
 import org.coralprotocol.coralserver.mcp.resources.addAgentResource
 import org.coralprotocol.coralserver.mcp.resources.addInstructionResource
@@ -31,7 +32,7 @@ class CoralAgentIndividualMcp(
     val connectedAgentId: String,
     val extraTools: Set<CustomTool> = setOf(),
     val plugins: Set<GraphAgentPlugin> = setOf(),
-    val coroutineScope: CoroutineScope
+    val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
     // Maybe add a callback val for on destroy
 ) : Server(
     Implementation(
