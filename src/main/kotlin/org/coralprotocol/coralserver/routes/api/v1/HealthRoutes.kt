@@ -1,12 +1,25 @@
-package org.coralprotocol.coralserver.payment.api
+package org.coralprotocol.coralserver.routes.api.v1
 
 import io.github.smiley4.ktoropenapi.resources.get
 import io.ktor.http.*
 import io.ktor.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.coralprotocol.coralserver.payment.models.BlockchainHealth
-import org.coralprotocol.coralserver.payment.models.HealthResponse
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class HealthResponse(
+    val status: String,
+    val mode: String,
+    val blockchain: BlockchainHealth
+)
+
+@Serializable
+data class BlockchainHealth(
+    val connected: Boolean,
+    val rpcUrl: String,
+    val lastBlock: Long? = null
+)
 
 @Resource("/health")
 class Health
