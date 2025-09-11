@@ -1,55 +1,91 @@
 @file:OptIn(ExperimentalSerializationApi::class)
 
-package org.coralprotocol.coralserver.agent.graph
+package org.coralprotocol.coralserver.agent.graph.server
 
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.resources.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonClassDiscriminator
+import kotlinx.serialization.Transient
+import org.coralprotocol.coralserver.agent.registry.AgentExportSettingsMap
+import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
+import org.coralprotocol.coralserver.routes.api.v1.Agents
+import org.coralprotocol.coralserver.routes.api.v1.PublicWallet
+import org.coralprotocol.coralserver.server.RouteException
+import org.coralprotocol.coralserver.server.apiJsonConfig
 
+/**
+ * This class represents another Coral server, or any server capable of providing remote agents... which is for right
+ * now only another Coral server.
+ */
 @Serializable
 class GraphAgentServer(
     val address: String,
     val port: UShort,
+    val secure: Boolean, // true = https, false = http
     val attributes: List<GraphAgentServerAttribute>
-)
+) {
+    @Transient
+    private val client = HttpClient(CIO) {
+        install(Resources)
+        install(ContentNegotiation) {
+            json(apiJsonConfig)
+        }
+        defaultRequest {
+            host = address
+            port = port
+            url {
+                protocol = if (secure) URLProtocol.HTTPS else URLProtocol.HTTP
+            }
+        }
+    }
 
-@Serializable
-enum class GraphAgentServerAttributeType {
-    // possibly represented as a timezone
-    @SerialName("geographic_location")
-    GEOGRAPHIC_LOCATION,
 
-    // wallet ID?
-    @SerialName("attested_by")
-    ATTESTED_BY,
+    /**
+     * Gets the public wallet address for this server.
+     * @throws RouteException if the request fails.
+     */
+    suspend fun getWallet(): String {
+        val response = client.get(PublicWallet())
 
-    // todo: fill this out
-}
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            return body
+        }
+        else {
+            throw apiJsonConfig.decodeFromString<RouteException>(body)
+        }
+    }
 
-@Serializable
-@JsonClassDiscriminator("format")
-sealed class GraphAgentServerAttribute() {
-    abstract val type: GraphAgentServerAttributeType
+    /**
+     * Gets the export map for a specified agent in this server
+     * @throws RouteException if the request fails.
+     * @see Agents.ExportedAgent
+     */
+    suspend fun getAgentExportSettings(id: AgentRegistryIdentifier): AgentExportSettingsMap {
+        val response = client.get(Agents.ExportedAgent(
+            name = id.name,
+            version = id.version
+        )) {
+            contentType(ContentType.Application.Json)
+        }
 
-    @Serializable
-    @SerialName("string")
-    data class String(
-        override val type: GraphAgentServerAttributeType,
-        val value: kotlin.String
-    ) : GraphAgentServerAttribute()
+        val body = response.bodyAsText()
+        if (response.status == HttpStatusCode.OK) {
+            return apiJsonConfig.decodeFromString<AgentExportSettingsMap>(body)
+        }
+        else {
+            throw apiJsonConfig.decodeFromString<RouteException>(body)
+        }
+    }
 
-    @Serializable
-    @SerialName("number")
-    data class Number(
-        override val type: GraphAgentServerAttributeType,
-        val value: Double
-    ) : GraphAgentServerAttribute()
-
-    @Serializable
-    @SerialName("boolean")
-    data class Boolean(
-        override val type: GraphAgentServerAttributeType,
-        val value: kotlin.Boolean
-    ) : GraphAgentServerAttribute()
+    override fun toString(): String {
+        return "${if (secure) "https://" else "http://"}$address:$port"
+    }
 }

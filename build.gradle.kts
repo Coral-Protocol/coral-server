@@ -83,6 +83,7 @@ dependencies {
     implementation("io.ktor:ktor-client-websockets")
     implementation("io.ktor:ktor-serialization-kotlinx-json")
     implementation("io.ktor:ktor-client-plugins")
+    implementation("io.ktor:ktor-client-resources")
 
     implementation("net.pwall.json:json-kotlin-schema:0.56")
 
