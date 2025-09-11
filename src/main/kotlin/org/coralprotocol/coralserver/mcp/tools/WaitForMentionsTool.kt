@@ -9,9 +9,9 @@ import org.coralprotocol.coralserver.mcp.McpTool
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
 import org.coralprotocol.coralserver.mcp.tools.models.WaitForMentionsInput
-import org.coralprotocol.coralserver.session.models.SessionAgentState
 import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
+import org.coralprotocol.coralserver.session.models.SessionAgentState
 
 internal class WaitForMentionsTool: McpTool<WaitForMentionsInput>() {
     private val maxWaitForMentionsTimeoutMs = 1000 * 60 * 10

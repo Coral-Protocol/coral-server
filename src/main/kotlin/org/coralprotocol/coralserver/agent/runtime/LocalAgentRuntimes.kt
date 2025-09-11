@@ -6,7 +6,6 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import org.coralprotocol.coralserver.EventBus
 
 @Serializable
 enum class RuntimeId {

@@ -5,9 +5,6 @@ import io.ktor.http.*
 import io.ktor.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.coralprotocol.coralserver.agent.registry.AgentRegistry
-import org.coralprotocol.coralserver.config.PaymentConfig
-import org.coralprotocol.payment.blockchain.BlockchainService
 
 @Resource("/api/v1/wallet/public")
 class PublicWallet()

@@ -1,7 +1,7 @@
 package org.coralprotocol.coralserver.payment.config
 
-import org.coralprotocol.payment.blockchain.models.SignerConfig
 import com.sksamuel.hoplite.ConfigAlias
+import org.coralprotocol.payment.blockchain.models.SignerConfig
 
 data class PaymentServerConfig(
     val server: ServerConfig,

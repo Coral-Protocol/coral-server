@@ -1,10 +1,10 @@
 package org.coralprotocol.coralserver.payment.utils
 
-import org.coralprotocol.coralserver.payment.models.ErrorResponse
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
-import io.github.oshai.kotlinlogging.KotlinLogging
+import org.coralprotocol.coralserver.payment.models.ErrorResponse
 
 private val logger = KotlinLogging.logger {}
 

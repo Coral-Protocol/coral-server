@@ -9,7 +9,6 @@ import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.routes.api.v1.filterNotNullValues
 import java.nio.file.Path
 import java.util.*
-import kotlin.io.path.inputStream
 import kotlin.io.path.isDirectory
 
 private val logger = KotlinLogging.logger {}

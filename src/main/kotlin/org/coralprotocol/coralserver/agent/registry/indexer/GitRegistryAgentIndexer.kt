@@ -7,7 +7,6 @@ import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.config.Config
 import org.eclipse.jgit.api.ResetCommand
 import java.nio.file.Path
-import kotlin.io.path.inputStream
 import kotlin.io.path.isDirectory
 
 private val logger = KotlinLogging.logger {}

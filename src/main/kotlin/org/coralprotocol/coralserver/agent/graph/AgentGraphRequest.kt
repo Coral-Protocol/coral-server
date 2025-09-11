@@ -2,9 +2,9 @@ package org.coralprotocol.coralserver.agent.graph
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.session.CustomTool
-import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 
 @Serializable
 class AgentGraphRequest(

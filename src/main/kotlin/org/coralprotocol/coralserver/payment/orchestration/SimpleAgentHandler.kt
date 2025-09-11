@@ -1,11 +1,14 @@
 package org.coralprotocol.coralserver.payment.orchestration
 
-import org.coralprotocol.payment.blockchain.BlockchainService
-import org.coralprotocol.coralserver.payment.config.AgentConfig
-import org.coralprotocol.coralserver.payment.models.*
-import org.coralprotocol.coralserver.payment.utils.SimpleTransactionHelper
-import kotlinx.coroutines.*
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.coroutineScope
+import org.coralprotocol.coralserver.payment.config.AgentConfig
+import org.coralprotocol.coralserver.payment.models.AvailabilityCheckRequest
+import org.coralprotocol.coralserver.payment.models.AvailabilityResponse
+import org.coralprotocol.coralserver.payment.models.SessionFundedAck
+import org.coralprotocol.coralserver.payment.models.WorkCompleteResponse
+import org.coralprotocol.coralserver.payment.utils.SimpleTransactionHelper
+import org.coralprotocol.payment.blockchain.BlockchainService
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 

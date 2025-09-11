@@ -1,8 +1,8 @@
 package org.coralprotocol.coralserver.payment.models
 
-import kotlinx.serialization.Serializable
 import coral.escrow.v1.CoralEscrow
 import coral.escrow.v1.CoralEscrow.AgentConfig.newBuilder
+import kotlinx.serialization.Serializable
 
 // Request models
 @Serializable
