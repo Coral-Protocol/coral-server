@@ -5,7 +5,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.*
 import java.nio.file.Path
-import kotlin.io.path.inputStream
 
 private val logger = KotlinLogging.logger {}
 

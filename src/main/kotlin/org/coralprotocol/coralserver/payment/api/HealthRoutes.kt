@@ -3,7 +3,6 @@ package org.coralprotocol.coralserver.payment.api
 import io.github.smiley4.ktoropenapi.resources.get
 import io.ktor.http.*
 import io.ktor.resources.*
-import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.payment.models.BlockchainHealth

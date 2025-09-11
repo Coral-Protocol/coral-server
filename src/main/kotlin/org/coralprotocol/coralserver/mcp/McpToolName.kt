@@ -28,7 +28,10 @@ enum class McpToolName {
     SEND_MESSAGE,
 
     @SerialName("coral_wait_for_mentions")
-    WAIT_FOR_MENTIONS;
+    WAIT_FOR_MENTIONS,
+
+    @SerialName("coral_close_session")
+    CLOSE_SESSION;
 
     override fun toString(): String {
         return McpToolName.serializer().descriptor.getElementName(ordinal)

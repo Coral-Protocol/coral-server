@@ -2,7 +2,6 @@ package org.coralprotocol.coralserver.session.models
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.Serializable
-import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.AgentGraphRequest
 
 @Serializable

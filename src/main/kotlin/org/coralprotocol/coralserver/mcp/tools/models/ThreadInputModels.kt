@@ -63,3 +63,11 @@ data class WaitForMentionsInput(
 data class ListAgentsInput(
     val includeDetails: Boolean = true // Whether to include agent details in the response
 )
+
+/**
+ * Input for CloseSessionTool
+ */
+@Serializable
+data class CloseSessionToolInput(
+    val reason: String
+)

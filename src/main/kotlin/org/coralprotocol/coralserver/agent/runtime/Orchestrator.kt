@@ -3,14 +3,6 @@
 package org.coralprotocol.coralserver.agent.runtime
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
@@ -21,12 +13,8 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
 import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
-import org.coralprotocol.coralserver.agent.graph.PaidSessionId
-import org.coralprotocol.coralserver.agent.graph.server.GraphAgentServerSource
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.config.Config
-import org.coralprotocol.coralserver.payment.models.PaymentSession
-import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.remote.RemoteSession
 import org.coralprotocol.payment.blockchain.BlockchainService
@@ -146,7 +134,8 @@ class Orchestrator(
                         systemPrompt = graphAgent.systemPrompt,
                         blocking = graphAgent.blocking,
                         customToolAccess = graphAgent.customToolAccess,
-                        provider = GraphAgentProvider.Local(provider.runtime)
+                        plugins = graphAgent.plugins,
+                        provider = GraphAgentProvider.Local(provider.runtime),
                     ),
                     paidSessionId = session.paymentSession?.sessionId
                         ?: throw IllegalStateException("Session including paid agents does not include a payment session")

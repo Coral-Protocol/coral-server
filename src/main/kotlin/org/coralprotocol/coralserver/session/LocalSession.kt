@@ -5,7 +5,9 @@ import io.ktor.util.collections.*
 import kotlinx.coroutines.CompletableDeferred
 import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
-import org.coralprotocol.coralserver.models.*
+import org.coralprotocol.coralserver.models.Message
+import org.coralprotocol.coralserver.models.Thread
+import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.payment.models.PaymentSession
 import org.coralprotocol.coralserver.session.models.SessionAgent
 import org.coralprotocol.coralserver.session.models.SessionAgentState
@@ -116,6 +118,7 @@ class LocalSession(
             extraTools = agentGraph?.let {
                 it.agents[agentId]?.customToolAccess?.mapNotNull { tool -> it.customTools[tool] }?.toSet()
             } ?: setOf(),
+            coralPlugins = graphAgent?.plugins ?: setOf(),
             mcpUrl = agentUri
         )
         agents[sessionAgent.id] = sessionAgent
