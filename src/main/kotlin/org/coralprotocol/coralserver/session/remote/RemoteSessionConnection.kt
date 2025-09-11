@@ -26,7 +26,7 @@ suspend fun WebSocketServerSession.createRemoteSessionServer(remoteSessionManage
     val server = RemoteSessionConnectionServer(this, sseTransport)
     server.start()
 
-    remoteSession.destroy(SessionCloseMode.CLEAN)
+    remoteSession.destroy()
 }
 
 internal fun Frame.Text.toSessionFrame(): RemoteSessionFrame =

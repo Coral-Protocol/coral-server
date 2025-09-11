@@ -12,7 +12,6 @@ import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
 import org.coralprotocol.coralserver.agent.registry.*
-import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 import org.coralprotocol.payment.blockchain.BlockchainService
@@ -137,8 +136,9 @@ suspend fun checkPaymentAndCreateClaim(
     logger.info { "Creating claim for paid session ${request.paidSessionId} and agent ${request.graphAgentRequest.id}" }
 
     return remoteSessionManager.createClaimNoPaymentCheck(
-        request.toGraphAgent(registry, true),
-        paymentSessionId = paidSession.sessionId
+        agent = request.toGraphAgent(registry, true),
+        paymentSessionId = paidSession.sessionId,
+        maxCost = matchingPaidAgentSessionEntry.cap
     )
 }
 

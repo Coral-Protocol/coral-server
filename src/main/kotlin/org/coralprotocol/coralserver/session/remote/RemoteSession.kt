@@ -29,20 +29,24 @@ class RemoteSession(
     val agent: GraphAgent,
 
     /**
+     * The max cost for this session, as set by the requester of the session
+     */
+    val maxCost: Long,
+
+    /**
      * The transport between this server and the agent
      */
     val deferredMcpTransport: CompletableDeferred<SseServerTransport>
 ): Session() {
     private val lifecycle = CompletableDeferred<SessionCloseMode>()
 
-    val onCloseListeners = mutableListOf<CompletableDeferred<SessionCloseMode>>()
     suspend fun connectMcpTransport(transport: SseServerTransport): SessionCloseMode {
         deferredMcpTransport.complete(transport)
         return lifecycle.await()
     }
 
     override suspend fun destroy(sessionCloseMode: SessionCloseMode) {
+        super.destroy(sessionCloseMode)
         lifecycle.complete(sessionCloseMode)
-        onCloseListeners.forEach { it.complete(sessionCloseMode) }
     }
 }

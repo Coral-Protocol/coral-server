@@ -60,8 +60,8 @@ sealed class GraphAgentProvider {
         @Description("The wallet address of the server that is providing this remote agent")
         val wallet: String,
 
-        @Description("The max cost of this agent as reported by the chosen remote server.  This will not be higher than our requested max cost")
-        val actualMaxCost: Long,
+        @Description("The max cost of this agent")
+        val maxCost: Long,
 
         @Description("The payment session ID for this remote agent.  This will be shared with all other remote agents in the graph")
         val paymentSessionId: String,
@@ -87,8 +87,9 @@ suspend fun RemoteRequest.toRemote(agentId: AgentRegistryIdentifier, paymentSess
         try {
             exportSettings = server.getAgentExportSettings(agentId)[runtime]
 
-            // A server must provide the required runtime and it most not have a max cost higher than the requested max cost
-            if (exportSettings != null && exportSettings.pricing.maxPrice <= maxCost) {
+            // A server must provide the required runtime, and it most not have a max cost outside the exported agent's
+            // comfortable max cost range
+            if (exportSettings != null && maxCost in exportSettings.pricing.minPrice..exportSettings.pricing.maxPrice) {
                 selectedServer = server
                 break
             }
@@ -98,14 +99,14 @@ suspend fun RemoteRequest.toRemote(agentId: AgentRegistryIdentifier, paymentSess
         }
     }
 
-    if (selectedServer == null || exportSettings == null)
+    if (selectedServer == null)
         throw AgentRequestException.NoServer("No servers available for this remote agent")
 
     return GraphAgentProvider.Remote(
         server = selectedServer,
         runtime = runtime,
         wallet = selectedServer.getWallet(),
-        actualMaxCost = exportSettings.pricing.maxPrice,
+        maxCost = maxCost,
         paymentSessionId = paymentSessionId,
     )
 }

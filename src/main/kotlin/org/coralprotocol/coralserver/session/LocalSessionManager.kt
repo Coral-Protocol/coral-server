@@ -1,6 +1,9 @@
 package org.coralprotocol.coralserver.session
 
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withTimeoutOrNull
@@ -168,12 +171,16 @@ class LocalSessionManager(
 
         val session = LocalSession(
             id = sessionId,
+            paymentSessionId = sessionInfo?.sessionId,
             applicationId = applicationId,
             privacyKey = privacyKey,
             agentGraph = agentGraph,
             groups = subgraphs?.toList() ?: emptyList(),
-            paymentSessionId = sessionInfo?.sessionId
         )
+
+        session.sessionClosedFlow.onEach {
+            cleanupSession(session, it)
+        }.launchIn(session.coroutineScope)
 
         sessions[sessionId] = session
 
@@ -228,12 +235,9 @@ class LocalSessionManager(
     }
 
     /**
-     * Closes a session by ID
+     * Cleans up all data related to a session
      */
-    suspend fun closeSession(sessionId: String) {
-        val session = sessions[sessionId]
-            ?: throw IllegalArgumentException("invalid session id: $sessionId")
-
-        session.destroy()
+    private suspend fun cleanupSession(session: LocalSession, sessionCloseMode: SessionCloseMode) {
+        orchestrator.killForSession(session.id, sessionCloseMode)
     }
 }

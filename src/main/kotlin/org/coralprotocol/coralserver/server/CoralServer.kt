@@ -46,6 +46,7 @@ import org.coralprotocol.coralserver.mcp.McpResources
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
 import org.coralprotocol.coralserver.models.SocketEvent
+import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
 import org.coralprotocol.coralserver.routes.api.v1.*
 import org.coralprotocol.coralserver.routes.sse.v1.connectionSseRoutes
 import org.coralprotocol.coralserver.routes.sse.v1.exportedAgentSseRoutes
@@ -79,7 +80,8 @@ class CoralServer(
     orchestrator: Orchestrator
 ) {
     val localSessionManager = LocalSessionManager(config, orchestrator, blockchainService)
-    val remoteSessionManager = RemoteSessionManager(orchestrator)
+    val aggregatedPaymentClaimManager = AggregatedPaymentClaimManager(blockchainService)
+    val remoteSessionManager = RemoteSessionManager(orchestrator, aggregatedPaymentClaimManager)
 
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
@@ -185,8 +187,9 @@ class CoralServer(
                 telemetryApiRoutes(localSessionManager)
                 documentationApiRoutes()
                 agentApiRoutes(registry, blockchainService, remoteSessionManager)
-                claimRoutes(blockchainService, config.paymentConfig)
+                claimRoutes(config.paymentConfig, remoteSessionManager, aggregatedPaymentClaimManager)
                 publicWalletApiRoutes(config.paymentConfig.publicWalletAddress)
+
 
                 // sse
                 connectionSseRoutes(mcpServersByTransportId, localSessionManager)
