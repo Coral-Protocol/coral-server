@@ -25,6 +25,6 @@ fun Routing.publicWalletApiRoutes(
             }
         }
     }) {
-        call.respond(HttpStatusCode.OK)
+        call.respond(HttpStatusCode.OK, publicWalletAddress)
     }
 }
