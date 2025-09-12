@@ -12,6 +12,9 @@ import org.coralprotocol.coralserver.util.isWindows
 import java.io.File
 import java.nio.file.Path
 
+const val CORAL_MAINNET_MINT =  "CoRAitPvr9seu5F9Hk39vbjqA1o1XuoryHjSk1Z1q2mo"
+const val CORAL_DEV_NET_MINT = "FBrR4v7NSoEdEE9sdRN1aE5yDeop2cseaBbfPVbJmPhf"
+
 private fun defaultDockerSocket(): String {
     val specifiedSocket = System.getProperty("CORAL_DOCKER_SOCKET")?.takeIf { it.isNotBlank() }
         ?: System.getProperty("docker.host")?.takeIf { it.isNotBlank() }
@@ -59,14 +62,14 @@ fun defaultDockerAddress(): String {
 @Serializable
 data class PaymentConfig(
     /**
-     * The public wallet address this server will provide to other servers looking to import an agent that we export
+     * The type of key described in the payment config
      */
-    val publicWalletAddress: String = "", // todo @caelum default needs to be generated? this is required for the server to run
+    val walletKeyType: WalletKeyType = WalletKeyType.CROSSMINT,
 
     /**
-     * Authentication for blockchain. Crossmint or direct.
+     * Wallet keypair path
      */
-    val keypairPath: String = System.getProperty("user.home") + "/.coral/keypair.json",
+    val walletKeypairPath: String = System.getProperty("user.home") + "/.coral/keypair.json",
 
     /**
      *
@@ -269,4 +272,10 @@ enum class AddressConsumer {
      * A process running on the same machine as the server
      */
     LOCAL
+}
+
+@Serializable
+enum class WalletKeyType {
+    @SerialName("crossmint")
+    CROSSMINT
 }
