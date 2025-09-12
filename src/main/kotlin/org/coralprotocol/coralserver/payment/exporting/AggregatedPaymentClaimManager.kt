@@ -1,8 +1,10 @@
 package org.coralprotocol.coralserver.payment.exporting
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.coralprotocol.coralserver.agent.payment.AgentPaymentClaimRequest
+import org.coralprotocol.coralserver.agent.payment.toCoral
+import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
 import org.coralprotocol.coralserver.payment.PaymentSessionId
-import org.coralprotocol.coralserver.routes.api.v1.PaymentClaimRequest
 import org.coralprotocol.coralserver.session.remote.RemoteSession
 import org.coralprotocol.payment.blockchain.BlockchainService
 
@@ -11,16 +13,16 @@ private val logger = KotlinLogging.logger { }
 
 private class PaymentClaimAggregation(val maxCost: Long) {
     val involvedAgents: MutableSet<String> = mutableSetOf()
-    private val claimList: MutableList<PaymentClaimRequest> = mutableListOf()
+    private val claimList: MutableList<AgentPaymentClaimRequest> = mutableListOf()
     var totalClaimed: Long = 0L
         private set
 
     fun getRemainingBudget(): Long = maxCost - totalClaimed
 
-    fun addClaim(claim: PaymentClaimRequest): Long {
+    fun addClaim(claim: AgentPaymentClaimRequest, agentId: AgentRegistryIdentifier): Long {
         claimList.add(claim)
-        involvedAgents.add(claim.agentId)
-        val newTotal = claimList.sumOf { it.amount }
+        involvedAgents.add(agentId.toString())
+        val newTotal = claimList.sumOf { it.amount.toCoral() }
         totalClaimed = newTotal
         return newTotal
     }
@@ -34,7 +36,7 @@ class AggregatedPaymentClaimManager(val blockchainService: BlockchainService) {
      * Called multiple times from one agent, probably called per "work" item
      * @return [Long] Remaining budget for this session
      */
-    fun addClaim(claim: PaymentClaimRequest, session: RemoteSession): Long {
+    fun addClaim(claim: AgentPaymentClaimRequest, session: RemoteSession): Long {
         val paymentSessionId =
             session.paymentSessionId ?: throw IllegalArgumentException("Payment session does not contain paid agents")
 
@@ -43,27 +45,30 @@ class AggregatedPaymentClaimManager(val blockchainService: BlockchainService) {
         val aggregation = claimMap.getOrPut(paymentSessionId) {
             PaymentClaimAggregation(maxCost)
         }
-        aggregation.addClaim(claim)
+        aggregation.addClaim(claim, session.agent.registryAgent.info.identifier)
+
+        logger.info { "${session.agent.name} claimed ${claim.amount} for session $paymentSessionId, amount remaining: ${aggregation.getRemainingBudget()}" }
+
         return aggregation.getRemainingBudget()
     }
 
     suspend fun notifyPaymentSessionCosed(paymentSessionId: PaymentSessionId) {
-        val amountToClaim = claimMap[paymentSessionId]
-        if (amountToClaim == null) {
+        val claimAggregation = claimMap[paymentSessionId]
+        if (claimAggregation == null) {
             logger.warn { "Remote session $paymentSessionId ended with no claims" }
             return
         }
 
         blockchainService.submitEscrowClaim(
             sessionId = paymentSessionId,
-            agentId = amountToClaim.involvedAgents.joinToString(", "),
-            amount = amountToClaim.totalClaimed
+            agentId = claimAggregation.involvedAgents.joinToString(", "),
+            amount = claimAggregation.totalClaimed
         ).fold(
             onSuccess = {
-                logger.info { "Claim submitted for session $paymentSessionId, amount claimed: ${it.amountClaimed}, amount remaining: ${it.remainingInSession}" }
+                logger   .info { "Claim submitted for session $paymentSessionId, amount claimed: ${it.amountClaimed}, amount remaining: ${it.remainingInSession}" }
             },
             onFailure = {
-                logger.error(it) { "Escrow claim failed for $paymentSessionId, amount: ${amountToClaim.totalClaimed}" }
+                logger.error(it) { "Escrow claim failed for $paymentSessionId, amount: ${claimAggregation.totalClaimed}" }
             }
         )
     }

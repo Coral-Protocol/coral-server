@@ -88,6 +88,14 @@ fun Routing.agentApiRoutes(
         summary = "Get exported agent info"
         description = "Returns export information for a specific agent"
         operationId = "getExportedAgent"
+        request {
+            pathParameter<String>("name") {
+                description = "The name of the exported agent"
+            }
+            pathParameter<String>("version") {
+                description = "The version of the exported agent"
+            }
+        }
         response {
             HttpStatusCode.OK to {
                 description = "Success"
