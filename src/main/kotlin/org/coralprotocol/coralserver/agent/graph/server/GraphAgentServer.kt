@@ -2,14 +2,18 @@
 
 package org.coralprotocol.coralserver.agent.graph.server
 
-import io.ktor.client.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.plugins.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.plugins.resources.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.resources.Resources
+import io.ktor.client.plugins.resources.get
+import io.ktor.client.plugins.resources.post
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.URLProtocol
+import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
@@ -27,12 +31,12 @@ import org.coralprotocol.coralserver.server.apiJsonConfig
  * now only another Coral server.
  */
 @Serializable
-class GraphAgentServer(
+class GraphAgentServer (
     val address: String,
     val port: UShort,
     val secure: Boolean, // true = https, false = http
     val attributes: List<GraphAgentServerAttribute>
-) {
+)  {
     @Transient
     private val client = HttpClient(CIO) {
         install(Resources)
@@ -40,21 +44,22 @@ class GraphAgentServer(
             json(apiJsonConfig)
         }
         defaultRequest {
-            host = address
-            port = port
+            contentType(ContentType.Application.Json)
+            host = this@GraphAgentServer.address
+            port = this@GraphAgentServer.port.toInt()
             url {
                 protocol = if (secure) URLProtocol.HTTPS else URLProtocol.HTTP
             }
         }
     }
 
-
     /**
      * Gets the public wallet address for this server.
      * @throws RouteException if the request fails.
      */
     suspend fun getWallet(): String {
-        val response = client.get(PublicWallet())
+        val resource = PublicWallet()
+        val response = client.get(resource)
 
         val body = response.bodyAsText()
         if (response.status == HttpStatusCode.OK) {
@@ -71,12 +76,12 @@ class GraphAgentServer(
      * @see Agents.ExportedAgent
      */
     suspend fun getAgentExportSettings(id: AgentRegistryIdentifier): PublicAgentExportSettingsMap {
-        val response = client.get(Agents.ExportedAgent(
+        val resource = Agents.ExportedAgent(
             name = id.name,
             version = id.version
-        )) {
-            contentType(ContentType.Application.Json)
-        }
+        )
+        val response = client.get(resource)
+        println("Getting export settings from $this for agent $id")
 
         val body = response.bodyAsText()
         if (response.status == HttpStatusCode.OK) {
@@ -97,10 +102,7 @@ class GraphAgentServer(
      * @see Agents.ExportedAgent
      */
     suspend fun createClaim(paidGraphAgentRequest: PaidGraphAgentRequest): String {
-        val response = client.post(Agents.Claim) {
-            contentType(ContentType.Application.Json)
-            setBody(paidGraphAgentRequest)
-        }
+        val response = client.post(Agents.Claim)
 
         val body = response.bodyAsText()
         if (response.status == HttpStatusCode.OK) {

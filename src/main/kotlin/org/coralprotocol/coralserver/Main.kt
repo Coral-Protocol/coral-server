@@ -9,6 +9,7 @@ import org.coralprotocol.coralserver.config.loadFromFile
 import org.coralprotocol.coralserver.server.CoralServer
 import org.coralprotocol.payment.blockchain.BlockchainServiceImpl
 import org.coralprotocol.payment.blockchain.models.SignerConfig
+import org.jetbrains.annotations.VisibleForTesting
 
 private val logger = KotlinLogging.logger {}
 
@@ -63,7 +64,8 @@ fun main(args: Array<String>) {
     }
 }
 
-private fun createBlockchainService(config: Config): BlockchainServiceImpl {
+@VisibleForTesting
+fun createBlockchainService(config: Config): BlockchainServiceImpl {
     val keypairPath = config.paymentConfig.keypairPath
     val rpcUrl = config.paymentConfig.rpcUrl
     val signerConfig = SignerConfig.File(keypairPath)
