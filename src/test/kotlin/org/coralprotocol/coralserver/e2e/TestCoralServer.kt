@@ -1,22 +1,19 @@
 package org.coralprotocol.coralserver.e2e
 
-import io.ktor.events.EventDefinition
-import io.ktor.server.application.ApplicationStarted
 import io.ktor.server.application.ServerReady
 import io.mockk.spyk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.newFixedThreadPoolContext
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.config.NetworkConfig
+import org.coralprotocol.coralserver.config.PaymentConfig
 import org.coralprotocol.coralserver.createBlockchainService
 import org.coralprotocol.coralserver.server.CoralServer
-import org.coralprotocol.payment.blockchain.BlockchainService
 
 class TestCoralServer(
     val host: String = "127.0.0.1",
@@ -33,7 +30,8 @@ class TestCoralServer(
     suspend fun setup() {
         server?.stop()
         val config = Config(
-            networkConfig = NetworkConfig(bindAddress = host, bindPort = port)
+            networkConfig = NetworkConfig(bindAddress = host, bindPort = port),
+            paymentConfig = PaymentConfig(walletPublicAddress = )
         )
         val blockchainService = createBlockchainService(config)
         val registry = AgentRegistry(agents = mutableListOf())

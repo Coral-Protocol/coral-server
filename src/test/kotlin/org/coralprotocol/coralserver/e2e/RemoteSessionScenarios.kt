@@ -170,7 +170,6 @@ class RemoteSessionScenarios {
                     getServerConnectionDetails(importingServer, importServerAgentName),
                     renderServerUrl = { renderWithSessionDetails(importingServerSession) })
 
-//            launch(Dispatchers.IO) {
             importingServer.server!!.localSessionManager.orchestrator.spawnAnonymousAgent(
                 importingServerSession,
                 importingSideExportedGraphAgent.copy(provider = (importingSideExportedGraphAgent.provider as GraphAgentProvider.RemoteRequest).toRemote(
@@ -181,8 +180,6 @@ class RemoteSessionScenarios {
                 importingServerSession.applicationId,
                 importingServerSession.privacyKey
             )
-//            }
-
 
 //            delay(10000)
             println("$importingServer")
