@@ -75,7 +75,8 @@ class LocalSessionManager(
     /**
      * Create a new session with a random ID.
      */
-    suspend fun createSession(applicationId: String, privacyKey: String, agentGraph: AgentGraph? = null): LocalSession =
+    suspend fun createSession(applicationId: String, privacyKey: String, agentGraph: AgentGraph? = null,
+                              incomingSessionInfo: SessionInfo? = null): LocalSession =
         createSessionWithId(UUID.randomUUID().toString(), applicationId, privacyKey, agentGraph)
 
     /**
@@ -128,7 +129,6 @@ class LocalSessionManager(
         ).getOrThrow()
     }
 
-
     /**
      * Create a new session with a specific ID.
      */
@@ -136,10 +136,10 @@ class LocalSessionManager(
         sessionId: String,
         applicationId: String,
         privacyKey: String,
-        agentGraph: AgentGraph? = null // Nullable for devmode
+        agentGraph: AgentGraph? = null, // Nullable for devmode
+        incomingSessionInfo: SessionInfo? = null // Can pass in for tests :3
     ): LocalSession {
-        val sessionInfo = agentGraph?.let { createPaymentSession(it) }
-
+        val sessionInfo = incomingSessionInfo ?: agentGraph?.let { createPaymentSession(it) }
         val subgraphs = agentGraph?.let { agentGraph ->
             val adj = agentGraph.adjacencyMap()
             val visited = mutableSetOf<String>()
@@ -213,10 +213,11 @@ class LocalSessionManager(
         sessionId: String,
         applicationId: String,
         privacyKey: String,
-        agentGraph: AgentGraph? = null
+        agentGraph: AgentGraph? = null,
+        incomingSessionInfo: SessionInfo? = null
     ): LocalSession {
         sessionSemaphore.withPermit {
-            return sessions[sessionId] ?: createSessionWithId(sessionId, applicationId, privacyKey, agentGraph)
+            return sessions[sessionId] ?: createSessionWithId(sessionId, applicationId, privacyKey, agentGraph, incomingSessionInfo)
         }
     }
 

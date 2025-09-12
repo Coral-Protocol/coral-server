@@ -5,10 +5,12 @@ import io.mockk.mockkConstructor
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.server.GraphAgentServer
 import org.coralprotocol.coralserver.agent.graph.server.GraphAgentServerSource
+import org.coralprotocol.coralserver.agent.graph.toRemote
 import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
 import org.coralprotocol.coralserver.agent.registry.RegistryAgent
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentExportPricing
@@ -53,13 +55,15 @@ class RemoteSessionScenarios {
         applicationId: String,
         privacyKey: String
     ) {
-        (registry.agents as MutableList).add(RegistryAgent(
-            info = graphAgent.registryAgent.info,
-            runtimes = LocalAgentRuntimes(functionRuntime = FunctionRuntime {}),
-            options = mapOf(),
-            unresolvedExportSettings = mapOf()
-        ))
-        
+        (registry.agents as MutableList).add(
+            RegistryAgent(
+                info = graphAgent.registryAgent.info,
+                runtimes = LocalAgentRuntimes(functionRuntime = FunctionRuntime {}),
+                options = mapOf(),
+                unresolvedExportSettings = mapOf()
+            )
+        )
+
         spawn(
             session,
             graphAgent,
@@ -72,15 +76,20 @@ class RemoteSessionScenarios {
     fun Orchestrator.exportAnonymousAgent(
         graphAgent: GraphAgent,
     ) {
-        (registry.agents as MutableList).add(RegistryAgent(
-            info = graphAgent.registryAgent.info,
-            runtimes = LocalAgentRuntimes(functionRuntime = FunctionRuntime {}),
-            options = mapOf(),
-            unresolvedExportSettings = mapOf(RuntimeId.FUNCTION to UnresolvedAgentExportSettings(
-                quantity = 1u,
-                pricing = RegistryAgentExportPricing(0, 0L)
-            ))
-        ))
+        (registry.agents as MutableList).add(
+            graphAgent.registryAgent
+//            RegistryAgent(
+//                info = graphAgent.registryAgent.info,
+//                runtimes = LocalAgentRuntimes(functionRuntime = FunctionRuntime {}),
+//                options = mapOf(),
+//                unresolvedExportSettings = mapOf(
+//                    RuntimeId.FUNCTION to UnresolvedAgentExportSettings(
+//                        quantity = 1u,
+//                        pricing = RegistryAgentExportPricing(0, 0L)
+//                    )
+//                )
+//            )
+        )
     }
 
     @OptIn(ExperimentalUuidApi::class)
@@ -91,24 +100,21 @@ class RemoteSessionScenarios {
             mockkConstructor(Orchestrator::class)
             val exportingServer = TestCoralServer(port = 4001u, devmode = true).apply { setup() }
             val importingServer = TestCoralServer(port = 4002u, devmode = true).apply { setup() }
-
-            val importingServerSession =
-                importingServer.getSessionManager().getOrCreateSession("test", "aaa", "aaa", null)
-            launch { importingServerSession.waitForAgentCount(2, 2000) }
-            // TODO: Create DSL for building groups and waiting for them properly
-            val importServerAgentName = "importingServerAgent"
-            val importingServerAgent =
-                createConnectedKoogAgent(
-                    getServerConnectionDetails(importingServer, importServerAgentName),
-                    renderServerUrl = { renderWithSessionDetails(importingServerSession) })
-
             val exportedServerAgentId = "exportingServerAgent"
-            val graphAgent = GraphAgent(
+            val importServerAgentName = "importingServerAgent"
+
+            val agentRegistryIdentifier = AgentRegistryIdentifier("test", "1.0.0")
+            val exportingSideExportedGraphAgent = GraphAgent(
                 registryAgent = RegistryAgent(
-                    info = AgentRegistryIdentifier("test", "1.0.0").toInfo(),
+                    info = agentRegistryIdentifier.toInfo(),
                     runtimes = LocalAgentRuntimes(functionRuntime = FunctionRuntime {}),
                     options = mapOf(),
-                    unresolvedExportSettings = mapOf()
+                    unresolvedExportSettings = mapOf(
+                        RuntimeId.FUNCTION to UnresolvedAgentExportSettings(
+                            quantity = 1u,
+                            pricing = RegistryAgentExportPricing(0L, 1000000)
+                        )
+                    )
                 ),
                 description = "",
                 name = exportedServerAgentId,
@@ -116,6 +122,19 @@ class RemoteSessionScenarios {
                 systemPrompt = "",
                 customToolAccess = emptySet(),
                 blocking = false,
+                plugins = emptySet(),
+                provider = GraphAgentProvider.Local(
+                    runtime = RuntimeId.FUNCTION,
+                )
+            )
+
+            // SHOULD HAVE STARTED THE AGENT
+            exportingServer.server!!.localSessionManager.orchestrator.exportAnonymousAgent(
+                exportingSideExportedGraphAgent
+            )
+            delay(4000)
+
+            val importingSideExportedGraphAgent = exportingSideExportedGraphAgent.copy(
                 provider = GraphAgentProvider.RemoteRequest(
                     runtime = RuntimeId.FUNCTION,
                     serverSource = GraphAgentServerSource.Servers(
@@ -123,29 +142,49 @@ class RemoteSessionScenarios {
                             GraphAgentServer(
                                 exportingServer.host,
                                 exportingServer.port,
+                                secure = false,
                                 emptyList()
                             )
                         )
                     ),
                     serverScoring = null,
+                    maxCost = 1000L
                 )
             )
 
 
-            // SHOULD HAVE STARTED THE AGENT
-            exportingServer.server!!.localSessionManager.orchestrator.exportAnonymousAgent(
-                graphAgent
+            val ps = importingServer.server!!.localSessionManager.createPaymentSession(
+                agentGraph = AgentGraph(
+                    agents = mapOf(exportedServerAgentId to importingSideExportedGraphAgent),
+                    emptyMap(),
+                    setOf(setOf(exportedServerAgentId, importServerAgentName))
+                )
             )
+
+            val importingServerSession =
+                importingServer.getSessionManager().getOrCreateSession("test", "aaa", "aaa", null, incomingSessionInfo = ps!!)
+            launch { importingServerSession.waitForAgentCount(2, 2000) }
+            // TODO: Create DSL for building groups and waiting for them properly
+            val importingServerAgent =
+                createConnectedKoogAgent(
+                    getServerConnectionDetails(importingServer, importServerAgentName),
+                    renderServerUrl = { renderWithSessionDetails(importingServerSession) })
+
+//            launch(Dispatchers.IO) {
             importingServer.server!!.localSessionManager.orchestrator.spawnAnonymousAgent(
                 importingServerSession,
-                graphAgent,
+                importingSideExportedGraphAgent.copy(provider = (importingSideExportedGraphAgent.provider as GraphAgentProvider.RemoteRequest).toRemote(
+                    agentId = importingSideExportedGraphAgent.registryAgent.info.identifier,
+                    paymentSessionId = "nothing"
+                )),
                 importServerAgentName,
                 importingServerSession.applicationId,
                 importingServerSession.privacyKey
             )
+//            }
 
 
-            delay(1000)
+//            delay(10000)
             println("$importingServer")
             val claimId = exportingServer.server!!.remoteSessionManager.claims.keys.first()
 

@@ -15,7 +15,7 @@ enum class RuntimeId {
     @SerialName("docker")
     DOCKER,
 
-    @Transient
+    @SerialName("function")
     FUNCTION
 }
 
@@ -28,7 +28,7 @@ class LocalAgentRuntimes(
     @SerialName("docker")
     val dockerRuntime: DockerRuntime? = null,
 
-    @Transient
+    @SerialName("function")
     val functionRuntime: FunctionRuntime? = null
 ) {
     fun getById(runtimeId: RuntimeId): Orchestrate? = when (runtimeId) {
