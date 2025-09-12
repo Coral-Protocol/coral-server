@@ -8,10 +8,12 @@ import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
 import org.coralprotocol.coralserver.session.SessionCloseMode
+import org.jetbrains.annotations.VisibleForTesting
 import java.util.*
 import kotlin.collections.set
 
-private data class Claim(
+@VisibleForTesting
+data class Claim(
     val id: String = UUID.randomUUID().toString(),
     val agent: GraphAgent,
     val maxCost: Long,
@@ -22,7 +24,8 @@ class RemoteSessionManager(
     val orchestrator: Orchestrator,
     private val aggregatedPaymentClaimManager: AggregatedPaymentClaimManager
 ){
-    private val claims = mutableMapOf<String, Claim>()
+    @VisibleForTesting
+    val claims = mutableMapOf<String, Claim>()
     private val sessions = mutableMapOf<String, RemoteSession>()
 
     /**

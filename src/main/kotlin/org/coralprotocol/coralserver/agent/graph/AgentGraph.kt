@@ -25,7 +25,7 @@ data class AgentGraph(
     fun toPayment(): AgentGraphPayment {
         return AgentGraphPayment(
             paidAgents = agents.values.filter {
-                it.provider == GraphAgentProvider.RemoteRequest
+                it.provider is GraphAgentProvider.RemoteRequest
             }.toList()
         )
     }
