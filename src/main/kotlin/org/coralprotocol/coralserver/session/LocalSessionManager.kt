@@ -12,6 +12,8 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.toRemote
 import org.coralprotocol.coralserver.agent.payment.PaidAgent
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
+import org.coralprotocol.coralserver.config.CORAL_DEV_NET_MINT
+import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
 import org.coralprotocol.payment.blockchain.BlockchainService
@@ -124,7 +126,7 @@ class LocalSessionManager(
         // todo: add fundAmount when thing
         return blockchainService.createEscrowSession(
             agents = agents.map { it.toBlockchainModel() },
-            mintPubkey = config.paymentConfig.publicWalletAddress,
+            mintPubkey = CORAL_MAINNET_MINT,
             sessionId = SessionIdUtils.uuidToSessionId(SessionIdUtils.generateSessionUuid())
         ).getOrThrow()
     }

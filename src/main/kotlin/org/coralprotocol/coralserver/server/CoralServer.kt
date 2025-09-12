@@ -187,9 +187,8 @@ class CoralServer(
                 telemetryApiRoutes(localSessionManager)
                 documentationApiRoutes()
                 agentApiRoutes(registry, blockchainService, remoteSessionManager)
-                claimRoutes(config.paymentConfig, remoteSessionManager, aggregatedPaymentClaimManager)
-                publicWalletApiRoutes(config.paymentConfig.publicWalletAddress)
-
+                internalRoutes(config.paymentConfig, remoteSessionManager, aggregatedPaymentClaimManager)
+                publicWalletApiRoutes(config.paymentConfig.walletPublicAddress)
 
                 // sse
                 connectionSseRoutes(mcpServersByTransportId, localSessionManager)
