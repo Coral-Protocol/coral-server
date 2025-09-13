@@ -31,7 +31,7 @@ class TestCoralServer(
         server?.stop()
         val config = Config(
             networkConfig = NetworkConfig(bindAddress = host, bindPort = port),
-            paymentConfig = PaymentConfig(walletPublicAddress = )
+            paymentConfig = PaymentConfig()
         )
         val blockchainService = createBlockchainService(config)
         val registry = AgentRegistry(agents = mutableListOf())
