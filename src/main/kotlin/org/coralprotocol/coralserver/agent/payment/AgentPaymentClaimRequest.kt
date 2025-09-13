@@ -5,9 +5,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class AgentPaymentClaimRequest(
-    @Description("The payment session ID")
-    val paymentSessionId: Long,
-
     @Description("The amount to claim.  This will be converted to Coral when received")
     val amount: AgentClaimAmount
 )

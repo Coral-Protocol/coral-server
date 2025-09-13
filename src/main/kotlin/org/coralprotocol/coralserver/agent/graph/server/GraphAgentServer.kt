@@ -9,6 +9,7 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.resources.Resources
 import io.ktor.client.plugins.resources.get
 import io.ktor.client.plugins.resources.post
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
@@ -102,7 +103,10 @@ class GraphAgentServer (
      * @see Agents.ExportedAgent
      */
     suspend fun createClaim(paidGraphAgentRequest: PaidGraphAgentRequest): String {
-        val response = client.post(Agents.Claim)
+        val response = client.post(Agents.Claim()) {
+            contentType(ContentType.Application.Json)
+            setBody(paidGraphAgentRequest)
+        }
 
         val body = response.bodyAsText()
         if (response.status == HttpStatusCode.OK) {

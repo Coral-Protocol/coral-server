@@ -1,9 +1,13 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package org.coralprotocol.coralserver.config
 
 import io.ktor.http.*
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.agent.registry.RegistryException
 import org.coralprotocol.coralserver.agent.registry.indexer.GitRegistryAgentIndexer
 import org.coralprotocol.coralserver.agent.registry.indexer.NamedRegistryAgentIndexer
@@ -64,18 +68,25 @@ data class PaymentConfig(
     /**
      * The type of key described in the payment config
      */
-    val walletKeyType: WalletKeyType = WalletKeyType.CROSSMINT,
-
-    /**
-     * Wallet keypair path
-     */
-    val walletKeypairPath: String = System.getProperty("user.home") + "/.coral/keypair.json",
+    val wallet: Wallet = Wallet.Crossmint(),
 
     /**
      *
      */
     val rpcUrl: String = "https://api.devnet.solana.com",
-)
+) {
+    /**
+     * The address this server will receive payments to when exporting agents.  This comes from a file on disk,
+     * depending on the configured wallet.  If the file does not exist, this server will not be able to receive payments.
+     */
+    @Transient
+    val walletAddress = when (wallet) {
+        is Wallet.Crossmint -> with(File(wallet.walletAddressPath)) {
+            if (exists()) readText()
+            else null
+        }
+    }
+}
 
 @Serializable
 data class NetworkConfig(
@@ -278,4 +289,20 @@ enum class AddressConsumer {
 enum class WalletKeyType {
     @SerialName("crossmint")
     CROSSMINT
+}
+
+@Serializable
+@JsonClassDiscriminator("type")
+sealed interface Wallet {
+    val keypairPath: String
+    val apiKeyPath: String
+    val walletAddressPath: String
+
+    @Serializable
+    @SerialName("crossmint")
+    data class Crossmint(
+        override val apiKeyPath: String = System.getProperty("user.home") + "/.coral/crossmint.key",
+        override val keypairPath: String = System.getProperty("user.home") + "/.coral/crossmint-keypair.json",
+        override val walletAddressPath: String = System.getProperty("user.home") + "/.coral/wallet-address.key",
+    ) : Wallet
 }
