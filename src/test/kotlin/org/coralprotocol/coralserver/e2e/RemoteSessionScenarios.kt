@@ -172,16 +172,13 @@ class RemoteSessionScenarios {
 
             importingServer.server!!.localSessionManager.orchestrator.spawnAnonymousAgent(
                 importingServerSession,
-                importingSideExportedGraphAgent.copy(provider = (importingSideExportedGraphAgent.provider as GraphAgentProvider.RemoteRequest).toRemote(
-                    agentId = importingSideExportedGraphAgent.registryAgent.info.identifier,
-                    paymentSessionId = "nothing"
-                )),
+                importingSideExportedGraphAgent.copy(provider = (importingSideExportedGraphAgent.provider as GraphAgentProvider.Remote)),
                 importServerAgentName,
                 importingServerSession.applicationId,
                 importingServerSession.privacyKey
             )
 
-//            delay(10000)
+            delay(2000)
             println("$importingServer")
             val claimId = exportingServer.server!!.remoteSessionManager.claims.keys.first()
 
