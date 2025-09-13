@@ -5,11 +5,18 @@ import kotlinx.coroutines.runBlocking
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.config.PaymentConfig
+import org.coralprotocol.coralserver.config.Wallet
+import org.coralprotocol.coralserver.config.WalletKeyType
 import org.coralprotocol.coralserver.config.loadFromFile
 import org.coralprotocol.coralserver.server.CoralServer
+import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.BlockchainServiceImpl
 import org.coralprotocol.payment.blockchain.models.SignerConfig
 import org.jetbrains.annotations.VisibleForTesting
+import java.io.File
+import java.nio.file.Path
+import java.util.Base64
 
 private val logger = KotlinLogging.logger {}
 
@@ -36,7 +43,7 @@ fun main(args: Array<String>) {
         "--sse-server" -> {
             val config = Config.loadFromFile()
             val registry = AgentRegistry.loadFromFile(config)
-            val blockchainService by lazy { createBlockchainService(config) }
+            val blockchainService = runBlocking { createBlockchainService(config) }
 
             val orchestrator = Orchestrator(config, registry, blockchainService)
             val server = CoralServer(
@@ -65,10 +72,30 @@ fun main(args: Array<String>) {
 }
 
 @VisibleForTesting
-fun createBlockchainService(config: Config): BlockchainServiceImpl {
-    val keypairPath = config.paymentConfig.keypairPath
-    val rpcUrl = config.paymentConfig.rpcUrl
-    val signerConfig = SignerConfig.File(keypairPath)
-    val blockchainService = BlockchainServiceImpl(rpcUrl, "confirmed", signerConfig)
-    return blockchainService
+suspend fun createBlockchainService(config: Config): BlockchainServiceImpl {
+    return when (val wallet = config.paymentConfig.wallet) {
+        is Wallet.Crossmint -> {
+            val rpcUrl = config.paymentConfig.rpcUrl
+            val apiKey = File(wallet.apiKeyPath).readText()
+
+            // dummy config
+            val signerConfig = SignerConfig.Crossmint(
+                apiKey = apiKey,
+                walletLocator = "",
+                walletAddress = "",
+                adminSignerLocator = "dummy",
+                useStaging = true,
+                deviceKeypairPath = wallet.keypairPath
+            )
+
+            val blockchainService = BlockchainServiceImpl(rpcUrl, "confirmed", signerConfig)
+            val info = blockchainService.getCrossmintDelegatedKeypair(wallet.keypairPath, false).getOrThrow()
+
+            if (info.createdNew) {
+                println("go sign this key: " + info.publicKey) // todo: url
+            }
+
+            blockchainService
+        }
+    }
 }
