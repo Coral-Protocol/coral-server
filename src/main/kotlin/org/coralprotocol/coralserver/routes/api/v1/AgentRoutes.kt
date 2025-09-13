@@ -121,11 +121,12 @@ suspend fun checkPaymentAndCreateClaim(
     blockchainService: BlockchainService,
     remoteSessionManager: RemoteSessionManager,
 ): String {
-    //TODO: Ensure that the session funder is the one claiming
-    val paidSession = blockchainService.getEscrowSession(request.paidSessionId).getOrThrow()
-    val matchingPaidAgentSessionEntry = paidSession?.agents?.find {
-        it.id == request.graphAgentRequest.id.name //TODO: Consider per version pricing
-    } ?: throw AgentRequestException.SessionNotFundedException("No matching agent in paid session")
+    // TODO: Ensure that the session funder is the one claiming
+    val escrowSession = blockchainService.getEscrowSession(request.paidSessionId).getOrThrow()
+
+//    val matchingPaidAgentSessionEntry = escrowSession?.agents?.find {
+//        it.id == request.graphAgentRequest.name
+//    } ?: throw AgentRequestException.SessionNotFundedException("No matching agent in paid session")
 
     val provider = request.graphAgentRequest.provider as GraphAgentProvider.RemoteRequest
     val registryAgent = registry.findAgent(id = request.graphAgentRequest.id)
@@ -136,17 +137,17 @@ suspend fun checkPaymentAndCreateClaim(
 
     val pricing = associatedExportSettings.pricing
 
-    if (matchingPaidAgentSessionEntry.cap !in pricing.minPrice..pricing.maxPrice) {
-        throw AgentRequestException.SessionNotFundedException("Paid session agent cap ${matchingPaidAgentSessionEntry.cap} is not within the pricing range ${pricing.minPrice} - ${pricing.maxPrice} for requested agent")
-    }
+//    if (matchingPaidAgentSessionEntry.cap !in pricing.minPrice..pricing.maxPrice) {
+//        throw AgentRequestException.SessionNotFundedException("Paid session agent cap ${matchingPaidAgentSessionEntry.cap} is not within the pricing range ${pricing.minPrice} - ${pricing.maxPrice} for requested agent")
+//    }
     // TODO: Check that the paid session has funds equal to max cap of requested agents once coral-escrow has implemented
 
     logger.info { "Creating claim for paid session ${request.paidSessionId} and agent ${request.graphAgentRequest.id}" }
 
     return remoteSessionManager.createClaimNoPaymentCheck(
         agent = request.toGraphAgent(registry, true),
-        paymentSessionId = paidSession.sessionId,
-        maxCost = matchingPaidAgentSessionEntry.cap
+        paymentSessionId = request.paidSessionId,
+        maxCost = pricing.maxPrice // request.graphAgentReq uest matchingPaidAgentSessionEntry.cap
     )
 }
 

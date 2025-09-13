@@ -114,7 +114,7 @@ class LocalSessionManager(
             val resolvedRemote = provider.toRemote(id, paymentSessionId)
 
             agents.add(PaidAgent(
-                id = id.toString(),
+                id = agent.name,
                 cap = provider.maxCost,
                 developer = resolvedRemote.wallet
             ))

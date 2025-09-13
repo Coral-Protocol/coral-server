@@ -5,12 +5,13 @@ import io.ktor.http.*
 import io.ktor.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.coralprotocol.coralserver.server.RouteException
 
 @Resource("/api/v1/wallet/public")
 class PublicWallet()
 
 fun Routing.publicWalletApiRoutes(
-    publicWalletAddress: String
+    publicWalletAddress: String?
 ) {
     get<PublicWallet>({
         summary = "Get public wallet address"
@@ -23,8 +24,14 @@ fun Routing.publicWalletApiRoutes(
                     description = "The wallet address"
                 }
             }
+            HttpStatusCode.NotFound to {
+                description = "No wallet configured on this server"
+            }
         }
     }) {
-        call.respond(HttpStatusCode.OK, publicWalletAddress)
+        call.respond(HttpStatusCode.OK, publicWalletAddress ?: throw RouteException(
+            HttpStatusCode.NotFound,
+            "No wallet configured on this server"
+        ))
     }
 }
