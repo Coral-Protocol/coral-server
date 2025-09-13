@@ -128,7 +128,7 @@ suspend fun checkPaymentAndCreateClaim(
 //        it.id == request.graphAgentRequest.name
 //    } ?: throw AgentRequestException.SessionNotFundedException("No matching agent in paid session")
 
-    val provider = request.graphAgentRequest.provider as GraphAgentProvider.RemoteRequest
+    val provider = request.graphAgentRequest.provider as GraphAgentProvider.Local
     val registryAgent = registry.findAgent(id = request.graphAgentRequest.id)
         ?: throw AgentRequestException.SessionNotFundedException("No matching agent in registry")
 

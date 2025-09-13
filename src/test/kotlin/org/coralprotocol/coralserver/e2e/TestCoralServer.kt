@@ -14,12 +14,13 @@ import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.config.PaymentConfig
 import org.coralprotocol.coralserver.createBlockchainService
 import org.coralprotocol.coralserver.server.CoralServer
+import org.coralprotocol.payment.blockchain.BlockchainService
 
 class TestCoralServer(
     val host: String = "127.0.0.1",
     val port: UShort = 5555u,
     val devmode: Boolean = false,
-
+    val blockchainServiceOverride: BlockchainService? = null
 ) {
     var server: CoralServer? = null
 
@@ -33,7 +34,7 @@ class TestCoralServer(
             networkConfig = NetworkConfig(bindAddress = host, bindPort = port),
             paymentConfig = PaymentConfig()
         )
-        val blockchainService = createBlockchainService(config)
+        val blockchainService: BlockchainService = blockchainServiceOverride ?: createBlockchainService(config)
         val registry = AgentRegistry(agents = mutableListOf())
         val orchestrator: Orchestrator = spyk(Orchestrator(config, registry, blockchainService))
 
