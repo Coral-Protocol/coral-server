@@ -83,7 +83,6 @@ suspend fun BlockchainService.Companion.loadFromFile(config: Config): Blockchain
             blockchainService.getCrossmintDelegatedKeypair(resolvedKeypairPath.toString(), false).fold(
                 onSuccess = {
                     logger.info { "Successfully loaded keypair from $resolvedKeypairPath" }
-                    logger.info { "Public key: ${it.publicKey}" }
                     logger.info { "Wallet address: ${wallet.address}" }
 
                     return@loadFromFile blockchainService
