@@ -19,7 +19,10 @@ private val logger = KotlinLogging.logger {}
  * These endpoints establish bidirectional communication channels and must be hit
  * before any message processing can begin.
  */
-fun Routing.exportedAgentSseRoutes(servers: ConcurrentMap<String, Server>, remoteSessionManager: RemoteSessionManager) {
+fun Routing.exportedAgentSseRoutes(
+    servers: ConcurrentMap<String, Server>,
+    remoteSessionManager: RemoteSessionManager?
+) {
     suspend fun ServerSSESession.handleSseConnection(isDevMode: Boolean = false) {
         handleSseConnection(
             call,
@@ -55,13 +58,18 @@ private suspend fun handleSseConnection(
     parameters: Parameters,
     sseProducer: ServerSSESession,
     servers: ConcurrentMap<String, Server>,
-    remoteSessionManager: RemoteSessionManager,
+    remoteSessionManager: RemoteSessionManager?,
     isDevMode: Boolean
 ) {
     // TODO: Address unused variables
     val remoteSessionId = parameters["remoteSessionId"]
 //    val agentDescription: String = parameters["agentDescription"] ?: remoteSessionId ?: "no description"
 //    val maxWaitForMentionsTimeout = parameters["maxWaitForMentionsTimeout"]?.toLongOrNull() ?: 60000
+
+    if (remoteSessionManager == null) {
+        sseProducer.call.respond(HttpStatusCode.InternalServerError, "Remote sessions are disabled")
+        return
+    }
 
     if (remoteSessionId == null) {
         sseProducer.call.respond(HttpStatusCode.BadRequest, "Missing remoteSessionId parameter")

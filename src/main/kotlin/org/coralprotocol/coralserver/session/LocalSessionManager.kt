@@ -44,7 +44,7 @@ fun AgentGraph.adjacencyMap(): Map<String, Set<String>> {
 class LocalSessionManager(
     val config: Config = Config(),
     val orchestrator: Orchestrator,
-    val blockchainService: BlockchainService
+    val blockchainService: BlockchainService?
 ) {
     private val sessions = ConcurrentHashMap<String, LocalSession>()
     private val sessionSemaphore = Semaphore(1)
@@ -99,6 +99,9 @@ class LocalSessionManager(
         val paymentGraph = agentGraph.toPayment()
         if (paymentGraph.paidAgents.isEmpty())
             return null
+
+        if (blockchainService == null)
+            throw IllegalStateException("Payment services are disabled")
 
         val paymentSessionId = UUID.randomUUID().toString()
         val agents = mutableListOf<PaidAgent>()

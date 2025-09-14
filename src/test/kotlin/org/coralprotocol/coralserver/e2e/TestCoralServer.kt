@@ -12,7 +12,7 @@ import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.config.PaymentConfig
-import org.coralprotocol.coralserver.createBlockchainService
+import org.coralprotocol.coralserver.config.loadFromFile
 import org.coralprotocol.coralserver.server.CoralServer
 import org.coralprotocol.payment.blockchain.BlockchainService
 

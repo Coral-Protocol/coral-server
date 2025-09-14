@@ -1,6 +1,8 @@
 package org.coralprotocol.coralserver.server
 
 import io.ktor.http.*
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
