@@ -27,6 +27,9 @@ fun Routing.publicWalletApiRoutes(
             }
             HttpStatusCode.NotFound to {
                 description = "No wallet configured on this server"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
         }
     }) {

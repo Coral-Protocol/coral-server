@@ -70,6 +70,9 @@ fun Routing.agentApiRoutes(
             }
             HttpStatusCode.BadRequest to {
                 description = "GraphAgentRequest is invalid in a remote context"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
         }
     }) {
@@ -117,6 +120,9 @@ fun Routing.agentApiRoutes(
             }
             HttpStatusCode.NotFound to {
                 description = "Agent was not found or is not exported"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
         }
     }) {
