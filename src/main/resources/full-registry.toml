@@ -14,13 +14,12 @@ path = "examples/camel-search-maths/interface"
 quantity = 20
 
 # The pricing table is mostly a placeholder until payments are implemented
-pricing = { min_price = 1024.0, max_price = 4096.0 }
+pricing = { min_price = { type = "usd", amount = 1.00 }, max_price = { type = "usd", amount = 10.0 } }
 
 # The agent export options table allows providing values for certain options when a remote server requests this agent.
 # This is useful when you want to export an agent that takes an API key, but don't want the end user to use their own
 # api key
-[local-agent.export.executable.options]
-API_KEY = "my api key"
+options.API_KEY = { type = "string", value = "my api key" }
 
 [[git-agent]]
 

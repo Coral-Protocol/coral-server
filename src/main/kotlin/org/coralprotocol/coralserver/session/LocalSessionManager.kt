@@ -10,9 +10,11 @@ import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.toRemote
 import org.coralprotocol.coralserver.agent.payment.PaidAgent
+import org.coralprotocol.coralserver.agent.payment.toMicroCoral
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
 import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
 import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.models.SessionInfo
@@ -42,7 +44,8 @@ fun AgentGraph.adjacencyMap(): Map<String, Set<String>> {
 class LocalSessionManager(
     val config: Config = Config(),
     val orchestrator: Orchestrator,
-    val blockchainService: BlockchainService?
+    val blockchainService: BlockchainService?,
+    val jupiterService: JupiterService
 ) {
     private val sessions = ConcurrentHashMap<String, LocalSession>()
     private val sessionSemaphore = Semaphore(1)
@@ -111,12 +114,12 @@ class LocalSessionManager(
             if (provider !is GraphAgentProvider.RemoteRequest)
                 throw IllegalArgumentException("createPaymentSession given non remote agent ${agent.name}")
 
-            fundAmount += provider.maxCost
-            val resolvedRemote = provider.toRemote(id, paymentSessionId)
+            fundAmount += provider.maxCost.toMicroCoral(jupiterService)
+            val resolvedRemote = provider.toRemote(id, paymentSessionId, jupiterService)
 
             agents.add(PaidAgent(
                 id = agent.name,
-                cap = provider.maxCost,
+                cap = provider.maxCost.toMicroCoral(jupiterService),
                 developer = resolvedRemote.wallet
             ))
 

@@ -80,8 +80,8 @@ class CoralServer(
     val devmode: Boolean = false,
     orchestrator: Orchestrator
 ) {
-    val localSessionManager = LocalSessionManager(config, orchestrator, blockchainService)
     val jupiterService = JupiterService()
+    val localSessionManager = LocalSessionManager(config, orchestrator, blockchainService, jupiterService)
 
     val aggregatedPaymentClaimManager = if (blockchainService != null) {
         AggregatedPaymentClaimManager(blockchainService, jupiterService)
@@ -200,7 +200,7 @@ class CoralServer(
                 messageApiRoutes(mcpServersByTransportId, localSessionManager, remoteSessionManager)
                 telemetryApiRoutes(localSessionManager)
                 documentationApiRoutes()
-                agentApiRoutes(registry, blockchainService, remoteSessionManager)
+                agentApiRoutes(registry, blockchainService, remoteSessionManager, jupiterService)
                 internalRoutes(remoteSessionManager, aggregatedPaymentClaimManager, jupiterService)
                 publicWalletApiRoutes(config.paymentConfig.wallet)
 
