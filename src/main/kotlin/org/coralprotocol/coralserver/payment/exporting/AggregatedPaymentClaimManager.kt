@@ -2,7 +2,6 @@ package org.coralprotocol.coralserver.payment.exporting
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import org.coralprotocol.coralserver.agent.payment.AgentPaymentClaimRequest
-import org.coralprotocol.coralserver.agent.payment.toCoral
 import org.coralprotocol.coralserver.agent.payment.toMicroCoral
 import org.coralprotocol.coralserver.agent.payment.toUsd
 import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier

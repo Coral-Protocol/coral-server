@@ -1,7 +1,6 @@
 package org.coralprotocol.coralserver.session
 
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.sync.Semaphore
@@ -12,7 +11,6 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.toRemote
 import org.coralprotocol.coralserver.agent.payment.PaidAgent
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
-import org.coralprotocol.coralserver.config.CORAL_DEV_NET_MINT
 import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
