@@ -8,7 +8,6 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.agent.payment.AgentPaymentClaimRequest
 import org.coralprotocol.coralserver.agent.payment.AgentRemainingBudget
-import org.coralprotocol.coralserver.config.PaymentConfig
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
 import org.coralprotocol.coralserver.server.RouteException

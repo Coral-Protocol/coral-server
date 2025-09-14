@@ -10,7 +10,6 @@ import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimMan
 import org.coralprotocol.coralserver.session.SessionCloseMode
 import org.jetbrains.annotations.VisibleForTesting
 import java.util.*
-import kotlin.collections.set
 
 @VisibleForTesting
 data class Claim(

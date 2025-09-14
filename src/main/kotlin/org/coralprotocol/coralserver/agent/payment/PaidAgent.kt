@@ -1,8 +1,8 @@
 package org.coralprotocol.coralserver.agent.payment
 
 import coral.escrow.v1.CoralEscrow
-import kotlinx.serialization.Serializable
 import coral.escrow.v1.CoralEscrow.AgentConfig.newBuilder
+import kotlinx.serialization.Serializable
 
 @Serializable
 data class PaidAgent(

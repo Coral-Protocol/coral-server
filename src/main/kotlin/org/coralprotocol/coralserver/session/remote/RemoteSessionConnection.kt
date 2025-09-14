@@ -7,7 +7,6 @@ import io.modelcontextprotocol.kotlin.sdk.JSONRPCMessage
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.LocalSession
-import org.coralprotocol.coralserver.session.SessionCloseMode
 
 suspend fun ClientWebSocketSession.createRemoteSessionClient(session: LocalSession, agentName: String) {
     val mcp = CoralAgentIndividualMcp(session, agentName)

@@ -1,8 +1,8 @@
 package org.coralprotocol.coralserver.routes.ws.v1
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.response.respond
+import io.ktor.http.*
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager

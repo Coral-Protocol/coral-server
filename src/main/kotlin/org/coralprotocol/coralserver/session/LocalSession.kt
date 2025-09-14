@@ -12,7 +12,6 @@ import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.session.models.SessionAgent
 import org.coralprotocol.coralserver.session.models.SessionAgentState
 import org.coralprotocol.coralserver.session.models.isConnected
-import org.coralprotocol.payment.blockchain.models.SessionInfo
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
