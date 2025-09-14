@@ -57,6 +57,7 @@ suspend fun BlockchainService.Companion.loadFromFile(config: Config): Blockchain
                     walletLocator = wallet.locator,
                     walletAddress = wallet.address,
                     adminSignerLocator = "dummy",
+                    useStaging = wallet.staging
                 )
 
                 val blockchainService = BlockchainServiceImpl(rpcUrl, "confirmed", signerConfig)
@@ -74,8 +75,8 @@ suspend fun BlockchainService.Companion.loadFromFile(config: Config): Blockchain
                 walletLocator = wallet.locator,
                 walletAddress = wallet.address,
                 adminSignerLocator = "dummy",
-                useStaging = true,
-                deviceKeypairPath = resolvedKeypairPath.toString()
+                useStaging = wallet.staging,
+                deviceKeypairPath = resolvedKeypairPath.toString(),
             )
 
             val blockchainService = BlockchainServiceImpl(rpcUrl, "confirmed", signerConfig)

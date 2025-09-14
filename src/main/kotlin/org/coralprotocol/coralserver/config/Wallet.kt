@@ -31,6 +31,9 @@ sealed interface Wallet {
         val apiKey: String,
 
         @SerialName("keypair_path")
-        val keypairPath: String
+        val keypairPath: String,
+
+        @SerialName("staging")
+        val staging: Boolean = false,
     ) : Wallet
 }
