@@ -46,6 +46,7 @@ import org.coralprotocol.coralserver.mcp.McpResources
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
 import org.coralprotocol.coralserver.models.SocketEvent
+import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
 import org.coralprotocol.coralserver.routes.api.v1.*
 import org.coralprotocol.coralserver.routes.sse.v1.connectionSseRoutes
@@ -80,9 +81,10 @@ class CoralServer(
     orchestrator: Orchestrator
 ) {
     val localSessionManager = LocalSessionManager(config, orchestrator, blockchainService)
+    val jupiterService = JupiterService()
 
     val aggregatedPaymentClaimManager = if (blockchainService != null) {
-        AggregatedPaymentClaimManager(blockchainService)
+        AggregatedPaymentClaimManager(blockchainService, jupiterService)
     }
     else {
         null
@@ -199,7 +201,7 @@ class CoralServer(
                 telemetryApiRoutes(localSessionManager)
                 documentationApiRoutes()
                 agentApiRoutes(registry, blockchainService, remoteSessionManager)
-                internalRoutes(config.paymentConfig, remoteSessionManager, aggregatedPaymentClaimManager)
+                internalRoutes(remoteSessionManager, aggregatedPaymentClaimManager, jupiterService)
                 publicWalletApiRoutes(config.paymentConfig.wallet)
 
                 // sse
