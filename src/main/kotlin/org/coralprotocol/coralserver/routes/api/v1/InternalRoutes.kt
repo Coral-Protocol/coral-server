@@ -17,8 +17,8 @@ class Claim(val remoteSessionId: String)
 
 fun Route.internalRoutes(
     config: PaymentConfig,
-    sessionManager: RemoteSessionManager,
-    aggregatedPaymentClaimManager: AggregatedPaymentClaimManager
+    remoteSessionManager: RemoteSessionManager?,
+    aggregatedPaymentClaimManager: AggregatedPaymentClaimManager?
 ) {
     post<Claim>({
         summary = "Claim payment"
@@ -41,14 +41,23 @@ fun Route.internalRoutes(
             }
             HttpStatusCode.NotFound to {
                 description = "Remote session not found"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
             HttpStatusCode.BadRequest to {
                 description = "No payment associated with the session"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
         }
     }) {claim ->
+        if (remoteSessionManager == null || aggregatedPaymentClaimManager == null)
+            throw RouteException(HttpStatusCode.InternalServerError, "Remote sessions are disabled")
+
         val request = call.receive<AgentPaymentClaimRequest>()
-        val session = sessionManager.findSession(claim.remoteSessionId)
+        val session = remoteSessionManager.findSession(claim.remoteSessionId)
             ?: throw RouteException(HttpStatusCode.NotFound, "Session not found")
 
         val remainingToClaim = try {

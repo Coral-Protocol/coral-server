@@ -29,8 +29,8 @@ class Agents() {
 
 fun Routing.agentApiRoutes(
     registry: AgentRegistry,
-    blockchainService: BlockchainService,
-    remoteSessionManager: RemoteSessionManager
+    blockchainService: BlockchainService?,
+    remoteSessionManager: RemoteSessionManager?
 ) {
     get<Agents>({
         summary = "Get available agents"
@@ -70,6 +70,9 @@ fun Routing.agentApiRoutes(
             }
         }
     }) {
+        if (remoteSessionManager == null || blockchainService == null)
+            throw RouteException(HttpStatusCode.InternalServerError, "Remote agents are disabled")
+
         val paidGraphAgentRequest = call.receive<PaidGraphAgentRequest>()
 
         try {

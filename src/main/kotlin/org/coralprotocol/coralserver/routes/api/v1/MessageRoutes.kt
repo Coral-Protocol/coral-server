@@ -29,7 +29,11 @@ class ExportingAgentMessage(val remoteSessionId: String)
  * 
  * @param servers A concurrent map to store server instances by transport session ID
  */
-fun Routing.messageApiRoutes(servers: ConcurrentMap<String, Server>, localSessionManager: LocalSessionManager, remoteSessionManager: RemoteSessionManager) {
+fun Routing.messageApiRoutes(
+    servers: ConcurrentMap<String, Server>,
+    localSessionManager: LocalSessionManager,
+    remoteSessionManager: RemoteSessionManager?
+) {
     // Message endpoint with application, privacy key, and session parameters
     post<Message>({
         summary = "Send message"
@@ -183,6 +187,9 @@ fun Routing.messageApiRoutes(servers: ConcurrentMap<String, Server>, localSessio
         operationId = "sendMessage"
         hidden = true
     }) { message ->
+        if (remoteSessionManager == null)
+            throw RouteException(HttpStatusCode.InternalServerError, "Remote sessions are disabled")
+
         logger.debug { "Received Exported Agent Message" }
         val transport = remoteSessionManager.findSession(message.remoteSessionId)?.deferredMcpTransport
             ?: throw RouteException(HttpStatusCode.NotFound, "Remote session not found")

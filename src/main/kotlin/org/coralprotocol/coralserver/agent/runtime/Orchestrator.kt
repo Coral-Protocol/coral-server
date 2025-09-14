@@ -18,7 +18,6 @@ import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.SessionCloseMode
 import org.coralprotocol.coralserver.session.remote.RemoteSession
-import org.coralprotocol.payment.blockchain.BlockchainService
 import kotlin.system.measureTimeMillis
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -59,8 +58,7 @@ interface OrchestratorHandle {
 
 class Orchestrator(
     val config: Config = Config(),
-    val registry: AgentRegistry = AgentRegistry(),
-    val blockchainService: BlockchainService
+    val registry: AgentRegistry = AgentRegistry()
 ) {
     private val remoteScope = CoroutineScope(Dispatchers.IO)
     private val eventBusses: MutableMap<String, MutableMap<String, EventBus<RuntimeEvent>>> = mutableMapOf()

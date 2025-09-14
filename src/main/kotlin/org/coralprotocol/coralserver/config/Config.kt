@@ -7,7 +7,9 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.JsonClassDiscriminator
+import mu.KotlinLogging
 import org.coralprotocol.coralserver.agent.registry.RegistryException
 import org.coralprotocol.coralserver.agent.registry.indexer.GitRegistryAgentIndexer
 import org.coralprotocol.coralserver.agent.registry.indexer.NamedRegistryAgentIndexer
@@ -15,6 +17,8 @@ import org.coralprotocol.coralserver.agent.registry.indexer.RegistryAgentIndexer
 import org.coralprotocol.coralserver.util.isWindows
 import java.io.File
 import java.nio.file.Path
+
+private val logger = KotlinLogging.logger {  }
 
 const val CORAL_MAINNET_MINT =  "CoRAitPvr9seu5F9Hk39vbjqA1o1XuoryHjSk1Z1q2mo"
 const val CORAL_DEV_NET_MINT = "FBrR4v7NSoEdEE9sdRN1aE5yDeop2cseaBbfPVbJmPhf"
@@ -66,25 +70,35 @@ fun defaultDockerAddress(): String {
 @Serializable
 data class PaymentConfig(
     /**
-     * The type of key described in the payment config
+     * The path to the configured wallet
      */
-    val wallet: Wallet = Wallet.Crossmint(),
+    val walletPath: String = Path.of(System.getProperty("user.home"), ".coral", "wallet.toml").toString(),
 
     /**
-     *
+     * The RPC url for payments
      */
     val rpcUrl: String = "https://api.devnet.solana.com",
 ) {
+
     /**
-     * The address this server will receive payments to when exporting agents.  This comes from a file on disk,
-     * depending on the configured wallet.  If the file does not exist, this server will not be able to receive payments.
+     * The configured wallet for this server.  Required to send and receive payments.
      */
     @Transient
-    val walletAddress = when (wallet) {
-        is Wallet.Crossmint -> with(File(wallet.walletAddressPath)) {
-            if (exists()) readText()
-            else null
+    val wallet: Wallet? = run {
+        val file = File(walletPath)
+        if (file.exists()) {
+            try {
+                return@run toml.decodeFromString<Wallet>(file.readText())
+            }
+            catch (e: Exception) {
+                logger.warn(e) { "Failed to load wallet file $walletPath" }
+            }
         }
+        else {
+            logger.warn { "No wallet file found at $walletPath" }
+        }
+
+        null
     }
 }
 
@@ -283,26 +297,4 @@ enum class AddressConsumer {
      * A process running on the same machine as the server
      */
     LOCAL
-}
-
-@Serializable
-enum class WalletKeyType {
-    @SerialName("crossmint")
-    CROSSMINT
-}
-
-@Serializable
-@JsonClassDiscriminator("type")
-sealed interface Wallet {
-    val keypairPath: String
-    val apiKeyPath: String
-    val walletAddressPath: String
-
-    @Serializable
-    @SerialName("crossmint")
-    data class Crossmint(
-        override val apiKeyPath: String = System.getProperty("user.home") + "/.coral/crossmint.key",
-        override val keypairPath: String = System.getProperty("user.home") + "/.coral/crossmint-keypair.json",
-        override val walletAddressPath: String = System.getProperty("user.home") + "/.coral/wallet-address.key",
-    ) : Wallet
 }

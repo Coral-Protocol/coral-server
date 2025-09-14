@@ -75,13 +75,25 @@ val apiJsonConfig = Json {
 class CoralServer(
     val config: Config,
     val registry: AgentRegistry,
-    val blockchainService: BlockchainService,
+    val blockchainService: BlockchainService?,
     val devmode: Boolean = false,
     orchestrator: Orchestrator
 ) {
     val localSessionManager = LocalSessionManager(config, orchestrator, blockchainService)
-    val aggregatedPaymentClaimManager = AggregatedPaymentClaimManager(blockchainService)
-    val remoteSessionManager = RemoteSessionManager(orchestrator, aggregatedPaymentClaimManager)
+
+    val aggregatedPaymentClaimManager = if (blockchainService != null) {
+        AggregatedPaymentClaimManager(blockchainService)
+    }
+    else {
+        null
+    }
+
+    val remoteSessionManager = if (aggregatedPaymentClaimManager != null) {
+        RemoteSessionManager(orchestrator, aggregatedPaymentClaimManager)
+    }
+    else {
+        null
+    }
 
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
@@ -188,7 +200,7 @@ class CoralServer(
                 documentationApiRoutes()
                 agentApiRoutes(registry, blockchainService, remoteSessionManager)
                 internalRoutes(config.paymentConfig, remoteSessionManager, aggregatedPaymentClaimManager)
-                publicWalletApiRoutes(config.paymentConfig.walletAddress)
+                publicWalletApiRoutes(config.paymentConfig.wallet)
 
                 // sse
                 connectionSseRoutes(mcpServersByTransportId, localSessionManager)
