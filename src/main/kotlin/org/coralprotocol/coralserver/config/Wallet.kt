@@ -13,18 +13,24 @@ sealed interface Wallet {
     /**
      * Address that can be used to resolve the public wallet address
      */
-    val walletLocator: String
+    @SerialName("locator")
+    val locator: String
 
     /**
      * Public wallet address, in a future version of coral-escrow this can be derived from walletLocator
      */
-    val walletAddress: String
+    val address: String
 
+    @Serializable
     @SerialName("crossmint")
     data class Crossmint(
-        override val walletLocator: String,
-        override val walletAddress: String,
+        override val locator: String,
+        override val address: String,
+
+        @SerialName("crossmint_api_key")
         val apiKey: String,
+
+        @SerialName("keypair_path")
         val keypairPath: String
     ) : Wallet
 }
