@@ -11,7 +11,9 @@ import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
+import org.coralprotocol.coralserver.agent.payment.toMicroCoral
 import org.coralprotocol.coralserver.agent.registry.*
+import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 import org.coralprotocol.payment.blockchain.BlockchainService
@@ -30,7 +32,8 @@ class Agents() {
 fun Routing.agentApiRoutes(
     registry: AgentRegistry,
     blockchainService: BlockchainService?,
-    remoteSessionManager: RemoteSessionManager?
+    remoteSessionManager: RemoteSessionManager?,
+    jupiterService: JupiterService
 ) {
     get<Agents>({
         summary = "Get available agents"
@@ -77,7 +80,13 @@ fun Routing.agentApiRoutes(
 
         try {
             val claimId =
-                checkPaymentAndCreateClaim(paidGraphAgentRequest, registry, blockchainService, remoteSessionManager)
+                checkPaymentAndCreateClaim(
+                    request = paidGraphAgentRequest,
+                    registry = registry,
+                    blockchainService = blockchainService,
+                    remoteSessionManager = remoteSessionManager,
+                    jupiterService = jupiterService
+                )
             call.respond(
                 HttpStatusCode.OK,
                 claimId
@@ -123,6 +132,7 @@ suspend fun checkPaymentAndCreateClaim(
     registry: AgentRegistry,
     blockchainService: BlockchainService,
     remoteSessionManager: RemoteSessionManager,
+    jupiterService: JupiterService
 ): String {
     // TODO: Ensure that the session funder is the one claiming
     val escrowSession = blockchainService.getEscrowSession(request.paidSessionId).getOrThrow()
@@ -150,7 +160,7 @@ suspend fun checkPaymentAndCreateClaim(
     return remoteSessionManager.createClaimNoPaymentCheck(
         agent = request.toGraphAgent(registry, true),
         paymentSessionId = request.paidSessionId,
-        maxCost = pricing.maxPrice // request.graphAgentReq uest matchingPaidAgentSessionEntry.cap
+        maxCost = pricing.maxPrice.toMicroCoral(jupiterService) // request.graphAgentReq uest matchingPaidAgentSessionEntry.cap
     )
 }
 

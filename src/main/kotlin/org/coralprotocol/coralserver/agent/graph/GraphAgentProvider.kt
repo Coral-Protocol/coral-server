@@ -13,9 +13,11 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider.RemoteReques
 import org.coralprotocol.coralserver.agent.graph.server.GraphAgentServer
 import org.coralprotocol.coralserver.agent.graph.server.GraphAgentServerScoring
 import org.coralprotocol.coralserver.agent.graph.server.GraphAgentServerSource
+import org.coralprotocol.coralserver.agent.payment.AgentClaimAmount
 import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
 import org.coralprotocol.coralserver.agent.registry.PublicAgentExportSettings
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.payment.JupiterService
 
 private val logger = KotlinLogging.logger {}
 
@@ -38,7 +40,7 @@ sealed class GraphAgentProvider {
         val runtime: RuntimeId,
 
         @Description("The maximum we are willing to pay for this remote agent, note that if this is not high enough there may be no remotes willing to provide the agent")
-        val maxCost: Long,
+        val maxCost: AgentClaimAmount,
 
         @Description("A description of which servers should be queried for this remote agent request")
         val serverSource: GraphAgentServerSource,
@@ -61,7 +63,7 @@ sealed class GraphAgentProvider {
         val wallet: String,
 
         @Description("The max cost of this agent")
-        val maxCost: Long,
+        val maxCost: AgentClaimAmount,
 
         @Description("The payment session ID for this remote agent.  This will be shared with all other remote agents in the graph")
         val paymentSessionId: String,
@@ -69,7 +71,11 @@ sealed class GraphAgentProvider {
 }
 
 
-suspend fun RemoteRequest.toRemote(agentId: AgentRegistryIdentifier, paymentSessionId: String): GraphAgentProvider.Remote {
+suspend fun RemoteRequest.toRemote(
+    agentId: AgentRegistryIdentifier,
+    paymentSessionId: String,
+    jupiterService: JupiterService
+): GraphAgentProvider.Remote {
     val rankedServers = when (serverSource) {
         is GraphAgentServerSource.Servers -> {
             serverSource.servers.sortedBy {
@@ -89,7 +95,7 @@ suspend fun RemoteRequest.toRemote(agentId: AgentRegistryIdentifier, paymentSess
 
             // A server must provide the required runtime, and it most not have a max cost outside the exported agent's
             // comfortable max cost range
-            if (exportSettings != null && maxCost in exportSettings.pricing.minPrice..exportSettings.pricing.maxPrice) {
+            if (exportSettings != null && exportSettings.pricing.withinRange(maxCost, jupiterService)) {
                 selectedServer = server
                 break
             }
