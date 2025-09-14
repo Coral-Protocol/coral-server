@@ -7,7 +7,9 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.agent.payment.AgentPaymentClaimRequest
+import org.coralprotocol.coralserver.agent.payment.AgentRemainingBudget
 import org.coralprotocol.coralserver.config.PaymentConfig
+import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
@@ -16,9 +18,9 @@ import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 class Claim(val remoteSessionId: String)
 
 fun Route.internalRoutes(
-    config: PaymentConfig,
     remoteSessionManager: RemoteSessionManager?,
-    aggregatedPaymentClaimManager: AggregatedPaymentClaimManager?
+    aggregatedPaymentClaimManager: AggregatedPaymentClaimManager?,
+    jupiterService: JupiterService
 ) {
     post<Claim>({
         summary = "Claim payment"
@@ -35,7 +37,7 @@ fun Route.internalRoutes(
         response {
             HttpStatusCode.OK to {
                 description = "Success"
-                body<Long> {
+                body<AgentRemainingBudget> {
                     description = "The remaining budget associated with the session"
                 }
             }
@@ -67,6 +69,9 @@ fun Route.internalRoutes(
             throw RouteException(HttpStatusCode.BadRequest, e.message)
         }
 
-        call.respond(remainingToClaim)
+        call.respond(AgentRemainingBudget(
+            remainingBudget = remainingToClaim,
+            coralUsdPrice = jupiterService.coralToUsd(1.0)
+        ))
     }
 }
