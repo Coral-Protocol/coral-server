@@ -16,6 +16,10 @@ fun getCoralSystemEnvs(
             is RuntimeParams.Local -> params.session.id
             is RuntimeParams.Remote -> params.session.id
         },
+        "CORAL_SEND_CLAIMS" to when (params) {
+            is RuntimeParams.Local -> "0"
+            is RuntimeParams.Remote -> "1"
+        },
         "CORAL_API_URL" to apiUrl.toString(),
         "CORAL_SSE_URL" to with(mcpUrl) {
             "${protocol}://$host:$port$encodedPath"
