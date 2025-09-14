@@ -5,6 +5,7 @@ import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.BlockchainServiceImpl
 import org.coralprotocol.payment.blockchain.models.SignerConfig
 import java.io.File
+import java.nio.file.Path
 
 private val logger = KotlinLogging.logger {}
 
@@ -19,17 +20,47 @@ suspend fun BlockchainService.Companion.loadFromFile(config: Config): Blockchain
         is Wallet.Crossmint -> {
             val rpcUrl = config.paymentConfig.rpcUrl
 
-            val keypair = File(wallet.keypairPath)
-            if (keypair.exists()) {
+            val resolvedKeypairPath = run {
+                if (Path.of(wallet.keypairPath).isAbsolute) {
+                    File(wallet.keypairPath)
+                }
+                else {
+                    // Local to wallet config takes priority
+                    val walletPath = Path.of(config.paymentConfig.walletPath)
+                    if (walletPath.parent != null) {
+                        val keypair = walletPath.parent.resolve(wallet.keypairPath).toFile()
+                        if (keypair.exists()) {
+                            return@run keypair
+                        }
+                    }
+
+                    // If there's an existing working directory keypair, we can use that
+                    val workingDir = File(wallet.keypairPath)
+                    if (workingDir.exists()) {
+                        return@run workingDir
+                    }
+
+                    // Nothing exists, default location priority is wallet-relative then working directory if we can't
+                    // get the wallet relative path
+                    if (walletPath.parent != null) {
+                        walletPath.parent.resolve(wallet.keypairPath).toFile()
+                    }
+                    else {
+                        File(wallet.keypairPath)
+                    }
+                }
+            }
+
+            if (!resolvedKeypairPath.exists()) {
                 val signerConfig = SignerConfig.Crossmint(
                     apiKey = wallet.apiKey,
-                    walletLocator = wallet.walletLocator,
-                    walletAddress = wallet.walletAddress,
+                    walletLocator = wallet.locator,
+                    walletAddress = wallet.address,
                     adminSignerLocator = "dummy",
                 )
 
                 val blockchainService = BlockchainServiceImpl(rpcUrl, "confirmed", signerConfig)
-                val info = blockchainService.getCrossmintDelegatedKeypair(wallet.keypairPath, false).getOrThrow()
+                val info = blockchainService.getCrossmintDelegatedKeypair(resolvedKeypairPath.toString(), false).getOrThrow()
 
                 if (info.createdNew) {
                     logger.warn { "A new keypair was created and must be signed!" }
@@ -40,24 +71,24 @@ suspend fun BlockchainService.Companion.loadFromFile(config: Config): Blockchain
             // dummy config
             val signerConfig = SignerConfig.Crossmint(
                 apiKey = wallet.apiKey,
-                walletLocator = wallet.walletLocator,
-                walletAddress = wallet.walletAddress,
+                walletLocator = wallet.locator,
+                walletAddress = wallet.address,
                 adminSignerLocator = "dummy",
                 useStaging = true,
-                deviceKeypairPath = wallet.keypairPath
+                deviceKeypairPath = resolvedKeypairPath.toString()
             )
 
             val blockchainService = BlockchainServiceImpl(rpcUrl, "confirmed", signerConfig)
-            blockchainService.getCrossmintDelegatedKeypair(wallet.keypairPath, false).fold(
+            blockchainService.getCrossmintDelegatedKeypair(resolvedKeypairPath.toString(), false).fold(
                 onSuccess = {
-                    logger.info { "Successfully loaded keypair from ${wallet.keypairPath}" }
+                    logger.info { "Successfully loaded keypair from $resolvedKeypairPath" }
                     logger.info { "Public key: ${it.publicKey}" }
-                    logger.info { "Wallet address: ${wallet.walletAddress}" }
+                    logger.info { "Wallet address: ${wallet.address}" }
 
                     return@loadFromFile blockchainService
                 },
                 onFailure = {
-                    logger.error(it) { "Failed to load keypair from ${wallet.keypairPath}" }
+                    logger.error(it) { "Failed to load keypair from $resolvedKeypairPath" }
                     logNoPayments()
 
                     return@loadFromFile null
