@@ -4,13 +4,15 @@ WORKDIR /home/gradle/src
 
 RUN jlink \
     --verbose \
-    --add-modules java.base,jdk.unsupported,java.desktop,java.instrument,java.logging,java.management,java.sql,java.xml,java.naming \
+    --add-modules java.base,jdk.unsupported,java.desktop,java.instrument,java.logging,java.management,java.sql,java.xml,java.naming,jdk.crypto.ec \
     --compress 2 --strip-debug --no-header-files --no-man-pages \
     --output /opt/minimal-java
 
 RUN gradle build --no-daemon -x test
 
 FROM alpine:3
+
+RUN apk add --no-cache ca-certificates
 
 ENV JAVA_HOME=/opt/minimal-java
 ENV PATH="$JAVA_HOME/bin:$PATH"
