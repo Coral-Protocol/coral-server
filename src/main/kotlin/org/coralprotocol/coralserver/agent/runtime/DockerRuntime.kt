@@ -1,120 +1,139 @@
 package org.coralprotocol.coralserver.agent.runtime
 
-import com.chrynan.uri.core.Uri
-import com.chrynan.uri.core.parse
+import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.async.ResultCallback
 import com.github.dockerjava.api.exception.NotModifiedException
 import com.github.dockerjava.api.model.Frame
+import com.github.dockerjava.api.model.PullResponseItem
 import com.github.dockerjava.api.model.StreamType
-import com.github.dockerjava.core.DefaultDockerClientConfig
-import com.github.dockerjava.core.DockerClientBuilder
-import com.github.dockerjava.core.DockerClientConfig
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
+import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
+import org.coralprotocol.coralserver.agent.registry.toStringValue
 import org.coralprotocol.coralserver.agent.runtime.executable.EnvVar
-import org.coralprotocol.coralserver.session.SessionManager
-import java.io.File
+import org.coralprotocol.coralserver.config.AddressConsumer
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlin.time.Duration.Companion.seconds
 
-private val logger = KotlinLogging.logger {}
+private val dockerLogger = KotlinLogging.logger {}
 
 @Serializable
 @SerialName("docker")
 data class DockerRuntime(
-    val image: String,
-    val environment: List<EnvVar> = listOf()
+    var image: String,
+    val environment: List<EnvVar> = listOf(),
 ) : Orchestrate {
-    private val dockerClientConfig: DockerClientConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
-        .withDockerHost(getDockerSocket())
-        .build()
-    private val dockerClient = DockerClientBuilder.getInstance(dockerClientConfig).build()
 
     override fun spawn(
         params: RuntimeParams,
         bus: EventBus<RuntimeEvent>,
-        sessionManager: SessionManager?,
+        applicationRuntimeContext: ApplicationRuntimeContext
     ): OrchestratorHandle {
-        logger.info { "Spawning Docker container with image: $image" }
-        val fullConnectionUrl =
-            "http://host.docker.internal:${params.mcpServerPort}/${params.mcpServerRelativeUri.path}${params.mcpServerRelativeUri.query?.let { "?$it" } ?: ""}"
+        val agentLogger = KotlinLogging.logger("DockerRuntime:${params.agentName}")
+        val sanitisedImageName = sanitizeDockerImageName(image, params.agentId)
 
-        val resolvedEnvs = this.environment.map {
-            val (key, value) = it.resolve(params.options)
-            "$key=$value"
+        val dockerClient = applicationRuntimeContext.dockerClient
+        dockerLogger.info { "Spawning Docker container with image: $sanitisedImageName" }
+
+        dockerClient.pullImageIfNeeded(sanitisedImageName)
+        dockerClient.printImageInfo(sanitisedImageName)
+
+        val apiUrl = applicationRuntimeContext.getApiUrl(AddressConsumer.CONTAINER)
+        val mcpUrl = applicationRuntimeContext.getMcpUrl(params, AddressConsumer.CONTAINER)
+
+        // todo: escape???
+        val resolvedEnvs = params.options.map { (key, value) ->
+            "$key=${value.toStringValue()}"
         }
+
         val allEnvs = resolvedEnvs + getCoralSystemEnvs(
-            params,
-            Uri.parse(fullConnectionUrl),
-            "docker"
+            params = params,
+            apiUrl = apiUrl,
+            mcpUrl = mcpUrl,
+            orchestrationRuntime = "docker"
         ).map { (key, value) -> "$key=$value" }
 
-        val containerCreation = dockerClient.createContainerCmd(image)
-            .withName(getDockerContainerName(params.mcpServerRelativeUri, params.agentName))
-            .withEnv(allEnvs)
-            .withAttachStdout(true)
-            .withAttachStderr(true)
-            .withAttachStdin(false) // Stdin makes no sense with orchestration
-            .exec()
+        val sessionId = when (params) {
+            is RuntimeParams.Local -> params.session.id
+            is RuntimeParams.Remote -> params.session.id
+        }
 
-        dockerClient.startContainerCmd(containerCreation.id).exec()
+        try {
+            val containerCreation = dockerClient.createContainerCmd(sanitisedImageName)
+                .withName(getDockerContainerName(sessionId, params.agentName))
+                .withEnv(allEnvs)
+                .withAttachStdout(true)
+                .withAttachStderr(true)
+                .withStopTimeout(1)
+                .withAttachStdin(false) // Stdin makes no sense with orchestration
+                .exec()
 
-        // Attach to container streams for output redirection
-        val attachCmd = dockerClient.attachContainerCmd(containerCreation.id)
-            .withStdOut(true)
-            .withStdErr(true)
-            .withFollowStream(true)
-            .withLogs(true)
+            dockerClient.startContainerCmd(containerCreation.id).exec()
 
-        val streamCallback = attachCmd.exec(object : ResultCallback.Adapter<Frame>() {
-            override fun onNext(frame: Frame) {
-                val message = String(frame.payload).trimEnd('\n')
-                when (frame.streamType) {
-                    StreamType.STDOUT -> {
-                        logger.info { "[STDOUT] ${params.agentName}: $message" }
-                    }
+            // Attach to container streams for output redirection
+            val attachCmd = dockerClient.attachContainerCmd(containerCreation.id)
+                .withStdOut(true)
+                .withStdErr(true)
+                .withFollowStream(true)
+                .withLogs(true)
 
-                    StreamType.STDERR -> {
-                        logger.info { "[STDERR] ${params.agentName}: $message" }
-                    }
-
-                    else -> {
-                        logger.warn { "[UNKNOWN] ${params.agentName}: $message" }
-                    }
-                }
-            }
-        })
-
-        return object : OrchestratorHandle {
-            override suspend fun destroy() {
-                withContext(processContext) {
-                    try {
-                        streamCallback.close()
-                    } catch (e: Exception) {
-                        logger.warn { "Failed to close stream callback: ${e.message}" }
-                    }
-
-                    warnOnNotModifiedExceptions { dockerClient.stopContainerCmd(containerCreation.id).exec() }
-                    warnOnNotModifiedExceptions {
-                        withTimeoutOrNull(30.seconds) {
-                            dockerClient.removeContainerCmd(containerCreation.id)
-                                .withRemoveVolumes(true)
-                                .exec()
-                            return@withTimeoutOrNull true
-                        } ?: let {
-                            logger.warn { "Docker container ${params.agentName} did not stop in time, force removing it" }
-                            dockerClient.removeContainerCmd(containerCreation.id)
-                                .withRemoveVolumes(true)
-                                .withForce(true)
-                                .exec()
+            val streamCallback = attachCmd.exec(object : ResultCallback.Adapter<Frame>() {
+                override fun onNext(frame: Frame) {
+                    val message = String(frame.payload).trimEnd('\n')
+                    when (frame.streamType) {
+                        StreamType.STDOUT -> {
+                            agentLogger.info { message }
                         }
-                        logger.info { "Docker container ${params.agentName} stopped and removed" }
+
+                        StreamType.STDERR -> {
+                            agentLogger.warn { message }
+                        }
+
+                        else -> {
+                            agentLogger.warn { message }
+                        }
+                    }
+                }
+            })
+
+            return object : OrchestratorHandle {
+                override suspend fun destroy() {
+                    withContext(processContext) {
+                        try {
+                            streamCallback.close()
+                        } catch (e: Exception) {
+                            dockerLogger.warn { "Failed to close stream callback: ${e.message}" }
+                        }
+
+                        warnOnNotModifiedExceptions { dockerClient.stopContainerCmd(containerCreation.id).exec() }
+                        warnOnNotModifiedExceptions {
+                            withTimeoutOrNull(30.seconds) {
+                                dockerClient.removeContainerCmd(containerCreation.id)
+                                    .withRemoveVolumes(true)
+                                    .exec()
+                                return@withTimeoutOrNull true
+                            } ?: let {
+                                dockerLogger.warn { "Docker container ${params.agentName} did not stop in time, force removing it" }
+                                dockerClient.removeContainerCmd(containerCreation.id)
+                                    .withRemoveVolumes(true)
+                                    .withForce(true)
+                                    .exec()
+                            }
+                            dockerLogger.info { "Docker container ${params.agentName} stopped and removed" }
+                        }
                     }
                 }
             }
+        }
+        catch (e: Exception) {
+            dockerLogger.error { "Failed to start Docker container: ${e.message}" }
+            throw e
         }
     }
 }
@@ -123,7 +142,7 @@ private suspend fun warnOnNotModifiedExceptions(block: suspend () -> Unit): Unit
     try {
         block()
     } catch (e: NotModifiedException) {
-        logger.warn { "Docker operation was not modified: ${e.message}" }
+        dockerLogger.warn { "Docker operation was not modified: ${e.message}" }
     } catch (e: Exception) {
         throw e
     }
@@ -135,24 +154,67 @@ private fun String.asDockerContainerName(): String {
         .trim('_')
 }
 
-private fun getDockerContainerName(relativeMcpServerUri: Uri, agentName: String): String {
-    // SessionID is too long for Docker container names, so we use a hash of the URI for deduplication.
-    val randomSuffix = relativeMcpServerUri.toUriString().hashCode().toString(16).take(11)
+private fun getDockerContainerName(sessionId: String, agentName: String): String {
+    // SessionID is too long for Docker container names, so we use a hash for deduplication.
+    val randomSuffix = sessionId.hashCode().toString(16).take(11)
     return "${agentName.take(52)}_$randomSuffix".asDockerContainerName()
 }
 
-private fun getDockerSocket(): String {
-    val specifiedSocket = System.getenv("CORAL_DOCKER_SOCKET")
-    if (specifiedSocket != null) {
-        return specifiedSocket
+private fun sanitizeDockerImageName(imageName: String, id: AgentRegistryIdentifier): String {
+    if (imageName.contains(":")) {
+        if (!imageName.endsWith(":${id.version}")) {
+            dockerLogger.warn { "Image $imageName does not match the agent version: ${id.version}" }
+        }
+
+        return imageName
+    }
+    else {
+        return "$imageName:${id.version}"
+    }
+}
+
+
+/**
+ * @param imageName The name of the image to search for
+ * @return true if the image is found locally, false otherwise
+ */
+private fun DockerClient.imageExists(imageName: String): Boolean {
+    var name = imageName
+    if (!imageName.contains(":")) {
+        name = "$name:latest"
     }
 
-    // Check whether colima is installed and use its socket if available
-    val homeDir = System.getProperty("user.home")
-    val colimaSocket = "$homeDir/.colima/default/docker.sock"
-    return if (File(colimaSocket).exists()) {
-        "unix://$colimaSocket"
-    } else {
-        "unix:///var/run/docker.sock" // Default Docker socket
+    return listImagesCmd().exec().firstOrNull { it.repoTags.contains(name) } != null
+}
+
+/**
+ * Pulls a Docker image if it doesn't exist locally.
+ * @param imageName The name of the image to pull
+ */
+private fun DockerClient.pullImageIfNeeded(imageName: String) {
+    if (!imageExists(imageName)) {
+        dockerLogger.info { "Docker image $imageName not found locally, pulling..." }
+        val callback = object : ResultCallback.Adapter<PullResponseItem>() {}
+        pullImageCmd(imageName).exec(callback)
+        callback.awaitCompletion()
+        dockerLogger.info { "Docker image $imageName pulled successfully" }
+    }
+}
+
+/**
+ * Checks if the image is using the 'latest' tag and logs a warning if it is.
+ * Also includes the image creation date in the warning.
+ * @param imageName The name of the image to check
+ */
+private fun DockerClient.printImageInfo(imageName: String) {
+    val imageInfo = inspectImageCmd(imageName).exec()
+    val createdAt = imageInfo.created
+
+    if (createdAt != null)  {
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+            .withZone(ZoneId.systemDefault())
+        val formattedDate = formatter.format(Instant.parse(createdAt))
+
+        dockerLogger.info { "$imageName image creation date: $formattedDate" }
     }
 }

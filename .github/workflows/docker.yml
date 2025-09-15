@@ -10,6 +10,12 @@ jobs:
     permissions:
       packages: write
     steps:
+      - name: Extract branch name
+        shell: bash
+        run: |
+          branch="${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}"
+          echo "branch=${branch##*/}" >> $GITHUB_OUTPUT
+        id: extract_branch
       - name: Checkout repository
         uses: actions/checkout@v3
 

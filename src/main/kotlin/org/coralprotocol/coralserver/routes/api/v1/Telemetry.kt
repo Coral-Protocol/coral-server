@@ -11,15 +11,15 @@ import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.models.Message
 import org.coralprotocol.coralserver.models.Telemetry
 import org.coralprotocol.coralserver.server.RouteException
-import org.coralprotocol.coralserver.session.SessionManager
+import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.models.TelemetryPost as TelemetryPostModel
 
 private val logger = KotlinLogging.logger {}
 
 @Resource("/api/v1/telemetry/{sessionId}/{threadId}/{messageId}")
 class TelemetryGet(val sessionId: String, val threadId: String, val messageId: String) {
-    fun intoMessage(sessionManager: SessionManager): Message {
-        val session = sessionManager.getSession(sessionId) ?: throw RouteException(
+    fun intoMessage(localSessionManager: LocalSessionManager): Message {
+        val session = localSessionManager.getSession(sessionId) ?: throw RouteException(
             HttpStatusCode.NotFound,
             "Session not found"
         )
@@ -30,6 +30,7 @@ class TelemetryGet(val sessionId: String, val threadId: String, val messageId: S
         )
 
         // TODO: messages should be a map (@Caelum told me to do this (the bad code not the comment))
+        // (Caelum: for the record, I told @Seafra to make it a map, that is the part he is referring to as bad code...)
         return thread.messages.find { it.id == messageId } ?: throw RouteException(
             HttpStatusCode.NotFound,
             "Message not found"
@@ -40,7 +41,7 @@ class TelemetryGet(val sessionId: String, val threadId: String, val messageId: S
 @Resource("/api/v1/telemetry/{sessionId}")
 class TelemetryPost(val sessionId: String)
 
-fun Routing.telemetryApiRoutes(sessionManager: SessionManager) {
+fun Routing.telemetryApiRoutes(localSessionManager: LocalSessionManager) {
     get<TelemetryGet>({
         summary = "Get telemetry"
         description = "Fetches telemetry information for a given message"
@@ -65,10 +66,13 @@ fun Routing.telemetryApiRoutes(sessionManager: SessionManager) {
             }
             HttpStatusCode.NotFound to {
                 description = "Telemetry data not found for specified message"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
         }
     }) { telemetry ->
-        call.respond(telemetry.intoMessage(sessionManager).telemetry ?: throw RouteException(
+        call.respond(telemetry.intoMessage(localSessionManager).telemetry ?: throw RouteException(
             HttpStatusCode.NotFound,
             "Telemetry not found"
         ))
@@ -90,12 +94,18 @@ fun Routing.telemetryApiRoutes(sessionManager: SessionManager) {
             HttpStatusCode.OK to {
                 description = "Success"
             }
+            HttpStatusCode.NotFound to {
+                description = "Specified messages were not found"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
+            }
         }
     }) { post ->
         val model = call.receive<TelemetryPostModel>()
         for (target in model.targets) {
             val message = TelemetryGet(post.sessionId, target.threadId, target.messageId)
-                .intoMessage(sessionManager)
+                .intoMessage(localSessionManager)
 
             // maybe error if there is telemetry on this message already?
             message.telemetry = model.data

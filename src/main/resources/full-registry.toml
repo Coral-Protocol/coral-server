@@ -1,0 +1,70 @@
+# Each agent definition starts with an entry like this, local-agent, git-agent, indexed-agent or inline-agent
+[[local-agent]]
+
+# The local-agent type must contain a path, the path must point to a directory that contains a coral-agent.toml file
+# The coral-agent.toml will contain the name and version for this agent
+path = "examples/camel-search-maths/interface"
+
+# The export settings section can be placed on any agent reference type.  If you want to allow other servers to import
+# this agent for a cost, the export section must be defined for the desired runtime; e.g., docker, executable, phala
+[local-agent.export.executable]
+
+# The quantity field describes how many concurrent agents of this type in this runtime can be exported; this is to allow
+# basic control over
+quantity = 20
+
+# The pricing table is mostly a placeholder until payments are implemented
+pricing = { min_price = { type = "usd", amount = 1.00 }, max_price = { type = "usd", amount = 10.0 } }
+
+# The agent export options table allows providing values for certain options when a remote server requests this agent.
+# This is useful when you want to export an agent that takes an API key, but don't want the end user to use their own
+# api key
+options.API_KEY = { type = "string", value = "my api key" }
+
+[[git-agent]]
+
+# The Git agent must contain the repo entry with a Git URL.  SSH and HTTPS are supported, it is recommended to use https
+# for open source repos
+#
+# Currently there is no credential support provided here
+repo = "https://github.com/Coral-Protocol/ca-context7"
+
+# One of either "branch", "tag" or "rev" must be used to describe a specific "version" of the repo.  Exactly one of the
+#  following must be specified, no more, no less
+branch = "master"
+# tag = "v1"
+# rev = "75801e3"
+
+[[indexed-agent]]
+
+# The indexed-agent type fetches agents from a configured agent indexer.  The name and all chosen versions must exist
+# on the indexer.
+name = "ca-context7"
+
+# With the "versions" key you are able to import as many versions as the indexer has defined
+versions = ["0.1.0"]
+
+# You may choose a specific agent indexer for this agent.  Agent indexers are defined in the config.toml config file.
+# By default, the "coral" agent indexer is the only available indexer.
+#
+# If an indexed-agent type agent does NOT define a specific agent indexer to use, the highest priority indexer in the
+# config.toml file will be used. If no indexer has been provided to the config.toml file, the "coral" indexer will be
+# used.
+#
+# You may also use the "coral" agent indexer even when you have defined your own agent indexers in the config.toml file.
+#indexer = "myPrivateIndexer"
+
+[[inline-agent]]
+
+# An inline-agent type allows you to directly write a coral-agent.toml definition inside the registry.  The only
+# difference in syntax is that each table must start with "inline-agent"
+[inline-agent.agent]
+name = "interface"
+version = "0.0.1"
+
+[inline-agent.options.OPENAI_API_KEY]
+type = "string"
+description = "OpenAI API Key"
+
+[inline-agent.runtimes.executable]
+command = ["bash", "examples/camel-search-maths/venv.sh", "examples/camel-search-maths/mcp_example_camel_interface.py"]

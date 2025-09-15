@@ -4,11 +4,16 @@ import io.modelcontextprotocol.kotlin.sdk.Implementation
 import io.modelcontextprotocol.kotlin.sdk.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
-import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
-import org.coralprotocol.coralserver.mcpresources.addMessageResource
-import org.coralprotocol.coralserver.session.CoralAgentGraphSession
-import org.coralprotocol.coralserver.mcptools.addThreadTools
+import io.modelcontextprotocol.kotlin.sdk.shared.Transport
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
+import org.coralprotocol.coralserver.mcp.resources.addAgentResource
+import org.coralprotocol.coralserver.mcp.resources.addInstructionResource
+import org.coralprotocol.coralserver.mcp.resources.addMessageResource
+import org.coralprotocol.coralserver.mcp.tools.addThreadTools
 import org.coralprotocol.coralserver.session.CustomTool
+import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.addExtraTool
 
 /**
@@ -20,21 +25,15 @@ import org.coralprotocol.coralserver.session.addExtraTool
  * This [CoralAgentIndividualMcp] should persist even if the agent reconnects via a different transport.
  */
 class CoralAgentIndividualMcp(
-    val connectedUri: String,
-    /**
-     * The latest transport used by the agent to connect to the server. It might change if the agent reconnects.
-     */
-    var latestTransport: SseServerTransport,
-    /**
-     * The session this agent is part of.
-     */
-    val coralAgentGraphSession: CoralAgentGraphSession,
+    val localSession: LocalSession,
     /**
      * The ID of the agent associated with this connection.
      */
     val connectedAgentId: String,
-    val maxWaitForMentionsTimeoutMs: Long = 2000,
     val extraTools: Set<CustomTool> = setOf(),
+    val plugins: Set<GraphAgentPlugin> = setOf(),
+    val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+    // Maybe add a callback val for on destroy
 ) : Server(
     Implementation(
         name = "Coral Server",
@@ -51,13 +50,31 @@ class CoralAgentIndividualMcp(
     init {
         addThreadTools()
         addMessageResource()
+        addInstructionResource()
+        addAgentResource()
         extraTools.forEach {
-            addExtraTool(coralAgentGraphSession.id, connectedAgentId, it)
+            addExtraTool(localSession.id, connectedAgentId, it)
+        }
+        plugins.forEach {
+            it.install(this)
         }
     }
 
+    /**
+     * Attaches to the given transport, starts it, and starts listening for messages.
+     *
+     * The Protocol object assumes ownership of the Transport, replacing any callbacks that have already been set, and expects that it is the only user of the Transport instance going forward.
+     */
+    override suspend fun connect(transport: Transport) {
+        return super.connect(transport)
+    }
+
     suspend fun closeTransport() {
-        latestTransport.close()
+        transport?.close()
+    }
+
+    fun destroy() {
+
     }
 }
 

@@ -2,18 +2,26 @@
 
 package org.coralprotocol.coralserver.agent.runtime
 
-import com.chrynan.uri.core.Uri
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.EventBus
-import org.coralprotocol.coralserver.config.ConfigCollection
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
-import org.coralprotocol.coralserver.agent.graph.GraphAgentServerSource
-import org.coralprotocol.coralserver.session.SessionManager
+import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
+import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
+import org.coralprotocol.coralserver.agent.registry.AgentRegistry
+import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.session.LocalSession
+import org.coralprotocol.coralserver.session.SessionCloseMode
+import org.coralprotocol.coralserver.session.remote.RemoteSession
+import kotlin.system.measureTimeMillis
+import kotlin.uuid.ExperimentalUuidApi
+
+private val logger = KotlinLogging.logger {}
 
 enum class LogKind {
     STDOUT,
@@ -33,14 +41,14 @@ sealed interface RuntimeEvent {
 
     @Serializable
     @SerialName("stopped")
-    data class Stopped(val timestamp: Long = System.currentTimeMillis()): RuntimeEvent
+    data class Stopped(val timestamp: Long = System.currentTimeMillis()) : RuntimeEvent
 }
 
 interface Orchestrate {
     fun spawn(
         params: RuntimeParams,
         eventBus: EventBus<RuntimeEvent>,
-        sessionManager: SessionManager?,
+        applicationRuntimeContext: ApplicationRuntimeContext
     ): OrchestratorHandle
 }
 
@@ -49,11 +57,32 @@ interface OrchestratorHandle {
 }
 
 class Orchestrator(
-    val app: ConfigCollection = ConfigCollection(null),
+    val config: Config = Config(),
+    val registry: AgentRegistry = AgentRegistry()
 ) {
+    private val remoteScope = CoroutineScope(Dispatchers.IO)
     private val eventBusses: MutableMap<String, MutableMap<String, EventBus<RuntimeEvent>>> = mutableMapOf()
-    private val handles: MutableList<OrchestratorHandle> = mutableListOf()
+    private val handles: MutableMap<String, MutableList<OrchestratorHandle>> = mutableMapOf()
 
+    @OptIn(ExperimentalUuidApi::class)
+    private val applicationRuntimeContext: ApplicationRuntimeContext = ApplicationRuntimeContext(config)
+
+    init {
+        registry.agents
+            .filter { it.runtimes.dockerRuntime != null }
+            .forEach {
+                val image = it.runtimes.dockerRuntime!!.image
+                try {
+                    val time = measureTimeMillis {
+                        applicationRuntimeContext.dockerClient.pullImageCmd(image)
+                    }
+                    logger.info { "Preloaded agent ${it.info.identifier}'s docker image $image in ${time}ms" }
+                } catch (e: Exception) {
+                    logger.error(e) { "Failed to pull agent ${it.info.identifier}'s docker image $image" }
+                    logger.warn { "The Docker runtime will not be available for ${it.info.identifier}" }
+                }
+            }
+    }
 
     fun getBus(sessionId: String, agentId: String): EventBus<RuntimeEvent>? = eventBusses[sessionId]?.get(agentId)
 
@@ -63,61 +92,131 @@ class Orchestrator(
         EventBus(replay = 512)
     }
 
-    fun spawn(sessionId: String, graphAgent: GraphAgent, agentName: String, port: UShort, relativeMcpServerUri: Uri, sessionManager: SessionManager?) {
-        val params = RuntimeParams(
-            sessionId = sessionId,
+    fun spawn(
+        session: LocalSession,
+        graphAgent: GraphAgent,
+        agentName: String,
+        applicationId: String,
+        privacyKey: String
+    ) {
+        val params = RuntimeParams.Local(
+            session = session,
+            agentId = graphAgent.registryAgent.info.identifier,
             agentName = agentName,
-            mcpServerPort = port,
-            mcpServerRelativeUri = relativeMcpServerUri,
+            applicationId = applicationId,
+            privacyKey = privacyKey,
             systemPrompt = graphAgent.systemPrompt,
-            options = graphAgent.options
+            options = graphAgent.options,
         )
 
-        val agent = app.registry.importedAgents[graphAgent.name]
-            ?: throw IllegalArgumentException("Cannot spawn unknown agent: ${graphAgent.name}")
+        val handles = handles.getOrPut(session.id) { mutableListOf() }
 
         when (val provider = graphAgent.provider) {
             is GraphAgentProvider.Local -> {
-                val runtime = agent.runtimes.getById(provider.runtime) ?:
-                    throw IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported on agent ${graphAgent.name}")
+                val runtime = graphAgent.registryAgent.runtimes.getById(provider.runtime)
+                    ?: throw IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported on agent ${graphAgent.name}")
 
-                handles.add(runtime.spawn(
-                    params,
-                    getBusOrCreate(params.sessionId, params.agentName),
-                    sessionManager)
+                handles.add(
+                    runtime.spawn(
+                        params,
+                        getBusOrCreate(params.session.id, params.agentName),
+                        applicationRuntimeContext
+                    )
                 )
             }
-            is GraphAgentProvider.Remote -> {
-                val rankedServers = when (provider.serverSource) {
-                    is GraphAgentServerSource.Servers -> {
-                        provider.serverSource.servers.sortedBy {
-                            provider.serverScoring?.getScore(it) ?: 1.0
-                        }
-                    }
-                    is GraphAgentServerSource.Indexer -> TODO("indexer server source not yet supported")
-                }
 
-                /*
-                    Workflow:
-                    1. Iterate over ranked servers (maintaining order!), finding the first that responds to "pings"
-                    2. Request the agent from the server.  If they decline, move to the next server
-                    3. If they accept:
-                        a. Do payment stuff, if this fails, move to the next server
-                        b. Open WebSocket connection with the server, this WebSocket connection can be treated like a
-                           bus for a process or docker container
-                        c. Tie the life-cycle of an agent to the WebSocket connection and vice versa, again similarly to a
-                           process or container
-                        d. More payment stuff?
-                    4. If the list of servers is exhausted without having found a suitable server to provide the agent,
-                       an exception should be thrown
-                 */
+            is GraphAgentProvider.Remote -> remoteScope.launch {
+                val request = PaidGraphAgentRequest(
+                    GraphAgentRequest(
+                        id = graphAgent.registryAgent.info.identifier,
+                        name = graphAgent.name,
+                        description = graphAgent.description,
+                        options = graphAgent.options,
+                        systemPrompt = graphAgent.systemPrompt,
+                        blocking = graphAgent.blocking,
+                        customToolAccess = graphAgent.customToolAccess,
+                        plugins = graphAgent.plugins,
+                        provider = GraphAgentProvider.Local(provider.runtime),
+                    ),
+                    paidSessionId = session.paymentSessionId
+                        ?: throw IllegalStateException("Session including paid agents does not include a payment session")
+                )
 
-                TODO("support remote runtime agents")
+                val runtime = RemoteRuntime(provider.server, provider.server.createClaim(request))
+                handles.add(
+                    runtime.spawn(
+                        params,
+                        getBusOrCreate(params.session.id, params.agentName),
+                        applicationRuntimeContext
+                    )
+                )
+            }
+
+            is GraphAgentProvider.RemoteRequest -> throw IllegalArgumentException("Remote requests must be resolved before orchestration")
+        }
+    }
+
+    /**
+     * Remote agent function!
+     *
+     * This function should be called on the server that exports agents to spawn an agent that
+     * was requested by another server.
+     */
+    fun spawnRemote(
+        session: RemoteSession,
+        graphAgent: GraphAgent,
+        agentName: String
+    ) {
+        val params = RuntimeParams.Remote(
+            session = session,
+            agentId = graphAgent.registryAgent.info.identifier,
+            agentName = agentName,
+            systemPrompt = graphAgent.systemPrompt,
+            options = graphAgent.options,
+        )
+
+        when (val provider = graphAgent.provider) {
+            is GraphAgentProvider.RemoteRequest, is GraphAgentProvider.Remote -> {
+                throw IllegalArgumentException("Remote agents cannot be provided by other remote servers")
+            }
+
+            is GraphAgentProvider.Local -> {
+                val runtime = graphAgent.registryAgent.runtimes.getById(provider.runtime)
+                    ?: throw IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported on agent ${graphAgent.registryAgent.info.identifier}")
+
+                handles.getOrPut(session.id) { mutableListOf() }.add(
+                    runtime.spawn(
+                        params,
+                        getBusOrCreate(params.session.id, params.agentName),
+                        applicationRuntimeContext
+                    )
+                )
             }
         }
     }
 
     suspend fun destroy(): Unit = coroutineScope {
-        handles.map { async { it.destroy() } }.awaitAll()
+        remoteScope.cancel()
+        handles.values.flatten().map {
+            async {
+                try {
+                    it.destroy()
+                } catch (e: Exception) {
+                    logger.error(e) { "Failed to destroy runtime" }
+                }
+            }
+        }.awaitAll()
+    }
+
+    suspend fun killForSession(sessionId: String, sessionCloseMode: SessionCloseMode): Unit = coroutineScope {
+        handles[sessionId]?.map {
+            async {
+                try {
+                    it.destroy()
+                } catch (e: Exception) {
+                    logger.error(e) { "Failed to destroy runtime for session $sessionId" }
+                }
+            }
+        }?.awaitAll()
     }
 }
