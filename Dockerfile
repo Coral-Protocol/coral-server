@@ -4,7 +4,7 @@ WORKDIR /home/gradle/src
 
 RUN jlink \
     --verbose \
-    --add-modules java.base,jdk.unsupported,java.desktop,java.instrument,java.logging,java.management,java.sql,java.xml \
+    --add-modules java.base,jdk.unsupported,java.desktop,java.instrument,java.logging,java.management,java.sql,java.xml,java.naming \
     --compress 2 --strip-debug --no-header-files --no-man-pages \
     --output /opt/minimal-java
 
