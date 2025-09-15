@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.e2e
+package org.coralprotocol.coralserver.utils
 
 import io.ktor.server.application.ServerReady
 import io.mockk.spyk
@@ -12,7 +12,6 @@ import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.config.PaymentConfig
-import org.coralprotocol.coralserver.config.loadFromFile
 import org.coralprotocol.coralserver.server.CoralServer
 import org.coralprotocol.payment.blockchain.BlockchainService
 
@@ -34,16 +33,16 @@ class TestCoralServer(
             networkConfig = NetworkConfig(bindAddress = host, bindPort = port),
             paymentConfig = PaymentConfig()
         )
-        val blockchainService: BlockchainService = blockchainServiceOverride ?: createBlockchainService(config)
+//        val blockchainService: BlockchainService = blockchainServiceOverride ?: createBlockchainService(config)
         val registry = AgentRegistry(agents = mutableListOf())
-        val orchestrator: Orchestrator = spyk(Orchestrator(config, registry, blockchainService))
+        val orchestrator: Orchestrator = spyk(Orchestrator(config, registry))
 
         server = CoralServer(
             devmode = devmode,
             config = config,
             registry = registry,
-            orchestrator = orchestrator,
-            blockchainService = blockchainService
+            blockchainService = blockchainServiceOverride,
+            orchestrator = orchestrator
         )
         GlobalScope.launch(serverContext) {
             server!!.start()
@@ -60,4 +59,3 @@ class TestCoralServer(
 
     fun getSessionManager() = server!!.localSessionManager
 }
-
