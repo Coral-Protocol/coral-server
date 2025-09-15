@@ -5,14 +5,13 @@ import io.github.smiley4.ktoropenapi.resources.post
 import io.ktor.http.*
 import io.ktor.resources.*
 import io.ktor.server.response.*
-import io.ktor.server.routing.Routing
+import io.ktor.server.routing.*
 import io.ktor.util.collections.*
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import org.coralprotocol.coralserver.server.RouteException
-import org.coralprotocol.coralserver.session.SessionManager
-import kotlin.NoSuchElementException
-import kotlin.String
+import org.coralprotocol.coralserver.session.LocalSessionManager
+import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 
 private val logger = KotlinLogging.logger {}
 
@@ -22,12 +21,19 @@ class Message(val applicationId: String, val privacyKey: String, val coralSessio
 @Resource("/api/v1/message/devmode/{applicationId}/{privacyKey}/{coralSessionId}")
 class DevModeMessage(val applicationId: String, val privacyKey: String, val coralSessionId: String)
 
+@Resource("/api/v1/message/export/{remoteSessionId}")
+class ExportingAgentMessage(val remoteSessionId: String)
+
 /**
  * Configures message-related routes.
  * 
  * @param servers A concurrent map to store server instances by transport session ID
  */
-fun Routing.messageApiRoutes(servers: ConcurrentMap<String, Server>, sessionManager: SessionManager) {
+fun Routing.messageApiRoutes(
+    servers: ConcurrentMap<String, Server>,
+    localSessionManager: LocalSessionManager,
+    remoteSessionManager: RemoteSessionManager?
+) {
     // Message endpoint with application, privacy key, and session parameters
     post<Message>({
         summary = "Send message"
@@ -50,21 +56,33 @@ fun Routing.messageApiRoutes(servers: ConcurrentMap<String, Server>, sessionMana
             }
             HttpStatusCode.Forbidden to {
                 description = "Invalid application ID or privacy key"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
             HttpStatusCode.NotFound to {
                 description = "Invalid Coral session ID"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
             HttpStatusCode.BadRequest to {
                 description = "Invalid session ID"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
             HttpStatusCode.InternalServerError to {
                 description = "MCP error"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
         }
     }) { message ->
         logger.debug { "Received Message" }
 
-        val session = sessionManager.getSession(message.coralSessionId)
+        val session = localSessionManager.getSession(message.coralSessionId)
         if (session == null) {
             call.respond(HttpStatusCode.NotFound, "Session not found")
             return@post
@@ -117,19 +135,28 @@ fun Routing.messageApiRoutes(servers: ConcurrentMap<String, Server>, sessionMana
             }
             HttpStatusCode.NotFound to {
                 description = "Invalid Coral session ID"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
             HttpStatusCode.BadRequest to {
                 description = "Invalid session ID"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
             HttpStatusCode.InternalServerError to {
                 description = "MCP error"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
         }
     }) { message ->
         logger.debug { "Received DevMode Message" }
 
         // Get the session. It should exist even in dev mode as it was created in the sse endpoint
-        val session = sessionManager.getSession(message.coralSessionId)
+        val session = localSessionManager.getSession(message.coralSessionId)
         if (session == null) {
             call.respond(HttpStatusCode.NotFound, "Session not found")
             return@post
@@ -148,6 +175,27 @@ fun Routing.messageApiRoutes(servers: ConcurrentMap<String, Server>, sessionMana
         // Handle the message
         try {
             transport.handlePostMessage(call)
+        } catch (e: NoSuchElementException) {
+            logger.error(e) { "This error likely comes from an inspector or non-essential client and can probably be ignored. See https://github.com/modelcontextprotocol/kotlin-sdk/issues/7" }
+            call.respond(HttpStatusCode.InternalServerError, "Error handling message: ${e.message}")
+        }
+    }
+
+    post<ExportingAgentMessage>({
+        summary = "Send message"
+        description = "Sends a message"
+        operationId = "sendMessage"
+        hidden = true
+    }) { message ->
+        if (remoteSessionManager == null)
+            throw RouteException(HttpStatusCode.InternalServerError, "Remote sessions are disabled")
+
+        logger.debug { "Received Exported Agent Message" }
+        val transport = remoteSessionManager.findSession(message.remoteSessionId)?.deferredMcpTransport
+            ?: throw RouteException(HttpStatusCode.NotFound, "Remote session not found")
+
+        try {
+            transport.await().handlePostMessage(call)
         } catch (e: NoSuchElementException) {
             logger.error(e) { "This error likely comes from an inspector or non-essential client and can probably be ignored. See https://github.com/modelcontextprotocol/kotlin-sdk/issues/7" }
             call.respond(HttpStatusCode.InternalServerError, "Error handling message: ${e.message}")

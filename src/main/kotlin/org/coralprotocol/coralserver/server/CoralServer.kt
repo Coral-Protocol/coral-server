@@ -9,21 +9,17 @@ import io.github.smiley4.ktoropenapi.config.SchemaGenerator
 import io.github.smiley4.ktoropenapi.openApi
 import io.github.smiley4.ktoropenapi.route
 import io.github.smiley4.schemakenerator.core.CoreSteps.addMissingSupertypeSubtypeRelations
-import io.github.smiley4.schemakenerator.core.CoreSteps.handleNameAnnotation
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.addJsonClassDiscriminatorProperty
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.analyzeTypeUsingKotlinxSerialization
-import io.github.smiley4.schemakenerator.serialization.SerializationSteps.renameMembers
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.compileReferencingRoot
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.customizeTypes
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.generateSwaggerSchema
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.handleCoreAnnotations
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.handleSchemaAnnotations
-import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.mergePropertyAttributesIntoType
 import io.github.smiley4.schemakenerator.swagger.SwaggerSteps.withTitle
 import io.github.smiley4.schemakenerator.swagger.TitleBuilder
 import io.github.smiley4.schemakenerator.swagger.data.TitleType
 import io.ktor.http.*
-import io.ktor.resources.Resource
 import io.ktor.serialization.kotlinx.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -42,31 +38,32 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.coroutines.Job
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonNamingStrategy
-import org.coralprotocol.coralserver.config.ConfigCollection
+import org.coralprotocol.coralserver.agent.registry.AgentRegistry
+import org.coralprotocol.coralserver.agent.runtime.Orchestrator
+import org.coralprotocol.coralserver.config.AddressConsumer
+import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.mcp.McpResources
+import org.coralprotocol.coralserver.mcp.McpToolName
+import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
 import org.coralprotocol.coralserver.models.SocketEvent
-import org.coralprotocol.coralserver.routes.api.v1.debugApiRoutes
-import org.coralprotocol.coralserver.routes.api.v1.agentApiRoutes
-import org.coralprotocol.coralserver.routes.api.v1.documentationApiRoutes
-import org.coralprotocol.coralserver.routes.api.v1.messageApiRoutes
-import org.coralprotocol.coralserver.routes.api.v1.sessionApiRoutes
-import org.coralprotocol.coralserver.routes.api.v1.telemetryApiRoutes
+import org.coralprotocol.coralserver.payment.JupiterService
+import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
+import org.coralprotocol.coralserver.routes.api.v1.*
 import org.coralprotocol.coralserver.routes.sse.v1.connectionSseRoutes
+import org.coralprotocol.coralserver.routes.sse.v1.exportedAgentSseRoutes
 import org.coralprotocol.coralserver.routes.ws.v1.debugWsRoutes
-import org.coralprotocol.coralserver.session.SessionManager
+import org.coralprotocol.coralserver.routes.ws.v1.exportedAgentRoutes
+import org.coralprotocol.coralserver.session.LocalSessionManager
+import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
+import org.coralprotocol.payment.blockchain.BlockchainService
 import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 
-// It is important that this naming strategy is used both for deserialization and for the OpenAPI generation
-// so that the spec generates the correct property names for (de)serialization
-private val NAMING_STRATEGY = JsonNamingStrategy.SnakeCase
-
-private val json = Json {
+val apiJsonConfig = Json {
     encodeDefaults = true
     prettyPrint = true
     explicitNulls = false
-    namingStrategy = NAMING_STRATEGY
 }
 
 /**
@@ -77,70 +74,80 @@ private val json = Json {
  * @param devmode Whether the server is running in development mode
  */
 class CoralServer(
-    val host: String = "0.0.0.0",
-    val port: UShort = 5555u,
-    val appConfig: ConfigCollection,
+    val config: Config,
+    val registry: AgentRegistry,
+    val blockchainService: BlockchainService?,
     val devmode: Boolean = false,
-    val sessionManager: SessionManager = SessionManager(port = port),
+    orchestrator: Orchestrator
 ) {
+    val jupiterService = JupiterService()
+    val localSessionManager = LocalSessionManager(config, orchestrator, blockchainService, jupiterService)
 
-    /*
-        /{destinationId}/{protocol}/{version}/depends....
+    val aggregatedPaymentClaimManager = if (blockchainService != null) {
+        AggregatedPaymentClaimManager(blockchainService, jupiterService)
+    }
+    else {
+        null
+    }
 
-        /api/v2/forward/{destinationId}/ get/head/post/etc -> ...agent traffic: telemetry + sse + anything else in the future
+    val remoteSessionManager = if (aggregatedPaymentClaimManager != null) {
+        RemoteSessionManager(orchestrator, aggregatedPaymentClaimManager)
+    }
+    else {
+        null
+    }
 
-        local:
-            generic api:    /api/v1/message/{applicationId}/{privacyKey}/{coralSessionId}
-            sse:          * /sse/v1/1/{applicationId}/{privacyKey}/{coralSessionId}
-            coral studio:   /ws/v1/1/debug/{applicationId}/{privacyKey}/{coralSessionId}
-
-     */
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
-        embeddedServer(CIO, host = host, port = port.toInt(), watchPaths = listOf("classes")) {
+        embeddedServer(
+            CIO,
+            host = config.networkConfig.bindAddress,
+            port = config.networkConfig.bindPort.toInt(),
+            watchPaths = listOf("classes")
+        ) {
             install(OpenApi) {
                 info {
                     title = "Coral Server API"
+                    version = "1.0"
                 }
-                spec("v1") {
-                    info {
-                        version = "1.0"
-                    }
-                    tags {
-                        tagGenerator = { url -> listOf(url.getOrNull(2)) }
-                    }
-                    schemas {
-                        generator = SchemaGenerator.kotlinx {  }
-                        // Generated types from routes
-                        generator = { type ->
-                            type
-                                .analyzeTypeUsingKotlinxSerialization {
+                tags {
+                    tagGenerator = { url -> listOf(url.getOrNull(2)) }
+                }
+                schemas {
+                    generator = SchemaGenerator.kotlinx {  }
+                    // Generated types from routes
+                    generator = { type ->
+                        type
+                            .analyzeTypeUsingKotlinxSerialization {
 
-                                }
-                                .addMissingSupertypeSubtypeRelations()
-                                .addJsonClassDiscriminatorProperty()
-                                .handleNameAnnotation().renameMembers(NAMING_STRATEGY)
-                                .generateSwaggerSchema({
-                                    strictDiscriminatorProperty = true
-                                })
-                                .handleCoreAnnotations()
-                                .handleSchemaAnnotations()
-                                .customizeTypes { _, schema ->
-                                    // Mapping is broken, and one of the code generation libraries I am using checks the
-                                    // references here
-                                    schema.discriminator?.mapping = null;
-                                }
-                                .withTitle(TitleType.SIMPLE)
-                                .compileReferencingRoot(
-                                    explicitNullTypes = false,
-                                    inlineDiscriminatedTypes = true,
-                                    builder = TitleBuilder.BUILDER_OPENAPI_SIMPLE
-                                )
-                        }
-
-                        // Other types, used by SSE or WebSocket routes
-                        schema<SocketEvent>("SocketEvent")
+                            }
+                            .addMissingSupertypeSubtypeRelations()
+                            .addJsonClassDiscriminatorProperty()
+                            .generateSwaggerSchema({
+                                strictDiscriminatorProperty = true
+                            })
+                            .handleCoreAnnotations()
+                            .handleSchemaAnnotations()
+                            .customizeTypes { _, schema ->
+                                // Mapping is broken, and one of the code generation libraries I am using checks the
+                                // references here
+                                schema.discriminator?.mapping = null;
+                            }
+                            .withTitle(TitleType.SIMPLE)
+                            .compileReferencingRoot(
+                                explicitNullTypes = false,
+                                inlineDiscriminatedTypes = true,
+                                builder = TitleBuilder.BUILDER_OPENAPI_SIMPLE
+                            )
                     }
+
+                    // Other types, used by SSE or WebSocket routes
+                    schema<SocketEvent>("SocketEvent")
+
+                    // Mcp types
+                    schema<McpToolName>("McpToolName")
+                    schema<McpResources>("McpResources")
+                    schema<McpToolResult>("McpToolResult")
                 }
                 specAssigner = { url: String, tags: List<String> ->
                     // when another spec version is added, determine the version based on the url here or use
@@ -148,14 +155,14 @@ class CoralServer(
                     "v1"
                 }
                 pathFilter = { method, parts ->
-                     parts.getOrNull(0) == "api"
+                    parts.getOrNull(0) == "api"
                 }
                 outputFormat = OutputFormat.JSON
             }
             install(Resources)
             install(SSE)
             install(ContentNegotiation) {
-                json(json, contentType = ContentType.Application.Json)
+                json(apiJsonConfig, contentType = ContentType.Application.Json)
             }
             install(WebSockets) {
                 contentConverter = KotlinxWebsocketSerializationConverter(Json)
@@ -164,6 +171,7 @@ class CoralServer(
                 maxFrameSize = Long.MAX_VALUE
                 masking = false
             }
+
             // TODO: probably restrict this down the line
             install(CORS) {
                 allowMethod(HttpMethod.Options)
@@ -182,23 +190,27 @@ class CoralServer(
                         wrapped = RouteException(HttpStatusCode.InternalServerError, cause.message)
                     }
 
-                    call.respondText(text = json.encodeToString(wrapped), status = wrapped.status)
+                    call.respondText(text = apiJsonConfig.encodeToString(wrapped), status = wrapped.status)
                 }
             }
             routing {
                 // api
-                debugApiRoutes(sessionManager)
-                sessionApiRoutes(appConfig, sessionManager, devmode)
-                messageApiRoutes(mcpServersByTransportId, sessionManager)
-                telemetryApiRoutes(sessionManager)
+                debugApiRoutes(localSessionManager)
+                sessionApiRoutes(registry, localSessionManager, devmode)
+                messageApiRoutes(mcpServersByTransportId, localSessionManager, remoteSessionManager)
+                telemetryApiRoutes(localSessionManager)
                 documentationApiRoutes()
-                agentApiRoutes(appConfig, sessionManager)
+                agentApiRoutes(registry, blockchainService, remoteSessionManager, jupiterService)
+                internalRoutes(remoteSessionManager, aggregatedPaymentClaimManager, jupiterService)
+                publicWalletApiRoutes(config.paymentConfig.wallet)
 
                 // sse
-                connectionSseRoutes(mcpServersByTransportId, sessionManager)
+                connectionSseRoutes(mcpServersByTransportId, localSessionManager)
+                exportedAgentSseRoutes(mcpServersByTransportId, remoteSessionManager)
 
                 // websocket
-                debugWsRoutes(sessionManager)
+                debugWsRoutes(localSessionManager, orchestrator)
+                exportedAgentRoutes(remoteSessionManager)
 
                 // source of truth for OpenAPI docs/codegen
                 route("api_v1.json") {
@@ -206,6 +218,7 @@ class CoralServer(
                 }
             }
         }
+
     val monitor get() = server.monitor
     private var serverJob: Job? = null
 
@@ -213,21 +226,18 @@ class CoralServer(
      * Starts the server.
      */
     fun start(wait: Boolean = false) {
-        logger.info { "Starting sse server on port $port with ${appConfig.appConfig.applications.size} configured applications" }
+        logger.info { "Starting sse server on port ${config.networkConfig.bindPort}" }
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "trace");
 
         if (devmode) {
             logger.info {
                 "In development, agents can connect to " +
-                        "http://localhost:$port/sse/v1/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=exampleAgent"
+                        "${config.resolveAddress(AddressConsumer.LOCAL)}/sse/v1/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=exampleAgent"
             }
             logger.info {
                 "Connect the inspector to " +
-                        "http://localhost:$port/sse/v1/devmode/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=inspector"
+                        "${config.resolveAddress(AddressConsumer.LOCAL)}/sse/v1/devmode/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=inspector"
             }
-        }
-        server.monitor.subscribe(ApplicationStarted) {
-            logger.info { "Server started on $host:$port" }
         }
         server.start(wait)
     }

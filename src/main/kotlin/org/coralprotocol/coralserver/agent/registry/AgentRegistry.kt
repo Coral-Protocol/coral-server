@@ -1,9 +1,9 @@
 package org.coralprotocol.coralserver.agent.registry
 
-import kotlinx.serialization.Serializable
+class AgentRegistry(
+    val agents: List<RegistryAgent> = listOf()
+) {
+    fun findAgent(id: AgentRegistryIdentifier) = agents.find { it.info.identifier == id }
 
-@Serializable
-data class AgentRegistry(
-    val importedAgents: Map<String, RegistryAgent>,
-    val exportedAgents: Map<String, AgentExport>
-)
+    companion object
+}

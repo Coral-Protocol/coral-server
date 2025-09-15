@@ -7,11 +7,11 @@ import io.ktor.resources.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.coralprotocol.coralserver.mcptools.CreateThreadInput
-import org.coralprotocol.coralserver.mcptools.SendMessageInput
+import org.coralprotocol.coralserver.mcp.tools.models.CreateThreadInput
+import org.coralprotocol.coralserver.mcp.tools.models.SendMessageInput
 import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.RouteException
-import org.coralprotocol.coralserver.session.SessionManager
+import org.coralprotocol.coralserver.session.LocalSessionManager
 
 private val logger = KotlinLogging.logger {}
 
@@ -31,7 +31,7 @@ class DebugSendMessage(
     val debugAgentId: String
 )
 
-fun Routing.debugApiRoutes(sessionManager: SessionManager) {
+fun Routing.debugApiRoutes(localSessionManager: LocalSessionManager) {
     post<DebugCreateThread>({
         summary = "Create thread"
         description = "Creates a new thread"
@@ -59,14 +59,20 @@ fun Routing.debugApiRoutes(sessionManager: SessionManager) {
             }
             HttpStatusCode.NotFound to {
                 description = "Session not found"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
             HttpStatusCode.InternalServerError to {
                 description = "Error creating thread"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
         }
     }) { debugRequest ->
         // TODO (alan): proper appId/privacyKey based lookups when session manager is updated
-        val session = sessionManager.getSession(debugRequest.coralSessionId)
+        val session = localSessionManager.getSession(debugRequest.coralSessionId)
             ?: throw RouteException(HttpStatusCode.NotFound, "Session not found")
 
         try {
@@ -111,14 +117,20 @@ fun Routing.debugApiRoutes(sessionManager: SessionManager) {
             }
             HttpStatusCode.NotFound to {
                 description = "Session not found"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
             HttpStatusCode.InternalServerError to {
                 description = "Error sending message"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
             }
         }
     }) { debugRequest ->
         // TODO (alan): proper appId/privacyKey based lookups when session manager is updated
-        val session = sessionManager.getSession(debugRequest.coralSessionId)
+        val session = localSessionManager.getSession(debugRequest.coralSessionId)
             ?: throw RouteException(HttpStatusCode.NotFound, "Session not found")
 
         try {
