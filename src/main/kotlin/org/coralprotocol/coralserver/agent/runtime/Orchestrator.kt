@@ -107,6 +107,7 @@ class Orchestrator(
             privacyKey = privacyKey,
             systemPrompt = graphAgent.systemPrompt,
             options = graphAgent.options,
+            path = graphAgent.registryAgent.path
         )
 
         val handles = handles.getOrPut(session.id) { mutableListOf() }
@@ -173,6 +174,7 @@ class Orchestrator(
             agentName = agentName,
             systemPrompt = graphAgent.systemPrompt,
             options = graphAgent.options,
+            path = graphAgent.registryAgent.path
         )
 
         when (val provider = graphAgent.provider) {

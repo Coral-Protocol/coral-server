@@ -30,6 +30,7 @@ data class ExecutableRuntime(
         val agentLogger = KotlinLogging.logger("ExecutableRuntime:${params.agentName}")
 
         val processBuilder = ProcessBuilder()
+        processBuilder.directory(params.path.toFile())
         val processEnvironment = processBuilder.environment()
 
         val apiUrl = applicationRuntimeContext.getApiUrl(AddressConsumer.LOCAL)
