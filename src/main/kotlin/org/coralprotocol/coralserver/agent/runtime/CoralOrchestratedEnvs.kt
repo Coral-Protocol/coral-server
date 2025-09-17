@@ -22,7 +22,7 @@ fun getCoralSystemEnvs(
         },
         "CORAL_API_URL" to apiUrl.toString(),
         "CORAL_SSE_URL" to with(mcpUrl) {
-            "${protocol}://$host:$port$encodedPath"
+            "${protocol.name}://$host:$port$encodedPath"
         },
         params.systemPrompt?.let { "CORAL_PROMPT_SYSTEM" to it }
     ).toMap()
