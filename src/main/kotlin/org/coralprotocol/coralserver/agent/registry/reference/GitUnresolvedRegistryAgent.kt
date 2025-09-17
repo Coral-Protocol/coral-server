@@ -27,7 +27,7 @@ data class GitUnresolvedRegistryAgent (
     @Transient
     private val encoder = Base64.getUrlEncoder()
 
-    override fun resolve(context: RegistryResolutionContext): List<RegistryAgent> {
+    override fun resolve(context: AgentResolutionContext): List<RegistryAgent> {
         val safeRepoName = encoder.encodeToString(repo.toByteArray())
         val identifiers = mapOf(
             "branch" to branch,
@@ -46,7 +46,7 @@ data class GitUnresolvedRegistryAgent (
             ?: throw RegistryException("git-agent (repo $repo) must specify one of branch, tag, or rev")
 
         val safeRepoPath = Path.of(safeRepoName, idType, encoder.encodeToString(idValue.toByteArray()))
-        val fullRepoPath = context.config.cache.agent.resolve(safeRepoPath)
+        val fullRepoPath = context.registryResolutionContext.config.cache.agent.resolve(safeRepoPath)
         val fullAgentTomlPath = fullRepoPath.resolve(AGENT_FILE)
 
         if (!fullAgentTomlPath.toFile().exists()) {
@@ -78,7 +78,7 @@ data class GitUnresolvedRegistryAgent (
         try {
             return listOf(resolveRegistryAgentFromStream(
                 file = fullAgentTomlPath.toFile(),
-                context = context,
+                context = context.registryResolutionContext,
                 exportSettings = unresolvedExportSettings
             ))
         }
