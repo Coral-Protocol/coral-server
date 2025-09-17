@@ -1,4 +1,4 @@
-# Coral Server - Agent Fuzzy A2A (Agent to Agent) Communication MCP Tools
+# Coral Server
 
 An implementation of the Coral protocol that acts as an MCP server providing tools for agents to communicate with each other.
 ![999](https://github.com/user-attachments/assets/2b74074e-42c2-4abd-9827-ea3c68b75c99)
