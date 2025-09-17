@@ -16,12 +16,13 @@ data class UnresolvedInlineRegistryAgent(
     @Description("The options that this agent supports, for example the API keys required for the agent to function")
     val options: Map<String, AgentOption>,
 ) : UnresolvedRegistryAgent() {
-    override fun resolve(context: RegistryResolutionContext): List<RegistryAgent> {
+    override fun resolve(context: AgentResolutionContext): List<RegistryAgent> {
         return listOf(RegistryAgent(
             info = agentInfo,
             runtimes = runtimes,
             options = options,
-            unresolvedExportSettings = unresolvedExportSettings
+            unresolvedExportSettings = unresolvedExportSettings,
+            path = context.path
         ))
     }
 }

@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.reference.GitUnresolvedRegistryAgent
 import org.coralprotocol.coralserver.agent.registry.reference.IndexUnresolvedRegistryAgent
 import org.coralprotocol.coralserver.agent.registry.reference.LocalUnresolvedRegistryAgent
+import java.nio.file.Path
 
 private val logger = KotlinLogging.logger {}
 
@@ -28,10 +29,23 @@ data class UnresolvedAgentRegistry(
     val inlineAgents: List<UnresolvedInlineRegistryAgent> = listOf(),
 ) {
     fun resolve(context: RegistryResolutionContext): AgentRegistry {
-        val agents = localAgents.flatMap { it.resolve(context) } +
-                gitAgents.flatMap { it.resolve(context) } +
-                indexedAgents.flatMap { it.resolve(context) } +
-                inlineAgents.flatMap { it.resolve(context) }
+        // Agents resolved from a local path require a reference to that path during the resolution process
+        val agents = localAgents.flatMap {
+            it.resolve(AgentResolutionContext(
+                registryResolutionContext = context,
+                path = context.tryRelative(Path.of(it.path))
+            ))
+        }.toMutableList()
+
+        // Git/indexed/inline agents should resolve paths (e.g. exec runtime directories) using the current working
+        // directory
+        val defaultCtx = AgentResolutionContext(
+            registryResolutionContext = context,
+            path = Path.of(System.getProperty("user.dir"))
+        )
+        agents += gitAgents.flatMap { it.resolve(defaultCtx) }
+        agents += indexedAgents.flatMap { it.resolve(defaultCtx) }
+        agents += inlineAgents.flatMap { it.resolve(defaultCtx) }
 
         val duplicates = agents
             .groupingBy { it.info.identifier }
