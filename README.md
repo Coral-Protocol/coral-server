@@ -21,21 +21,9 @@ The server can be run in different modes (stdio, SSE) to support various integra
 ![0000](https://github.com/user-attachments/assets/a5227d18-8c57-48b9-877f-97859b176957)
 
 ### Status / future direction
-This project is in its early stages and is not yet production-ready. The current focus is on building a robust foundation for agent communication, with plans to add more features and improve performance in the future.
-
-Right now, this is "Local-mode" only, but we are working on a "Remote-mode" that will allow agents to communicate over the internet.
-
-For remote mode, we will mostly preserve the interface provided by these MCP tools, but add server configuration options to allow for communicating with remote coral servers to add their agents to the society graph.
-
-We don't want to re-invent the wheel, so we will reuse existing protocols and standards as much as possible.
-Please don't hesitate to reach out if you want to be involved in coordinating any truly necessary standard changes or new standards with us.
 
 ## How to Run
-
-### Quick example
-This repo is a server that enables agents to communicate with each other, for an example of a full multi-agent system using this, check out
-[the example here](/examples/camel-search-maths) or for a step-by-step guide to building agentic applications from scratch, follow this tutorial:  
-  [https://github.com/Coral-Protocol/existing-agent-sessions-tutorial-private-temp](https://github.com/Coral-Protocol/existing-agent-sessions-tutorial-private-temp)
+[Coming soon]
 
 ### Demo Video
 
@@ -70,48 +58,8 @@ docker run -p 5555:5555 -v /path/to/your/coral-server/src/main/resources:/config
 
 ### Run Modes
 
-- `--stdio`: Runs an MCP server using standard input/output
 - `--sse-server-ktor <port>`: Runs an SSE MCP server using Ktor plugin (default if no argument is provided)
 - `--sse-server <port>`: Runs an SSE MCP server with a plain configuration
-
-## Available Tools
-
-The server provides the following tools for agent communication:
-
-### Agent Management
-- `list_agents`: List all registered agents
-
-### Thread Management
-- `create_thread`: Create a new thread with participants
-- `add_participant`: Add a participant to a thread
-- `remove_participant`: Remove a participant from a thread
-- `close_thread`: Close a thread with a summary
-
-### Messaging
-- `send_message`: Send a message to a thread
-- `wait_for_mentions`: Wait for new messages mentioning an agent
-
-## Connections (SSE Mode)
-
-### Coral Server
-You can connect to the server on:  
-
-```bash
-http://localhost:5555/devmode/exampleApplication/privkey/session1/sse
-```
-
-### MCP Inspector
-You can connect to the server using the MCP Inspector command:
-
-```bash
-npx @modelcontextprotocol/inspector sse --url http://localhost:5555/devmode/exampleApplication/privkey/session1/sse
-```
-### Register an Agent
-You can register an agent to the Coral Server (also can be registered on MCP inspector) on:
-
-```bash
-http://localhost:5555/devmode/exampleApplication/privkey/session1/sse?agentId=test_agent
-```
 
 
 ## Philosophy
