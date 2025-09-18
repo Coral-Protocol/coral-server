@@ -23,5 +23,7 @@ RUN mkdir /app
 # Copy the custom minimal JRE from the builder stage
 COPY --from=build "$JAVA_HOME" "$JAVA_HOME"
 COPY --from=build /home/gradle/src/build/libs/ /app/
+# Determine the built coral-server JAR (excluding -plain) and create a stable symlink
+RUN ln -s "$(ls -1 /app/coral-server-*.jar | grep -v '\-plain\.jar' | head -n 1)" /app/coral-server.jar
 
-ENTRYPOINT ["java","-jar", "/app/coral-server-1.0-SNAPSHOT.jar"]
+ENTRYPOINT ["java","-jar", "/app/coral-server.jar"]
