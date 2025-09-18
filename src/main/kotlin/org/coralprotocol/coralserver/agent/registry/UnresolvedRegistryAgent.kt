@@ -13,5 +13,5 @@ abstract class UnresolvedRegistryAgent(
     @SerialName("export")
     var unresolvedExportSettings: UnresolvedAgentExportSettingsMap = mapOf()
 ) {
-    abstract fun resolve(context: RegistryResolutionContext): List<RegistryAgent>
+    abstract fun resolve(context: AgentResolutionContext): List<RegistryAgent>
 }

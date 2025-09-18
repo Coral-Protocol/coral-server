@@ -11,6 +11,7 @@ import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.SecurityConfig
 import org.coralprotocol.coralserver.routes.api.v1.filterNotNullValues
 import java.io.File
+import java.nio.file.Path
 
 private val logger = KotlinLogging.logger {  }
 
@@ -18,6 +19,7 @@ class RegistryAgent(
     val info: RegistryAgentInfo,
     val runtimes: LocalAgentRuntimes,
     val options: Map<String, AgentOption>,
+    val path: Path,
     unresolvedExportSettings: UnresolvedAgentExportSettingsMap
 ) {
     val exportSettings: AgentExportSettingsMap = unresolvedExportSettings.mapValues { (runtime, settings) ->
@@ -75,5 +77,8 @@ fun resolveRegistryAgentFromStream(
         unresolved.unresolvedExportSettings += exportSettings
     }
 
-    return unresolved.resolve(context).first()
+    return unresolved.resolve(AgentResolutionContext(
+        registryResolutionContext = context,
+        path = file.toPath().parent
+    )).first()
 }

@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.agent.registry.reference
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.agent.registry.AgentResolutionContext
 import org.coralprotocol.coralserver.agent.registry.RegistryAgent
 import org.coralprotocol.coralserver.agent.registry.RegistryResolutionContext
 import org.coralprotocol.coralserver.agent.registry.UnresolvedRegistryAgent
@@ -17,13 +18,14 @@ data class IndexUnresolvedRegistryAgent(
     val indexer: String? = null
 ) : UnresolvedRegistryAgent() {
 
-    override fun resolve(context: RegistryResolutionContext): List<RegistryAgent> {
+    override fun resolve(context: AgentResolutionContext): List<RegistryAgent> {
         return versions.map {
             context
+                .registryResolutionContext
                 .config
                 .registryConfig
                 .getIndexer(indexer)
-                .resolveAgent(context, mapOf(), name, it)
+                .resolveAgent(context.registryResolutionContext, mapOf(), name, it)
         }
     }
 }

@@ -16,12 +16,12 @@ private val logger = KotlinLogging.logger {}
 data class LocalUnresolvedRegistryAgent(
     val path: String
 ) : UnresolvedRegistryAgent() {
-    override fun resolve(context: RegistryResolutionContext): List<RegistryAgent> {
-        val agentTomlFile = Path.of(path, AGENT_FILE)
+    override fun resolve(context: AgentResolutionContext): List<RegistryAgent> {
+        val agentTomlFile = context.tryRelative(Path.of(AGENT_FILE))
         try {
             return listOf(resolveRegistryAgentFromStream(
                 file = agentTomlFile.toFile(),
-                context = context,
+                context = context.registryResolutionContext,
                 exportSettings = unresolvedExportSettings
             ))
         }
