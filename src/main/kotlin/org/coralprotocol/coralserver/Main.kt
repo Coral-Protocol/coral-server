@@ -30,7 +30,6 @@ fun main(args: Array<String>) {
     val devMode = args.contains("--dev")
 
     when (command) {
-//        "--stdio" -> runMcpServerUsingStdio()
         "--sse-server" -> {
             val config = Config.loadFromFile()
             val blockchainService = runBlocking {
