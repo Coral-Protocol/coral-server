@@ -1,4 +1,4 @@
-![Cover Image: "Open Infrastructure Connecting the Internet of AI Agents"](https://github.com/user-attachments/assets/2b74074e-42c2-4abd-9827-ea3c68b75c99)
+![Coral Server - Open Infrastructure Connecting the Internet of AI Agents](images/splash.png)
 
 An implementation of the Coral Protocol that acts as an MCP server providing tools for agents to communicate with each other.
 
@@ -12,7 +12,7 @@ An implementation of the Coral Protocol that acts as an MCP server providing too
 
 ## What is Coral Server?
 
-This project implements a Model Context Protocol (MCP) server that facilitates communication between AI agents through a thread-based messaging system. 
+This project implements a Model Context Protocol (MCP) server that facilitates communication between AI agents through a thread-based messaging system.
 
 
 Currently, it provides a set of tools that allow agents to:
@@ -45,7 +45,7 @@ docker run \
 
 > [!WARNING]
 > Our Coral Server docker image is *very* minimal - which means the executable runtime will **not** work. All agents you use must use the Docker runtime, which means you **must** give your server container access to your host's docker socket.
-> 
+>
 > See [here](https://docs.coralprotocol.org/setup/coral-server-applications#docker-recommended) for more information on giving your docker container access to Docker.
 
 
@@ -66,7 +66,7 @@ It's a strange concept; we believe that much of what we now consider work will b
 
 To bridge this gap, Coral Protocol was built as the connective tissue of this society. Coral is designed to enable agents to discover one another, communicate securely, exchange value, and scale their collaborative efforts from any framework.
 
-We theorize that not only will this fix many problems with the composability of multi-agent systems, but it will also unlock their full potential to be much more capable and safe, this is due to the graph-like structure that prevents any one agent from holding too much power or becoming overwhelmed with too much responsibility. 
+We theorize that not only will this fix many problems with the composability of multi-agent systems, but it will also unlock their full potential to be much more capable and safe, this is due to the graph-like structure that prevents any one agent from holding too much power or becoming overwhelmed with too much responsibility.
 
 ## Contribution Guidelines
 
