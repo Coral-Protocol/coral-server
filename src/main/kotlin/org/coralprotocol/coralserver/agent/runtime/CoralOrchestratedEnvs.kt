@@ -21,7 +21,7 @@ fun getCoralSystemEnvs(
             is RuntimeParams.Remote -> "1"
         },
         "CORAL_API_URL" to apiUrl.toString(),
-        "CORAL_SSE_URL" to with(mcpUrl) {
+        "CORAL_SSE_URL" to with(mcpUrl) { //TODO: Remove this as it should be identical to CORAL_CONNECTION_URL
             "${protocol.name}://$host:$port$encodedPath"
         },
         params.systemPrompt?.let { "CORAL_PROMPT_SYSTEM" to it }
