@@ -6,8 +6,11 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.websocket.*
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
+import org.coralprotocol.coralserver.agent.runtime.sendRuntimeEvent
 import org.coralprotocol.coralserver.models.SocketEvent
 import org.coralprotocol.coralserver.models.resolve
+import org.coralprotocol.coralserver.models.sendSocketEvent
+import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.LocalSessionManager
 
 private val logger = KotlinLogging.logger {}
@@ -28,14 +31,13 @@ fun Routing.debugWsRoutes(localSessionManager: LocalSessionManager, orchestrator
         }
 
         val debugId = session.registerDebugAgent()
-        sendSerialized<SocketEvent>(SocketEvent.DebugAgentRegistered(id = debugId.id))
-
-        sendSerialized<SocketEvent>(SocketEvent.ThreadList(session.getAllThreads().map { it.resolve() }))
-        sendSerialized<SocketEvent>(SocketEvent.AgentList(session.getAllAgents(false)))
+        sendSocketEvent(SocketEvent.DebugAgentRegistered(id = debugId.id))
+        sendSocketEvent(SocketEvent.ThreadList(session.getAllThreads().map { it.resolve() }))
+        sendSocketEvent(SocketEvent.AgentList(session.getAllAgents(false)))
 
         session.events.collect { evt ->
             logger.debug { "Received evt: $evt" }
-            sendSerialized(SocketEvent.Session(evt))
+            sendSocketEvent(SocketEvent.Session(evt))
         }
     }
 
@@ -52,7 +54,7 @@ fun Routing.debugWsRoutes(localSessionManager: LocalSessionManager, orchestrator
 
         bus.events.collect { evt ->
             logger.debug { "Received evt: $evt" }
-            sendSerialized(evt)
+            sendRuntimeEvent(evt)
         }
     }
 }

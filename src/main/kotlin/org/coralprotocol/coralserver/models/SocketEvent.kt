@@ -2,10 +2,13 @@
 
 package org.coralprotocol.coralserver.models
 
+import io.ktor.server.websocket.WebSocketServerSession
+import io.ktor.websocket.send
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
+import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.SessionEvent
 import org.coralprotocol.coralserver.session.models.SessionAgent
 
@@ -28,3 +31,6 @@ sealed interface SocketEvent {
     @SerialName("session")
     data class Session(val event: SessionEvent) : SocketEvent
 }
+
+suspend fun  WebSocketServerSession.sendSocketEvent(event: SocketEvent): Unit =
+    send(apiJsonConfig.encodeToString(SocketEvent.serializer(), event))

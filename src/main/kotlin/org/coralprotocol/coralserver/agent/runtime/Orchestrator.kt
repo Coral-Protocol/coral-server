@@ -3,6 +3,8 @@
 package org.coralprotocol.coralserver.agent.runtime
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.server.websocket.WebSocketServerSession
+import io.ktor.websocket.send
 import kotlinx.coroutines.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
@@ -16,6 +18,8 @@ import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.config.Wallet
+import org.coralprotocol.coralserver.models.SocketEvent
+import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.SessionCloseMode
 import org.coralprotocol.coralserver.session.remote.RemoteSession
@@ -44,6 +48,9 @@ sealed interface RuntimeEvent {
     @SerialName("stopped")
     data class Stopped(val timestamp: Long = System.currentTimeMillis()) : RuntimeEvent
 }
+
+suspend fun  WebSocketServerSession.sendRuntimeEvent(event: RuntimeEvent): Unit =
+    send(apiJsonConfig.encodeToString(RuntimeEvent.serializer(), event))
 
 interface Orchestrate {
     fun spawn(
