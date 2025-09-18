@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.config.Config
 import org.eclipse.jgit.api.ResetCommand
+import org.eclipse.jgit.lib.SubmoduleConfig
 import java.nio.file.Path
 import kotlin.io.path.isDirectory
 
@@ -64,10 +65,13 @@ data class GitRegistryAgentIndexer(
 
             // todo: lockfile, caching, etc
             repo.fetch()
-            repo.pull()
+            repo.pull {
+                setRecurseSubmodules(SubmoduleConfig.FetchRecurseSubmodulesMode.YES)
+            }
             repo.reset {
                 setMode(ResetCommand.ResetType.HARD)
             }
+            repo.submoduleInit()
             repo.submoduleUpdate {
                 setFetch(true)
             }
