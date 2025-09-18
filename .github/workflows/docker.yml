@@ -18,6 +18,29 @@ jobs:
         id: extract_branch
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Extract version and short SHA
+        id: meta
+        shell: bash
+        run: |
+          VERSION=$(grep -E "^version=" gradle.properties | head -n1 | cut -d'=' -f2 | tr -d '\r' )
+          if [ -z "$VERSION" ]; then
+            echo "Version not found in gradle.properties" >&2
+            exit 1
+          fi
+          SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+
+      - name: Determine build number
+        id: buildnum
+        shell: bash
+        run: |
+          git fetch --unshallow || true
+          COUNT=$(git rev-list --count HEAD)
+          echo "build_number=$COUNT" >> $GITHUB_OUTPUT
 
       - name: Log in to GHCR
         uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
@@ -36,6 +59,8 @@ jobs:
           tags: |
             ghcr.io/coral-protocol/coral-server:${{ steps.extract_branch.outputs.branch }}
             ${{ steps.extract_branch.outputs.branch == 'master' && 'ghcr.io/coral-protocol/coral-server:latest' || '' }}
+            ghcr.io/coral-protocol/coral-server:${{ steps.meta.outputs.version }}-${{ steps.meta.outputs.short_sha }}
+            ghcr.io/coral-protocol/coral-server:${{ steps.extract_branch.outputs.branch }}-${{ steps.buildnum.outputs.build_number }}
 
       - name: Log in to Docker Hub
         uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
@@ -53,3 +78,5 @@ jobs:
           tags: |
             coralprotocol/coral-server:${{ steps.extract_branch.outputs.branch }}
             ${{ steps.extract_branch.outputs.branch == 'master' && 'coralprotocol/coral-server:latest' || '' }}
+            coralprotocol/coral-server:${{ steps.meta.outputs.version }}-${{ steps.meta.outputs.short_sha }}
+            coralprotocol/coral-server:${{ steps.extract_branch.outputs.branch }}-${{ steps.buildnum.outputs.build_number }}
