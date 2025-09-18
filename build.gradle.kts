@@ -11,7 +11,7 @@ application {
 }
 
 group = "org.coralprotocol"
-version = "1.0-SNAPSHOT"
+version = providers.gradleProperty("version").get()
 
 repositories {
     mavenCentral()
