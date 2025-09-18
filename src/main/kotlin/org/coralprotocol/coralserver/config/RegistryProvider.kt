@@ -10,33 +10,53 @@ import org.coralprotocol.coralserver.agent.registry.UnresolvedAgentRegistry
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.nio.file.Path
+import kotlin.io.path.exists
 import kotlin.system.measureTimeMillis
 
 private val logger = KotlinLogging.logger {  }
 private const val REGISTRY_FILE = "registry.toml"
 
-private fun registrySource(): Pair<InputStream?, String> {
+private data class RegistrySource(
+    val stream: InputStream?,
+    val path: Path,
+    val resource: Boolean
+)
+
+private fun registrySource(): RegistrySource {
     return when (val path = System.getenv("REGISTRY_FILE_PATH")) {
-        null -> Pair(Main::class.java.classLoader.getResource(REGISTRY_FILE)?.openStream(), "<built-in resource>")
-        else -> Pair(Path.of(path).toFile().inputStream(), path)
+        null -> RegistrySource(
+            stream = Main::class.java.classLoader.getResource(REGISTRY_FILE)?.openStream(),
+            path = Path.of(System.getProperty("user.dir")),
+            resource = true
+        )
+        else -> {
+            val path = Path.of(path)
+            val file = path.toFile()
+
+            RegistrySource(
+                stream = if (file.exists()) file.inputStream() else null,
+                path =  path.parent,
+                resource = false
+            )
+        }
     }
 }
 
-
 fun AgentRegistry.Companion.loadFromFile(config: Config): AgentRegistry {
-    val (stream, identifier) = registrySource()
+    val source = registrySource()
 
     try {
-        if (stream == null) {
+        if (source.stream == null) {
             throw FileNotFoundException("Registry file not found")
         }
 
         var registry: AgentRegistry
         val time = measureTimeMillis {
-            val unresolved = toml.decodeFromNativeReader<UnresolvedAgentRegistry>(stream.reader())
+            val unresolved = toml.decodeFromNativeReader<UnresolvedAgentRegistry>(source.stream.reader())
             val context = RegistryResolutionContext(
                 serializer = toml,
-                config = config
+                config = config,
+                path = source.path
             )
 
             registry = unresolved.resolve(context)
@@ -46,6 +66,12 @@ fun AgentRegistry.Companion.loadFromFile(config: Config): AgentRegistry {
         return registry
     }
     catch (e: Exception) {
+        val identifier = if (source.resource) {
+            "<built-in resource>"
+        }
+        else {
+            source.path.toFile().name
+        }
 
         // RegistryExceptions are well formatted and only need their message printed
         if (e is RegistryException) {
