@@ -1,9 +1,16 @@
-# Coral Server
+![Cover Image: "Open Infrastructure Connecting the Internet of AI Agents"](https://github.com/user-attachments/assets/2b74074e-42c2-4abd-9827-ea3c68b75c99)
 
-An implementation of the Coral protocol that acts as an MCP server providing tools for agents to communicate with each other.
-![999](https://github.com/user-attachments/assets/2b74074e-42c2-4abd-9827-ea3c68b75c99)
+An implementation of the Coral Protocol that acts as an MCP server providing tools for agents to communicate with each other.
 
-## Project Description
+<br/>
+<div align="center">
+
+**[How to Run](#how-to-run)** ┃ **[Configuration](#configuration)** ┃ **[Multi-Agent Quick Start](https://docs.coralprotocol.org/setup/quickstart)** ┃ **[Contributing](#contribution-guidelines)** 
+
+</div>
+<br/>
+
+## What is Coral Server?
 
 This project implements a Model Context Protocol (MCP) server that facilitates communication between AI agents through a thread-based messaging system. 
 
@@ -16,51 +23,40 @@ Currently, it provides a set of tools that allow agents to:
 - Mention other agents in messages
 - Receive notifications when mentioned
 
-The server can be run in different modes (stdio, SSE) to support various integration scenarios.
-
-![0000](https://github.com/user-attachments/assets/a5227d18-8c57-48b9-877f-97859b176957)
-
-### Status / future direction
-
 ## How to Run
-[Coming soon]
-
-### Demo Video
-
-[![Coral Server Demo](images/thumnail2.png)](https://youtu.be/MyokByTzY90)
-*Click the image above to watch the demo video*
-
-The project can be run in several modes:
 
 ### Using Gradle
 
+Clone this repository, and in that folder run:
 ```bash
-# Run with SSE server using Ktor plugin (default, port 5555)
 ./gradlew run
-
-# Run with custom arguments
-./gradlew run --args="--stdio"
-./gradlew run --args="--sse-server 5555"
 ```
-
 
 ### Using Docker
 
-Install [Docker](https://docs.docker.com/desktop/)
-
+Coral Server is available on ghcr.io:
 ```bash
-# Build the Docker Image
-docker build -t coral-server .
-
-# Run the Docker Container
-docker run -p 5555:5555 -v /path/to/your/coral-server/src/main/resources:/config coral-server
+docker run \
+  -p 5555:5555 \ # expose port 5555 from the container
+  -v /path/to/your/registry.toml:/config/registry.toml # mount your registry.toml
+  -v /var/run/docker.sock:/var/run/docker.sock # mount the docker socket to support docker agents
+  ghcr.io/coral-protocol/coral-server
 ```
 
-### Run Modes
+> [!WARNING]
+> Our Coral Server docker image is *very* minimal - which means the executable runtime will **not** work. All agents you use must use the Docker runtime, which means you **must** give your server container access to your host's docker socket.
+> 
+> See [here](https://docs.coralprotocol.org/setup/coral-server-applications#docker-recommended) for more information on giving your docker container access to Docker.
 
-- `--sse-server-ktor <port>`: Runs an SSE MCP server using Ktor plugin (default if no argument is provided)
-- `--sse-server <port>`: Runs an SSE MCP server with a plain configuration
 
+## Configuration
+Coral Server has two files for configuration - `config.toml`, which has general configuration options like port, docker socket, etc, and `registry.toml`, which defines the agent registry for your server.
+
+> [!TIP]
+> To get a sense of all available options, see [`full-config.toml`](https://github.com/Coral-Protocol/coral-server/blob/master/src/main/resources/full-registry.toml) & [`full-registry.toml`](https://github.com/Coral-Protocol/coral-server/blob/master/src/main/resources/full-registry.toml)
+
+> [!NOTE]
+> While coral server has default config files, it's recommended you create your own `registry.toml`/`config.toml`, and point coral server to them with the `REGISTRY_FILE_PATH`/`CONFIG_FILE_PATH` environment variables.
 
 ## Philosophy
 
