@@ -128,7 +128,6 @@ class LocalSessionManager(
         }
 
         // todo: add fundAmount when thing
-        // todo: Take mintPubkey from session
         return blockchainService.createEscrowSession(
             agents = agents.map { it.toBlockchainModel() },
             mintPubkey = CORAL_MAINNET_MINT,

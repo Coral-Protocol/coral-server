@@ -15,6 +15,7 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
 import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.config.Wallet
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.SessionCloseMode
 import org.coralprotocol.coralserver.session.remote.RemoteSession
@@ -139,6 +140,8 @@ class Orchestrator(
                         plugins = graphAgent.plugins,
                         provider = GraphAgentProvider.Local(provider.runtime),
                     ),
+                    localWalletAddress = config.paymentConfig.wallet?.address
+                        ?: throw IllegalStateException("Requests for remote agents cannot be made without a configured wallet"),
                     paidSessionId = session.paymentSessionId
                         ?: throw IllegalStateException("Session including paid agents does not include a payment session")
                 )
