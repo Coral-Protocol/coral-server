@@ -11,6 +11,7 @@ import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
+import org.coralprotocol.coralserver.agent.payment.AgentClaimAmount
 import org.coralprotocol.coralserver.agent.payment.toMicroCoral
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.payment.JupiterService
@@ -141,11 +142,14 @@ suspend fun checkPaymentAndCreateClaim(
     jupiterService: JupiterService
 ): String {
     // TODO: Ensure that the session funder is the one claiming
-    val escrowSession = blockchainService.getEscrowSession(request.paidSessionId).getOrThrow()
+    val escrowSession = blockchainService.getEscrowSession(
+        sessionId = request.paidSessionId,
+        authorityPubkey = request.localWalletAddress
+    ).getOrThrow()
 
-//    val matchingPaidAgentSessionEntry = escrowSession?.agents?.find {
-//        it.id == request.graphAgentRequest.name
-//    } ?: throw AgentRequestException.SessionNotFundedException("No matching agent in paid session")
+    val matchingPaidAgentSessionEntry = escrowSession?.agents?.find {
+        it.id == request.graphAgentRequest.name
+    } ?: throw AgentRequestException.SessionNotFundedException("No matching agent in paid session")
 
     val provider = request.graphAgentRequest.provider as GraphAgentProvider.Local
     val registryAgent = registry.findAgent(id = request.graphAgentRequest.id)
@@ -155,10 +159,9 @@ suspend fun checkPaymentAndCreateClaim(
         ?: throw AgentRequestException.SessionNotFundedException("Requested runtime is not exported by agent")
 
     val pricing = associatedExportSettings.pricing
-
-//    if (matchingPaidAgentSessionEntry.cap !in pricing.minPrice..pricing.maxPrice) {
-//        throw AgentRequestException.SessionNotFundedException("Paid session agent cap ${matchingPaidAgentSessionEntry.cap} is not within the pricing range ${pricing.minPrice} - ${pricing.maxPrice} for requested agent")
-//    }
+    if (!pricing.withinRange(AgentClaimAmount.MicroCoral(matchingPaidAgentSessionEntry.cap), jupiterService)) {
+        throw AgentRequestException.SessionNotFundedException("Paid session agent cap ${matchingPaidAgentSessionEntry.cap} is not within the pricing range ${pricing.minPrice} - ${pricing.maxPrice} for requested agent")
+    }
     // TODO: Check that the paid session has funds equal to max cap of requested agents once coral-escrow has implemented
 
     logger.info { "Creating claim for paid session ${request.paidSessionId} and agent ${request.graphAgentRequest.id}" }
@@ -166,7 +169,7 @@ suspend fun checkPaymentAndCreateClaim(
     return remoteSessionManager.createClaimNoPaymentCheck(
         agent = request.toGraphAgent(registry, true),
         paymentSessionId = request.paidSessionId,
-        maxCost = pricing.maxPrice.toMicroCoral(jupiterService) // request.graphAgentReq uest matchingPaidAgentSessionEntry.cap
+        maxCost = pricing.maxPrice.toMicroCoral(jupiterService)
     )
 }
 
