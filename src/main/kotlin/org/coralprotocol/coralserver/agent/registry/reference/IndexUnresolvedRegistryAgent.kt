@@ -25,7 +25,7 @@ data class IndexUnresolvedRegistryAgent(
                 .config
                 .registryConfig
                 .getIndexer(indexer)
-                .resolveAgent(context.registryResolutionContext, mapOf(), name, it)
+                .resolveAgent(context.registryResolutionContext, unresolvedExportSettings, name, it)
         }
     }
 }
