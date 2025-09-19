@@ -20,7 +20,8 @@ RUN apt-get update \
 ENV JAVA_HOME=/opt/minimal-java
 ENV PATH="$JAVA_HOME/bin:$PATH"
 
-ENV CONFIG_PATH="/config"
+ENV REGISTRY_FILE_PATH="/config/registry.toml"
+ENV CONFIG_FILE_PATH="/config/config.toml"
 
 RUN mkdir /app
 # Copy the custom minimal JRE from the builder stage
