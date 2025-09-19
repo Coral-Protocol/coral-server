@@ -42,7 +42,12 @@ class RemoteSession(
     /**
      * The transport between this server and the agent
      */
-    val deferredMcpTransport: CompletableDeferred<SseServerTransport>
+    val deferredMcpTransport: CompletableDeferred<SseServerTransport>,
+
+    /**
+     * The wallet address of the client in this transaction (they are paying for the agent in this remote session)
+     */
+    val clientWalletAddress: String
 ): Session() {
     private val lifecycle = CompletableDeferred<SessionCloseMode>()
 

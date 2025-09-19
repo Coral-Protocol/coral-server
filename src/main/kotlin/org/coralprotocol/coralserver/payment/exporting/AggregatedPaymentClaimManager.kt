@@ -16,11 +16,11 @@ import java.util.*
 private val logger = KotlinLogging.logger { }
 
 
-private class PaymentClaimAggregation(val maxCost: Long) {
+private class PaymentClaimAggregation(val remoteSession: RemoteSession) {
     private val totalClaimed: MutableMap<String, Long> = mutableMapOf()
 
     fun sumOfAllAgentsClaims(): Long = totalClaimed.values.sum()
-    fun getRemainingBudget(): Long = maxCost - totalClaimed.values.sum()
+    fun getRemainingBudget(): Long = remoteSession.maxCost - totalClaimed.values.sum()
 
     suspend fun addClaim(
         claim: AgentPaymentClaimRequest,
@@ -50,10 +50,8 @@ class AggregatedPaymentClaimManager(
     suspend fun addClaim(claim: AgentPaymentClaimRequest, session: RemoteSession): Long {
         val paymentSessionId = session.paymentSessionId
 
-        val maxCost = session.maxCost
-
         val aggregation = claimMap.getOrPut(paymentSessionId) {
-            PaymentClaimAggregation(maxCost)
+            PaymentClaimAggregation(session)
         }
         aggregation.addClaim(claim, session.agent.name, jupiterService)
 
@@ -74,7 +72,8 @@ class AggregatedPaymentClaimManager(
 
         blockchainService.submitClaimMultiple(
             sessionId = paymentSessionId,
-            claims = claimAggregation.toClaims()
+            claims = claimAggregation.toClaims(),
+            //todo: blockchain claimAggregation.remoteSession.paymentSessionId
         ).fold(
             onSuccess = {
                 val claimUsd = AgentClaimAmount.MicroCoral(it.totalAmountClaimed).toUsd(jupiterService)
