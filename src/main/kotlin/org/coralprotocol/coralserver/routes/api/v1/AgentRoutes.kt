@@ -8,6 +8,7 @@ import io.ktor.resources.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.delay
 import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
@@ -18,6 +19,7 @@ import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 import org.coralprotocol.payment.blockchain.BlockchainService
+import kotlin.math.log
 
 private val logger = KotlinLogging.logger {}
 
@@ -141,11 +143,16 @@ suspend fun checkPaymentAndCreateClaim(
     remoteSessionManager: RemoteSessionManager,
     jupiterService: JupiterService
 ): String {
+    logger.info { "Checking payment for paid session ${request.paidSessionId} and agent ${request.graphAgentRequest.id}" }
+    logger.info { "request local wallet address: ${request.localWalletAddress}" }
+    delay(4000)
     // TODO: Ensure that the session funder is the one claiming
     val escrowSession = blockchainService.getEscrowSession(
         sessionId = request.paidSessionId,
         authorityPubkey = request.localWalletAddress
     ).getOrThrow()
+    logger.info { "Escrow session: $escrowSession" }
+
 
     val matchingPaidAgentSessionEntry = escrowSession?.agents?.find {
         it.id == request.graphAgentRequest.name

@@ -85,15 +85,13 @@ class CoralServer(
 
     val aggregatedPaymentClaimManager = if (blockchainService != null) {
         AggregatedPaymentClaimManager(blockchainService, jupiterService)
-    }
-    else {
+    } else {
         null
     }
 
     val remoteSessionManager = if (aggregatedPaymentClaimManager != null) {
         RemoteSessionManager(orchestrator, aggregatedPaymentClaimManager)
-    }
-    else {
+    } else {
         null
     }
 
@@ -114,7 +112,7 @@ class CoralServer(
                     tagGenerator = { url -> listOf(url.getOrNull(2)) }
                 }
                 schemas {
-                    generator = SchemaGenerator.kotlinx {  }
+                    generator = SchemaGenerator.kotlinx { }
                     // Generated types from routes
                     generator = { type ->
                         type
@@ -187,6 +185,12 @@ class CoralServer(
                     // RouteException, giving a 500-status code
                     var wrapped = cause
                     if (cause !is RouteException) {
+
+                        logger.error {
+                            "Route error following. Likely caused by a bad request and not a coral server " +
+                                    "error. Printing stacktrace for your information"
+                        }
+                        cause.printStackTrace()
                         wrapped = RouteException(HttpStatusCode.InternalServerError, cause.message)
                     }
 

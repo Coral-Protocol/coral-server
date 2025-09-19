@@ -10,6 +10,10 @@ application {
     mainClass.set("org.coralprotocol.coralserver.MainKt")
 }
 
+tasks.named<JavaExec>("run") {
+    standardInput = System.`in`
+}
+
 group = "org.coralprotocol"
 version = providers.gradleProperty("version").get()
 
