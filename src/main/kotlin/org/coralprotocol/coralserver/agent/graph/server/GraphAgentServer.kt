@@ -39,6 +39,9 @@ class GraphAgentServer (
         install(ContentNegotiation) {
             json(apiJsonConfig)
         }
+        install(HttpTimeout) {
+            requestTimeoutMillis = 30_000
+        }
         defaultRequest {
             contentType(ContentType.Application.Json)
             host = this@GraphAgentServer.address
