@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.session
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -20,6 +21,8 @@ import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.models.SessionInfo
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+
+private val logger = KotlinLogging.logger {  }
 
 fun AgentGraph.adjacencyMap(): Map<String, Set<String>> {
     val map = mutableMapOf<String, MutableSet<String>>()
@@ -173,6 +176,11 @@ class LocalSessionManager(
             }
 
             subgraphs
+        }
+
+        if (sessionInfo != null) {
+            logger.info { "Local session $sessionId contains remote payment session ${sessionInfo.sessionId}" }
+            logger.info { "Payment session ${sessionInfo.sessionId} has a cap of ${sessionInfo.totalCap} and funding of ${sessionInfo.amountFunded}" }
         }
 
         val session = LocalSession(
