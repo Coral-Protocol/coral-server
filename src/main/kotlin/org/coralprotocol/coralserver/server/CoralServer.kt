@@ -200,7 +200,7 @@ class CoralServer(
                 messageApiRoutes(mcpServersByTransportId, localSessionManager, remoteSessionManager)
                 telemetryApiRoutes(localSessionManager)
                 documentationApiRoutes()
-                agentApiRoutes(registry, blockchainService, remoteSessionManager, jupiterService)
+                agentApiRoutes(registry, blockchainService, remoteSessionManager, jupiterService, config.paymentConfig)
                 internalRoutes(remoteSessionManager, aggregatedPaymentClaimManager, jupiterService)
                 publicWalletApiRoutes(config.paymentConfig.wallet)
 
