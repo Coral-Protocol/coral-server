@@ -16,24 +16,22 @@ private val logger = KotlinLogging.logger { }
 
 
 private class PaymentClaimAggregation(val maxCost: Long) {
-    val involvedAgents: MutableSet<String> = mutableSetOf()
-    private val claimList: MutableList<AgentPaymentClaimRequest> = mutableListOf()
-    var totalCoralClaimed: Long = 0
-        private set
+    private val totalClaimed: MutableMap<String, Long> = mutableMapOf()
 
-    fun getRemainingBudget(): Long = maxCost - totalCoralClaimed
+    fun sumOfAllAgentsClaims(): Long = totalClaimed.values.sum()
+    fun getRemainingBudget(): Long = maxCost - totalClaimed.values.sum()
 
     suspend fun addClaim(
         claim: AgentPaymentClaimRequest,
-        agentId: AgentRegistryIdentifier,
+        agentId: String,
         jupiterService: JupiterService
-    ): Long {
-        claimList.add(claim)
-        involvedAgents.add(agentId.toString())
-        val newTotal = claimList.sumOf { it.amount.toMicroCoral(jupiterService) }
-        totalCoralClaimed = newTotal
-        return newTotal
+    ) {
+        totalClaimed[agentId] = totalClaimed.getOrDefault(agentId, 0L) +
+                claim.amount.toMicroCoral(jupiterService)
     }
+
+    fun toClaims(): List<Pair<String, Long>> =
+        totalClaimed.toList()
 }
 
 
@@ -57,7 +55,7 @@ class AggregatedPaymentClaimManager(
         val aggregation = claimMap.getOrPut(paymentSessionId) {
             PaymentClaimAggregation(maxCost)
         }
-        aggregation.addClaim(claim, session.agent.registryAgent.info.identifier, jupiterService)
+        aggregation.addClaim(claim, session.agent.name, jupiterService)
 
         val claimUsd = claim.amount.toUsd(jupiterService)
         val remainingUsd = jupiterService.coralToUsd(aggregation.getRemainingBudget().toDouble())
@@ -74,19 +72,16 @@ class AggregatedPaymentClaimManager(
             return
         }
 
-        blockchainService.submitEscrowClaim(
+        blockchainService.submitClaimMultiple(
             sessionId = paymentSessionId,
-            agentId = claimAggregation.involvedAgents.joinToString(", "),
-            amount = claimAggregation.totalCoralClaimed
+            claims = claimAggregation.toClaims()
         ).fold(
             onSuccess = {
-                val claimUsd = jupiterService.coralToUsd(it.amountClaimed.toDouble())
-                val remainingUsd = jupiterService.coralToUsd(it.remainingInSession.toDouble())
-
-                logger.info { "Claim submitted for session $paymentSessionId, amount claimed: ${usdFormat.format(claimUsd)}, amount remaining: ${usdFormat.format(remainingUsd)}" }
+                val claimUsd = jupiterService.coralToUsd(it.totalAmountClaimed.toDouble())
+                logger.info { "Claim submitted for session $paymentSessionId, amount claimed: ${usdFormat.format(claimUsd)}" }
             },
             onFailure = {
-                val claimUsd = jupiterService.coralToUsd(claimAggregation.totalCoralClaimed.toDouble())
+                val claimUsd = jupiterService.coralToUsd(claimAggregation.sumOfAllAgentsClaims().toDouble())
                 logger.error(it) { "Escrow claim failed for $paymentSessionId, amount: ${usdFormat.format(claimUsd)}" }
             }
         )
