@@ -6,6 +6,11 @@ plugins {
     application
 }
 
+tasks.withType<JavaExec>() {
+    standardInput = System.`in`
+}
+
+
 application {
     mainClass.set("org.coralprotocol.coralserver.MainKt")
 }
