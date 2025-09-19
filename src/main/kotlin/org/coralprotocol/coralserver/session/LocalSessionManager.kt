@@ -130,11 +130,11 @@ class LocalSessionManager(
             agent.provider = resolvedRemote
         }
 
-        // todo: add fundAmount when thing
-        return blockchainService.createEscrowSession(
+        return blockchainService.createAndFundEscrowSession(
             agents = agents.map { it.toBlockchainModel() },
             mintPubkey = CORAL_MAINNET_MINT,
-            sessionId = SessionIdUtils.uuidToSessionId(SessionIdUtils.generateSessionUuid())
+            sessionId = SessionIdUtils.uuidToSessionId(SessionIdUtils.generateSessionUuid()),
+            fundingAmount = fundAmount,
         ).getOrThrow()
     }
 
