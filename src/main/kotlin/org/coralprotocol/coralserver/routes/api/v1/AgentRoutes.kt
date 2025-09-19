@@ -188,7 +188,7 @@ suspend fun checkPaymentAndCreateClaim(
     return remoteSessionManager.createClaimNoPaymentCheck(
         agent = request.toGraphAgent(registry, true),
         paymentSessionId = request.paidSessionId,
-        maxCost = pricing.maxPrice.toMicroCoral(jupiterService),
+        maxCost = matchingPaidAgentSessionEntry.cap,
         clientWalletAddress = request.clientWalletAddress,
     )
 }
