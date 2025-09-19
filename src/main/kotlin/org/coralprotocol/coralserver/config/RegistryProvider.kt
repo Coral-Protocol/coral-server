@@ -10,6 +10,7 @@ import org.coralprotocol.coralserver.agent.registry.UnresolvedAgentRegistry
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.nio.file.Path
+import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
 import kotlin.system.measureTimeMillis
 
@@ -44,6 +45,7 @@ private fun registrySource(): RegistrySource {
 
 fun AgentRegistry.Companion.loadFromFile(config: Config): AgentRegistry {
     val source = registrySource()
+    logger.info { "Loading registry from ${source.path.absolutePathString()}" }
 
     try {
         if (source.stream == null) {
