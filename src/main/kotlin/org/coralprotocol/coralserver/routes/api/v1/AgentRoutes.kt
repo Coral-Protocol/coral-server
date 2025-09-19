@@ -144,7 +144,7 @@ suspend fun checkPaymentAndCreateClaim(
     // TODO: Ensure that the session funder is the one claiming
     val escrowSession = blockchainService.getEscrowSession(
         sessionId = request.paidSessionId,
-        authorityPubkey = request.localWalletAddress
+        authorityPubkey = request.clientWalletAddress
     ).getOrThrow()
 
     val matchingPaidAgentSessionEntry = escrowSession?.agents?.find {
@@ -169,7 +169,8 @@ suspend fun checkPaymentAndCreateClaim(
     return remoteSessionManager.createClaimNoPaymentCheck(
         agent = request.toGraphAgent(registry, true),
         paymentSessionId = request.paidSessionId,
-        maxCost = pricing.maxPrice.toMicroCoral(jupiterService)
+        maxCost = pricing.maxPrice.toMicroCoral(jupiterService),
+        clientWalletAddress = request.clientWalletAddress,
     )
 }
 

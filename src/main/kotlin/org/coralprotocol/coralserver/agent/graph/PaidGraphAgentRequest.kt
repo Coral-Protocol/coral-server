@@ -10,7 +10,7 @@ import org.coralprotocol.coralserver.payment.PaymentSessionId
 data class PaidGraphAgentRequest(
     val graphAgentRequest: GraphAgentRequest,
     val paidSessionId: PaymentSessionId,
-    val localWalletAddress: String,
+    val clientWalletAddress: String,
 ) {
     /**
      * Given a reference to the agent registry [AgentRegistry], this function will attempt to convert this request into
