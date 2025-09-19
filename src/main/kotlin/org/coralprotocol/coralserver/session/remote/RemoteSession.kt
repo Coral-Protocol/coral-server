@@ -3,6 +3,7 @@ package org.coralprotocol.coralserver.session.remote
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import kotlinx.coroutines.CompletableDeferred
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
+import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.session.Session
 import org.coralprotocol.coralserver.session.SessionCloseMode
 
@@ -22,6 +23,11 @@ class RemoteSession(
      * A unique ID for this remote session
      */
     override val id: String,
+
+    /**
+     * The payment session ID for this remote session, created on the requesting server
+     */
+    override val paymentSessionId: PaymentSessionId,
 
     /**
      * The agent that this session is providing
