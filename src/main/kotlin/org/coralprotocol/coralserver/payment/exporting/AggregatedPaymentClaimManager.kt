@@ -15,7 +15,6 @@ import java.util.*
 
 private val logger = KotlinLogging.logger { }
 
-
 private class PaymentClaimAggregation(val remoteSession: RemoteSession) {
     private val totalClaimed: MutableMap<String, Long> = mutableMapOf()
 
@@ -27,8 +26,17 @@ private class PaymentClaimAggregation(val remoteSession: RemoteSession) {
         agentId: String,
         jupiterService: JupiterService
     ) {
-        totalClaimed[agentId] = totalClaimed.getOrDefault(agentId, 0L) +
+        val requestNewAmount = totalClaimed.getOrDefault(agentId, 0L) +
                 claim.amount.toMicroCoral(jupiterService)
+
+        totalClaimed[agentId] = if (requestNewAmount > remoteSession.maxCost) {
+            logger.warn { "maxCost for ${remoteSession.agent.name} reached!" }
+            logger.warn { "clipping excess of ${requestNewAmount - remoteSession.maxCost}" }
+            remoteSession.maxCost
+        }
+        else {
+            requestNewAmount
+        }
     }
 
     fun toClaims(): List<Pair<String, Long>> =
