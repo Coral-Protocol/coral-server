@@ -40,12 +40,12 @@ class SignerConfigDecoder : Decoder<SignerConfig> {
                                 val apiKey = (node["apiKey"] as? StringNode)?.value
                                 val walletLocator = (node["walletLocator"] as? StringNode)?.value
                                 val walletAddress = (node["walletAddress"] as? StringNode)?.value
-                                val adminSignerLocator = (node["adminSignerLocator"] as? StringNode)?.value
+//                                val adminSignerLocator = (node["adminSignerLocator"] as? StringNode)?.value
                                 
                                 if (apiKey != null && walletLocator != null && 
-                                    walletAddress != null && adminSignerLocator != null) {
+                                    walletAddress != null) {
                                     SignerConfig.Crossmint(
-                                        apiKey, walletLocator, walletAddress, adminSignerLocator
+                                        apiKey, walletLocator, walletAddress
                                     ).valid()
                                 } else {
                                     ConfigFailure.Generic(
