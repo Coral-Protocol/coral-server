@@ -5,7 +5,7 @@ An implementation of the Coral Protocol that acts as an MCP server providing too
 <br/>
 <div align="center">
 
-**[How to Run](#how-to-run)** ┃ **[Configuration](#configuration)** ┃ **[Multi-Agent Quick Start](https://docs.coralprotocol.org/setup/quickstart)** ┃ **[Contributing](#contribution-guidelines)** 
+**[How to Run](#how-to-run)** ┃ **[Configuration](#configuration)** ┃ **[Multi-Agent Quick Start](https://github.com/Coral-Protocol/Multi-Agent-Demo)** ┃ **[Contributing](#contribution-guidelines)** 
 
 </div>
 <br/>
