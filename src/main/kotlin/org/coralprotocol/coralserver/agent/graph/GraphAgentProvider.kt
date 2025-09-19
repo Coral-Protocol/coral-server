@@ -93,6 +93,9 @@ suspend fun RemoteRequest.toRemote(
         try {
             exportSettings = server.getAgentExportSettings(agentId)[runtime]
 
+            if (exportSettings == null)
+                logger.warn { "server $server does not export $agentId on with runtime $runtime" }
+
             // A server must provide the required runtime, and it most not have a max cost outside the exported agent's
             // comfortable max cost range
             if (exportSettings != null && exportSettings.pricing.withinRange(maxCost, jupiterService)) {
