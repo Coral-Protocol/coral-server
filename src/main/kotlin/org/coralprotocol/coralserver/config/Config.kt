@@ -73,7 +73,7 @@ data class PaymentConfig(
     /**
      * The RPC url for payments
      */
-    val rpcUrl: String = "https://api.devnet.solana.com",
+    val rpcUrl: String = "https://api.mainnet-beta.solana.com/",
 ) {
 
     /**
