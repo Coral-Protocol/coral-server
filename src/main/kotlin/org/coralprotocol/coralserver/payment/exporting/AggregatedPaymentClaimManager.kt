@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver.payment.exporting
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import org.coralprotocol.coralserver.agent.payment.AgentClaimAmount
 import org.coralprotocol.coralserver.agent.payment.AgentPaymentClaimRequest
 import org.coralprotocol.coralserver.agent.payment.toMicroCoral
 import org.coralprotocol.coralserver.agent.payment.toUsd
@@ -47,8 +48,7 @@ class AggregatedPaymentClaimManager(
      * @return [Long] Remaining budget for this session
      */
     suspend fun addClaim(claim: AgentPaymentClaimRequest, session: RemoteSession): Long {
-        val paymentSessionId =
-            session.paymentSessionId ?: throw IllegalArgumentException("Payment session does not contain paid agents")
+        val paymentSessionId = session.paymentSessionId
 
         val maxCost = session.maxCost
 
@@ -58,7 +58,7 @@ class AggregatedPaymentClaimManager(
         aggregation.addClaim(claim, session.agent.name, jupiterService)
 
         val claimUsd = claim.amount.toUsd(jupiterService)
-        val remainingUsd = jupiterService.coralToUsd(aggregation.getRemainingBudget().toDouble())
+        val remainingUsd = AgentClaimAmount.MicroCoral(aggregation.getRemainingBudget()).toUsd(jupiterService)
 
         logger.info { "${session.agent.name} claimed ${usdFormat.format(claimUsd)} for session $paymentSessionId, amount remaining: ${usdFormat.format(remainingUsd)}" }
 
@@ -77,11 +77,11 @@ class AggregatedPaymentClaimManager(
             claims = claimAggregation.toClaims()
         ).fold(
             onSuccess = {
-                val claimUsd = jupiterService.coralToUsd(it.totalAmountClaimed.toDouble())
+                val claimUsd = AgentClaimAmount.MicroCoral(it.totalAmountClaimed).toUsd(jupiterService)
                 logger.info { "Claim submitted for session $paymentSessionId, amount claimed: ${usdFormat.format(claimUsd)}" }
             },
             onFailure = {
-                val claimUsd = jupiterService.coralToUsd(claimAggregation.sumOfAllAgentsClaims().toDouble())
+                val claimUsd = AgentClaimAmount.MicroCoral(claimAggregation.sumOfAllAgentsClaims()).toUsd(jupiterService)
                 logger.error(it) { "Escrow claim failed for $paymentSessionId, amount: ${usdFormat.format(claimUsd)}" }
             }
         )
