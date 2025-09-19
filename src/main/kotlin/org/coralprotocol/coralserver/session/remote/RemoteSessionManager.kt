@@ -66,7 +66,8 @@ class RemoteSessionManager(
             id = id,
             agent = claim.agent,
             deferredMcpTransport = CompletableDeferred(),
-            maxCost = claim.maxCost
+            maxCost = claim.maxCost,
+            paymentSessionId = claim.paymentSessionId
         )
 
         remoteSession.sessionClosedFlow.onEach {
