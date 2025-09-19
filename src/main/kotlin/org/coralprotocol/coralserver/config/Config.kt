@@ -74,6 +74,17 @@ data class PaymentConfig(
      * The RPC url for payments
      */
     val rpcUrl: String = "https://api.mainnet-beta.solana.com/",
+
+    /**
+     * The amount of times the exporting server should retry getting the session from the blockchain.  This is a safety
+     * feature in case there are
+     */
+    val sessionRetryCount: UInt = 10u,
+
+    /**
+     * The delay between retries when trying to get a session
+     */
+    val sessionRetryDelay: ULong = 1000u,
 ) {
 
     /**

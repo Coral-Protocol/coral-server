@@ -8,16 +8,20 @@ import io.ktor.resources.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.coroutines.delay
 import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
 import org.coralprotocol.coralserver.agent.payment.AgentClaimAmount
 import org.coralprotocol.coralserver.agent.payment.toMicroCoral
 import org.coralprotocol.coralserver.agent.registry.*
+import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.config.PaymentConfig
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 import org.coralprotocol.payment.blockchain.BlockchainService
+import org.coralprotocol.payment.blockchain.models.Session
 
 private val logger = KotlinLogging.logger {}
 
@@ -34,7 +38,8 @@ fun Routing.agentApiRoutes(
     registry: AgentRegistry,
     blockchainService: BlockchainService?,
     remoteSessionManager: RemoteSessionManager?,
-    jupiterService: JupiterService
+    jupiterService: JupiterService,
+    paymentConfig: PaymentConfig
 ) {
     get<Agents>({
         summary = "Get available agents"
@@ -89,7 +94,8 @@ fun Routing.agentApiRoutes(
                     registry = registry,
                     blockchainService = blockchainService,
                     remoteSessionManager = remoteSessionManager,
-                    jupiterService = jupiterService
+                    jupiterService = jupiterService,
+                    paymentConfig = paymentConfig
                 )
             call.respond(
                 HttpStatusCode.OK,
@@ -139,15 +145,28 @@ suspend fun checkPaymentAndCreateClaim(
     registry: AgentRegistry,
     blockchainService: BlockchainService,
     remoteSessionManager: RemoteSessionManager,
-    jupiterService: JupiterService
+    jupiterService: JupiterService,
+    paymentConfig: PaymentConfig
 ): String {
-    // TODO: Ensure that the session funder is the one claiming
-    val escrowSession = blockchainService.getEscrowSession(
-        sessionId = request.paidSessionId,
-        authorityPubkey = request.clientWalletAddress
-    ).getOrThrow()
 
-    val matchingPaidAgentSessionEntry = escrowSession?.agents?.find {
+    var escrowSession: Session? = null
+    (0u..paymentConfig.sessionRetryCount).forEach { _ ->
+        val session = blockchainService.getEscrowSession(
+            sessionId = request.paidSessionId,
+            authorityPubkey = request.clientWalletAddress
+        )
+
+        escrowSession = session.getOrNull()
+        if (escrowSession != null)
+            return@forEach
+
+        delay(paymentConfig.sessionRetryDelay.toLong())
+    }
+
+    if (escrowSession == null)
+        throw AgentRequestException("The payment session ${request.paidSessionId} from ${request.clientWalletAddress} cannot be found on the blockchain")
+
+    val matchingPaidAgentSessionEntry = escrowSession.agents.find {
         it.id == request.graphAgentRequest.name
     } ?: throw AgentRequestException.SessionNotFundedException("No matching agent in paid session")
 
