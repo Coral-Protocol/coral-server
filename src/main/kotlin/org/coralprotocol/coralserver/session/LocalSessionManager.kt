@@ -10,8 +10,10 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.toRemote
+import org.coralprotocol.coralserver.agent.payment.AgentClaimAmount
 import org.coralprotocol.coralserver.agent.payment.PaidAgent
 import org.coralprotocol.coralserver.agent.payment.toMicroCoral
+import org.coralprotocol.coralserver.agent.payment.toUsd
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
 import org.coralprotocol.coralserver.config.Config
@@ -117,18 +119,23 @@ class LocalSessionManager(
             if (provider !is GraphAgentProvider.RemoteRequest)
                 throw IllegalArgumentException("createPaymentSession given non remote agent ${agent.name}")
 
-            fundAmount += provider.maxCost.toMicroCoral(jupiterService)
+            val maxCostMicro = provider.maxCost.toMicroCoral(jupiterService)
+            fundAmount += maxCostMicro
+
             val resolvedRemote = provider.toRemote(id, paymentSessionId, jupiterService)
 
             agents.add(PaidAgent(
                 id = agent.name,
-                cap = provider.maxCost.toMicroCoral(jupiterService),
+                cap = maxCostMicro,
                 developer = resolvedRemote.wallet
             ))
 
             // Important! Replace the RemoteRequest with the resolved Remote type
             agent.provider = resolvedRemote
         }
+
+        val maxCostUsd = AgentClaimAmount.MicroCoral(fundAmount).toUsd(jupiterService)
+        logger.info { "Created funded payment session with maxCost = $fundAmount ($maxCostUsd USD)" }
 
         return blockchainService.createAndFundEscrowSession(
             agents = agents.map { it.toBlockchainModel() },
