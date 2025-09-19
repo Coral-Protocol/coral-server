@@ -6,6 +6,7 @@ import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.config.loadFromFile
+import org.coralprotocol.coralserver.payment.keygen.CrossmintInteractiveKeyGenerator
 import org.coralprotocol.coralserver.server.CoralServer
 import org.coralprotocol.payment.blockchain.BlockchainService
 
@@ -18,9 +19,7 @@ class Main
  * Start sse-server mcp on port 5555.
  *
  * @param args
- * - "--stdio": Runs an MCP server using standard input/output.
  * - "--sse-server": Runs an SSE MCP server with a plain configuration.
- * - "--dev": Runs the server in development mode.
  */
 fun main(args: Array<String>) {
 //    System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "TRACE");
@@ -28,10 +27,10 @@ fun main(args: Array<String>) {
 
     val command = args.firstOrNull() ?: "--sse-server"
     val devMode = args.contains("--dev")
+    val config = Config.loadFromFile()
 
     when (command) {
         "--sse-server" -> {
-            val config = Config.loadFromFile()
             val blockchainService = runBlocking {
                 BlockchainService.loadFromFile(config)
             }
@@ -58,6 +57,13 @@ fun main(args: Array<String>) {
 
             server.start(wait = true)
         }
+
+        "--interactive-keygen-crossmint" -> {
+            runBlocking {
+                CrossmintInteractiveKeyGenerator(config, config.paymentConfig.rpcUrl).start()
+            }
+        }
+
         else -> {
             logger.error { "Unknown command: $command" }
         }
