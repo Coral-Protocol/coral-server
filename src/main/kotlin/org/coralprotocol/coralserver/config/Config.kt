@@ -67,6 +67,7 @@ data class PaymentConfig(
     /**
      * The path to the configured wallet
      */
+    @SerialName("wallet_path")
     val walletPath: String = Path.of(System.getProperty("user.home"), ".coral", "wallet.toml").toString(),
 
     /**
