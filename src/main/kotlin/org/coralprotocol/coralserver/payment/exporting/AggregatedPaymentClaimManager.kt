@@ -73,7 +73,7 @@ class AggregatedPaymentClaimManager(
         blockchainService.submitClaimMultiple(
             sessionId = paymentSessionId,
             claims = claimAggregation.toClaims(),
-            //todo: blockchain claimAggregation.remoteSession.paymentSessionId
+            authorityPubKey = claimAggregation.remoteSession.clientWalletAddress
         ).fold(
             onSuccess = {
                 val claimUsd = AgentClaimAmount.MicroCoral(it.totalAmountClaimed).toUsd(jupiterService)
