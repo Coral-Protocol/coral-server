@@ -60,7 +60,7 @@ fun main(args: Array<String>) {
 
         "--interactive-keygen-crossmint" -> {
             runBlocking {
-                CrossmintInteractiveKeyGenerator(config, config.paymentConfig.rpcUrl).start()
+                CrossmintInteractiveKeyGenerator(config).start()
             }
         }
 
