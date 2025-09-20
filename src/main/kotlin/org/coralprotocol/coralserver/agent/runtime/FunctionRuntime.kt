@@ -23,7 +23,7 @@ class FunctionRuntime(
             function(params)
         }
 
-        return object : OrchestratorHandle {
+        return object : OrchestratorHandle() {
             override suspend fun destroy() {
                 scope.cancel()
             }
