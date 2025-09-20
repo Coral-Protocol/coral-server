@@ -98,11 +98,11 @@ class Orchestrator(
     fun getBus(sessionId: String, agentId: String): EventBus<RuntimeEvent>? = eventBusses[sessionId]?.get(agentId)
 
     private fun createAgentBus(sessionId: String, agentName: String): EventBus<RuntimeEvent> {
-        return eventBusses.getOrPut(sessionId) {
-            mutableMapOf()
-        }.getOrPut(agentName) {
-            EventBus(replay = 512)
-        }
+        val eventBus = EventBus<RuntimeEvent>(replay = 512)
+        val sessionBusses = eventBusses.getOrPut(sessionId) { mutableMapOf() }
+        sessionBusses[agentName] = eventBus
+
+        return eventBus
     }
 
     private fun registerHandle(
