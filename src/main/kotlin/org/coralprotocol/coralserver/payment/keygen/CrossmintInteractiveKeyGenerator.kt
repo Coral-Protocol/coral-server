@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver.payment.keygen
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.util.decodeBase64String
 import kotlinx.coroutines.runBlocking
 import net.peanuuutz.tomlkt.Toml
 import org.coralprotocol.coralserver.config.Config
@@ -30,7 +31,6 @@ private fun promptYN(prompt: String): Boolean {
 private val toml = Toml {
     ignoreUnknownKeys = false
 }
-
 
 class CrossmintInteractiveKeyGenerator(
     val config: Config,
@@ -70,7 +70,7 @@ class CrossmintInteractiveKeyGenerator(
         val newWallet = Wallet.Crossmint(
             locator = "email:$email:solana-smart-wallet",
             address = walletPublicAddress,
-            apiKey = apiKey,
+            apiKey = apiKey.decodeBase64String(),
             keypairPath = originalKeypairPath.absolutePathString(),
             staging = useStaging
         )
