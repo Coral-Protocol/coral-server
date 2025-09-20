@@ -6,6 +6,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.server.websocket.WebSocketServerSession
 import io.ktor.websocket.send
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -19,8 +21,10 @@ import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.LocalSession
+import org.coralprotocol.coralserver.session.Session
 import org.coralprotocol.coralserver.session.SessionCloseMode
 import org.coralprotocol.coralserver.session.remote.RemoteSession
+import kotlin.collections.getOrPut
 import kotlin.system.measureTimeMillis
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -58,8 +62,9 @@ interface Orchestrate {
     ): OrchestratorHandle
 }
 
-interface OrchestratorHandle {
-    suspend fun destroy()
+abstract class OrchestratorHandle {
+    val scope = CoroutineScope(Dispatchers.IO)
+    abstract suspend fun destroy()
 }
 
 class Orchestrator(
@@ -92,10 +97,61 @@ class Orchestrator(
 
     fun getBus(sessionId: String, agentId: String): EventBus<RuntimeEvent>? = eventBusses[sessionId]?.get(agentId)
 
-    private fun getBusOrCreate(sessionId: String, agentId: String) = eventBusses.getOrPut(sessionId) {
-        mutableMapOf()
-    }.getOrPut(agentId) {
-        EventBus(replay = 512)
+    private fun createAgentBus(sessionId: String, agentName: String): EventBus<RuntimeEvent> {
+        val eventBus = EventBus<RuntimeEvent>(replay = 512)
+        val sessionBusses = eventBusses.getOrPut(sessionId) { mutableMapOf() }
+        sessionBusses[agentName] = eventBus
+
+        return eventBus
+    }
+
+    private fun registerHandle(
+        agent: GraphAgent,
+        session: Session,
+        handle: OrchestratorHandle,
+        bus: EventBus<RuntimeEvent>
+    ) {
+        val sessionHandles = handles.getOrPut(session.id) { mutableListOf() }
+        sessionHandles.add(handle)
+
+        bus.events.onEach {
+            if (it is RuntimeEvent.Stopped) {
+                // Note this must be done BEFORE any session destruction - destroying sessions has a chance of making
+                // this event omit again
+                sessionHandles.remove(handle)
+
+                logger.info { "Received the stop runtime event for agent '${agent.name}'" }
+
+                when (session) {
+                    is RemoteSession -> {
+                        /*
+                            It is very safe to clean up remote sessions like this because a remote session will only
+                            ever contain one agent.  When that one agent dies, there is no longer a point for that
+                            session to ever exist again.
+                         */
+                        session.destroy(SessionCloseMode.CLEAN)
+                    }
+                    is LocalSession -> {
+                        //TODO: a lot of potential here for better lifecycle management and coupling configuration
+                        // between the respective session and agent lifecycles
+                        if (agent.blocking == true) {
+                            session.destroy(SessionCloseMode.CLEAN)
+                        }
+                    }
+                }
+            }
+        }.launchIn(handle.scope)
+    }
+
+    private fun executeRuntime(
+        params: RuntimeParams,
+        runtime: Orchestrate,
+        graphAgent: GraphAgent,
+        session: Session
+    ) {
+        val bus = createAgentBus(params.getId(), params.agentName)
+        val handle = runtime.spawn(params, bus, applicationRuntimeContext)
+        registerHandle(graphAgent, session, handle, bus)
     }
 
     fun spawn(
@@ -116,20 +172,12 @@ class Orchestrator(
             path = graphAgent.registryAgent.path
         )
 
-        val handles = handles.getOrPut(session.id) { mutableListOf() }
-
         when (val provider = graphAgent.provider) {
             is GraphAgentProvider.Local -> {
                 val runtime = graphAgent.registryAgent.runtimes.getById(provider.runtime)
                     ?: throw IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported on agent ${graphAgent.name}")
 
-                handles.add(
-                    runtime.spawn(
-                        params,
-                        getBusOrCreate(params.session.id, params.agentName),
-                        applicationRuntimeContext
-                    )
-                )
+                executeRuntime(params, runtime, graphAgent, session)
             }
 
             is GraphAgentProvider.Remote -> remoteScope.launch {
@@ -152,13 +200,7 @@ class Orchestrator(
                 )
 
                 val runtime = RemoteRuntime(provider.server, provider.server.createClaim(request))
-                handles.add(
-                    runtime.spawn(
-                        params,
-                        getBusOrCreate(params.session.id, params.agentName),
-                        applicationRuntimeContext
-                    )
-                )
+                executeRuntime(params, runtime, graphAgent, session)
             }
 
             is GraphAgentProvider.RemoteRequest -> throw IllegalArgumentException("Remote requests must be resolved before orchestration")
@@ -194,13 +236,7 @@ class Orchestrator(
                 val runtime = graphAgent.registryAgent.runtimes.getById(provider.runtime)
                     ?: throw IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported on agent ${graphAgent.registryAgent.info.identifier}")
 
-                handles.getOrPut(session.id) { mutableListOf() }.add(
-                    runtime.spawn(
-                        params,
-                        getBusOrCreate(params.session.id, params.agentName),
-                        applicationRuntimeContext
-                    )
-                )
+                executeRuntime(params, runtime, graphAgent, session)
             }
         }
     }

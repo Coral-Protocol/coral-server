@@ -100,9 +100,14 @@ data class DockerRuntime(
                         }
                     }
                 }
+
+                override fun close() {
+                    super.close()
+                    bus.emit(RuntimeEvent.Stopped())
+                }
             })
 
-            return object : OrchestratorHandle {
+            return object : OrchestratorHandle() {
                 override suspend fun destroy() {
                     withContext(processContext) {
                         try {
