@@ -33,3 +33,9 @@ sealed interface RuntimeParams {
         override val path: Path,
     ): RuntimeParams
 }
+
+fun RuntimeParams.getId() =
+    when (this) {
+        is RuntimeParams.Local -> session.id
+        is RuntimeParams.Remote -> session.id
+    }

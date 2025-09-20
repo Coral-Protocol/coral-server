@@ -87,7 +87,7 @@ data class ExecutableRuntime(
             }
         }
 
-        return object : OrchestratorHandle {
+        return object : OrchestratorHandle() {
             override suspend fun destroy() {
                 withContext(processContext) {
                     process.destroy()
