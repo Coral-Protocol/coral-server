@@ -37,6 +37,15 @@ class CrossmintInteractiveKeyGenerator(
     val useStaging: Boolean = false
 ) {
     fun start() {
+        println("Let's get you set up!")
+        println("This generator will establish your local keypair to access a delegated Crossmint wallet")
+        println("This requires an access key for our closed beta - they should be sent to you via the email you signed up to the beta with.")
+        println("If you have any issues, please check our discord: https://discord.gg/UjVZ8TaR")
+        println("")
+        println("Note that a level of software development experience is currently required for the closed beta." +
+                " This isn't yet well suited for first time developers.")
+
+
         val apiKey = prompt("Enter crossmint API key:")
         val originalKeypairPath = Path.of(System.getProperty("user.home"), ".coral", "crossmint-keypair.json")
 
