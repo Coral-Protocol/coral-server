@@ -111,12 +111,15 @@ class Orchestrator(
         handle: OrchestratorHandle,
         bus: EventBus<RuntimeEvent>
     ) {
-        handles.getOrPut(session.id) {
-            mutableListOf()
-        }.add(handle)
+        val sessionHandles = handles.getOrPut(session.id) { mutableListOf() }
+        sessionHandles.add(handle)
 
         bus.events.onEach {
             if (it is RuntimeEvent.Stopped) {
+                // Note this must be done BEFORE any session destruction - destroying sessions has a chance of making
+                // this event omit again
+                sessionHandles.remove(handle)
+
                 logger.info { "Received the stop runtime event for agent '${agent.name}'" }
 
                 when (session) {
@@ -129,7 +132,11 @@ class Orchestrator(
                         session.destroy(SessionCloseMode.CLEAN)
                     }
                     is LocalSession -> {
-                        // todo: blocking agents maybe to kill the entire session?
+                        //TODO: a lot of potential here for better lifecycle management and coupling configuration
+                        // between the respective session and agent lifecycles
+                        if (agent.blocking == true) {
+                            session.destroy(SessionCloseMode.CLEAN)
+                        }
                     }
                 }
             }
