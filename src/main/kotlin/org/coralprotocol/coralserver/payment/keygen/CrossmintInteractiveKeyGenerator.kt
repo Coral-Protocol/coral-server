@@ -99,6 +99,12 @@ class CrossmintInteractiveKeyGenerator(
             logger.info { "No operation performed" }
         }
         logger.info { "All done! You can now close this program." }
+        logger.info { "Keep your keypair file safe - it is required to access your Crossmint wallet!" }
+        logger.info { "\n\n Next step: \n\n" }
+        logger.info { "Below will be your public key - to start trying out paid agents, it will need funding" }
+        println("Public wallet address: $walletPublicAddress")
+        logger.info { "Please reach out to the team to have this funded" }
+
         if(promptYN("Print wallet config to console?")) {
             println("\n\n")
             println(walletTomlContent)
@@ -116,7 +122,7 @@ class CrossmintInteractiveKeyGenerator(
 
 // Equivalent to org.coralprotocol.coralserver.Main.main() with --interactive-keygen
 fun main() {
-    val config = Config.loadFromFile()
+    val config = Config.loadFromFile(silent = true)
     val keyGen = CrossmintInteractiveKeyGenerator(config)
     runBlocking {
         keyGen.start()
