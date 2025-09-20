@@ -19,7 +19,7 @@ private fun configSource(): Pair<InputStream?, String> {
     }
 }
 
-fun Config.Companion.loadFromFile(): Config {
+fun Config.Companion.loadFromFile(silent: Boolean = false): Config {
     val (stream, identifier) = configSource()
 
     try {
@@ -31,15 +31,15 @@ fun Config.Companion.loadFromFile(): Config {
         val decodeTime = measureTimeMillis {
             config = toml.decodeFromNativeReader<Config>(stream.reader())
         }
-        logger.info { "Loaded config file in $decodeTime ms" }
+        if(!silent) logger.info { "Loaded config file in $decodeTime ms" }
 
         val indexUpdateTime = measureTimeMillis {
             config.updateIndexes()
         }
-        logger.info { "Updated indexes in $indexUpdateTime ms" }
+        if(!silent) logger.info { "Updated indexes in $indexUpdateTime ms" }
 
         // 😡
-        if (!isWindows() && config.dockerConfig.address == "172.17.0.1") {
+        if (!isWindows() && config.dockerConfig.address == "172.17.0.1" && !silent) {
             logger.warn { "The configured docker address ${config.dockerConfig.address} is not reliable" }
             logger.warn { "See https://stackoverflow.com/questions/48546124/what-is-the-linux-equivalent-of-host-docker-internal/67158212#67158212" }
         }
@@ -47,8 +47,10 @@ fun Config.Companion.loadFromFile(): Config {
         return config
     }
     catch (e: Exception) {
-        logger.error(e) { "Failed to load config file $identifier" }
-        logger.warn { "Using a default config" }
+        if(!silent) {
+            logger.error(e) { "Failed to load config file $identifier" }
+            logger.warn { "Using a default config" }
+        }
 
         return Config()
     }
