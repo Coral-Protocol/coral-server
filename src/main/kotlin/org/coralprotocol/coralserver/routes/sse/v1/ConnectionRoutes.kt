@@ -70,7 +70,7 @@ private suspend fun handleSseConnection(
     val privacyKey = parameters["privacyKey"]
     val sessionId = parameters["coralSessionId"]
     val agentId = parameters["agentId"]
-    val agentDescription: String = parameters["agentDescription"] ?: agentId ?: "no description"
+    val agentDescription: String? = parameters["agentDescription"]
 
     if (agentId == null) {
         sseProducer.call.respond(HttpStatusCode.BadRequest, "Missing agentId parameter")
@@ -119,7 +119,8 @@ private suspend fun handleSseConnection(
             false -> {
                 val agent = session.connectAgent(agentId)
                 if(agent != null) {
-                    agent.description = agentDescription
+                    // Allow description to be overridden by URL param on connect
+                    agent.description = agentDescription ?: agent.description
                     agent.mcpUrl = uri
                 }
                 agent
