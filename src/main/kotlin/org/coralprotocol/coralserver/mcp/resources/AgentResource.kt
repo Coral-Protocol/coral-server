@@ -18,10 +18,10 @@ private fun CoralAgentIndividualMcp.handler(request: ReadResourceRequest): ReadR
     val agents = """
     # Coral resource: $AGENT_RESOURCE_URI
     This resource a list of agents and their descriptions
-    
+
     ## Available agents
     $otherAgents
-    
+
     """.trimIndent()
 
     return ReadResourceResult(
@@ -37,9 +37,19 @@ private fun CoralAgentIndividualMcp.handler(request: ReadResourceRequest): ReadR
 
 fun CoralAgentIndividualMcp.addAgentResource() {
     addResource(
-        name = "message",
-        description = "Message resource",
+        name = "agents",
+        description = "Agents resource",
         uri = AGENT_RESOURCE_URI.toString(),
+        mimeType = "text/markdown",
+        readHandler = { request: ReadResourceRequest ->
+            handler(request)
+        },
+    )
+    // deprecated
+    addResource(
+        name = "agents",
+        description = "Agents resource",
+        uri = "Agent.resource",
         mimeType = "text/markdown",
         readHandler = { request: ReadResourceRequest ->
             handler(request)
