@@ -41,6 +41,7 @@ fun CoralAgentIndividualMcp.addInstructionResource() {
         mimeType = "text/markdown",
         readHandler = ::handle,
     )
+    // deprecated
     addResource(
         name = "instructions",
         description = "Coral instructions resource",

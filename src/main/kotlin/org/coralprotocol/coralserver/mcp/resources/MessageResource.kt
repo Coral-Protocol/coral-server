@@ -34,6 +34,7 @@ fun CoralAgentIndividualMcp.addMessageResource() {
             handler(request)
         },
     )
+    // deprecated
     addResource(
         name = "message",
         description = "Message resource",
