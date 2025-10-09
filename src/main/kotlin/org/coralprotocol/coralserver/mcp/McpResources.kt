@@ -5,13 +5,13 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 enum class McpResources {
-    @SerialName("Message.resource")
+    @SerialName("coral://messages")
     MESSAGE_RESOURCE_URI,
 
-    @SerialName("Instruction.resource")
+    @SerialName("coral://agent/instruction")
     INSTRUCTION_RESOURCE_URI,
 
-    @SerialName("Agent.resource")
+    @SerialName("coral://agents")
     AGENT_RESOURCE_URI;
 
     override fun toString(): String {
