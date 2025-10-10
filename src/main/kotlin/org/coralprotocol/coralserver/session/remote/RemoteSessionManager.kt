@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.onEach
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.payment.PaymentSessionId
-import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
+import org.coralprotocol.coralserver.payment.exporting.PaymentClaimManager
 import org.coralprotocol.coralserver.session.SessionCloseMode
 import org.jetbrains.annotations.VisibleForTesting
 import java.util.*
@@ -22,7 +22,7 @@ data class Claim(
 
 class RemoteSessionManager(
     val orchestrator: Orchestrator,
-    private val aggregatedPaymentClaimManager: AggregatedPaymentClaimManager
+    private val paymentClaimManager: PaymentClaimManager
 ){
     @VisibleForTesting
     val claims = mutableMapOf<String, Claim>()
@@ -90,21 +90,18 @@ class RemoteSessionManager(
 
     fun findSession(id: String): RemoteSession? = sessions[id]
 
-
     /**
      * Closes a session by ID
      */
     private suspend fun cleanupSession(remoteSession: RemoteSession, sessionCloseMode: SessionCloseMode) {
         val paymentSessionId = remoteSession.paymentSessionId
-        if (paymentSessionId != null) {
-            val paymentSessionCount = paymentSessionCounts.getOrDefault(paymentSessionId, 0u)
-            if (paymentSessionCount == 1u) {
-                aggregatedPaymentClaimManager.notifyPaymentSessionCosed(paymentSessionId)
-                paymentSessionCounts.remove(paymentSessionId)
-            }
-            else {
-                paymentSessionCounts[paymentSessionId] = paymentSessionCount - 1u
-            }
+        val paymentSessionCount = paymentSessionCounts.getOrDefault(paymentSessionId, 0u)
+        if (paymentSessionCount == 1u) {
+            paymentClaimManager.notifyPaymentSessionCosed(paymentSessionId)
+            paymentSessionCounts.remove(paymentSessionId)
+        }
+        else {
+            paymentSessionCounts[paymentSessionId] = paymentSessionCount - 1u
         }
 
         // Remove the session after the session has been destroyed in case any cleanup requires a sessionId to session

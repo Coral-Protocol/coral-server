@@ -47,7 +47,9 @@ import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
 import org.coralprotocol.coralserver.models.SocketEvent
 import org.coralprotocol.coralserver.payment.JupiterService
-import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
+import org.coralprotocol.coralserver.payment.exporting.BlockchainAggregatedPaymentClaimManager
+import org.coralprotocol.coralserver.payment.exporting.DevmodeAggregatedPaymentClaimManager
+import org.coralprotocol.coralserver.payment.exporting.PaymentClaimManager
 import org.coralprotocol.coralserver.routes.api.v1.*
 import org.coralprotocol.coralserver.routes.sse.v1.connectionSseRoutes
 import org.coralprotocol.coralserver.routes.sse.v1.exportedAgentSseRoutes
@@ -83,15 +85,21 @@ class CoralServer(
     val jupiterService = JupiterService()
     val localSessionManager = LocalSessionManager(config, orchestrator, blockchainService, jupiterService)
 
-    val aggregatedPaymentClaimManager = if (blockchainService != null) {
-        AggregatedPaymentClaimManager(blockchainService, jupiterService)
-    }
-    else {
-        null
+    val paymentClaimManager = when {
+        devmode -> {
+            DevmodeAggregatedPaymentClaimManager(jupiterService)
+        }
+        blockchainService != null -> {
+            BlockchainAggregatedPaymentClaimManager(blockchainService, jupiterService)
+        }
+
+        else -> {
+            null
+        }
     }
 
-    val remoteSessionManager = if (aggregatedPaymentClaimManager != null) {
-        RemoteSessionManager(orchestrator, aggregatedPaymentClaimManager)
+    val remoteSessionManager = if (paymentClaimManager != null) {
+        RemoteSessionManager(orchestrator, paymentClaimManager)
     }
     else {
         null
@@ -201,7 +209,7 @@ class CoralServer(
                 telemetryApiRoutes(localSessionManager)
                 documentationApiRoutes()
                 agentApiRoutes(registry, blockchainService, remoteSessionManager, jupiterService, config.paymentConfig)
-                internalRoutes(remoteSessionManager, aggregatedPaymentClaimManager, jupiterService)
+                internalRoutes(remoteSessionManager, paymentClaimManager, jupiterService)
                 publicWalletApiRoutes(config.paymentConfig.wallet)
 
                 // sse

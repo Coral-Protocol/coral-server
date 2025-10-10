@@ -9,7 +9,7 @@ import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.agent.payment.AgentPaymentClaimRequest
 import org.coralprotocol.coralserver.agent.payment.AgentRemainingBudget
 import org.coralprotocol.coralserver.payment.JupiterService
-import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
+import org.coralprotocol.coralserver.payment.exporting.PaymentClaimManager
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 
@@ -18,7 +18,7 @@ class Claim(val remoteSessionId: String)
 
 fun Route.internalRoutes(
     remoteSessionManager: RemoteSessionManager?,
-    aggregatedPaymentClaimManager: AggregatedPaymentClaimManager?,
+    paymentClaimManager: PaymentClaimManager?,
     jupiterService: JupiterService
 ) {
     post<Claim>({
@@ -54,7 +54,7 @@ fun Route.internalRoutes(
             }
         }
     }) {claim ->
-        if (remoteSessionManager == null || aggregatedPaymentClaimManager == null)
+        if (remoteSessionManager == null || paymentClaimManager == null)
             throw RouteException(HttpStatusCode.InternalServerError, "Remote sessions are disabled")
 
         val request = call.receive<AgentPaymentClaimRequest>()
@@ -62,7 +62,7 @@ fun Route.internalRoutes(
             ?: throw RouteException(HttpStatusCode.NotFound, "Session not found")
 
         val remainingToClaim = try {
-           aggregatedPaymentClaimManager.addClaim(request, session)
+           paymentClaimManager.addClaim(request, session)
         }
         catch (e: IllegalArgumentException) {
             throw RouteException(HttpStatusCode.BadRequest, e.message)
