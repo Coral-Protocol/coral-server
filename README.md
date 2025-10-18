@@ -1,5 +1,7 @@
 ![Coral Server - Open Infrastructure Connecting the Internet of AI Agents](images/splash.png)
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Coral-Protocol/coral-server)
+
 An implementation of the Coral Protocol that acts as an MCP server providing tools for agents to communicate with each other.
 
 <br/>
