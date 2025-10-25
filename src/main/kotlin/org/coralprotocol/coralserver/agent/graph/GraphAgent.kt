@@ -2,6 +2,8 @@ package org.coralprotocol.coralserver.agent.graph
 
 import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
 import org.coralprotocol.coralserver.agent.registry.*
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.remote.RemoteSession
@@ -54,7 +56,7 @@ data class GraphAgent(
     /**
      * @see GraphAgentRequest.options
      */
-    val options: Map<String, AgentOptionValue>,
+    val options: Map<String, AgentOptionWithValue>,
 
     /**
      * @see GraphAgentRequest.systemPrompt
