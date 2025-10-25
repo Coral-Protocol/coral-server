@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver.agent.registry
 
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 
 typealias AgentExportSettingsMap = Map<RuntimeId, AgentExportSettings>

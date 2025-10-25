@@ -13,8 +13,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
-import org.coralprotocol.coralserver.agent.registry.toStringValue
-import org.coralprotocol.coralserver.agent.runtime.executable.EnvVar
+import org.coralprotocol.coralserver.agent.registry.option.toStringValue
 import org.coralprotocol.coralserver.config.AddressConsumer
 import java.time.Instant
 import java.time.ZoneId
@@ -27,7 +26,6 @@ private val dockerLogger = KotlinLogging.logger {}
 @SerialName("docker")
 data class DockerRuntime(
     var image: String,
-    val environment: List<EnvVar> = listOf(),
 ) : Orchestrate {
 
     override fun spawn(
