@@ -1,7 +1,8 @@
 package org.coralprotocol.coralserver.agent.runtime
 
-import org.coralprotocol.coralserver.agent.registry.AgentOptionValue
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.remote.RemoteSession
 import java.nio.file.Path
@@ -10,7 +11,7 @@ sealed interface RuntimeParams {
     val agentId: AgentRegistryIdentifier
     val agentName: String
     val systemPrompt: String?
-    val options: Map<String, AgentOptionValue>
+    val options: Map<String, AgentOptionWithValue>
     val path: Path
     val agentSecret: String
 
@@ -21,7 +22,7 @@ sealed interface RuntimeParams {
         override val agentId: AgentRegistryIdentifier,
         override val agentName: String,
         override val systemPrompt: String?,
-        override val options: Map<String, AgentOptionValue>,
+        override val options: Map<String, AgentOptionWithValue>,
         override val path: Path,
         override val agentSecret: String,
     ): RuntimeParams
@@ -31,7 +32,7 @@ sealed interface RuntimeParams {
         override val agentId: AgentRegistryIdentifier,
         override val agentName: String,
         override val systemPrompt: String?,
-        override val options: Map<String, AgentOptionValue>,
+        override val options: Map<String, AgentOptionWithValue>,
         override val path: Path,
         override val agentSecret: String,
     ): RuntimeParams
