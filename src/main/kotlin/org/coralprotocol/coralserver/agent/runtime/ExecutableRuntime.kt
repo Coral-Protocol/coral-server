@@ -7,8 +7,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
-import org.coralprotocol.coralserver.agent.registry.toStringValue
-import org.coralprotocol.coralserver.agent.runtime.executable.EnvVar
+import org.coralprotocol.coralserver.agent.registry.option.toStringValue
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.session.models.SessionAgentState
 import java.util.concurrent.TimeUnit
@@ -19,8 +18,7 @@ private val logger = KotlinLogging.logger {}
 @Serializable
 @SerialName("executable")
 data class ExecutableRuntime(
-    val command: List<String>,
-    val environment: List<EnvVar> = listOf()
+    val command: List<String>
 ) : Orchestrate {
     override fun spawn(
         params: RuntimeParams,

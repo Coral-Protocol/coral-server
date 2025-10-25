@@ -6,6 +6,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import net.peanuuutz.tomlkt.decodeFromNativeReader
+import org.coralprotocol.coralserver.agent.registry.option.AgentOption
+import org.coralprotocol.coralserver.agent.registry.option.defaultAsValue
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.SecurityConfig
@@ -14,6 +16,9 @@ import java.io.File
 import java.nio.file.Path
 
 private val logger = KotlinLogging.logger {  }
+
+const val FIRST_AGENT_EDITION = 1
+const val CURRENT_AGENT_EDITION = 2
 
 class RegistryAgent(
     val info: RegistryAgentInfo,
