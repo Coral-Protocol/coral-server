@@ -1,8 +1,11 @@
 package org.coralprotocol.coralserver.agent.registry
 
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.compareTypeWithValue
+import org.coralprotocol.coralserver.agent.registry.option.requireValue
+import org.coralprotocol.coralserver.agent.registry.option.withValue
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 
 typealias UnresolvedAgentExportSettingsMap = Map<RuntimeId, UnresolvedAgentExportSettings>
@@ -30,6 +33,13 @@ data class UnresolvedAgentExportSettings(
                 val valueType = optionValue.javaClass.name
                 val optionType = option.javaClass.name
                 throw RegistryException("Wrong value type \"$valueType\" given for option \"$optionName\" in \"${agent.info.identifier}\".  Expected type \"$optionType\"")
+            }
+
+            try {
+                option.withValue(optionValue).requireValue()
+            }
+            catch (e: AgentOptionValidationException) {
+                throw RegistryException("Value given for option \"$optionName\" in \"${agent.info.identifier}\" is invalid: ${e.message}")
             }
         }
 
