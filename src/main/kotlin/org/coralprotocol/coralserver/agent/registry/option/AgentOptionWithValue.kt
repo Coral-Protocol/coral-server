@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver.agent.registry.option
 
 import io.ktor.util.*
+import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
 
 sealed interface AgentOptionWithValue {
     data class String(
@@ -216,4 +217,37 @@ fun AgentOptionWithValue.toDisplayString(): String = when (this) {
     is AgentOptionWithValue.ULongList -> value.value.joinToString(",")
     is AgentOptionWithValue.UShort -> value.value.toString()
     is AgentOptionWithValue.UShortList -> value.value.joinToString(",")
+}
+
+/**
+ * If the option has a validation table, the require function will be called, validating the option's value with all the
+ * criteria specified on the option's validation table.  If the value ends up being invalid, an [AgentOptionValidationException]
+ * exception will be thrown.
+ */
+fun AgentOptionWithValue.requireValue() = when (this) {
+    is AgentOptionWithValue.Byte -> option.validation?.require(value.value)
+    is AgentOptionWithValue.ByteList -> value.value.forEach { option.validation?.require(it) }
+    is AgentOptionWithValue.Double -> option.validation?.require(value.value)
+    is AgentOptionWithValue.DoubleList -> value.value.forEach { option.validation?.require(it) }
+    is AgentOptionWithValue.Float -> option.validation?.require(value.value)
+    is AgentOptionWithValue.FloatList -> value.value.forEach { option.validation?.require(it) }
+    is AgentOptionWithValue.Int -> option.validation?.require(value.value)
+    is AgentOptionWithValue.IntList -> value.value.forEach { option.validation?.require(it) }
+    is AgentOptionWithValue.Long -> option.validation?.require(value.value)
+    is AgentOptionWithValue.LongList -> value.value.forEach { option.validation?.require(it) }
+    is AgentOptionWithValue.Short -> option.validation?.require(value.value)
+    is AgentOptionWithValue.ShortList -> value.value.forEach { option.validation?.require(it) }
+    is AgentOptionWithValue.String -> option.validation?.require(value.value)
+    is AgentOptionWithValue.StringList -> value.value.forEach { option.validation?.require(it) }
+    is AgentOptionWithValue.UByte -> option.validation?.require(value.value)
+    is AgentOptionWithValue.UByteList -> value.value.forEach { option.validation?.require(it) }
+    is AgentOptionWithValue.UInt -> option.validation?.require(value.value)
+    is AgentOptionWithValue.UIntList -> value.value.forEach { option.validation?.require(it) }
+    is AgentOptionWithValue.ULong -> option.validation?.require(value.value)
+    is AgentOptionWithValue.ULongList -> value.value.forEach { option.validation?.require(it) }
+    is AgentOptionWithValue.UShort -> option.validation?.require(value.value)
+    is AgentOptionWithValue.UShortList -> value.value.forEach { option.validation?.require(it) }
+    else -> {
+        // nop
+    }
 }
