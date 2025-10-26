@@ -113,3 +113,37 @@ sealed interface AgentOptionValue {
     @SerialName("list[f64]")
     data class DoubleList(val value: List<kotlin.Double>) : AgentOptionValue
 }
+
+/**
+ * Converts an [AgentOptionValue] to a string representation.  If [base64] is true, [AgentOptionValue.String] and
+ * [AgentOptionValue.StringList] will be base64 encoded.
+ */
+fun AgentOptionValue.toStringValue(base64: Boolean = false): String = when (this) {
+    is AgentOptionValue.Blob -> value.encodeBase64()
+    is AgentOptionValue.BlobList -> value.joinToString(",") { it.encodeBase64() }
+    is AgentOptionValue.Boolean -> if (value) "1" else "0"
+    is AgentOptionValue.Byte -> value.toString()
+    is AgentOptionValue.ByteList -> value.joinToString(",")
+    is AgentOptionValue.Double -> value.toString()
+    is AgentOptionValue.DoubleList -> value.joinToString(",")
+    is AgentOptionValue.Float -> value.toString()
+    is AgentOptionValue.FloatList -> value.joinToString(",")
+    is AgentOptionValue.Int -> value.toString()
+    is AgentOptionValue.IntList -> value.joinToString(",")
+    is AgentOptionValue.Long -> value.toString()
+    is AgentOptionValue.LongList -> value.joinToString(",")
+    is AgentOptionValue.Short -> value.toString()
+    is AgentOptionValue.ShortList -> value.joinToString(",")
+    is AgentOptionValue.String -> if (base64) value.encodeBase64() else value
+    is AgentOptionValue.StringList -> value.joinToString(",") {
+        if (base64) it.encodeBase64() else it
+    }
+    is AgentOptionValue.UByte -> value.toString()
+    is AgentOptionValue.UByteList -> value.joinToString(",")
+    is AgentOptionValue.UInt -> value.toString()
+    is AgentOptionValue.UIntList -> value.joinToString(",")
+    is AgentOptionValue.ULong -> value.toString()
+    is AgentOptionValue.ULongList -> value.joinToString(",")
+    is AgentOptionValue.UShort -> value.toString()
+    is AgentOptionValue.UShortList -> value.joinToString(",")
+}

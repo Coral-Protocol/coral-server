@@ -110,7 +110,7 @@ sealed class AgentOption {
     ) : AgentOption()
 
     @Serializable
-    @SerialName("list[byte]")
+    @SerialName("list[i8]")
     data class ByteList(
         val default: List<kotlin.Byte>? = null,
         val validation: NumericAgentOptionValidation<kotlin.Byte>? = null
@@ -294,38 +294,38 @@ fun AgentOption.defaultAsValue(): AgentOptionValue? =
 
 fun AgentOption.withValue(value: AgentOptionValue) =
     when (this) {
-        is AgentOption.Blob -> AgentOptionWithValue.Blob(this, (value as AgentOptionValue.Blob).value)
-        is AgentOption.BlobList -> AgentOptionWithValue.BlobList(this, (value as AgentOptionValue.BlobList).value)
-        is AgentOption.Boolean -> AgentOptionWithValue.Boolean(this, (value as AgentOptionValue.Boolean).value)
-        is AgentOption.Byte -> AgentOptionWithValue.Byte(this, (value as AgentOptionValue.Byte).value)
-        is AgentOption.ByteList -> AgentOptionWithValue.ByteList(this, (value as AgentOptionValue.ByteList).value)
-        is AgentOption.Double -> AgentOptionWithValue.Double(this, (value as AgentOptionValue.Double).value)
-        is AgentOption.DoubleList -> AgentOptionWithValue.DoubleList(this, (value as AgentOptionValue.DoubleList).value)
-        is AgentOption.Float -> AgentOptionWithValue.Float(this, (value as AgentOptionValue.Float).value)
-        is AgentOption.FloatList -> AgentOptionWithValue.FloatList(this, (value as AgentOptionValue.FloatList).value)
-        is AgentOption.Int -> AgentOptionWithValue.Int(this, (value as AgentOptionValue.Int).value)
-        is AgentOption.IntList -> AgentOptionWithValue.IntList(this, (value as AgentOptionValue.IntList).value)
-        is AgentOption.Long -> AgentOptionWithValue.Long(this, (value as AgentOptionValue.Long).value)
-        is AgentOption.LongList -> AgentOptionWithValue.LongList(this, (value as AgentOptionValue.LongList).value)
-        is AgentOption.Short -> AgentOptionWithValue.Short(this, (value as AgentOptionValue.Short).value)
-        is AgentOption.ShortList -> AgentOptionWithValue.ShortList(this, (value as AgentOptionValue.ShortList).value)
-        is AgentOption.String -> AgentOptionWithValue.String(this, (value as AgentOptionValue.String).value)
-        is AgentOption.StringList -> AgentOptionWithValue.StringList(this, (value as AgentOptionValue.StringList).value)
-        is AgentOption.UByte -> AgentOptionWithValue.UByte(this, (value as AgentOptionValue.UByte).value)
-        is AgentOption.UByteList -> AgentOptionWithValue.UByteList(this, (value as AgentOptionValue.UByteList).value)
-        is AgentOption.UInt -> AgentOptionWithValue.UInt(this, (value as AgentOptionValue.UInt).value)
-        is AgentOption.UIntList -> AgentOptionWithValue.UIntList(this, (value as AgentOptionValue.UIntList).value)
-        is AgentOption.ULong -> AgentOptionWithValue.ULong(this, (value as AgentOptionValue.ULong).value)
-        is AgentOption.ULongList -> AgentOptionWithValue.ULongList(this, (value as AgentOptionValue.ULongList).value)
-        is AgentOption.UShort -> AgentOptionWithValue.UShort(this, (value as AgentOptionValue.UShort).value)
-        is AgentOption.UShortList -> AgentOptionWithValue.UShortList(this, (value as AgentOptionValue.UShortList).value)
+        is AgentOption.Blob -> AgentOptionWithValue.Blob(this, (value as AgentOptionValue.Blob))
+        is AgentOption.BlobList -> AgentOptionWithValue.BlobList(this, (value as AgentOptionValue.BlobList))
+        is AgentOption.Boolean -> AgentOptionWithValue.Boolean(this, (value as AgentOptionValue.Boolean))
+        is AgentOption.Byte -> AgentOptionWithValue.Byte(this, (value as AgentOptionValue.Byte))
+        is AgentOption.ByteList -> AgentOptionWithValue.ByteList(this, (value as AgentOptionValue.ByteList))
+        is AgentOption.Double -> AgentOptionWithValue.Double(this, (value as AgentOptionValue.Double))
+        is AgentOption.DoubleList -> AgentOptionWithValue.DoubleList(this, (value as AgentOptionValue.DoubleList))
+        is AgentOption.Float -> AgentOptionWithValue.Float(this, (value as AgentOptionValue.Float))
+        is AgentOption.FloatList -> AgentOptionWithValue.FloatList(this, (value as AgentOptionValue.FloatList))
+        is AgentOption.Int -> AgentOptionWithValue.Int(this, (value as AgentOptionValue.Int))
+        is AgentOption.IntList -> AgentOptionWithValue.IntList(this, (value as AgentOptionValue.IntList))
+        is AgentOption.Long -> AgentOptionWithValue.Long(this, (value as AgentOptionValue.Long))
+        is AgentOption.LongList -> AgentOptionWithValue.LongList(this, (value as AgentOptionValue.LongList))
+        is AgentOption.Short -> AgentOptionWithValue.Short(this, (value as AgentOptionValue.Short))
+        is AgentOption.ShortList -> AgentOptionWithValue.ShortList(this, (value as AgentOptionValue.ShortList))
+        is AgentOption.String -> AgentOptionWithValue.String(this, (value as AgentOptionValue.String))
+        is AgentOption.StringList -> AgentOptionWithValue.StringList(this, (value as AgentOptionValue.StringList))
+        is AgentOption.UByte -> AgentOptionWithValue.UByte(this, (value as AgentOptionValue.UByte))
+        is AgentOption.UByteList -> AgentOptionWithValue.UByteList(this, (value as AgentOptionValue.UByteList))
+        is AgentOption.UInt -> AgentOptionWithValue.UInt(this, (value as AgentOptionValue.UInt))
+        is AgentOption.UIntList -> AgentOptionWithValue.UIntList(this, (value as AgentOptionValue.UIntList))
+        is AgentOption.ULong -> AgentOptionWithValue.ULong(this, (value as AgentOptionValue.ULong))
+        is AgentOption.ULongList -> AgentOptionWithValue.ULongList(this, (value as AgentOptionValue.ULongList))
+        is AgentOption.UShort -> AgentOptionWithValue.UShort(this, (value as AgentOptionValue.UShort))
+        is AgentOption.UShortList -> AgentOptionWithValue.UShortList(this, (value as AgentOptionValue.UShortList))
 
         // Backwards compatibility: normalize to double
         is AgentOption.Number -> {
             AgentOptionWithValue.Double(AgentOption.Double(
                 default = this.default,
                 validation = this.validation
-            ), (value as AgentOptionValue.Double).value)
+            ), (value as AgentOptionValue.Double))
         }
 
         // Backwards compatibility: normalize to string
@@ -334,7 +334,7 @@ fun AgentOption.withValue(value: AgentOptionValue) =
                 default = this.default,
                 validation = this.validation,
                 secret = true
-            ), (value as AgentOptionValue.String).value)
+            ), (value as AgentOptionValue.String))
         }
     }
 
