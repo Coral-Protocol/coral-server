@@ -3,12 +3,15 @@ package org.coralprotocol.coralserver.agent.graph
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
 import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
+import org.coralprotocol.coralserver.agent.registry.RegistryException
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.compareTypeWithValue
+import org.coralprotocol.coralserver.agent.registry.option.requireValue
 import org.coralprotocol.coralserver.agent.registry.option.withValue
 import org.coralprotocol.coralserver.x402.X402BudgetedResource
 
@@ -72,6 +75,15 @@ data class GraphAgentRequest(
             .mapValues { registryAgent.options[it.key]!!.withValue(it.value) }
             .toMutableMap()
 
+        allOptions.forEach { (optionName, optionValue) ->
+            try {
+                optionValue.requireValue()
+            }
+            catch (e: AgentOptionValidationException) {
+                throw AgentRequestException("Value given for option \"$optionName\" is invalid: ${e.message}")
+            }
+        }
+
         // Options that are specified in the export settings take the highest priority, but they should only be
         // considered in a remote context
         allOptions += if (isRemote) {
@@ -84,7 +96,8 @@ data class GraphAgentRequest(
                 }
             }
 
-            // Export settings are validated (both option name and value type), it is safe to assume they are valid here
+            // Export settings are validated (option name, value type, value validation) so it is safe to simply copy
+            // export settings in here
             registryAgent.exportSettings[runtime]?.options
                 ?.mapValues {
                     registryAgent.options[it.key]!!.withValue(it.value)
