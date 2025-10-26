@@ -5,127 +5,127 @@ import io.ktor.util.*
 sealed interface AgentOptionWithValue {
     data class String(
         val option: AgentOption.String,
-        val value: kotlin.String
+        val value: AgentOptionValue.String
     ) : AgentOptionWithValue
 
     data class StringList(
         val option: AgentOption.StringList,
-        val value: List<kotlin.String>
+        val value: AgentOptionValue.StringList
     ) : AgentOptionWithValue
 
     data class Blob(
         val option: AgentOption.Blob,
-        val value: kotlin.String
+        val value: AgentOptionValue.Blob
     ) : AgentOptionWithValue
 
     data class BlobList(
         val option: AgentOption.BlobList,
-        val value: List<kotlin.String>
+        val value: AgentOptionValue.BlobList
     ) : AgentOptionWithValue
 
     data class Boolean(
         val option: AgentOption.Boolean,
-        val value: kotlin.Boolean
+        val value: AgentOptionValue.Boolean
     ) : AgentOptionWithValue
 
     data class Byte(
         val option: AgentOption.Byte,
-        val value: kotlin.Byte
+        val value: AgentOptionValue.Byte
     ) : AgentOptionWithValue
 
     data class ByteList(
         val option: AgentOption.ByteList,
-        val value: List<kotlin.Byte>
+        val value: AgentOptionValue.ByteList
     ) : AgentOptionWithValue
 
     data class Short(
         val option: AgentOption.Short,
-        val value: kotlin.Short
+        val value: AgentOptionValue.Short
     ) : AgentOptionWithValue
 
     data class ShortList(
         val option: AgentOption.ShortList,
-        val value: List<kotlin.Short>
+        val value: AgentOptionValue.ShortList
     ) : AgentOptionWithValue
 
     data class Int(
         val option: AgentOption.Int,
-        val value: kotlin.Int
+        val value: AgentOptionValue.Int
     ) : AgentOptionWithValue
 
     data class IntList(
         val option: AgentOption.IntList,
-        val value: List<kotlin.Int>
+        val value: AgentOptionValue.IntList
     ) : AgentOptionWithValue
 
     data class Long(
         val option: AgentOption.Long,
-        val value: kotlin.Long
+        val value: AgentOptionValue.Long
     ) : AgentOptionWithValue
 
     data class LongList(
         val option: AgentOption.LongList,
-        val value: List<kotlin.Long>
+        val value: AgentOptionValue.LongList
     ) : AgentOptionWithValue
 
     data class UByte(
         val option: AgentOption.UByte,
-        val value: kotlin.UByte
+        val value: AgentOptionValue.UByte
     ) : AgentOptionWithValue
 
     data class UByteList(
         val option: AgentOption.UByteList,
-        val value: List<kotlin.UByte>
+        val value: AgentOptionValue.UByteList
     ) : AgentOptionWithValue
 
     data class UShort(
         val option: AgentOption.UShort,
-        val value: kotlin.UShort
+        val value: AgentOptionValue.UShort
     ) : AgentOptionWithValue
 
     data class UShortList(
         val option: AgentOption.UShortList,
-        val value: List<kotlin.UShort>
+        val value: AgentOptionValue.UShortList
     ) : AgentOptionWithValue
 
     data class UInt(
         val option: AgentOption.UInt,
-        val value: kotlin.UInt
+        val value: AgentOptionValue.UInt
     ) : AgentOptionWithValue
 
     data class UIntList(
         val option: AgentOption.UIntList,
-        val value: List<kotlin.UInt>
+        val value: AgentOptionValue.UIntList
     ) : AgentOptionWithValue
 
     data class ULong(
         val option: AgentOption.ULong,
-        val value: kotlin.ULong
+        val value: AgentOptionValue.ULong
     ) : AgentOptionWithValue
 
     data class ULongList(
         val option: AgentOption.ULongList,
-        val value: List<kotlin.ULong>
+        val value: AgentOptionValue.ULongList
     ) : AgentOptionWithValue
 
     data class Float(
         val option: AgentOption.Float,
-        val value: kotlin.Float
+        val value: AgentOptionValue.Float
     ) : AgentOptionWithValue
 
     data class FloatList(
         val option: AgentOption.FloatList,
-        val value: List<kotlin.Float>
+        val value: AgentOptionValue.FloatList
     ) : AgentOptionWithValue
 
     data class Double(
         val option: AgentOption.Double,
-        val value: kotlin.Double
+        val value: AgentOptionValue.Double
     ) : AgentOptionWithValue
 
     data class DoubleList(
         val option: AgentOption.DoubleList,
-        val value: List<kotlin.Double>
+        val value: AgentOptionValue.DoubleList
     ) : AgentOptionWithValue
 }
 
@@ -133,31 +133,31 @@ sealed interface AgentOptionWithValue {
  * Converts the option's value back into a wrapped type for on-wire use.
  */
 fun AgentOptionWithValue.toWrappedValue(): AgentOptionValue = when (this) {
-    is AgentOptionWithValue.Blob -> AgentOptionValue.Blob(value)
-    is AgentOptionWithValue.BlobList -> AgentOptionValue.BlobList(value)
-    is AgentOptionWithValue.Boolean -> AgentOptionValue.Boolean(value)
-    is AgentOptionWithValue.Byte -> AgentOptionValue.Byte(value)
-    is AgentOptionWithValue.ByteList -> AgentOptionValue.ByteList(value)
-    is AgentOptionWithValue.Double -> AgentOptionValue.Double(value)
-    is AgentOptionWithValue.DoubleList -> AgentOptionValue.DoubleList(value)
-    is AgentOptionWithValue.Float -> AgentOptionValue.Float(value)
-    is AgentOptionWithValue.FloatList -> AgentOptionValue.FloatList(value)
-    is AgentOptionWithValue.Int -> AgentOptionValue.Int(value)
-    is AgentOptionWithValue.IntList -> AgentOptionValue.IntList(value)
-    is AgentOptionWithValue.Long -> AgentOptionValue.Long(value)
-    is AgentOptionWithValue.LongList -> AgentOptionValue.LongList(value)
-    is AgentOptionWithValue.Short -> AgentOptionValue.Short(value)
-    is AgentOptionWithValue.ShortList -> AgentOptionValue.ShortList(value)
-    is AgentOptionWithValue.String -> AgentOptionValue.String(value)
-    is AgentOptionWithValue.StringList -> AgentOptionValue.StringList(value)
-    is AgentOptionWithValue.UByte -> AgentOptionValue.UByte(value)
-    is AgentOptionWithValue.UByteList -> AgentOptionValue.UByteList(value)
-    is AgentOptionWithValue.UInt -> AgentOptionValue.UInt(value)
-    is AgentOptionWithValue.UIntList -> AgentOptionValue.UIntList(value)
-    is AgentOptionWithValue.ULong -> AgentOptionValue.ULong(value)
-    is AgentOptionWithValue.ULongList -> AgentOptionValue.ULongList(value)
-    is AgentOptionWithValue.UShort -> AgentOptionValue.UShort(value)
-    is AgentOptionWithValue.UShortList -> AgentOptionValue.UShortList(value)
+    is AgentOptionWithValue.Blob -> value
+    is AgentOptionWithValue.BlobList -> value
+    is AgentOptionWithValue.Boolean -> value
+    is AgentOptionWithValue.Byte -> value
+    is AgentOptionWithValue.ByteList -> value
+    is AgentOptionWithValue.Double -> value
+    is AgentOptionWithValue.DoubleList -> value
+    is AgentOptionWithValue.Float -> value
+    is AgentOptionWithValue.FloatList -> value
+    is AgentOptionWithValue.Int -> value
+    is AgentOptionWithValue.IntList -> value
+    is AgentOptionWithValue.Long -> value
+    is AgentOptionWithValue.LongList -> value
+    is AgentOptionWithValue.Short -> value
+    is AgentOptionWithValue.ShortList -> value
+    is AgentOptionWithValue.String -> value
+    is AgentOptionWithValue.StringList -> value
+    is AgentOptionWithValue.UByte -> value
+    is AgentOptionWithValue.UByteList -> value
+    is AgentOptionWithValue.UInt -> value
+    is AgentOptionWithValue.UIntList -> value
+    is AgentOptionWithValue.ULong -> value
+    is AgentOptionWithValue.ULongList -> value
+    is AgentOptionWithValue.UShort -> value
+    is AgentOptionWithValue.UShortList -> value
 }
 
 /**
@@ -165,33 +165,11 @@ fun AgentOptionWithValue.toWrappedValue(): AgentOptionValue = when (this) {
  * Use [AgentOptionWithValue.toDisplayString] if you intend to log the result; this function will censor secret data.
  */
 fun AgentOptionWithValue.toStringValue(): String = when (this) {
-    is AgentOptionWithValue.Blob -> value.encodeBase64()
-    is AgentOptionWithValue.BlobList -> value.joinToString(",") { it.encodeBase64() }
-    is AgentOptionWithValue.Boolean -> if (value) "1" else "0"
-    is AgentOptionWithValue.Byte -> value.toString()
-    is AgentOptionWithValue.ByteList -> value.joinToString(",")
-    is AgentOptionWithValue.Double -> value.toString()
-    is AgentOptionWithValue.DoubleList -> value.joinToString(",")
-    is AgentOptionWithValue.Float -> value.toString()
-    is AgentOptionWithValue.FloatList -> value.joinToString(",")
-    is AgentOptionWithValue.Int -> value.toString()
-    is AgentOptionWithValue.IntList -> value.joinToString(",")
-    is AgentOptionWithValue.Long -> value.toString()
-    is AgentOptionWithValue.LongList -> value.joinToString(",")
-    is AgentOptionWithValue.Short -> value.toString()
-    is AgentOptionWithValue.ShortList -> value.joinToString(",")
-    is AgentOptionWithValue.String -> if (option.base64) value.encodeBase64() else value
-    is AgentOptionWithValue.StringList -> value.joinToString(",") {
-        if (option.base64) it.encodeBase64() else it
-    }
-    is AgentOptionWithValue.UByte -> value.toString()
-    is AgentOptionWithValue.UByteList -> value.joinToString(",")
-    is AgentOptionWithValue.UInt -> value.toString()
-    is AgentOptionWithValue.UIntList -> value.joinToString(",")
-    is AgentOptionWithValue.ULong -> value.toString()
-    is AgentOptionWithValue.ULongList -> value.joinToString(",")
-    is AgentOptionWithValue.UShort -> value.toString()
-    is AgentOptionWithValue.UShortList -> value.joinToString(",")
+    is AgentOptionWithValue.Blob -> toWrappedValue().toStringValue(true)
+    is AgentOptionWithValue.BlobList -> toWrappedValue().toStringValue(true)
+    is AgentOptionWithValue.String -> toWrappedValue().toStringValue(option.base64)
+    is AgentOptionWithValue.StringList -> toWrappedValue().toStringValue(option.base64)
+    else -> toWrappedValue().toStringValue()
 }
 
 /**
@@ -199,30 +177,30 @@ fun AgentOptionWithValue.toStringValue(): String = when (this) {
  * logging, this will the incorrect value for environment variables.
  */
 fun AgentOptionWithValue.toDisplayString(): String = when (this) {
-    is AgentOptionWithValue.Blob -> value.encodeBase64()
-    is AgentOptionWithValue.BlobList -> value.joinToString(",") { it.encodeBase64() }
-    is AgentOptionWithValue.Boolean -> if (value) "1" else "0"
-    is AgentOptionWithValue.Byte -> value.toString()
-    is AgentOptionWithValue.ByteList -> value.joinToString(",")
-    is AgentOptionWithValue.Double -> value.toString()
-    is AgentOptionWithValue.DoubleList -> value.joinToString(",")
-    is AgentOptionWithValue.Float -> value.toString()
-    is AgentOptionWithValue.FloatList -> value.joinToString(",")
-    is AgentOptionWithValue.Int -> value.toString()
-    is AgentOptionWithValue.IntList -> value.joinToString(",")
-    is AgentOptionWithValue.Long -> value.toString()
-    is AgentOptionWithValue.LongList -> value.joinToString(",")
-    is AgentOptionWithValue.Short -> value.toString()
-    is AgentOptionWithValue.ShortList -> value.joinToString(",")
+    is AgentOptionWithValue.Blob -> value.value.encodeBase64()
+    is AgentOptionWithValue.BlobList -> value.value.joinToString(",") { it.encodeBase64() }
+    is AgentOptionWithValue.Boolean -> if (value.value) { "1" } else { "0" }
+    is AgentOptionWithValue.Byte -> value.value.toString()
+    is AgentOptionWithValue.ByteList -> value.value.joinToString(",")
+    is AgentOptionWithValue.Double -> value.value.toString()
+    is AgentOptionWithValue.DoubleList -> value.value.joinToString(",")
+    is AgentOptionWithValue.Float -> value.value.toString()
+    is AgentOptionWithValue.FloatList -> value.value.joinToString(",")
+    is AgentOptionWithValue.Int -> value.value.toString()
+    is AgentOptionWithValue.IntList -> value.value.joinToString(",")
+    is AgentOptionWithValue.Long -> value.value.toString()
+    is AgentOptionWithValue.LongList -> value.value.joinToString(",")
+    is AgentOptionWithValue.Short -> value.value.toString()
+    is AgentOptionWithValue.ShortList -> value.value.joinToString(",")
     is AgentOptionWithValue.String -> {
         if (option.secret) {
-            "*".repeat(value.length)
+            "*".repeat(value.value.length)
         }
         else {
-            value
+            value.value
         }
     }
-    is AgentOptionWithValue.StringList -> value.joinToString(",") {
+    is AgentOptionWithValue.StringList -> value.value.joinToString(",") {
         if (option.secret) {
             "*".repeat(it.length)
         }
@@ -230,12 +208,12 @@ fun AgentOptionWithValue.toDisplayString(): String = when (this) {
             it
         }
     }
-    is AgentOptionWithValue.UByte -> value.toString()
-    is AgentOptionWithValue.UByteList -> value.joinToString(",")
-    is AgentOptionWithValue.UInt -> value.toString()
-    is AgentOptionWithValue.UIntList -> value.joinToString(",")
-    is AgentOptionWithValue.ULong -> value.toString()
-    is AgentOptionWithValue.ULongList -> value.joinToString(",")
-    is AgentOptionWithValue.UShort -> value.toString()
-    is AgentOptionWithValue.UShortList -> value.joinToString(",")
+    is AgentOptionWithValue.UByte -> value.value.toString()
+    is AgentOptionWithValue.UByteList -> value.value.joinToString(",")
+    is AgentOptionWithValue.UInt -> value.value.toString()
+    is AgentOptionWithValue.UIntList -> value.value.joinToString(",")
+    is AgentOptionWithValue.ULong -> value.value.toString()
+    is AgentOptionWithValue.ULongList -> value.value.joinToString(",")
+    is AgentOptionWithValue.UShort -> value.value.toString()
+    is AgentOptionWithValue.UShortList -> value.value.joinToString(",")
 }
