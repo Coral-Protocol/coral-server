@@ -247,7 +247,11 @@ fun AgentOptionWithValue.requireValue() = when (this) {
     is AgentOptionWithValue.ULongList -> value.value.forEach { option.validation?.require(it) }
     is AgentOptionWithValue.UShort -> option.validation?.require(value.value)
     is AgentOptionWithValue.UShortList -> value.value.forEach { option.validation?.require(it) }
-    else -> {
-        // nop
+    is AgentOptionWithValue.Blob -> option.validation?.require(value.value)
+    is AgentOptionWithValue.BlobList -> value.value.forEach { option.validation?.require(it) }
+    is AgentOptionWithValue.Boolean -> {
+        // booleans have no validator
+    }
+}
     }
 }
