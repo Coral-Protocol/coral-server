@@ -62,6 +62,9 @@ sealed class AgentOption {
                 secret = true
             """.trimIndent() }
         }
+
+        if (required && defaultAsValue() != null)
+            logger.warn { "$locator 'required = true' is not needed as the default value is set." }
     }
 
     @Serializable
