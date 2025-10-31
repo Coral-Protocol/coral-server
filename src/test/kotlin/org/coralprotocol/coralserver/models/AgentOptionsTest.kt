@@ -12,6 +12,8 @@ import org.coralprotocol.coralserver.agent.registry.option.requireValue
 import org.coralprotocol.coralserver.agent.registry.option.toStringValue
 import org.coralprotocol.coralserver.agent.registry.option.withValue
 import org.coralprotocol.coralserver.config.toml
+import org.coralprotocol.coralserver.util.ByteUnitSizes
+import org.coralprotocol.coralserver.util.toByteCount
 import kotlin.test.Test
 
 class AgentOptionsTest {
@@ -224,6 +226,35 @@ class AgentOptionsTest {
         }
         shouldThrow<AgentOptionValidationException> {
             number.withValue(AgentOptionValue.StringList(listOf("bad-email.com", "good@email.com"))).requireValue()
+        }
+    }
+
+    @Test
+    fun `validate blob`() {
+        val blob = toml.decodeFromString(AgentOption.serializer(), """
+            type = "blob"
+            description = "Blob test"
+            
+            [validation]
+            min_size = { size = 1.01, unit = "kB" }
+            max_size = { size = 1.00, unit = "MiB" }
+        """)
+
+        require(blob is AgentOption.Blob)
+        shouldNotThrowAny {
+            blob.withValue(AgentOptionValue.Blob(
+                ByteArray(ByteUnitSizes.MEBIBYTE.toByteCount(1.0).toInt())
+            )).requireValue()
+        }
+        shouldThrow<AgentOptionValidationException> {
+            blob.withValue(AgentOptionValue.Blob(
+                ByteArray(ByteUnitSizes.MEBIBYTE.toByteCount(1.0).toInt() + 1)
+            )).requireValue()
+        }
+        shouldThrow<AgentOptionValidationException> {
+            blob.withValue(AgentOptionValue.Blob(
+                ByteArray(0)
+            )).requireValue()
         }
     }
 }
