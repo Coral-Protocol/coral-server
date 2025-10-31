@@ -6,6 +6,20 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
+import org.coralprotocol.coralserver.util.ByteUnitSizes
+import org.coralprotocol.coralserver.util.toByteCount
+
+@Serializable
+data class ValidationFileSize(
+    private val size: Double,
+    private val unit: ByteUnitSizes
+) {
+    val byteCount: Long = unit.toByteCount(size)
+
+    override fun toString(): String {
+        return "$size $unit"
+    }
+}
 
 @Serializable
 data class NumericAgentOptionValidation<T: Comparable<T>>(
@@ -48,5 +62,22 @@ data class StringAgentOptionValidation(
 
         if (variants != null && !variants.contains(value))
             throw AgentOptionValidationException("Value $value is not a valid variant.  Valid variants are: ${variants.joinToString(",")})")
+    }
+}
+
+@Serializable
+data class BlobAgentOptionValidation(
+    @SerialName("min_size")
+    val minSize: ValidationFileSize? = null,
+
+    @SerialName("max_size")
+    val maxSize: ValidationFileSize? = null,
+) {
+    fun require(value: ByteArray) {
+        if (minSize != null && value.size < minSize.byteCount)
+            throw AgentOptionValidationException("Value $value is smaller than the minimum size ${minSize.byteCount} ($minSize)")
+
+        if (maxSize != null && value.size > maxSize.byteCount)
+            throw AgentOptionValidationException("Value $value is greater than the maximum size ${maxSize.byteCount} ($maxSize)")
     }
 }
