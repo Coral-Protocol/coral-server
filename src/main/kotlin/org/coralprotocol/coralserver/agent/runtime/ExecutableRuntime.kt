@@ -7,6 +7,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
+import org.coralprotocol.coralserver.agent.registry.option.sendToExecutable
 import org.coralprotocol.coralserver.agent.registry.option.toStringValue
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.session.models.SessionAgentState
@@ -34,15 +35,22 @@ data class ExecutableRuntime(
         val apiUrl = applicationRuntimeContext.getApiUrl(AddressConsumer.LOCAL)
         val mcpUrl = applicationRuntimeContext.getMcpUrl(params, AddressConsumer.LOCAL)
 
-        val resolvedOptions = params.options.mapValues { it.value.toStringValue() }
-        val envsToSet = resolvedOptions + getCoralSystemEnvs(
+        val coralEnvs = getCoralSystemEnvs(
             params = params,
             apiUrl = apiUrl,
             mcpUrl = mcpUrl,
             orchestrationRuntime = "executable"
         )
-        
-        for (env in envsToSet) {
+
+        // Send options to executable BEFORE setting Coral environment variables.  If a user erroneously created options
+        // for their agent that use the same name as Coral envs and used the "env" transport, they should not override
+        // real Coral envs ...
+        params.options.forEach { (key, value) ->
+            value.sendToExecutable(key, processBuilder)
+        }
+
+        // ... which are set here
+        for (env in coralEnvs) {
             processEnvironment[env.key] = env.value
         }
 

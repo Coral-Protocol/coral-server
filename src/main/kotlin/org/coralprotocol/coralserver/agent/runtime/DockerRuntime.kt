@@ -6,6 +6,7 @@ import com.github.dockerjava.api.exception.NotModifiedException
 import com.github.dockerjava.api.model.Frame
 import com.github.dockerjava.api.model.PullResponseItem
 import com.github.dockerjava.api.model.StreamType
+import com.github.dockerjava.api.model.Volume
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -13,7 +14,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
-import org.coralprotocol.coralserver.agent.registry.option.toStringValue
+import org.coralprotocol.coralserver.agent.registry.option.sendToDocker
 import org.coralprotocol.coralserver.config.AddressConsumer
 import java.time.Instant
 import java.time.ZoneId
@@ -45,17 +46,19 @@ data class DockerRuntime(
         val apiUrl = applicationRuntimeContext.getApiUrl(AddressConsumer.CONTAINER)
         val mcpUrl = applicationRuntimeContext.getMcpUrl(params, AddressConsumer.CONTAINER)
 
-        // todo: escape???
-        val resolvedEnvs = params.options.map { (key, value) ->
-            "$key=${value.toStringValue()}"
-        }
-
-        val allEnvs = resolvedEnvs + getCoralSystemEnvs(
+        val volumes = mutableListOf<Volume>()
+        val environmentVariables = getCoralSystemEnvs(
             params = params,
             apiUrl = apiUrl,
             mcpUrl = mcpUrl,
             orchestrationRuntime = "docker"
-        ).map { (key, value) -> "$key=$value" }
+        ).toMutableMap()
+
+        for ((name, value) in params.options) {
+            if (!environmentVariables.containsKey(name)) {
+                value.sendToDocker(name, volumes, environmentVariables)
+            }
+        }
 
         val sessionId = when (params) {
             is RuntimeParams.Local -> params.session.id
@@ -65,7 +68,8 @@ data class DockerRuntime(
         try {
             val containerCreation = dockerClient.createContainerCmd(sanitisedImageName)
                 .withName(getDockerContainerName(sessionId, params.agentName))
-                .withEnv(allEnvs)
+                // Escape?
+                .withEnv(environmentVariables.map { (key, value) -> "$key=$value" })
                 .withAttachStdout(true)
                 .withAttachStderr(true)
                 .withStopTimeout(1)
