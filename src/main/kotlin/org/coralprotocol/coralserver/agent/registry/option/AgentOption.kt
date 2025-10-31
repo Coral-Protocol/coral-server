@@ -82,18 +82,18 @@ sealed class AgentOption {
         val secret: kotlin.Boolean = false
     ) : AgentOption()
 
-    // todo: maybe byte array
     @Serializable
     @SerialName("blob")
     data class Blob(
-        val default: kotlin.String? = null
+        @Suppress("ArrayInDataClass") val default: ByteArray? = null,
+        val validation: BlobAgentOptionValidation? = null
     ) : AgentOption()
 
-    // todo: maybe byte array
     @Serializable
     @SerialName("list[blob]")
     data class BlobList(
-        val default: List<kotlin.String>? = null
+        val default: List<ByteArray>? = null,
+        val validation: BlobAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable

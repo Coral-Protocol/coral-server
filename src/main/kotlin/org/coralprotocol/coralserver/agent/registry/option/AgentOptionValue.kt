@@ -19,15 +19,13 @@ sealed interface AgentOptionValue {
     @SerialName("list[string]")
     data class StringList(val value: List<kotlin.String>) : AgentOptionValue
 
-    // todo: maybe byte array
     @Serializable
     @SerialName("blob")
-    data class Blob(val value: kotlin.String) : AgentOptionValue
+    data class Blob(@Suppress("ArrayInDataClass") val value: ByteArray) : AgentOptionValue
 
-    // todo: maybe byte array
     @Serializable
     @SerialName("list[blob]")
-    data class BlobList(val value: List<kotlin.String>) : AgentOptionValue
+    data class BlobList(val value: List<ByteArray>) : AgentOptionValue
 
     @Serializable
     @SerialName("bool")
