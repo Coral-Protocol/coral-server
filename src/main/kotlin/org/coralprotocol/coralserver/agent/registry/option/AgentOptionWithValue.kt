@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.agent.registry.option
 
+import com.github.dockerjava.api.model.Volume
 import io.ktor.util.*
 import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
 
@@ -131,9 +132,10 @@ sealed interface AgentOptionWithValue {
 }
 
 /**
- * Converts the option's value back into a wrapped type for on-wire use.
+ * Extract the underlying value from an [AgentOptionWithValue] as a base [AgentOptionValue].
  */
-fun AgentOptionWithValue.toWrappedValue(): AgentOptionValue = when (this) {
+@Suppress("DuplicatedCode")
+fun AgentOptionWithValue.value(): AgentOptionValue = when (this) {
     is AgentOptionWithValue.Blob -> value
     is AgentOptionWithValue.BlobList -> value
     is AgentOptionWithValue.Boolean -> value
@@ -162,15 +164,47 @@ fun AgentOptionWithValue.toWrappedValue(): AgentOptionValue = when (this) {
 }
 
 /**
+ *  Extract the underlying option from an [AgentOptionWithValue] as a base [AgentOption].
+ */
+@Suppress("DuplicatedCode")
+fun AgentOptionWithValue.option(): AgentOption = when (this) {
+    is AgentOptionWithValue.Blob -> option
+    is AgentOptionWithValue.BlobList -> option
+    is AgentOptionWithValue.Boolean -> option
+    is AgentOptionWithValue.Byte -> option
+    is AgentOptionWithValue.ByteList -> option
+    is AgentOptionWithValue.Double -> option
+    is AgentOptionWithValue.DoubleList -> option
+    is AgentOptionWithValue.Float -> option
+    is AgentOptionWithValue.FloatList -> option
+    is AgentOptionWithValue.Int -> option
+    is AgentOptionWithValue.IntList -> option
+    is AgentOptionWithValue.Long -> option
+    is AgentOptionWithValue.LongList -> option
+    is AgentOptionWithValue.Short -> option
+    is AgentOptionWithValue.ShortList -> option
+    is AgentOptionWithValue.String -> option
+    is AgentOptionWithValue.StringList -> option
+    is AgentOptionWithValue.UByte -> option
+    is AgentOptionWithValue.UByteList -> option
+    is AgentOptionWithValue.UInt -> option
+    is AgentOptionWithValue.UIntList -> option
+    is AgentOptionWithValue.ULong -> option
+    is AgentOptionWithValue.ULongList -> option
+    is AgentOptionWithValue.UShort -> option
+    is AgentOptionWithValue.UShortList -> option
+}
+
+/**
  * Converts an AgentOptionWithValue to a string value that can be used to set an environment variable.
  * Use [AgentOptionWithValue.toDisplayString] if you intend to log the result; this function will censor secret data.
  */
 fun AgentOptionWithValue.toStringValue(): String = when (this) {
-    is AgentOptionWithValue.Blob -> toWrappedValue().toStringValue(true)
-    is AgentOptionWithValue.BlobList -> toWrappedValue().toStringValue(true)
-    is AgentOptionWithValue.String -> toWrappedValue().toStringValue(option.base64)
-    is AgentOptionWithValue.StringList -> toWrappedValue().toStringValue(option.base64)
-    else -> toWrappedValue().toStringValue()
+    is AgentOptionWithValue.Blob -> value().toStringValue(true)
+    is AgentOptionWithValue.BlobList -> value().toStringValue(true)
+    is AgentOptionWithValue.String -> value().toStringValue(option.base64)
+    is AgentOptionWithValue.StringList -> value().toStringValue(option.base64)
+    else -> value().toStringValue()
 }
 
 /**
@@ -253,5 +287,25 @@ fun AgentOptionWithValue.requireValue() = when (this) {
         // booleans have no validator
     }
 }
+
+fun AgentOptionWithValue.sendToDocker(
+    name: String,
+    volumes: MutableList<Volume>,
+    environmentVariables: MutableMap<String, String>
+) {
+    when (option().transport) {
+        AgentOptionTransport.ENVIRONMENT_VARIABLE -> {
+            environmentVariables[name] = toStringValue()
+        }
+        AgentOptionTransport.FILE_SYSTEM -> TODO()
+    }
+}
+
+fun AgentOptionWithValue.sendToExecutable(name: String, process: ProcessBuilder) {
+    when (option().transport) {
+        AgentOptionTransport.ENVIRONMENT_VARIABLE -> {
+            process.environment()[name] = toStringValue()
+        }
+        AgentOptionTransport.FILE_SYSTEM -> TODO()
     }
 }
