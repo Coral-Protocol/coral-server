@@ -18,8 +18,7 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
 import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
-import org.coralprotocol.coralserver.agent.registry.option.toStringValue
-import org.coralprotocol.coralserver.agent.registry.option.toWrappedValue
+import org.coralprotocol.coralserver.agent.registry.option.value
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.LocalSession
@@ -188,7 +187,7 @@ class Orchestrator(
                         id = graphAgent.registryAgent.info.identifier,
                         name = graphAgent.name,
                         description = graphAgent.description,
-                        options = graphAgent.options.mapValues { it.value.toWrappedValue() },
+                        options = graphAgent.options.mapValues { it.value.value() },
                         systemPrompt = graphAgent.systemPrompt,
                         blocking = graphAgent.blocking,
                         customToolAccess = graphAgent.customToolAccess,

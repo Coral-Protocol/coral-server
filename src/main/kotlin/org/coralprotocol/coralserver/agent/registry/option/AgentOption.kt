@@ -17,6 +17,7 @@ private val logger = KotlinLogging.logger { }
 sealed class AgentOption {
     val required: kotlin.Boolean = false
     var display: AgentOptionDisplay? = null
+    val transport: AgentOptionTransport = AgentOptionTransport.ENVIRONMENT_VARIABLE
 
     /**
      * Description field should now be set in the display field class. This property is deprecated.
