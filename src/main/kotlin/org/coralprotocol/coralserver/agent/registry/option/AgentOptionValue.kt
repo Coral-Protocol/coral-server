@@ -7,6 +7,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
+import java.nio.ByteBuffer
 
 @Serializable
 @JsonClassDiscriminator("type")
@@ -113,10 +114,13 @@ sealed interface AgentOptionValue {
 }
 
 /**
- * Converts an [AgentOptionValue] to a string representation.  If [base64] is true, [AgentOptionValue.String] and
- * [AgentOptionValue.StringList] will be base64 encoded.
+ * Returns a string representation of the [AgentOptionValue] suitable for use as an environment variable.
+ *
+ * Note that unlike [AgentOptionValue.toFileSystemValue] this function returns a single string that represents all
+ * values.  Note also that a comma separates items in a list ",".  For [AgentOptionValue.StringList] make sure
+ * `base64 = true` if it is at all possible a given value contains a comma.
  */
-fun AgentOptionValue.toStringValue(base64: Boolean = false): String = when (this) {
+fun AgentOptionValue.asEnvVarValue(base64: Boolean = false): String = when (this) {
     is AgentOptionValue.Blob -> value.encodeBase64()
     is AgentOptionValue.BlobList -> value.joinToString(",") { it.encodeBase64() }
     is AgentOptionValue.Boolean -> if (value) "1" else "0"
@@ -144,4 +148,43 @@ fun AgentOptionValue.toStringValue(base64: Boolean = false): String = when (this
     is AgentOptionValue.ULongList -> value.joinToString(",")
     is AgentOptionValue.UShort -> value.toString()
     is AgentOptionValue.UShortList -> value.joinToString(",")
+}
+
+/**
+ * Returns a list of byte arrays that represent the [AgentOptionValue] suitable for use written to a file on the
+ * filesystem.  Because value lists are likely to be written to separate files, this function will return a list in all
+ * cases.  When the wrapped type is not a list, a list with one value will be returned.
+ *
+ * Encoding notes:
+ * - [AgentOptionValue.Blob] and [AgentOptionValue.BlobList] will write their bytes directly to file.
+ * - [AgentOptionValue.String] and [AgentOptionValue.StringList] will be in UTF-8.
+ * - [AgentOptionValue.Boolean] will be written as a single byte of the value '1' for true and '0' for false.
+ * - Numeric types are written in binary, in big-endian order.
+ */
+fun AgentOptionValue.toFileSystemValue(): List<ByteArray> = when (this) {
+    is AgentOptionValue.Blob -> listOf(value)
+    is AgentOptionValue.BlobList -> value
+    is AgentOptionValue.Boolean -> listOf(ByteBuffer.allocate(Byte.SIZE_BYTES).put(if (value) 1 else 0).array())
+    is AgentOptionValue.Byte -> listOf(ByteBuffer.allocate(Byte.SIZE_BYTES).put(value).array())
+    is AgentOptionValue.ByteList -> value.map { ByteBuffer.allocate(Byte.SIZE_BYTES).put(it).array() }
+    is AgentOptionValue.Double -> listOf(ByteBuffer.allocate(Double.SIZE_BYTES).putDouble(value).array())
+    is AgentOptionValue.DoubleList -> value.map { ByteBuffer.allocate(Double.SIZE_BYTES).putDouble(it).array() }
+    is AgentOptionValue.Float -> listOf(ByteBuffer.allocate(Float.SIZE_BYTES).putFloat(value).array())
+    is AgentOptionValue.FloatList -> value.map { ByteBuffer.allocate(Float.SIZE_BYTES).putFloat(it).array() }
+    is AgentOptionValue.Int -> listOf(ByteBuffer.allocate(Int.SIZE_BYTES).putInt(value).array())
+    is AgentOptionValue.IntList -> value.map { ByteBuffer.allocate(Int.SIZE_BYTES).putInt(it).array() }
+    is AgentOptionValue.Long -> listOf(ByteBuffer.allocate(Long.SIZE_BYTES).putLong(value).array())
+    is AgentOptionValue.LongList -> value.map { ByteBuffer.allocate(Long.SIZE_BYTES).putLong(it).array() }
+    is AgentOptionValue.Short -> listOf(ByteBuffer.allocate(Short.SIZE_BYTES).putShort(value).array())
+    is AgentOptionValue.ShortList -> value.map { ByteBuffer.allocate(Short.SIZE_BYTES).putShort(it).array() }
+    is AgentOptionValue.String -> listOf(value.encodeToByteArray())
+    is AgentOptionValue.StringList -> value.map { it.encodeToByteArray() }
+    is AgentOptionValue.UByte -> listOf(ByteBuffer.allocate(UByte.SIZE_BYTES).put(value.toByte()).array())
+    is AgentOptionValue.UByteList -> value.map { ByteBuffer.allocate(UByte.SIZE_BYTES).put(it.toByte()).array() }
+    is AgentOptionValue.UInt -> listOf(ByteBuffer.allocate(UInt.SIZE_BYTES).putInt(value.toInt()).array())
+    is AgentOptionValue.UIntList -> value.map { ByteBuffer.allocate(UInt.SIZE_BYTES).putInt(it.toInt()).array() }
+    is AgentOptionValue.ULong -> listOf(ByteBuffer.allocate(ULong.SIZE_BYTES).putLong(value.toLong()).array())
+    is AgentOptionValue.ULongList -> value.map { ByteBuffer.allocate(ULong.SIZE_BYTES).putLong(it.toLong()).array() }
+    is AgentOptionValue.UShort -> listOf(ByteBuffer.allocate(UShort.SIZE_BYTES).putShort(value.toShort()).array())
+    is AgentOptionValue.UShortList -> value.map { ByteBuffer.allocate(UShort.SIZE_BYTES).putShort(it.toShort()).array() }
 }

@@ -9,7 +9,7 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.compareTypeWithValue
 import org.coralprotocol.coralserver.agent.registry.option.defaultAsValue
 import org.coralprotocol.coralserver.agent.registry.option.requireValue
-import org.coralprotocol.coralserver.agent.registry.option.toStringValue
+import org.coralprotocol.coralserver.agent.registry.option.asEnvVarValue
 import org.coralprotocol.coralserver.agent.registry.option.withValue
 import org.coralprotocol.coralserver.config.toml
 import org.coralprotocol.coralserver.util.ByteUnitSizes
@@ -99,10 +99,10 @@ class AgentOptionsTest {
 
         for (test in tests) {
             val defaultStr = if (test.typeName.startsWith("list")) {
-                "[${test.defaultValue.toStringValue()}]"
+                "[${test.defaultValue.asEnvVarValue()}]"
             }
             else {
-                test.defaultValue.toStringValue()
+                test.defaultValue.asEnvVarValue()
             }
 
             val option = toml.decodeFromString(AgentOption.serializer(), """

@@ -3,6 +3,9 @@ package org.coralprotocol.coralserver.agent.registry.option
 import com.github.dockerjava.api.model.Volume
 import io.ktor.util.*
 import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
+import java.nio.file.Path
+import kotlin.io.path.createTempFile
+import kotlin.io.path.writeBytes
 
 sealed interface AgentOptionWithValue {
     data class String(
@@ -197,14 +200,27 @@ fun AgentOptionWithValue.option(): AgentOption = when (this) {
 
 /**
  * Converts an AgentOptionWithValue to a string value that can be used to set an environment variable.
- * Use [AgentOptionWithValue.toDisplayString] if you intend to log the result; this function will censor secret data.
+ * Use [AgentOptionWithValue.toDisplayString] if you intend to log the result; that function will censor secret data.
  */
-fun AgentOptionWithValue.toStringValue(): String = when (this) {
-    is AgentOptionWithValue.Blob -> value().toStringValue(true)
-    is AgentOptionWithValue.BlobList -> value().toStringValue(true)
-    is AgentOptionWithValue.String -> value().toStringValue(option.base64)
-    is AgentOptionWithValue.StringList -> value().toStringValue(option.base64)
-    else -> value().toStringValue()
+fun AgentOptionWithValue.asEnvVarValue(): String = when (this) {
+    is AgentOptionWithValue.Blob -> value().asEnvVarValue(true)
+    is AgentOptionWithValue.BlobList -> value().asEnvVarValue(true)
+    is AgentOptionWithValue.String -> value().asEnvVarValue(option.base64)
+    is AgentOptionWithValue.StringList -> value().asEnvVarValue(option.base64)
+    else -> value().asEnvVarValue()
+}
+
+/**
+ * Writes the value of this option to file(s) using the values [AgentOptionValue.toFileSystemValue] function.  Note that
+ * the return type is always a list.  For single value type options, a list with 1 value will be returned.  For list-type
+ * options, a list of temporary files; one for every value in the option, will be returned.
+ */
+fun AgentOptionWithValue.toFileSystemValue(): List<Path> {
+    return value().toFileSystemValue().map {
+        val path = createTempFile(".opt")
+        path.writeBytes(it)
+        path
+    }
 }
 
 /**
@@ -285,27 +301,5 @@ fun AgentOptionWithValue.requireValue() = when (this) {
     is AgentOptionWithValue.BlobList -> value.value.forEach { option.validation?.require(it) }
     is AgentOptionWithValue.Boolean -> {
         // booleans have no validator
-    }
-}
-
-fun AgentOptionWithValue.sendToDocker(
-    name: String,
-    volumes: MutableList<Volume>,
-    environmentVariables: MutableMap<String, String>
-) {
-    when (option().transport) {
-        AgentOptionTransport.ENVIRONMENT_VARIABLE -> {
-            environmentVariables[name] = toStringValue()
-        }
-        AgentOptionTransport.FILE_SYSTEM -> TODO()
-    }
-}
-
-fun AgentOptionWithValue.sendToExecutable(name: String, process: ProcessBuilder) {
-    when (option().transport) {
-        AgentOptionTransport.ENVIRONMENT_VARIABLE -> {
-            process.environment()[name] = toStringValue()
-        }
-        AgentOptionTransport.FILE_SYSTEM -> TODO()
     }
 }
