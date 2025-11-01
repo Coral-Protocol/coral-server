@@ -3,22 +3,32 @@ package org.coralprotocol.coralserver.agent.runtime
 import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.async.ResultCallback
 import com.github.dockerjava.api.exception.NotModifiedException
+import com.github.dockerjava.api.model.Bind
 import com.github.dockerjava.api.model.Frame
+import com.github.dockerjava.api.model.HostConfig
 import com.github.dockerjava.api.model.PullResponseItem
 import com.github.dockerjava.api.model.StreamType
 import com.github.dockerjava.api.model.Volume
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.html.Entities
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
-import org.coralprotocol.coralserver.agent.registry.option.sendToDocker
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
+import org.coralprotocol.coralserver.agent.registry.option.option
+import org.coralprotocol.coralserver.agent.registry.option.asEnvVarValue
+import org.coralprotocol.coralserver.agent.registry.option.asFileSystemValue
 import org.coralprotocol.coralserver.config.AddressConsumer
+import java.io.File
+import java.nio.file.Path
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.collections.set
+import kotlin.io.path.writeText
 import kotlin.time.Duration.Companion.seconds
 
 private val dockerLogger = KotlinLogging.logger {}
@@ -46,7 +56,7 @@ data class DockerRuntime(
         val apiUrl = applicationRuntimeContext.getApiUrl(AddressConsumer.CONTAINER)
         val mcpUrl = applicationRuntimeContext.getMcpUrl(params, AddressConsumer.CONTAINER)
 
-        val volumes = mutableListOf<Volume>()
+        val volumes = mutableListOf<Bind>()
         val environmentVariables = getCoralSystemEnvs(
             params = params,
             apiUrl = apiUrl,
@@ -54,9 +64,29 @@ data class DockerRuntime(
             orchestrationRuntime = "docker"
         ).toMutableMap()
 
-        for ((name, value) in params.options) {
+        val tempFiles = mutableListOf<Path>()
+        params.options.forEach { (name, value) ->
             if (!environmentVariables.containsKey(name)) {
-                value.sendToDocker(name, volumes, environmentVariables)
+                @Suppress("DuplicatedCode")
+                when (value.option().transport) {
+                    AgentOptionTransport.ENVIRONMENT_VARIABLE -> {
+                        environmentVariables[name] = value.asEnvVarValue()
+                        dockerLogger.debug { "Setting option '$name' = ${value.asEnvVarValue()}" }
+                    }
+                    AgentOptionTransport.FILE_SYSTEM -> {
+                        val files = value.asFileSystemValue()
+                        val env = files.joinToString(File.pathSeparator) { it.toAbsolutePath().toString() }
+                        environmentVariables[name] = env
+                        tempFiles.addAll(files)
+
+                        // Temporary files also need to be mounted into the container
+                        files.forEach {
+                            volumes.add(Bind(it.toAbsolutePath().toString(), Volume("/coral-options/${it.fileName}")))
+                        }
+
+                        dockerLogger.info { "Setting option '$name' = $env for agent ${params.agentName}" }
+                    }
+                }
             }
         }
 
@@ -70,6 +100,7 @@ data class DockerRuntime(
                 .withName(getDockerContainerName(sessionId, params.agentName))
                 // Escape?
                 .withEnv(environmentVariables.map { (key, value) -> "$key=$value" })
+                .withHostConfig(HostConfig().withBinds(volumes))
                 .withAttachStdout(true)
                 .withAttachStderr(true)
                 .withStopTimeout(1)
@@ -109,8 +140,8 @@ data class DockerRuntime(
                 }
             })
 
-            return object : OrchestratorHandle() {
-                override suspend fun destroy() {
+            return object : OrchestratorHandle(tempFiles) {
+                override suspend fun cleanup() {
                     withContext(processContext) {
                         try {
                             streamCallback.close()
