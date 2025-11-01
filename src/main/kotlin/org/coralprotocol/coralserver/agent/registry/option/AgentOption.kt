@@ -8,6 +8,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.agent.registry.AgentResolutionContext
+import org.coralprotocol.coralserver.agent.registry.CURRENT_AGENT_EDITION
 import org.coralprotocol.coralserver.agent.registry.FIRST_AGENT_EDITION
 
 private val logger = KotlinLogging.logger { }
@@ -40,7 +41,7 @@ sealed class AgentOption {
         // a warning is issued when the agent edition is less than CURRENT_AGENT_EDITION, so there is not much point
         // generating further warnings here if, for example, edition 2 features are used in an agent definition of
         // edition 1
-        if (edition != FIRST_AGENT_EDITION)
+        if (edition != CURRENT_AGENT_EDITION)
             return
 
         if (description != null) {
