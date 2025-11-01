@@ -215,9 +215,9 @@ fun AgentOptionWithValue.asEnvVarValue(): String = when (this) {
  * the return type is always a list.  For single value type options, a list with 1 value will be returned.  For list-type
  * options, a list of temporary files; one for every value in the option, will be returned.
  */
-fun AgentOptionWithValue.toFileSystemValue(): List<Path> {
+fun AgentOptionWithValue.asFileSystemValue(): List<Path> {
     return value().toFileSystemValue().map {
-        val path = createTempFile(".opt")
+        val path = createTempFile(suffix = ".opt")
         path.writeBytes(it)
         path
     }
