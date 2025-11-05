@@ -5,6 +5,9 @@ import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.remote.RemoteSession
+import org.coralprotocol.coralserver.x402.X402BudgetedResource
+import java.util.UUID
+import kotlin.uuid.Uuid
 
 /**
  * Coral agent modeling
@@ -77,4 +80,16 @@ data class GraphAgent(
      * @see GraphAgentRequest.provider
      */
     var provider: GraphAgentProvider,
+
+    /**
+     * @see GraphAgentRequest.x402Budgets
+     */
+    val x402Budgets: List<X402BudgetedResource>,
+
+    /**
+     * Runtime secret ID.  This is given to agents as an environment variable so that they may identify themselves to
+     * the server securely.  This is useful for example, when consuming x402 budgets, we do not want to let agent A
+     * access a x402 budget given to agent B.
+     */
+    val secret: String = UUID.randomUUID().toString(),
 )

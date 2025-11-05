@@ -12,6 +12,7 @@ sealed interface RuntimeParams {
     val systemPrompt: String?
     val options: Map<String, AgentOptionValue>
     val path: Path
+    val agentSecret: String
 
     data class Local(
         val session: LocalSession,
@@ -22,6 +23,7 @@ sealed interface RuntimeParams {
         override val systemPrompt: String?,
         override val options: Map<String, AgentOptionValue>,
         override val path: Path,
+        override val agentSecret: String,
     ): RuntimeParams
 
     data class Remote(
@@ -31,6 +33,7 @@ sealed interface RuntimeParams {
         override val systemPrompt: String?,
         override val options: Map<String, AgentOptionValue>,
         override val path: Path,
+        override val agentSecret: String,
     ): RuntimeParams
 }
 

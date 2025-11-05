@@ -4,6 +4,8 @@ import mu.KotlinLogging
 import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.BlockchainServiceImpl
 import org.coralprotocol.payment.blockchain.CrossmintBlockchainService
+import org.coralprotocol.payment.blockchain.X402Service
+import org.coralprotocol.payment.blockchain.X402ServiceImpl
 import org.coralprotocol.payment.blockchain.models.SignerConfig
 import java.io.File
 import java.nio.file.Path
@@ -16,7 +18,7 @@ fun logNoPayments() {
     logger.warn { "- Exporting agents will be disabled" }
 }
 
-suspend fun BlockchainService.Companion.loadFromFile(config: Config): BlockchainService? {
+fun BlockchainService.Companion.loadFromFile(config: Config): BlockchainService? {
     return when (val wallet = config.paymentConfig.wallet) {
         is Wallet.Crossmint -> {
             val rpcUrl = config.paymentConfig.rpcUrl

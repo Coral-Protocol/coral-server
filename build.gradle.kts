@@ -36,7 +36,7 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test"))
-    implementation("org.coralprotocol.payment:blockchain:0.1.0:all")
+    implementation("org.coralprotocol.payment:blockchain:0.1.1:all")
     implementation("io.modelcontextprotocol:kotlin-sdk:0.6.0") {}
     implementation("io.github.oshai:kotlin-logging-jvm:7.0.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")

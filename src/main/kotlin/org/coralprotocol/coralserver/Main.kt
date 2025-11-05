@@ -31,10 +31,7 @@ fun main(args: Array<String>) {
 
     when (command) {
         "--sse-server" -> {
-            val blockchainService = runBlocking {
-                BlockchainService.loadFromFile(config)
-            }
-
+            val blockchainService = BlockchainService.loadFromFile(config)
             val registry = AgentRegistry.loadFromFile(config)
 
             val orchestrator = Orchestrator(config, registry)
@@ -43,7 +40,7 @@ fun main(args: Array<String>) {
                 config = config,
                 registry = registry,
                 orchestrator = orchestrator,
-                blockchainService = blockchainService
+                blockchainService = blockchainService,
             )
 
             // Add a shutdown hook to stop the server gracefully
