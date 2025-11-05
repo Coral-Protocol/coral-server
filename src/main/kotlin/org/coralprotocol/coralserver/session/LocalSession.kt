@@ -119,7 +119,12 @@ class LocalSession(
                 it.agents[agentId]?.customToolAccess?.mapNotNull { tool -> it.customTools[tool] }?.toSet()
             } ?: setOf(),
             coralPlugins = graphAgent?.plugins ?: setOf(),
-            mcpUrl = agentUri
+            mcpUrl = agentUri,
+            x402BudgetedResources = graphAgent?.x402Budgets?.toMutableList() ?: mutableListOf(),
+
+            // fallback here is just for uniqueness.  The agent will never know about its own secret if not specified
+            // in the GraphAgent (which happens for dev-mode agents)
+            secret = graphAgent?.secret ?: UUID.randomUUID().toString(),
         )
         agents[sessionAgent.id] = sessionAgent
 

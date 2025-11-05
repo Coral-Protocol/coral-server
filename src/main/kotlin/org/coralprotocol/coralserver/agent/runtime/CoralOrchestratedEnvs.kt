@@ -11,6 +11,7 @@ fun getCoralSystemEnvs(
     return listOfNotNull(
         "CORAL_CONNECTION_URL" to mcpUrl.toString(),
         "CORAL_AGENT_ID" to params.agentName,
+        "CORAL_AGENT_SECRET" to params.agentSecret,
         "CORAL_ORCHESTRATION_RUNTIME" to orchestrationRuntime,
         "CORAL_SESSION_ID" to params.getId(),
         "CORAL_SEND_CLAIMS" to when (params) {
