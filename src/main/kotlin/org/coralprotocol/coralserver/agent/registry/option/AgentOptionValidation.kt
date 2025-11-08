@@ -34,7 +34,7 @@ data class NumericAgentOptionValidation<T: Comparable<T>>(
         if (max != null && value > max)
             throw AgentOptionValidationException("Value $value is greater than the maximum value $max")
 
-        if (variants != null && !variants.contains(value))
+        if (variants != null && !variants.isEmpty() && !variants.contains(value))
             throw AgentOptionValidationException("Value $value is not a valid variant.  Valid variants are: ${variants.joinToString(",")})")
     }
 }
@@ -60,7 +60,7 @@ data class StringAgentOptionValidation(
         if (regex != null && !value.matches(Regex(regex)))
             throw AgentOptionValidationException("Value $value does not match the regex pattern '$regex'")
 
-        if (variants != null && !variants.contains(value))
+        if (variants != null && !variants.isEmpty() && !variants.contains(value))
             throw AgentOptionValidationException("Value $value is not a valid variant.  Valid variants are: ${variants.joinToString(",")})")
     }
 }
