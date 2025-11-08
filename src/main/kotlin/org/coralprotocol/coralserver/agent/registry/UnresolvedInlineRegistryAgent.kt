@@ -36,7 +36,7 @@ data class UnresolvedInlineRegistryAgent(
         }
 
         options.forEach { (key, option) ->
-            option.issueEditionWarnings(edition, context, key)
+            option.issueConfigurationWarnings(edition, context, key)
         }
 
         return listOf(RegistryAgent(
