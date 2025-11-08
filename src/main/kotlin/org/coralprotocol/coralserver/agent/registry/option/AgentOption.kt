@@ -9,7 +9,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.agent.registry.AgentResolutionContext
 import org.coralprotocol.coralserver.agent.registry.CURRENT_AGENT_EDITION
-import org.coralprotocol.coralserver.agent.registry.FIRST_AGENT_EDITION
 
 private val logger = KotlinLogging.logger { }
 
@@ -33,9 +32,9 @@ sealed class AgentOption {
     }
 
     /**
-     * Called when the agent is resolved, issue any warnings for option deprecations based on an agent edition.
+     * Called when the agent is resolved.  Issues warnings for bad configuration or use of deprecated fields.
      */
-    fun issueEditionWarnings(edition: kotlin.Int, context: AgentResolutionContext, optionName: kotlin.String) {
+    fun issueConfigurationWarnings(edition: kotlin.Int, context: AgentResolutionContext, optionName: kotlin.String) {
         val locator = "Option '${optionName} in agent ${context.path}"
 
         // a warning is issued when the agent edition is less than CURRENT_AGENT_EDITION, so there is not much point
@@ -67,6 +66,44 @@ sealed class AgentOption {
 
         if (required && defaultAsValue() != null)
             logger.warn { "$locator 'required = true' is not needed as the default value is set." }
+
+        if (this is String || this is StringList && base64 && transport == AgentOptionTransport.FILE_SYSTEM)
+            logger.warn { "$locator has 'base64 = true' and 'transport = 'fs''.  The base64 field will be ignored" }
+
+        // ugly just like the rest of AgentOption.*'s hideous mess of when statements!
+        val emptyVariants = when (this) {
+            is Byte -> validation?.variants?.isEmpty() ?: false
+            is ByteList -> validation?.variants?.isEmpty() ?: false
+            is Double -> validation?.variants?.isEmpty() ?: false
+            is DoubleList -> validation?.variants?.isEmpty() ?: false
+            is Float -> validation?.variants?.isEmpty() ?: false
+            is FloatList -> validation?.variants?.isEmpty() ?: false
+            is Int -> validation?.variants?.isEmpty() ?: false
+            is IntList -> validation?.variants?.isEmpty() ?: false
+            is Long -> validation?.variants?.isEmpty() ?: false
+            is LongList -> validation?.variants?.isEmpty() ?: false
+            is Number -> validation?.variants?.isEmpty() ?: false
+            is Secret -> validation?.variants?.isEmpty() ?: false
+            is Short -> validation?.variants?.isEmpty() ?: false
+            is ShortList -> validation?.variants?.isEmpty() ?: false
+            is String -> validation?.variants?.isEmpty() ?: false
+            is StringList -> validation?.variants?.isEmpty() ?: false
+            is UByte -> validation?.variants?.isEmpty() ?: false
+            is UByteList -> validation?.variants?.isEmpty() ?: false
+            is UInt -> validation?.variants?.isEmpty() ?: false
+            is UIntList -> validation?.variants?.isEmpty() ?: false
+            is ULong -> validation?.variants?.isEmpty() ?: false
+            is ULongList -> validation?.variants?.isEmpty() ?: false
+            is UShort -> validation?.variants?.isEmpty() ?: false
+            is UShortList -> validation?.variants?.isEmpty() ?: false
+            else -> {
+                // no variants
+                false
+            }
+        }
+
+        if (emptyVariants)
+            logger.warn { "$locator has an empty variant list, this will match no values!  The variants field will be ignored" }
     }
 
     @Serializable
