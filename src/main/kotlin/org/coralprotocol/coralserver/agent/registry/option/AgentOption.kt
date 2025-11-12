@@ -119,7 +119,7 @@ sealed class AgentOption {
     @Serializable
     @SerialName("list[string]")
     data class StringList(
-        val default: List<kotlin.String> = listOf(),
+        @Optional val default: List<kotlin.String> = listOf(),
         val validation: StringAgentOptionValidation? = null,
         @Optional val base64: kotlin.Boolean = false,
         @Optional val secret: kotlin.Boolean = false
@@ -135,7 +135,7 @@ sealed class AgentOption {
     @Serializable
     @SerialName("list[blob]")
     data class BlobList(
-        val default: List<ByteArray> = listOf(),
+        @Optional val default: List<ByteArray> = listOf(),
         val validation: BlobAgentOptionValidation? = null
     ) : AgentOption()
 
@@ -155,7 +155,7 @@ sealed class AgentOption {
     @Serializable
     @SerialName("list[i8]")
     data class ByteList(
-        val default: List<kotlin.Byte> = listOf(),
+        @Optional val default: List<kotlin.Byte> = listOf(),
         val validation: ByteAgentOptionValidation? = null
     ) : AgentOption()
 
@@ -169,7 +169,7 @@ sealed class AgentOption {
     @Serializable
     @SerialName("list[i16]")
     data class ShortList(
-        val default: List<kotlin.Short> = listOf(),
+        @Optional val default: List<kotlin.Short> = listOf(),
         val validation: ShortAgentOptionValidation? = null
     ) : AgentOption()
 
@@ -183,7 +183,7 @@ sealed class AgentOption {
     @Serializable
     @SerialName("list[i32]")
     data class IntList(
-        val default: List<kotlin.Int> = listOf(),
+        @Optional val default: List<kotlin.Int> = listOf(),
         val validation: IntAgentOptionValidation? = null
     ) : AgentOption()
 
@@ -197,7 +197,7 @@ sealed class AgentOption {
     @Serializable
     @SerialName("list[i64]")
     data class LongList(
-        val default: List<kotlin.Long> = listOf(),
+        @Optional val default: List<kotlin.Long> = listOf(),
         val validation: LongAgentOptionValidation? = null
     ) : AgentOption()
 
@@ -211,7 +211,7 @@ sealed class AgentOption {
     @Serializable
     @SerialName("list[u8]")
     data class UByteList(
-        val default: List<kotlin.UByte> = listOf(),
+        @Optional val default: List<kotlin.UByte> = listOf(),
         val validation: UByteAgentOptionValidation? = null
     ) : AgentOption()
 
@@ -225,7 +225,7 @@ sealed class AgentOption {
     @Serializable
     @SerialName("list[u16]")
     data class UShortList(
-        val default: List<kotlin.UShort> = listOf(),
+        @Optional val default: List<kotlin.UShort> = listOf(),
         val validation: UShortAgentOptionValidation? = null
     ) : AgentOption()
 
@@ -239,7 +239,7 @@ sealed class AgentOption {
     @Serializable
     @SerialName("list[u32]")
     data class UIntList(
-        val default: List<kotlin.UInt> = listOf(),
+        @Optional val default: List<kotlin.UInt> = listOf(),
         val validation: UIntAgentOptionValidation? = null
     ) : AgentOption()
 
@@ -253,7 +253,7 @@ sealed class AgentOption {
     @Serializable
     @SerialName("list[u64]")
     data class ULongList(
-        val default: List<kotlin.ULong> = listOf(),
+        @Optional val default: List<kotlin.ULong> = listOf(),
         val validation: ULongAgentOptionValidation? = null
     ) : AgentOption()
 
@@ -267,7 +267,7 @@ sealed class AgentOption {
     @Serializable
     @SerialName("list[f32]")
     data class FloatList(
-        val default: List<kotlin.Float> = listOf(),
+        @Optional val default: List<kotlin.Float> = listOf(),
         val validation: FloatAgentOptionValidation? = null
     ) : AgentOption()
 
@@ -281,7 +281,7 @@ sealed class AgentOption {
     @Serializable
     @SerialName("list[f64]")
     data class DoubleList(
-        val default: List<kotlin.Double> = listOf(),
+        @Optional val default: List<kotlin.Double> = listOf(),
         val validation: DoubleAgentOptionValidation? = null
     ) : AgentOption()
 
