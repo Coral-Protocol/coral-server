@@ -37,7 +37,7 @@ sealed interface AgentOptionValue {
     data class Byte(val value: kotlin.Byte) : AgentOptionValue
 
     @Serializable
-    @SerialName("list[byte]")
+    @SerialName("list[i8]")
     data class ByteList(val value: List<kotlin.Byte>) : AgentOptionValue
 
     @Serializable
