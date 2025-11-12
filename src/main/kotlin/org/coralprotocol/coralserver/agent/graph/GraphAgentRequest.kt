@@ -71,7 +71,7 @@ data class GraphAgentRequest(
             throw AgentRequestException("Agent $id contains wrong types for options: ${wrongTypes.keys.joinToString()}")
         }
 
-        val allOptions = (options + registryAgent.defaultOptions)
+        val allOptions = (registryAgent.defaultOptions + options)
             .mapValues { registryAgent.options[it.key]!!.withValue(it.value) }
             .toMutableMap()
 
