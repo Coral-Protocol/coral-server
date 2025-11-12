@@ -22,24 +22,6 @@ data class ValidationFileSize(
 }
 
 @Serializable
-data class NumericAgentOptionValidation<T: Comparable<T>>(
-    val variants: List<T>? = null,
-    val min: T? = null,
-    val max: T? = null,
-) {
-    fun require(value: T) {
-        if (min != null && value < min)
-            throw AgentOptionValidationException("Value $value is less than the minimum value $min")
-
-        if (max != null && value > max)
-            throw AgentOptionValidationException("Value $value is greater than the maximum value $max")
-
-        if (variants != null && !variants.isEmpty() && !variants.contains(value))
-            throw AgentOptionValidationException("Value $value is not a valid variant.  Valid variants are: ${variants.joinToString(",")})")
-    }
-}
-
-@Serializable
 data class StringAgentOptionValidation(
     val variants: List<String>? = null,
 
@@ -81,3 +63,93 @@ data class BlobAgentOptionValidation(
             throw AgentOptionValidationException("Value $value is greater than the maximum size ${maxSize.byteCount} ($maxSize)")
     }
 }
+
+abstract class NumericAgentOptionValidation<T: Comparable<T>> {
+    abstract val variants: List<T>?
+    abstract val min: T?
+    abstract val max: T?
+
+    fun require(value: T) {
+        val min = min
+        if (min != null && value < min)
+            throw AgentOptionValidationException("Value $value is less than the minimum value $min")
+
+        val max = max
+        if (max != null && value > max)
+            throw AgentOptionValidationException("Value $value is greater than the maximum value $max")
+
+        val variants = variants
+        if (variants != null && !variants.isEmpty() && !variants.contains(value))
+            throw AgentOptionValidationException("Value $value is not a valid variant.  Valid variants are: ${variants.joinToString(",")})")
+    }
+}
+
+@Serializable
+data class ByteAgentOptionValidation(
+    override val variants: List<Byte>?,
+    override val min: Byte?,
+    override val max: Byte?
+) : NumericAgentOptionValidation<Byte>()
+
+@Serializable
+data class ShortAgentOptionValidation(
+    override val variants: List<Short>?,
+    override val min: Short?,
+    override val max: Short?
+) : NumericAgentOptionValidation<Short>()
+
+@Serializable
+data class IntAgentOptionValidation(
+    override val variants: List<Int>?,
+    override val min: Int?,
+    override val max: Int?
+) : NumericAgentOptionValidation<Int>()
+
+@Serializable
+data class LongAgentOptionValidation(
+    override val variants: List<Long>?,
+    override val min: Long?,
+    override val max: Long?
+) : NumericAgentOptionValidation<Long>()
+
+@Serializable
+data class UByteAgentOptionValidation(
+    override val variants: List<UByte>?,
+    override val min: UByte?,
+    override val max: UByte?
+) : NumericAgentOptionValidation<UByte>()
+
+@Serializable
+data class UShortAgentOptionValidation(
+    override val variants: List<UShort>?,
+    override val min: UShort?,
+    override val max: UShort?
+) : NumericAgentOptionValidation<UShort>()
+
+@Serializable
+data class UIntAgentOptionValidation(
+    override val variants: List<UInt>?,
+    override val min: UInt?,
+    override val max: UInt?
+) : NumericAgentOptionValidation<UInt>()
+
+@Serializable
+data class ULongAgentOptionValidation(
+    override val variants: List<ULong>?,
+    override val min: ULong?,
+    override val max: ULong?
+) : NumericAgentOptionValidation<ULong>()
+
+@Serializable
+data class FloatAgentOptionValidation(
+    override val variants: List<Float>?,
+    override val min: Float?,
+    override val max: Float?
+) : NumericAgentOptionValidation<Float>()
+
+@Serializable
+data class DoubleAgentOptionValidation(
+    override val variants: List<Double>?,
+    override val min: Double?,
+    override val max: Double?
+) : NumericAgentOptionValidation<Double>()

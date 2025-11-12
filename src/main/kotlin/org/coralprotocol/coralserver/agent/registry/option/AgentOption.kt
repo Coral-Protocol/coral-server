@@ -3,6 +3,7 @@
 package org.coralprotocol.coralserver.agent.registry.option
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.github.smiley4.schemakenerator.core.annotations.Optional
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -15,9 +16,9 @@ private val logger = KotlinLogging.logger { }
 @Serializable
 @JsonClassDiscriminator("type")
 sealed class AgentOption {
-    val required: kotlin.Boolean = false
+    @Optional val required: kotlin.Boolean = false
     var display: AgentOptionDisplay? = null
-    val transport: AgentOptionTransport = AgentOptionTransport.ENVIRONMENT_VARIABLE
+    @Optional val transport: AgentOptionTransport = AgentOptionTransport.ENVIRONMENT_VARIABLE
 
     /**
      * Description field should now be set in the display field class. This property is deprecated.
@@ -111,17 +112,17 @@ sealed class AgentOption {
     data class String(
         val default: kotlin.String? = null,
         val validation: StringAgentOptionValidation? = null,
-        val base64: kotlin.Boolean = false,
-        val secret: kotlin.Boolean = false,
+        @Optional val base64: kotlin.Boolean = false,
+        @Optional val secret: kotlin.Boolean = false,
     ) : AgentOption()
 
     @Serializable
     @SerialName("list[string]")
     data class StringList(
-        val default: List<kotlin.String>? = null,
+        val default: List<kotlin.String> = listOf(),
         val validation: StringAgentOptionValidation? = null,
-        val base64: kotlin.Boolean = false,
-        val secret: kotlin.Boolean = false
+        @Optional val base64: kotlin.Boolean = false,
+        @Optional val secret: kotlin.Boolean = false
     ) : AgentOption()
 
     @Serializable
@@ -134,7 +135,7 @@ sealed class AgentOption {
     @Serializable
     @SerialName("list[blob]")
     data class BlobList(
-        val default: List<ByteArray>? = null,
+        val default: List<ByteArray> = listOf(),
         val validation: BlobAgentOptionValidation? = null
     ) : AgentOption()
 
@@ -148,140 +149,140 @@ sealed class AgentOption {
     @SerialName("i8")
     data class Byte(
         val default: kotlin.Byte? = null,
-        val validation: NumericAgentOptionValidation<kotlin.Byte>? = null
+        val validation: ByteAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
     @SerialName("list[i8]")
     data class ByteList(
-        val default: List<kotlin.Byte>? = null,
-        val validation: NumericAgentOptionValidation<kotlin.Byte>? = null
+        val default: List<kotlin.Byte> = listOf(),
+        val validation: ByteAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
     @SerialName("i16")
     data class Short(
         val default: kotlin.Short? = null,
-        val validation: NumericAgentOptionValidation<kotlin.Short>? = null
+        val validation: ShortAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
     @SerialName("list[i16]")
     data class ShortList(
-        val default: List<kotlin.Short>? = null,
-        val validation: NumericAgentOptionValidation<kotlin.Short>? = null
+        val default: List<kotlin.Short> = listOf(),
+        val validation: ShortAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
     @SerialName("i32")
     data class Int(
         val default: kotlin.Int? = null,
-        val validation: NumericAgentOptionValidation<kotlin.Int>? = null
+        val validation: IntAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
     @SerialName("list[i32]")
     data class IntList(
-        val default: List<kotlin.Int>? = null,
-        val validation: NumericAgentOptionValidation<kotlin.Int>? = null
+        val default: List<kotlin.Int> = listOf(),
+        val validation: IntAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
     @SerialName("i64")
     data class Long(
         val default: kotlin.Long? = null,
-        val validation: NumericAgentOptionValidation<kotlin.Long>? = null
+        val validation: LongAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
     @SerialName("list[i64]")
     data class LongList(
-        val default: List<kotlin.Long>? = null,
-        val validation: NumericAgentOptionValidation<kotlin.Long>? = null
+        val default: List<kotlin.Long> = listOf(),
+        val validation: LongAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
     @SerialName("u8")
     data class UByte(
         val default: kotlin.UByte? = null,
-        val validation: NumericAgentOptionValidation<kotlin.UByte>? = null
+        val validation: UByteAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
     @SerialName("list[u8]")
     data class UByteList(
-        val default: List<kotlin.UByte>? = null,
-        val validation: NumericAgentOptionValidation<kotlin.UByte>? = null
+        val default: List<kotlin.UByte> = listOf(),
+        val validation: UByteAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
     @SerialName("u16")
     data class UShort(
         val default: kotlin.UShort? = null,
-        val validation: NumericAgentOptionValidation<kotlin.UShort>? = null
+        val validation: UShortAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
     @SerialName("list[u16]")
     data class UShortList(
-        val default: List<kotlin.UShort>? = null,
-        val validation: NumericAgentOptionValidation<kotlin.UShort>? = null
+        val default: List<kotlin.UShort> = listOf(),
+        val validation: UShortAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
     @SerialName("u32")
     data class UInt(
         val default: kotlin.UInt? = null,
-        val validation: NumericAgentOptionValidation<kotlin.UInt>? = null
+        val validation: UIntAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
     @SerialName("list[u32]")
     data class UIntList(
-        val default: List<kotlin.UInt>? = null,
-        val validation: NumericAgentOptionValidation<kotlin.UInt>? = null
+        val default: List<kotlin.UInt> = listOf(),
+        val validation: UIntAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
     @SerialName("u64")
     data class ULong(
         val default: kotlin.ULong? = null,
-        val validation: NumericAgentOptionValidation<kotlin.ULong>? = null
+        val validation: ULongAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
     @SerialName("list[u64]")
     data class ULongList(
-        val default: List<kotlin.ULong>? = null,
-        val validation: NumericAgentOptionValidation<kotlin.ULong>? = null
+        val default: List<kotlin.ULong> = listOf(),
+        val validation: ULongAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
     @SerialName("f32")
     data class Float(
         val default: kotlin.Float? = null,
-        val validation: NumericAgentOptionValidation<kotlin.Float>? = null
+        val validation: FloatAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
     @SerialName("list[f32]")
     data class FloatList(
-        val default: List<kotlin.Float>? = null,
-        val validation: NumericAgentOptionValidation<kotlin.Float>? = null
+        val default: List<kotlin.Float> = listOf(),
+        val validation: FloatAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
     @SerialName("f64")
     data class Double(
         val default: kotlin.Double? = null,
-        val validation: NumericAgentOptionValidation<kotlin.Double>? = null
+        val validation: DoubleAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
     @SerialName("list[f64]")
     data class DoubleList(
-        val default: List<kotlin.Double>? = null,
-        val validation: NumericAgentOptionValidation<kotlin.Double>? = null
+        val default: List<kotlin.Double> = listOf(),
+        val validation: DoubleAgentOptionValidation? = null
     ) : AgentOption()
 
     /*
@@ -292,7 +293,7 @@ sealed class AgentOption {
     @SerialName("number")
     data class Number(
         val default: kotlin.Double? = null,
-        val validation: NumericAgentOptionValidation<kotlin.Double>? = null
+        val validation: DoubleAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
@@ -306,30 +307,30 @@ sealed class AgentOption {
 fun AgentOption.defaultAsValue(): AgentOptionValue? =
     when (this) {
         is AgentOption.Blob -> this.default?.let { AgentOptionValue.Blob(it) }
-        is AgentOption.BlobList -> this.default?.let { AgentOptionValue.BlobList(it) }
+        is AgentOption.BlobList -> AgentOptionValue.BlobList(this.default)
         is AgentOption.Boolean -> this.default?.let { AgentOptionValue.Boolean(it) }
         is AgentOption.Byte -> this.default?.let { AgentOptionValue.Byte(it) }
-        is AgentOption.ByteList -> this.default?.let { AgentOptionValue.ByteList(it) }
+        is AgentOption.ByteList -> AgentOptionValue.ByteList(this.default)
         is AgentOption.Double -> this.default?.let { AgentOptionValue.Double(it) }
-        is AgentOption.DoubleList -> this.default?.let { AgentOptionValue.DoubleList(it) }
+        is AgentOption.DoubleList -> AgentOptionValue.DoubleList(this.default)
         is AgentOption.Float -> this.default?.let { AgentOptionValue.Float(it) }
-        is AgentOption.FloatList -> this.default?.let { AgentOptionValue.FloatList(it) }
+        is AgentOption.FloatList -> AgentOptionValue.FloatList(this.default)
         is AgentOption.Int -> this.default?.let { AgentOptionValue.Int(it) }
-        is AgentOption.IntList -> this.default?.let { AgentOptionValue.IntList(it) }
+        is AgentOption.IntList -> AgentOptionValue.IntList(this.default)
         is AgentOption.Long -> this.default?.let { AgentOptionValue.Long(it) }
-        is AgentOption.LongList -> this.default?.let { AgentOptionValue.LongList(it) }
+        is AgentOption.LongList -> AgentOptionValue.LongList(this.default)
         is AgentOption.Short -> this.default?.let { AgentOptionValue.Short(it) }
-        is AgentOption.ShortList -> this.default?.let { AgentOptionValue.ShortList(it) }
+        is AgentOption.ShortList -> AgentOptionValue.ShortList(this.default)
         is AgentOption.String -> this.default?.let { AgentOptionValue.String(it) }
-        is AgentOption.StringList -> this.default?.let { AgentOptionValue.StringList(it) }
+        is AgentOption.StringList -> AgentOptionValue.StringList(this.default)
         is AgentOption.UByte -> this.default?.let { AgentOptionValue.UByte(it) }
-        is AgentOption.UByteList -> this.default?.let { AgentOptionValue.UByteList(it) }
+        is AgentOption.UByteList -> AgentOptionValue.UByteList(this.default)
         is AgentOption.UInt -> this.default?.let { AgentOptionValue.UInt(it) }
-        is AgentOption.UIntList -> this.default?.let { AgentOptionValue.UIntList(it) }
+        is AgentOption.UIntList -> AgentOptionValue.UIntList(this.default)
         is AgentOption.ULong -> this.default?.let { AgentOptionValue.ULong(it) }
-        is AgentOption.ULongList -> this.default?.let { AgentOptionValue.ULongList(it) }
+        is AgentOption.ULongList -> AgentOptionValue.ULongList(this.default)
         is AgentOption.UShort -> this.default?.let { AgentOptionValue.UShort(it) }
-        is AgentOption.UShortList -> this.default?.let { AgentOptionValue.UShortList(it) }
+        is AgentOption.UShortList -> AgentOptionValue.UShortList(this.default)
         is AgentOption.Number -> this.default?.let { AgentOptionValue.Double(it) }
         is AgentOption.Secret -> this.default?.let { AgentOptionValue.String(it) }
     }
