@@ -11,6 +11,7 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
 import org.coralprotocol.coralserver.agent.registry.option.option
 import org.coralprotocol.coralserver.agent.registry.option.asEnvVarValue
 import org.coralprotocol.coralserver.agent.registry.option.asFileSystemValue
+import org.coralprotocol.coralserver.agent.registry.option.toDisplayString
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.session.models.SessionAgentState
 import java.io.File
@@ -57,7 +58,7 @@ data class ExecutableRuntime(
             when (value.option().transport) {
                 AgentOptionTransport.ENVIRONMENT_VARIABLE -> {
                     processEnvironment[name] = value.asEnvVarValue()
-                    logger.info { "Setting option '$name' = ${value.asEnvVarValue()} for agent ${params.agentName}" }
+                    logger.info { "Setting option \"$name\" = \"${value.toDisplayString()}\" for agent ${params.agentName}" }
                 }
                 AgentOptionTransport.FILE_SYSTEM -> {
                     val files = value.asFileSystemValue()
@@ -65,7 +66,7 @@ data class ExecutableRuntime(
                     processEnvironment[name] = env
                     tempFiles.addAll(files)
 
-                    logger.info { "Setting option '$name' = $env for agent ${params.agentName}" }
+                    logger.info { "Setting option \"$name\" = \"$env\" for agent ${params.agentName}" }
                 }
             }
         }
