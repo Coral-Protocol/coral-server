@@ -16,9 +16,9 @@ private val logger = KotlinLogging.logger { }
 @Serializable
 @JsonClassDiscriminator("type")
 sealed class AgentOption {
-    @Optional val required: kotlin.Boolean = false
+    @Optional var required: kotlin.Boolean = false
     var display: AgentOptionDisplay? = null
-    @Optional val transport: AgentOptionTransport = AgentOptionTransport.ENVIRONMENT_VARIABLE
+    @Optional var transport: AgentOptionTransport = AgentOptionTransport.ENVIRONMENT_VARIABLE
 
     /**
      * Description field should now be set in the display field class. This property is deprecated.
@@ -371,19 +371,29 @@ fun AgentOption.withValue(value: AgentOptionValue) =
 
         // Backwards compatibility: normalize to double
         is AgentOption.Number -> {
-            AgentOptionWithValue.Double(AgentOption.Double(
+            val double = AgentOption.Double(
                 default = this.default,
                 validation = this.validation
-            ), (value as AgentOptionValue.Double))
+            )
+            double.required = this.required
+            double.display = this.display
+            double.transport = this.transport
+
+            AgentOptionWithValue.Double(double, (value as AgentOptionValue.Double))
         }
 
         // Backwards compatibility: normalize to string
         is AgentOption.Secret -> {
-            AgentOptionWithValue.String(AgentOption.String(
+            val string = AgentOption.String(
                 default = this.default,
                 validation = this.validation,
                 secret = true
-            ), (value as AgentOptionValue.String))
+            )
+            string.required = this.required
+            string.display = this.display
+            string.transport = this.transport
+
+            AgentOptionWithValue.String(string, (value as AgentOptionValue.String))
         }
     }
 
