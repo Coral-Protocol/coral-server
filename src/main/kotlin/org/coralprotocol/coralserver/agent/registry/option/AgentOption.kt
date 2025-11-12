@@ -246,14 +246,20 @@ sealed class AgentOption {
     @Serializable
     @SerialName("u64")
     data class ULong(
-        val default: kotlin.ULong? = null,
+        /**
+         * OpenAPI does not support unsigned longs
+         */
+        val default: kotlin.String? = null,
         val validation: ULongAgentOptionValidation? = null
     ) : AgentOption()
 
     @Serializable
     @SerialName("list[u64]")
     data class ULongList(
-        @Optional val default: List<kotlin.ULong> = listOf(),
+        /**
+         * OpenAPI does not support unsigned longs
+         */
+        @Optional val default: List<kotlin.String> = listOf(),
         val validation: ULongAgentOptionValidation? = null
     ) : AgentOption()
 

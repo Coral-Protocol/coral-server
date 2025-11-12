@@ -88,13 +88,19 @@ sealed interface AgentOptionValue {
     @SerialName("list[u32]")
     data class UIntList(val value: List<kotlin.UInt>) : AgentOptionValue
 
+    /**
+     * OpenAPI does not support unsigned long
+     */
     @Serializable
     @SerialName("u64")
-    data class ULong(val value: kotlin.ULong) : AgentOptionValue
+    data class ULong(val value: kotlin.String) : AgentOptionValue
 
+    /**
+     * OpenAPI does not support unsigned long
+     */
     @Serializable
     @SerialName("list[u64]")
-    data class ULongList(val value: List<kotlin.ULong>) : AgentOptionValue
+    data class ULongList(val value: List<kotlin.String>) : AgentOptionValue
 
     @Serializable
     @SerialName("f32")
@@ -183,8 +189,8 @@ fun AgentOptionValue.toFileSystemValue(): List<ByteArray> = when (this) {
     is AgentOptionValue.UByteList -> value.map { ByteBuffer.allocate(UByte.SIZE_BYTES).put(it.toByte()).array() }
     is AgentOptionValue.UInt -> listOf(ByteBuffer.allocate(UInt.SIZE_BYTES).putInt(value.toInt()).array())
     is AgentOptionValue.UIntList -> value.map { ByteBuffer.allocate(UInt.SIZE_BYTES).putInt(it.toInt()).array() }
-    is AgentOptionValue.ULong -> listOf(ByteBuffer.allocate(ULong.SIZE_BYTES).putLong(value.toLong()).array())
-    is AgentOptionValue.ULongList -> value.map { ByteBuffer.allocate(ULong.SIZE_BYTES).putLong(it.toLong()).array() }
+    is AgentOptionValue.ULong -> listOf(ByteBuffer.allocate(ULong.SIZE_BYTES).putLong(value.toULong().toLong()).array())
+    is AgentOptionValue.ULongList -> value.map { ByteBuffer.allocate(ULong.SIZE_BYTES).putLong(it.toULong().toLong()).array() }
     is AgentOptionValue.UShort -> listOf(ByteBuffer.allocate(UShort.SIZE_BYTES).putShort(value.toShort()).array())
     is AgentOptionValue.UShortList -> value.map { ByteBuffer.allocate(UShort.SIZE_BYTES).putShort(it.toShort()).array() }
 }
