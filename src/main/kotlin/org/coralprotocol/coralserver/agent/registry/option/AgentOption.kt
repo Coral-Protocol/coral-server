@@ -68,7 +68,7 @@ sealed class AgentOption {
         if (required && defaultAsValue() != null)
             logger.warn { "$locator 'required = true' is not needed as the default value is set." }
 
-        if (this is String || this is StringList && base64 && transport == AgentOptionTransport.FILE_SYSTEM)
+        if ((this is String && base64 || this is StringList && base64) && transport == AgentOptionTransport.FILE_SYSTEM)
             logger.warn { "$locator has 'base64 = true' and 'transport = 'fs''.  The base64 field will be ignored" }
 
         // ugly just like the rest of AgentOption.*'s hideous mess of when statements!
