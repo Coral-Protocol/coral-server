@@ -263,7 +263,7 @@ fun AgentOptionWithValue.toDisplayString(): String = when (this) {
     is AgentOptionWithValue.UByteList -> value.value.joinToString(",")
     is AgentOptionWithValue.UInt -> value.value.toString()
     is AgentOptionWithValue.UIntList -> value.value.joinToString(",")
-    is AgentOptionWithValue.ULong -> value.value.toString()
+    is AgentOptionWithValue.ULong -> value.value
     is AgentOptionWithValue.ULongList -> value.value.joinToString(",")
     is AgentOptionWithValue.UShort -> value.value.toString()
     is AgentOptionWithValue.UShortList -> value.value.joinToString(",")
@@ -293,8 +293,14 @@ fun AgentOptionWithValue.requireValue() = when (this) {
     is AgentOptionWithValue.UByteList -> value.value.forEach { option.validation?.require(it) }
     is AgentOptionWithValue.UInt -> option.validation?.require(value.value)
     is AgentOptionWithValue.UIntList -> value.value.forEach { option.validation?.require(it) }
-    is AgentOptionWithValue.ULong -> option.validation?.require(value.value)
-    is AgentOptionWithValue.ULongList -> value.value.forEach { option.validation?.require(it) }
+    is AgentOptionWithValue.ULong -> {
+        option.validation?.require(value.value.toULongOrNull()
+            ?: throw AgentOptionValidationException("${value.value} is not a valid u64"))
+    }
+    is AgentOptionWithValue.ULongList -> value.value.forEach {
+        option.validation?.require(it.toULongOrNull()
+            ?: throw AgentOptionValidationException("${value.value} is not a valid u64") )
+    }
     is AgentOptionWithValue.UShort -> option.validation?.require(value.value)
     is AgentOptionWithValue.UShortList -> value.value.forEach { option.validation?.require(it) }
     is AgentOptionWithValue.Blob -> option.validation?.require(value.value)
