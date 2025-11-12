@@ -21,6 +21,7 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
 import org.coralprotocol.coralserver.agent.registry.option.option
 import org.coralprotocol.coralserver.agent.registry.option.asEnvVarValue
 import org.coralprotocol.coralserver.agent.registry.option.asFileSystemValue
+import org.coralprotocol.coralserver.agent.registry.option.toDisplayString
 import org.coralprotocol.coralserver.config.AddressConsumer
 import java.io.File
 import java.nio.file.Path
@@ -71,7 +72,7 @@ data class DockerRuntime(
                 when (value.option().transport) {
                     AgentOptionTransport.ENVIRONMENT_VARIABLE -> {
                         environmentVariables[name] = value.asEnvVarValue()
-                        dockerLogger.debug { "Setting option '$name' = ${value.asEnvVarValue()}" }
+                        dockerLogger.debug { "Setting option \"$name\" = ${value.toDisplayString()}" }
                     }
                     AgentOptionTransport.FILE_SYSTEM -> {
                         val files = value.asFileSystemValue()
@@ -84,7 +85,7 @@ data class DockerRuntime(
                             volumes.add(Bind(it.toAbsolutePath().toString(), Volume("/coral-options/${it.fileName}")))
                         }
 
-                        dockerLogger.info { "Setting option '$name' = $env for agent ${params.agentName}" }
+                        dockerLogger.info { "Setting option \"$name\" = \"$env\" for agent ${params.agentName}" }
                     }
                 }
             }
