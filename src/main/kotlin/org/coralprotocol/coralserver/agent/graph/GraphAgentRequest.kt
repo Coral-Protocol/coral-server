@@ -3,11 +3,16 @@ package org.coralprotocol.coralserver.agent.graph
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
 import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
-import org.coralprotocol.coralserver.agent.registry.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
+import org.coralprotocol.coralserver.agent.registry.RegistryException
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
+import org.coralprotocol.coralserver.agent.registry.option.compareTypeWithValue
+import org.coralprotocol.coralserver.agent.registry.option.requireValue
+import org.coralprotocol.coralserver.agent.registry.option.withValue
 
 @Serializable
 @Description("A request for an agent.  GraphAgentRequest -> GraphAgent")
@@ -57,7 +62,23 @@ data class GraphAgentRequest(
             throw AgentRequestException("Agent $id contains unknown options: ${unknownOptions.keys.joinToString()}")
         }
 
-        val allOptions = (options + registryAgent.defaultOptions).toMutableMap()
+        val wrongTypes = options.filter { !registryAgent.options[it.key]!!.compareTypeWithValue(it.value) }
+        if (wrongTypes.isNotEmpty()) {
+            throw AgentRequestException("Agent $id contains wrong types for options: ${wrongTypes.keys.joinToString()}")
+        }
+
+        val allOptions = (registryAgent.defaultOptions + options)
+            .mapValues { registryAgent.options[it.key]!!.withValue(it.value) }
+            .toMutableMap()
+
+        allOptions.forEach { (optionName, optionValue) ->
+            try {
+                optionValue.requireValue()
+            }
+            catch (e: AgentOptionValidationException) {
+                throw AgentRequestException("Value given for option \"$optionName\" is invalid: ${e.message}")
+            }
+        }
 
         // Options that are specified in the export settings take the highest priority, but they should only be
         // considered in a remote context
@@ -71,7 +92,12 @@ data class GraphAgentRequest(
                 }
             }
 
+            // Export settings are validated (option name, value type, value validation) so it is safe to simply copy
+            // export settings in here
             registryAgent.exportSettings[runtime]?.options
+                ?.mapValues {
+                    registryAgent.options[it.key]!!.withValue(it.value)
+                }
                 ?: throw AgentRequestException("Runtime $runtime is not exported by agent $id")
         }
         else {

@@ -7,20 +7,26 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
-import org.coralprotocol.coralserver.agent.registry.toStringValue
-import org.coralprotocol.coralserver.agent.runtime.executable.EnvVar
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
+import org.coralprotocol.coralserver.agent.registry.option.option
+import org.coralprotocol.coralserver.agent.registry.option.asEnvVarValue
+import org.coralprotocol.coralserver.agent.registry.option.asFileSystemValue
+import org.coralprotocol.coralserver.agent.registry.option.toDisplayString
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.session.models.SessionAgentState
+import java.io.File
+import java.nio.file.Path
 import java.util.concurrent.TimeUnit
+import kotlin.collections.set
 import kotlin.concurrent.thread
+import kotlin.io.path.writeText
 
 private val logger = KotlinLogging.logger {}
 
 @Serializable
 @SerialName("executable")
 data class ExecutableRuntime(
-    val command: List<String>,
-    val environment: List<EnvVar> = listOf()
+    val command: List<String>
 ) : Orchestrate {
     override fun spawn(
         params: RuntimeParams,
@@ -36,15 +42,37 @@ data class ExecutableRuntime(
         val apiUrl = applicationRuntimeContext.getApiUrl(AddressConsumer.LOCAL)
         val mcpUrl = applicationRuntimeContext.getMcpUrl(params, AddressConsumer.LOCAL)
 
-        val resolvedOptions = params.options.mapValues { it.value.toStringValue() }
-        val envsToSet = resolvedOptions + getCoralSystemEnvs(
+        val coralEnvs = getCoralSystemEnvs(
             params = params,
             apiUrl = apiUrl,
             mcpUrl = mcpUrl,
             orchestrationRuntime = "executable"
         )
-        
-        for (env in envsToSet) {
+
+        // Send options to executable BEFORE setting Coral environment variables.  If a user erroneously created options
+        // for their agent that use the same name as Coral envs and used the "env" transport, they should not override
+        // real Coral envs ...
+        val tempFiles = mutableListOf<Path>()
+        params.options.forEach { (name, value) ->
+            @Suppress("DuplicatedCode")
+            when (value.option().transport) {
+                AgentOptionTransport.ENVIRONMENT_VARIABLE -> {
+                    processEnvironment[name] = value.asEnvVarValue()
+                    logger.info { "Setting option \"$name\" = \"${value.toDisplayString()}\" for agent ${params.agentName}" }
+                }
+                AgentOptionTransport.FILE_SYSTEM -> {
+                    val files = value.asFileSystemValue()
+                    val env = files.joinToString(File.pathSeparator) { it.toAbsolutePath().toString() }
+                    processEnvironment[name] = env
+                    tempFiles.addAll(files)
+
+                    logger.info { "Setting option \"$name\" = \"$env\" for agent ${params.agentName}" }
+                }
+            }
+        }
+
+        // ... which are set here
+        for (env in coralEnvs) {
             processEnvironment[env.key] = env.value
         }
 
@@ -87,8 +115,8 @@ data class ExecutableRuntime(
             }
         }
 
-        return object : OrchestratorHandle() {
-            override suspend fun destroy() {
+        return object : OrchestratorHandle(tempFiles) {
+            override suspend fun cleanup() {
                 withContext(processContext) {
                     process.destroy()
                     process.waitFor(30, TimeUnit.SECONDS)

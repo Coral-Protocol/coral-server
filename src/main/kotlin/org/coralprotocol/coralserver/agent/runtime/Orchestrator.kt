@@ -8,22 +8,26 @@ import io.ktor.websocket.send
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
+import kotlinx.io.IOException
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
+import org.apache.commons.io.file.PathUtils.deleteFile
 import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
 import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
+import org.coralprotocol.coralserver.agent.registry.option.value
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.Session
 import org.coralprotocol.coralserver.session.SessionCloseMode
 import org.coralprotocol.coralserver.session.remote.RemoteSession
+import java.nio.file.Path
 import kotlin.collections.getOrPut
 import kotlin.system.measureTimeMillis
 import kotlin.uuid.ExperimentalUuidApi
@@ -62,9 +66,28 @@ interface Orchestrate {
     ): OrchestratorHandle
 }
 
-abstract class OrchestratorHandle {
+abstract class OrchestratorHandle(
+    val temporaryFiles: MutableList<Path> = mutableListOf()
+) {
     val scope = CoroutineScope(Dispatchers.IO)
-    abstract suspend fun destroy()
+    protected abstract suspend fun cleanup()
+
+    fun deleteTemporaryFiles() {
+        temporaryFiles.forEach {
+            try {
+                deleteFile(it)
+            }
+            catch (e: IOException) {
+                logger.error(e) { "Failed to delete temporary file $it" }
+            }
+        }
+        temporaryFiles.clear()
+    }
+
+    suspend fun destroy() {
+        deleteTemporaryFiles()
+        cleanup()
+    }
 }
 
 class Orchestrator(
@@ -116,9 +139,12 @@ class Orchestrator(
 
         bus.events.onEach {
             if (it is RuntimeEvent.Stopped) {
-                // Note this must be done BEFORE any session destruction - destroying sessions has a chance of making
+                // Note this must be done BEFORE any session destruction - destroying sessions have a chance of making
                 // this event omit again
                 sessionHandles.remove(handle)
+
+                // If the runtime crashes, this is the only place we can call this cleanup function
+                handle.deleteTemporaryFiles()
 
                 logger.info { "Received the stop runtime event for agent '${agent.name}'" }
 
@@ -186,7 +212,7 @@ class Orchestrator(
                         id = graphAgent.registryAgent.info.identifier,
                         name = graphAgent.name,
                         description = graphAgent.description,
-                        options = graphAgent.options,
+                        options = graphAgent.options.mapValues { it.value.value() },
                         systemPrompt = graphAgent.systemPrompt,
                         blocking = graphAgent.blocking,
                         customToolAccess = graphAgent.customToolAccess,
