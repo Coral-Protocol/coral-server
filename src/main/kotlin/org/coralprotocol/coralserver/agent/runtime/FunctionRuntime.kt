@@ -24,7 +24,7 @@ class FunctionRuntime(
         }
 
         return object : OrchestratorHandle() {
-            override suspend fun destroy() {
+            override suspend fun cleanup() {
                 scope.cancel()
             }
         }
