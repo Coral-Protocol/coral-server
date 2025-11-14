@@ -61,7 +61,7 @@ class AgentOptionsTest {
             Test("u8", AgentOption.UByte::class.name, AgentOptionValue.UByte(UByte.MAX_VALUE)),
             Test("u16", AgentOption.UShort::class.name, AgentOptionValue.UShort(UShort.MAX_VALUE)),
             Test("u32", AgentOption.UInt::class.name, AgentOptionValue.UInt(UInt.MAX_VALUE)),
-            Test("u64", AgentOption.ULong::class.name, AgentOptionValue.ULong(ULong.MAX_VALUE)),
+            Test("u64", AgentOption.ULong::class.name, AgentOptionValue.ULong(ULong.MAX_VALUE.toString())),
             Test("f32", AgentOption.Float::class.name, AgentOptionValue.Float(1.0f)),
             Test("f64", AgentOption.Double::class.name, AgentOptionValue.Double(1.0)),
 
@@ -87,7 +87,7 @@ class AgentOptionsTest {
                 listOf(UInt.MIN_VALUE, UInt.MAX_VALUE)
             )),
             Test("list[u64]", AgentOption.ULongList::class.name, AgentOptionValue.ULongList(
-                listOf(ULong.MIN_VALUE, ULong.MAX_VALUE)
+                listOf(ULong.MIN_VALUE.toString(), ULong.MAX_VALUE.toString())
             )),
             Test("list[f32]", AgentOption.FloatList::class.name, AgentOptionValue.FloatList(
                 listOf(-1.0f, 1.0f)
