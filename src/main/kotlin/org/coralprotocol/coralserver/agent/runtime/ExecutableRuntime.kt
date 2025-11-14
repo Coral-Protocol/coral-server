@@ -7,19 +7,13 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
-import org.coralprotocol.coralserver.agent.registry.option.option
-import org.coralprotocol.coralserver.agent.registry.option.asEnvVarValue
-import org.coralprotocol.coralserver.agent.registry.option.asFileSystemValue
-import org.coralprotocol.coralserver.agent.registry.option.toDisplayString
+import org.coralprotocol.coralserver.agent.registry.option.*
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.session.models.SessionAgentState
 import java.io.File
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
-import kotlin.collections.set
 import kotlin.concurrent.thread
-import kotlin.io.path.writeText
 
 private val logger = KotlinLogging.logger {}
 

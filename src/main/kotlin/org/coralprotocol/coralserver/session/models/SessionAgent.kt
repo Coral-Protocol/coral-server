@@ -5,7 +5,7 @@ import kotlinx.serialization.Transient
 import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
 import org.coralprotocol.coralserver.session.CustomTool
 import org.coralprotocol.coralserver.x402.X402BudgetedResource
-import java.util.UUID
+import java.util.*
 
 
 @Serializable

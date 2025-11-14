@@ -4,7 +4,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.AgentResolutionContext
 import org.coralprotocol.coralserver.agent.registry.RegistryAgent
-import org.coralprotocol.coralserver.agent.registry.RegistryResolutionContext
 import org.coralprotocol.coralserver.agent.registry.UnresolvedRegistryAgent
 
 /**

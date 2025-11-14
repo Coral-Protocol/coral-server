@@ -2,7 +2,6 @@
 
 package org.coralprotocol.coralserver.config
 
-import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
