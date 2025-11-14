@@ -67,17 +67,14 @@ fun Routing.x402Routes(localSessionManager: LocalSessionManager, x402Service: X4
 
         if (response.status == HttpStatusCode.PaymentRequired) {
             val response = apiJsonConfig.decodeFromString<X402PaymentRequired>(response.bodyAsText())
-            val ordered = agent.x402BudgetedResources.sortedBy { it.priority }
+            val orderedBudgetResources = agent.x402BudgetedResources.sortedBy { it.priority }
 
-            val (budgetedResource, paymentRequirement) = ordered.map { budgetedResource ->
+            val (budgetedResource, paymentRequirement) = orderedBudgetResources.firstNotNullOfOrNull { budgetedResource ->
                 val accepted = response.accepts.find { it.withinBudget(budgetedResource) }
-                if (accepted != null) {
-                    return@map Pair(budgetedResource, accepted)
-                }
-                else {
-                    return@map null
-                }
-            }.firstOrNull() ?: throw RouteException(HttpStatusCode.BadRequest, "This agent does not have funds budgeted for this request")
+                return@firstNotNullOfOrNull if (accepted == null) {
+                    null
+                } else Pair(budgetedResource, accepted)
+            } ?: throw RouteException(HttpStatusCode.BadRequest, "This agent does not have funds budgeted for this request")
 
             // todo: unpack this function to not send the first request twice
             // todo: in the case of multiple valid budgets, use the prioritised budget from above (also requires unpacking)
