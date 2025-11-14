@@ -7,6 +7,7 @@ import com.github.dockerjava.api.model.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.html.Entities
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
@@ -18,6 +19,8 @@ import java.nio.file.Path
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.collections.set
+import kotlin.io.path.writeText
 import kotlin.time.Duration.Companion.seconds
 
 private val dockerLogger = KotlinLogging.logger {}

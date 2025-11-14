@@ -2,7 +2,7 @@
 
 package org.coralprotocol.coralserver.agent.registry.option
 
-import io.ktor.util.*
+import io.ktor.util.encodeBase64
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
