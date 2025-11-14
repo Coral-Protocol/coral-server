@@ -65,49 +65,41 @@ fun defaultDockerAddress(): String {
 @Serializable
 data class PaymentConfig(
     /**
-     * The path to the configured wallet
+     * A list of all configured wallets
      */
-    @SerialName("wallet_path")
-    val walletPath: String = Path.of(System.getProperty("user.home"), ".coral", "wallet.toml").toString(),
+    val wallets: List<Wallet> = listOf(),
 
     /**
-     * The RPC url for payments
-     */
-    val rpcUrl: String = "https://api.mainnet-beta.solana.com/",
-
-    /**
-     * The amount of times the exporting server should retry getting the session from the blockchain.  This is a safety
+     * The number of times the exporting server should retry getting the session from the blockchain.  This is a safety
      * feature in case there are
      */
+    @SerialName("session_retry_count")
     val sessionRetryCount: UInt = 10u,
 
     /**
      * The delay between retries when trying to get a session
      */
+    @SerialName("session_retry_delay")
     val sessionRetryDelay: ULong = 1000u,
-) {
 
     /**
-     * The configured wallet for this server.  Required to send and receive payments.
+     * The name of the wallet to use for remote agent payments
      */
-    @Transient
-    val wallet: Wallet? = run {
-        val file = File(walletPath)
-        if (file.exists()) {
-            try {
-                return@run toml.decodeFromString<Wallet>(file.readText())
-            }
-            catch (e: Exception) {
-                logger.warn(e) { "Failed to load wallet file $walletPath" }
-            }
-        }
-        else {
-            logger.warn { "No wallet file found at $walletPath" }
-        }
+    @SerialName("agent_wallet")
+    val remoteAgentWalletName: String? = null,
 
-        null
-    }
-}
+    /**
+     * The name of the wallet to use for x402 wallet payments
+     */
+    @SerialName("x402_wallet")
+    val x402WalletName: String? = null,
+
+    @Transient
+    val remoteAgentWallet: Wallet? = wallets.firstOrNull { it.name == remoteAgentWalletName },
+
+    @Transient
+    val x402Wallet: Wallet? = wallets.firstOrNull { it.name == remoteAgentWalletName },
+)
 
 @Serializable
 data class NetworkConfig(

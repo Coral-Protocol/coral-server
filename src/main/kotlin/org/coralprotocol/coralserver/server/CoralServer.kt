@@ -204,7 +204,7 @@ class CoralServer(
                 documentationApiRoutes()
                 agentApiRoutes(registry, blockchainService, remoteSessionManager, jupiterService, config.paymentConfig)
                 internalRoutes(remoteSessionManager, aggregatedPaymentClaimManager, jupiterService)
-                publicWalletApiRoutes(config.paymentConfig.wallet)
+                publicWalletApiRoutes(config.paymentConfig.remoteAgentWallet)
                 x402Routes(localSessionManager, x402Service)
 
                 // sse
