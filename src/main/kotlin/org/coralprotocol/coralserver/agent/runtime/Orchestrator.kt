@@ -219,7 +219,7 @@ class Orchestrator(
                         plugins = graphAgent.plugins,
                         provider = GraphAgentProvider.Local(provider.runtime),
                     ),
-                    clientWalletAddress = config.paymentConfig.remoteAgentWallet?.publicKey
+                    clientWalletAddress = config.paymentConfig.remoteAgentWallet?.walletAddress
                         ?: throw IllegalStateException("Requests for remote agents cannot be made without a configured wallet"),
                     paidSessionId = session.paymentSessionId
                         ?: throw IllegalStateException("Session including paid agents does not include a payment session")

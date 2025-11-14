@@ -44,7 +44,7 @@ class BlockchainServiceProvider(val config: PaymentConfig) {
             is Wallet.CrossmintSolana -> {
                 SignerConfig.Crossmint(
                     apiKey = wallet.apiKey,
-                    walletAddress = wallet.publicKey,
+                    walletAddress = wallet.walletAddress,
                     useStaging = wallet.cluster != SolanaCluster.MAIN_NET,
                     deviceKeypairPath = wallet.keypairPath
                 )

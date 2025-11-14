@@ -20,8 +20,8 @@ sealed interface Wallet {
      * This server reports this address to other servers to receive funds.  In the case of delegated wallets, the
      * keypair might not contain the public key that should receive funds, so it is always separated out into this field
      */
-    @SerialName("public_key")
-    val publicKey: String
+    @SerialName("address")
+    val walletAddress: String
 
     val rpcUrl: String
     val name: String
@@ -39,8 +39,8 @@ sealed interface Wallet {
         @SerialName("keypair_path")
         val keypairPath: String,
 
-        @SerialName("public_key")
-        override val publicKey: String,
+        @SerialName("address")
+        override val walletAddress: String,
     ) : Wallet {
         override val rpcUrl: String = cluster.rpcUrl
     }
@@ -54,8 +54,8 @@ sealed interface Wallet {
         @SerialName("keypair_path")
         val keypairPath: String,
 
-        @SerialName("public_key")
-        override val publicKey: String,
+        @SerialName("address")
+        override val walletAddress: String,
     ) : Wallet {
         override val rpcUrl: String = cluster.rpcUrl
     }

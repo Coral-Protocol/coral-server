@@ -33,7 +33,7 @@ fun Routing.publicWalletApiRoutes(
             }
         }
     }) {
-        call.respond(HttpStatusCode.OK, wallet?.publicKey ?: throw RouteException(
+        call.respond(HttpStatusCode.OK, wallet?.walletAddress ?: throw RouteException(
             HttpStatusCode.NotFound,
             "No wallet configured on this server"
         ))
