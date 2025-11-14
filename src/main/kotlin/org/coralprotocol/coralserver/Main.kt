@@ -6,7 +6,6 @@ import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.config.loadFromFile
-import org.coralprotocol.coralserver.payment.keygen.CrossmintInteractiveKeyGenerator
 import org.coralprotocol.coralserver.server.CoralServer
 import org.coralprotocol.payment.blockchain.BlockchainService
 
@@ -53,12 +52,6 @@ fun main(args: Array<String>) {
             })
 
             server.start(wait = true)
-        }
-
-        "--interactive-keygen-crossmint" -> {
-            runBlocking {
-                CrossmintInteractiveKeyGenerator(config).start()
-            }
         }
 
         else -> {
