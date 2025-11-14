@@ -13,6 +13,7 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.compareTypeWithValue
 import org.coralprotocol.coralserver.agent.registry.option.requireValue
 import org.coralprotocol.coralserver.agent.registry.option.withValue
+import org.coralprotocol.coralserver.x402.X402BudgetedResource
 
 @Serializable
 @Description("A request for an agent.  GraphAgentRequest -> GraphAgent")
@@ -43,7 +44,10 @@ data class GraphAgentRequest(
     val plugins: Set<GraphAgentPlugin>,
 
     @Description("The server that should provide this agent and the runtime to use")
-    val provider: GraphAgentProvider
+    val provider: GraphAgentProvider,
+
+    @Description("An optional list of resources and an accompanied budget that this agent may spend on services that accept x402 payments")
+    val x402Budgets: List<X402BudgetedResource> = listOf(),
 ) {
     /**
      * Given a reference to the agent registry [AgentRegistry], this function will attempt to convert this request into
@@ -119,6 +123,7 @@ data class GraphAgentRequest(
             customToolAccess = customToolAccess,
             plugins = plugins,
             provider = provider,
+            x402Budgets = x402Budgets,
         )
     }
 }

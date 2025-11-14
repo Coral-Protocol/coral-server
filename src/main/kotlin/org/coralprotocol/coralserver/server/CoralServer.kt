@@ -56,6 +56,7 @@ import org.coralprotocol.coralserver.routes.ws.v1.exportedAgentRoutes
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 import org.coralprotocol.payment.blockchain.BlockchainService
+import org.coralprotocol.payment.blockchain.X402Service
 import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
@@ -76,7 +77,8 @@ val apiJsonConfig = Json {
 class CoralServer(
     val config: Config,
     val registry: AgentRegistry,
-    val blockchainService: BlockchainService?,
+    val blockchainService: BlockchainService? = null,
+    val x402Service: X402Service? = null,
     val devmode: Boolean = false,
     orchestrator: Orchestrator
 ) {
@@ -202,7 +204,8 @@ class CoralServer(
                 documentationApiRoutes()
                 agentApiRoutes(registry, blockchainService, remoteSessionManager, jupiterService, config.paymentConfig)
                 internalRoutes(remoteSessionManager, aggregatedPaymentClaimManager, jupiterService)
-                publicWalletApiRoutes(config.paymentConfig.wallet)
+                publicWalletApiRoutes(config.paymentConfig.remoteAgentWallet)
+                x402Routes(localSessionManager, x402Service)
 
                 // sse
                 connectionSseRoutes(mcpServersByTransportId, localSessionManager)

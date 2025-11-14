@@ -3,8 +3,8 @@
 package org.coralprotocol.coralserver.agent.runtime
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.server.websocket.WebSocketServerSession
-import io.ktor.websocket.send
+import io.ktor.server.websocket.*
+import io.ktor.websocket.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -28,7 +28,6 @@ import org.coralprotocol.coralserver.session.Session
 import org.coralprotocol.coralserver.session.SessionCloseMode
 import org.coralprotocol.coralserver.session.remote.RemoteSession
 import java.nio.file.Path
-import kotlin.collections.getOrPut
 import kotlin.system.measureTimeMillis
 import kotlin.uuid.ExperimentalUuidApi
 
@@ -195,7 +194,8 @@ class Orchestrator(
             privacyKey = privacyKey,
             systemPrompt = graphAgent.systemPrompt,
             options = graphAgent.options,
-            path = graphAgent.registryAgent.path
+            path = graphAgent.registryAgent.path,
+            agentSecret = graphAgent.secret
         )
 
         when (val provider = graphAgent.provider) {
@@ -219,7 +219,7 @@ class Orchestrator(
                         plugins = graphAgent.plugins,
                         provider = GraphAgentProvider.Local(provider.runtime),
                     ),
-                    clientWalletAddress = config.paymentConfig.wallet?.address
+                    clientWalletAddress = config.paymentConfig.remoteAgentWallet?.walletAddress
                         ?: throw IllegalStateException("Requests for remote agents cannot be made without a configured wallet"),
                     paidSessionId = session.paymentSessionId
                         ?: throw IllegalStateException("Session including paid agents does not include a payment session")
@@ -250,7 +250,8 @@ class Orchestrator(
             agentName = agentName,
             systemPrompt = graphAgent.systemPrompt,
             options = graphAgent.options,
-            path = graphAgent.registryAgent.path
+            path = graphAgent.registryAgent.path,
+            agentSecret = graphAgent.secret
         )
 
         when (val provider = graphAgent.provider) {

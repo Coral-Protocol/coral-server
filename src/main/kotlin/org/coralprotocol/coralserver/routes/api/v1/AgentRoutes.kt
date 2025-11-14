@@ -13,9 +13,7 @@ import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
 import org.coralprotocol.coralserver.agent.payment.AgentClaimAmount
-import org.coralprotocol.coralserver.agent.payment.toMicroCoral
 import org.coralprotocol.coralserver.agent.registry.*
-import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.config.PaymentConfig
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.server.RouteException

@@ -19,6 +19,7 @@ import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
+import org.coralprotocol.coralserver.session.models.SessionAgent
 import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.models.SessionInfo
 import java.util.*
@@ -261,5 +262,19 @@ class LocalSessionManager(
      */
     private suspend fun cleanupSession(session: LocalSession, sessionCloseMode: SessionCloseMode) {
         orchestrator.killForSession(session.id, sessionCloseMode)
+    }
+
+    /**
+     * Finds a session that contains and agent with the specified agent secret.  Returns a pair containing both the
+     * [LocalSession] and [SessionAgent] or null if no matches were found.
+     */
+    fun lookupAgentSecret(secret: String): Pair<LocalSession, SessionAgent>? {
+        for (session in getAllSessions()) {
+            session.getAllAgents().first { it.secret == secret }.let {
+                return Pair(session, it)
+            }
+        }
+
+        return null;
     }
 }

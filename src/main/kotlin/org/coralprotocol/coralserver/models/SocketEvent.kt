@@ -2,8 +2,8 @@
 
 package org.coralprotocol.coralserver.models
 
-import io.ktor.server.websocket.WebSocketServerSession
-import io.ktor.websocket.send
+import io.ktor.server.websocket.*
+import io.ktor.websocket.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

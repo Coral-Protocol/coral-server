@@ -4,11 +4,10 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.runtime.Orchestrator
+import org.coralprotocol.coralserver.config.BlockchainServiceProvider
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.config.loadFromFile
-import org.coralprotocol.coralserver.payment.keygen.CrossmintInteractiveKeyGenerator
 import org.coralprotocol.coralserver.server.CoralServer
-import org.coralprotocol.payment.blockchain.BlockchainService
 
 private val logger = KotlinLogging.logger {}
 
@@ -31,10 +30,7 @@ fun main(args: Array<String>) {
 
     when (command) {
         "--sse-server" -> {
-            val blockchainService = runBlocking {
-                BlockchainService.loadFromFile(config)
-            }
-
+            val blockchainServiceProvider = BlockchainServiceProvider(config.paymentConfig)
             val registry = AgentRegistry.loadFromFile(config)
 
             val orchestrator = Orchestrator(config, registry)
@@ -43,7 +39,8 @@ fun main(args: Array<String>) {
                 config = config,
                 registry = registry,
                 orchestrator = orchestrator,
-                blockchainService = blockchainService
+                blockchainService = blockchainServiceProvider.blockchainService,
+                x402Service = blockchainServiceProvider.x402Service
             )
 
             // Add a shutdown hook to stop the server gracefully
@@ -56,12 +53,6 @@ fun main(args: Array<String>) {
             })
 
             server.start(wait = true)
-        }
-
-        "--interactive-keygen-crossmint" -> {
-            runBlocking {
-                CrossmintInteractiveKeyGenerator(config).start()
-            }
         }
 
         else -> {
