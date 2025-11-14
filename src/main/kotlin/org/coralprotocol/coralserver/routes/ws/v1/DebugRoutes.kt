@@ -10,7 +10,6 @@ import org.coralprotocol.coralserver.agent.runtime.sendRuntimeEvent
 import org.coralprotocol.coralserver.models.SocketEvent
 import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.models.sendSocketEvent
-import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.LocalSessionManager
 
 private val logger = KotlinLogging.logger {}

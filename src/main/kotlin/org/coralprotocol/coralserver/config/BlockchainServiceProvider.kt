@@ -3,75 +3,57 @@ package org.coralprotocol.coralserver.config
 import mu.KotlinLogging
 import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.BlockchainServiceImpl
-import org.coralprotocol.payment.blockchain.CrossmintBlockchainService
+import org.coralprotocol.payment.blockchain.X402ServiceImpl
 import org.coralprotocol.payment.blockchain.models.SignerConfig
-import java.io.File
-import java.nio.file.Path
 
 private val logger = KotlinLogging.logger {}
 
-fun logNoPayments() {
-    logger.warn { "Payment services will be disabled, meaning:" }
-    logger.warn { "- Importing remote agents will be disabled" }
-    logger.warn { "- Exporting agents will be disabled" }
-}
+class BlockchainServiceProvider(val config: PaymentConfig) {
+    val blockchainService: BlockchainService? = if (config.remoteAgentWallet != null) {
+        BlockchainServiceImpl(
+            rpcUrl = config.remoteAgentWallet.rpcUrl,
+            commitment = "confirmed",
+            signerConfig = getSignerConfig(config.remoteAgentWallet)
+        )
+    }
+    else {
+        logger.warn { "Agent exporting and importing will be disabled because no wallet was configured" }
+        null
+    }
 
-suspend fun BlockchainService.Companion.loadFromFile(config: Config): BlockchainService? {
-    return when (val wallet = config.paymentConfig.wallet) {
-        is Wallet.Crossmint -> {
-            val rpcUrl = config.paymentConfig.rpcUrl
-
-            val resolvedKeypairPath = getResolvedKeypairFile(wallet, config)
-
-            if (!resolvedKeypairPath.exists()) {
-                return null
-            }
-
-            val signerConfig = SignerConfig.Crossmint(
-                apiKey = wallet.apiKey,
-                walletAddress = wallet.address,
-                useStaging = wallet.staging,
-                deviceKeypairPath = resolvedKeypairPath.toString(),
-            )
-
-            val blockchainService = BlockchainServiceImpl(rpcUrl, "confirmed", signerConfig)
-            blockchainService
-        }
-        else -> {
-            logNoPayments()
+    val x402Service: X402ServiceImpl? = if (config.x402Wallet != null) {
+        if (config.x402Wallet !is Wallet.Solana) {
+            logger.warn { "x402 service forwarding services will be disabled because the configured wallet is not a Solana wallet" }
             null
         }
+        else {
+            X402ServiceImpl(
+                rpcUrl = config.x402Wallet.rpcUrl,
+                commitment = "confirmed",
+                signerConfig = getSignerConfig(config.x402Wallet)
+            )
+        }
     }
-}
+    else {
+        logger.warn { "x402 service forwarding services will be disabled because no wallet was configured" }
+        null
+    }
 
-fun BlockchainService.Companion.getResolvedKeypairFile(
-    wallet: Wallet.Crossmint,
-    config: Config
-): File = run {
-    if (Path.of(wallet.keypairPath).isAbsolute) {
-        File(wallet.keypairPath)
-    } else {
-        // Local to wallet config takes priority
-        val walletPath = Path.of(config.paymentConfig.walletPath)
-        if (walletPath.parent != null) {
-            val keypair = walletPath.parent.resolve(wallet.keypairPath).toFile()
-            if (keypair.exists()) {
-                return@run keypair
+    fun getSignerConfig(wallet: Wallet): SignerConfig {
+        return when (wallet) {
+            is Wallet.CrossmintSolana -> {
+                SignerConfig.Crossmint(
+                    apiKey = wallet.apiKey,
+                    walletAddress = wallet.walletAddress,
+                    useStaging = wallet.cluster != SolanaCluster.MAIN_NET,
+                    deviceKeypairPath = wallet.keypairPath
+                )
             }
-        }
-
-        // If there's an existing working directory keypair, we can use that
-        val workingDir = File(wallet.keypairPath)
-        if (workingDir.exists()) {
-            return@run workingDir
-        }
-
-        // Nothing exists, default location priority is wallet-relative then working directory if we can't
-        // get the wallet relative path
-        if (walletPath.parent != null) {
-            walletPath.parent.resolve(wallet.keypairPath).toFile()
-        } else {
-            File(wallet.keypairPath)
+            is Wallet.Solana -> {
+                SignerConfig.File(
+                    path = wallet.keypairPath
+                )
+            }
         }
     }
 }
