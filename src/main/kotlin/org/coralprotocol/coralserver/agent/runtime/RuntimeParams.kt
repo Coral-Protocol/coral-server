@@ -1,6 +1,5 @@
 package org.coralprotocol.coralserver.agent.runtime
 
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.session.LocalSession

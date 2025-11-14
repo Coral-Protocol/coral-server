@@ -3,7 +3,10 @@
 package org.coralprotocol.coralserver.config
 
 import io.ktor.http.*
-import kotlinx.serialization.*
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import mu.KotlinLogging
 import org.coralprotocol.coralserver.agent.registry.RegistryException
 import org.coralprotocol.coralserver.agent.registry.indexer.GitRegistryAgentIndexer

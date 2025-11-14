@@ -8,8 +8,6 @@ import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
-import org.coralprotocol.coralserver.x402.X402BudgetedResource
-import org.coralprotocol.coralserver.agent.registry.RegistryException
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.compareTypeWithValue
 import org.coralprotocol.coralserver.agent.registry.option.requireValue

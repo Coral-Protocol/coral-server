@@ -3,33 +3,21 @@ package org.coralprotocol.coralserver.agent.runtime
 import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.async.ResultCallback
 import com.github.dockerjava.api.exception.NotModifiedException
-import com.github.dockerjava.api.model.Bind
-import com.github.dockerjava.api.model.Frame
-import com.github.dockerjava.api.model.HostConfig
-import com.github.dockerjava.api.model.PullResponseItem
-import com.github.dockerjava.api.model.StreamType
-import com.github.dockerjava.api.model.Volume
+import com.github.dockerjava.api.model.*
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.html.Entities
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
-import org.coralprotocol.coralserver.agent.registry.option.option
-import org.coralprotocol.coralserver.agent.registry.option.asEnvVarValue
-import org.coralprotocol.coralserver.agent.registry.option.asFileSystemValue
-import org.coralprotocol.coralserver.agent.registry.option.toDisplayString
+import org.coralprotocol.coralserver.agent.registry.option.*
 import org.coralprotocol.coralserver.config.AddressConsumer
 import java.io.File
 import java.nio.file.Path
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import kotlin.collections.set
-import kotlin.io.path.writeText
 import kotlin.time.Duration.Companion.seconds
 
 private val dockerLogger = KotlinLogging.logger {}

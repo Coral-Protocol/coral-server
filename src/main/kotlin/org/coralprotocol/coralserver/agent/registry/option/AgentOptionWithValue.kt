@@ -1,6 +1,5 @@
 package org.coralprotocol.coralserver.agent.registry.option
 
-import com.github.dockerjava.api.model.Volume
 import io.ktor.util.*
 import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
 import java.nio.file.Path
