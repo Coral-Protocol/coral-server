@@ -24,10 +24,13 @@ fun main(args: Array<String>) {
 //    System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "TRACE");
 //    System.setProperty("io.ktor.development", "true")
 
-    val command = args.firstOrNull() ?: "--sse-server"
+    var command = args.firstOrNull() ?: "--sse-server"
     val devMode = args.contains("--dev")
     val config = Config.loadFromFile()
-
+    if (devMode) {
+        logger.info { "Dev mode is enabled" }
+        command = "--sse-server"
+    }
     when (command) {
         "--sse-server" -> {
             val blockchainServiceProvider = BlockchainServiceProvider(config.paymentConfig)
