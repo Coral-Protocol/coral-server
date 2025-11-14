@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.agent.graph
 
 import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
 import org.coralprotocol.coralserver.agent.registry.*
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.remote.RemoteSession
