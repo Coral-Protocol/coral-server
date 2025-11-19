@@ -19,7 +19,7 @@ private val logger = KotlinLogging.logger {}
  * These endpoints establish bidirectional communication channels and must be hit
  * before any message processing can begin.
  */
-fun Routing.exportedAgentSseRoutes(
+fun Route.exportedAgentSseRoutes(
     servers: ConcurrentMap<String, Server>,
     remoteSessionManager: RemoteSessionManager?
 ) {

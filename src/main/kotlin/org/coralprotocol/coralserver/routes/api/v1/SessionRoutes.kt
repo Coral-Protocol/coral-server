@@ -26,7 +26,7 @@ class Sessions
 /**
  * Configures session-related routes.
  */
-fun Routing.sessionApiRoutes(
+fun Route.sessionApiRoutes(
     registry: AgentRegistry,
     localSessionManager: LocalSessionManager,
     devMode: Boolean

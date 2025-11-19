@@ -41,7 +41,7 @@ class TelemetryGet(val sessionId: String, val threadId: String, val messageId: S
 @Resource("/api/v1/telemetry/{sessionId}")
 class TelemetryPost(val sessionId: String)
 
-fun Routing.telemetryApiRoutes(localSessionManager: LocalSessionManager) {
+fun Route.telemetryApiRoutes(localSessionManager: LocalSessionManager) {
     get<TelemetryGet>({
         summary = "Get telemetry"
         description = "Fetches telemetry information for a given message"
