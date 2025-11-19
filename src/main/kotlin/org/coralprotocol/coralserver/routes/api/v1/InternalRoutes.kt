@@ -13,7 +13,7 @@ import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimMan
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 
-@Resource("/api/v1/internal/claim/{remoteSessionId}")
+@Resource("internal/claim/{remoteSessionId}")
 class Claim(val remoteSessionId: String)
 
 fun Route.internalRoutes(

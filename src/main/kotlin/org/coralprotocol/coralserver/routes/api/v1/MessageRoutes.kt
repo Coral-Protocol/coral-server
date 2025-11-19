@@ -15,13 +15,13 @@ import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 
 private val logger = KotlinLogging.logger {}
 
-@Resource("/api/v1/message/{applicationId}/{privacyKey}/{coralSessionId}")
+@Resource("message/{applicationId}/{privacyKey}/{coralSessionId}")
 class Message(val applicationId: String, val privacyKey: String, val coralSessionId: String)
 
-@Resource("/api/v1/message/devmode/{applicationId}/{privacyKey}/{coralSessionId}")
+@Resource("message/devmode/{applicationId}/{privacyKey}/{coralSessionId}")
 class DevModeMessage(val applicationId: String, val privacyKey: String, val coralSessionId: String)
 
-@Resource("/api/v1/message/export/{remoteSessionId}")
+@Resource("message/export/{remoteSessionId}")
 class ExportingAgentMessage(val remoteSessionId: String)
 
 /**

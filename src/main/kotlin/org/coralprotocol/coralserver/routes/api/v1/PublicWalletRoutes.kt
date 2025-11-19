@@ -8,7 +8,7 @@ import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.config.Wallet
 import org.coralprotocol.coralserver.server.RouteException
 
-@Resource("/api/v1/wallet/public")
+@Resource("wallet/public")
 class PublicWallet()
 
 fun Route.publicWalletApiRoutes(

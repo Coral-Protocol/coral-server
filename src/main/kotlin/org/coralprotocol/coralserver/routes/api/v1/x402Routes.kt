@@ -25,10 +25,10 @@ import org.coralprotocol.payment.blockchain.X402Service
 
 private val logger = KotlinLogging.logger {}
 
-@Resource("/api/v1/x402/{agentSecret}")
+@Resource("x402/{agentSecret}")
 class X402Proxy(val agentSecret: String)
 
-fun Routing.x402Routes(localSessionManager: LocalSessionManager, x402Service: X402Service?) {
+fun Route.x402Routes(localSessionManager: LocalSessionManager, x402Service: X402Service?) {
     post<X402Proxy>({
         summary = ""
         description = ""

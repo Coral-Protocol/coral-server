@@ -10,7 +10,7 @@ import kotlinx.html.*
 
 private val logger = KotlinLogging.logger {}
 
-@Resource("/v1/docs")
+@Resource("docs")
 class Documentation
 
 fun Route.documentationApiRoutes() {

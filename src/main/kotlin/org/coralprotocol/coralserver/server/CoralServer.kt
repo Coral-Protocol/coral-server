@@ -23,6 +23,9 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.bearer
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.ktor.server.plugins.contentnegotiation.*
@@ -80,6 +83,7 @@ class CoralServer(
     val blockchainService: BlockchainService? = null,
     val x402Service: X402Service? = null,
     val devmode: Boolean = false,
+    val launchMode: LaunchMode = LaunchMode.DEDICATED,
     orchestrator: Orchestrator
 ) {
     val jupiterService = JupiterService()
@@ -195,29 +199,63 @@ class CoralServer(
                     call.respondText(text = apiJsonConfig.encodeToString(wrapped), status = wrapped.status)
                 }
             }
+            install(Authentication) {
+                bearer("token") {
+                    authenticate { credential ->
+                        if (!config.auth.keys.contains(credential.token))
+                            return@authenticate null
+                    }
+                }
+            }
             routing {
-                // api
-                debugApiRoutes(localSessionManager)
-                sessionApiRoutes(registry, localSessionManager, devmode)
-                messageApiRoutes(mcpServersByTransportId, localSessionManager, remoteSessionManager)
-                telemetryApiRoutes(localSessionManager)
-                documentationApiRoutes()
-                agentApiRoutes(registry, blockchainService, remoteSessionManager, jupiterService, config.paymentConfig)
-                internalRoutes(remoteSessionManager, aggregatedPaymentClaimManager, jupiterService)
-                publicWalletApiRoutes(config.paymentConfig.remoteAgentWallet)
-                x402Routes(localSessionManager, x402Service)
+                route("api") {
+                    route("v1") {
+                        authenticate("token") {
+                            sessionApiRoutes(registry, localSessionManager, devmode)
+                        }
 
-                // sse
-                connectionSseRoutes(mcpServersByTransportId, localSessionManager)
-                exportedAgentSseRoutes(mcpServersByTransportId, remoteSessionManager)
+                        messageApiRoutes(mcpServersByTransportId, localSessionManager, remoteSessionManager)
+                        telemetryApiRoutes(localSessionManager)
+                        agentApiRoutes(
+                            registry,
+                            blockchainService,
+                            remoteSessionManager,
+                            jupiterService,
+                            config.paymentConfig
+                        )
+                        internalRoutes(remoteSessionManager, aggregatedPaymentClaimManager, jupiterService)
+                        publicWalletApiRoutes(config.paymentConfig.remoteAgentWallet)
+                        x402Routes(localSessionManager, x402Service)
+                    }
+                }
 
-                // websocket
-                debugWsRoutes(localSessionManager, orchestrator)
-                exportedAgentRoutes(remoteSessionManager)
+                route("v1") {
+                    documentationApiRoutes()
+                }
+
+                route("sse") {
+                    route("v1") {
+                        connectionSseRoutes(mcpServersByTransportId, localSessionManager)
+                        exportedAgentSseRoutes(mcpServersByTransportId, remoteSessionManager)
+                    }
+                }
+
+                route("ws") {
+                    route("v1") {
+                        debugWsRoutes(localSessionManager, orchestrator)
+                        exportedAgentRoutes(remoteSessionManager)
+                    }
+                }
 
                 // source of truth for OpenAPI docs/codegen
                 route("api_v1.json") {
                     openApi("v1")
+                }
+            }.run {
+                getAllRoutes().forEach {
+                    logger.info {
+                        "${it.selector} ${it.parent}"
+                    }
                 }
             }
         }
@@ -243,6 +281,8 @@ class CoralServer(
             }
         }
         server.start(wait)
+        server.application.routing {  }.getAllRoutes()
+            .forEach { logger.info { it.toString() } }
     }
 
     /**
