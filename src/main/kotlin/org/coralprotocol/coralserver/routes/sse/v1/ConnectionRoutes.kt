@@ -19,7 +19,7 @@ private val logger = KotlinLogging.logger {}
  * These endpoints establish bidirectional communication channels and must be hit
  * before any message processing can begin.
  */
-fun Routing.connectionSseRoutes(servers: ConcurrentMap<String, Server>, localSessionManager: LocalSessionManager) {
+fun Route.connectionSseRoutes(servers: ConcurrentMap<String, Server>, localSessionManager: LocalSessionManager) {
     suspend fun ServerSSESession.handleSseConnection(isDevMode: Boolean = false) {
         handleSseConnection(
             "coral://" + call.request.host() + ":" + call.request.port() + call.request.uri,

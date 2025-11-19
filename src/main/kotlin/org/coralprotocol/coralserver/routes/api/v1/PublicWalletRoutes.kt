@@ -11,7 +11,7 @@ import org.coralprotocol.coralserver.server.RouteException
 @Resource("/api/v1/wallet/public")
 class PublicWallet()
 
-fun Routing.publicWalletApiRoutes(
+fun Route.publicWalletApiRoutes(
     wallet: Wallet?
 ) {
     get<PublicWallet>({

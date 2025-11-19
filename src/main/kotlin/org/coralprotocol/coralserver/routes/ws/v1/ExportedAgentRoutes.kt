@@ -15,7 +15,7 @@ private val logger = KotlinLogging.logger {}
  *
  * Receives messages from importing servers and routes
  */
-fun Routing.exportedAgentRoutes(remoteSessionManager: RemoteSessionManager?) {
+fun Route.exportedAgentRoutes(remoteSessionManager: RemoteSessionManager?) {
     webSocket("/ws/v1/exported/{claimId}") {
         if (remoteSessionManager == null) {
             call.respond(HttpStatusCode.InternalServerError, "Remote sessions are disabled")

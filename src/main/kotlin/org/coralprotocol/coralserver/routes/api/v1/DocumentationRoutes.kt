@@ -13,7 +13,7 @@ private val logger = KotlinLogging.logger {}
 @Resource("/v1/docs")
 class Documentation
 
-fun Routing.documentationApiRoutes() {
+fun Route.documentationApiRoutes() {
     get<Documentation>({
         hidden = true
     }) {

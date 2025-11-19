@@ -29,7 +29,7 @@ class ExportingAgentMessage(val remoteSessionId: String)
  * 
  * @param servers A concurrent map to store server instances by transport session ID
  */
-fun Routing.messageApiRoutes(
+fun Route.messageApiRoutes(
     servers: ConcurrentMap<String, Server>,
     localSessionManager: LocalSessionManager,
     remoteSessionManager: RemoteSessionManager?

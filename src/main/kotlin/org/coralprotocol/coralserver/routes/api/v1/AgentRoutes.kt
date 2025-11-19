@@ -32,7 +32,7 @@ class Agents() {
     class ExportedAgent(val parent: Agents = Agents(), val name: String, val version: String)
 }
 
-fun Routing.agentApiRoutes(
+fun Route.agentApiRoutes(
     registry: AgentRegistry,
     blockchainService: BlockchainService?,
     remoteSessionManager: RemoteSessionManager?,
