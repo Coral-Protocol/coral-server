@@ -35,20 +35,20 @@ fun Route.exportedAgentSseRoutes(
         )
     }
 
-    sse("/sse/v1/export/{remoteSessionId}") {
+    sse("export/{remoteSessionId}") {
         handleSseConnection()
     }
-    sse("/sse/v1/export/{remoteSessionId}/sse") {
+    sse("export/{remoteSessionId}/sse") {
         handleSseConnection()
     }
     /*
         The following routes are added as aliases for any piece of existing software that requires that the URL ends
         with /sse
      */
-    sse("/sse/v1/export/{remoteSessionId}") {
+    sse("export/{remoteSessionId}") {
         handleSseConnection()
     }
-    sse("/sse/v1/export/{remoteSessionId}/sse") {
+    sse("export/{remoteSessionId}/sse") {
         handleSseConnection()
     }
 }

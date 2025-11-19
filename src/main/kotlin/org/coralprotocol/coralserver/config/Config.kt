@@ -234,6 +234,11 @@ data class SecurityConfig(
 )
 
 @Serializable
+data class AuthConfig(
+    val keys: Set<String> = setOf()
+)
+
+@Serializable
 data class Config(
     @SerialName("payments")
     val paymentConfig: PaymentConfig = PaymentConfig(),
@@ -252,6 +257,9 @@ data class Config(
 
     @SerialName("security")
     val security: SecurityConfig = SecurityConfig(),
+
+    @SerialName("auth")
+    val auth: AuthConfig = AuthConfig(),
 ) {
     /**
      * Calculates the address required to access the server for a given consumer.

@@ -16,7 +16,7 @@ import org.coralprotocol.coralserver.models.TelemetryPost as TelemetryPostModel
 
 private val logger = KotlinLogging.logger {}
 
-@Resource("/api/v1/telemetry/{sessionId}/{threadId}/{messageId}")
+@Resource("telemetry/{sessionId}/{threadId}/{messageId}")
 class TelemetryGet(val sessionId: String, val threadId: String, val messageId: String) {
     fun intoMessage(localSessionManager: LocalSessionManager): Message {
         val session = localSessionManager.getSession(sessionId) ?: throw RouteException(
@@ -38,7 +38,7 @@ class TelemetryGet(val sessionId: String, val threadId: String, val messageId: S
     }
 }
 
-@Resource("/api/v1/telemetry/{sessionId}")
+@Resource("telemetry/{sessionId}")
 class TelemetryPost(val sessionId: String)
 
 fun Route.telemetryApiRoutes(localSessionManager: LocalSessionManager) {

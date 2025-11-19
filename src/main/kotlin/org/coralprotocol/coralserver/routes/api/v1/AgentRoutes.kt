@@ -23,7 +23,7 @@ import org.coralprotocol.payment.blockchain.models.Session
 
 private val logger = KotlinLogging.logger {}
 
-@Resource("/api/v1/agents")
+@Resource("agents")
 class Agents() {
     @Resource("claim")
     class Claim(val parent: Agents = Agents())

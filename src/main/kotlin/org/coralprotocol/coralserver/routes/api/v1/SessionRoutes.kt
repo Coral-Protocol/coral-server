@@ -20,7 +20,7 @@ private val logger = KotlinLogging.logger {}
 fun <K, V> Map<K, V?>.filterNotNullValues(): Map<K, V> =
     filterValues { it != null } as Map<K, V>
 
-@Resource("/api/v1/sessions")
+@Resource("sessions")
 class Sessions
 
 /**

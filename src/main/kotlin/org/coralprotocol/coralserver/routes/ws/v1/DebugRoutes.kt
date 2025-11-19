@@ -15,7 +15,7 @@ import org.coralprotocol.coralserver.session.LocalSessionManager
 private val logger = KotlinLogging.logger {}
 
 fun Route.debugWsRoutes(localSessionManager: LocalSessionManager, orchestrator: Orchestrator) {
-    webSocket("/ws/v1/debug/{applicationId}/{privacyKey}/{coralSessionId}/") {
+    webSocket("debug/{applicationId}/{privacyKey}/{coralSessionId}/") {
         val applicationId = call.parameters["applicationId"]
         val privacyKey = call.parameters["privacyKey"]
         // TODO (alan): proper appId/privacyKey based lookups when session manager is updated
@@ -40,7 +40,7 @@ fun Route.debugWsRoutes(localSessionManager: LocalSessionManager, orchestrator: 
         }
     }
 
-    webSocket("/ws/v1/debug/{applicationId}/{privacyKey}/{coralSessionId}/{agentId}/logs") {
+    webSocket("debug/{applicationId}/{privacyKey}/{coralSessionId}/{agentId}/logs") {
         val applicationId = call.parameters["applicationId"] ?: throw IllegalArgumentException("Missing applicationId")
         val privacyKey = call.parameters["privacyKey"] ?: throw IllegalArgumentException("Missing privacyKey")
         val sessionId = call.parameters["coralSessionId"] ?: throw IllegalArgumentException("Missing sessionId")

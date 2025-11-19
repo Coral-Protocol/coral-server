@@ -31,11 +31,11 @@ fun Route.connectionSseRoutes(servers: ConcurrentMap<String, Server>, localSessi
         )
     }
 
-    sse("/sse/v1/{applicationId}/{privacyKey}/{coralSessionId}") {
+    sse("{applicationId}/{privacyKey}/{coralSessionId}") {
         handleSseConnection()
     }
 
-    sse("/sse/v1/devmode/{applicationId}/{privacyKey}/{coralSessionId}") {
+    sse("devmode/{applicationId}/{privacyKey}/{coralSessionId}") {
         handleSseConnection(true)
     }
 
@@ -44,11 +44,11 @@ fun Route.connectionSseRoutes(servers: ConcurrentMap<String, Server>, localSessi
         with /sse
      */
 
-    sse("/sse/v1/{applicationId}/{privacyKey}/{coralSessionId}/sse") {
+    sse("{applicationId}/{privacyKey}/{coralSessionId}/sse") {
         handleSseConnection()
     }
 
-    sse("/sse/v1/devmode/{applicationId}/{privacyKey}/{coralSessionId}/sse") {
+    sse("devmode/{applicationId}/{privacyKey}/{coralSessionId}/sse") {
         handleSseConnection(true)
     }
 }
