@@ -1,8 +1,12 @@
 [[local-agent]]
-path = "examples/camel-search-maths/interface"
+path = "/Users/roman/Coral-demo/farringdon-compliance/agents/Coral-Interface-Agent"
 
 [[local-agent]]
-path = "examples/camel-search-maths/math"
+path = "/Users/roman/Coral-demo/agents/Coral-FirecrawlMCP-Agent"
 
 [[local-agent]]
-path = "examples/camel-search-maths/search"
+path = "/Users/roman/Coral-demo/agents/Coral-ReplicateMCP-Agent"
+
+[[local-agent]]
+path = "/Users/roman/Coral-demo/agents/Coral-blogideas-Agent"
+
