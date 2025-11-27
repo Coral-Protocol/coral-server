@@ -59,7 +59,7 @@ dependencies {
     implementation("com.sksamuel.hoplite:hoplite-core:2.9.0")
     implementation("com.sksamuel.hoplite:hoplite-yaml:2.9.0")
 
-    val ktorVersion = "3.0.2"
+    val ktorVersion = "3.3.2"
     implementation(enforcedPlatform("io.ktor:ktor-bom:$ktorVersion"))
     implementation("io.ktor:ktor-server-status-pages:${ktorVersion}")
     implementation("io.ktor:ktor-server-auth:${ktorVersion}")
@@ -82,13 +82,13 @@ dependencies {
     testImplementation("io.kotest:kotest-property:$kotestVersion")
 
     // Ktor client dependencies
+    implementation("io.ktor:ktor-client-core:$ktorVersion")
     implementation("io.ktor:ktor-client-logging")
     implementation("io.ktor:ktor-client-content-negotiation")
     implementation("io.ktor:ktor-client-cio-jvm")
     implementation("io.ktor:ktor-client-websockets")
     implementation("io.ktor:ktor-serialization-kotlinx-json")
-    implementation("io.ktor:ktor-client-plugins")
-    implementation("io.ktor:ktor-client-resources")
+    implementation("io.ktor:ktor-client-resources:$ktorVersion")
 
     implementation("net.pwall.json:json-kotlin-schema:0.56")
 
