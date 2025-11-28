@@ -9,7 +9,7 @@ import org.coralprotocol.coralserver.mcp.McpTool
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.mcp.tools.models.ListAgentsInput
 import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
-import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
+import org.coralprotocol.coralserver.session.SessionAgent
 
 internal class ListAgentsTool: McpTool<ListAgentsInput>() {
     override val name: McpToolName
@@ -32,13 +32,14 @@ internal class ListAgentsTool: McpTool<ListAgentsInput>() {
     override val argumentsSerializer: KSerializer<ListAgentsInput>
         get() = ListAgentsInput.serializer()
 
-    override suspend fun execute(mcpServer: CoralAgentIndividualMcp, arguments: ListAgentsInput): McpToolResult {
-        val agents = mcpServer.localSession.getAllAgents()
-
-        return if (arguments.includeDetails) {
-            McpToolResult.AgentList(agents)
-        } else {
-            McpToolResult.AgentNameList(agents.map { agent -> agent.id })
-        }
+    override suspend fun execute(agent: SessionAgent, arguments: ListAgentsInput): McpToolResult {
+        TODO()
+//        val agents = mcpServer.localSession.getAllAgents()
+//
+//        return if (arguments.includeDetails) {
+//            McpToolResult.AgentList(agents)
+//        } else {
+//            McpToolResult.AgentNameList(agents.map { agent -> agent.id })
+//        }
     }
 }

@@ -35,30 +35,30 @@ class ApplicationRuntimeContext(
 
     fun getMcpUrl(params: RuntimeParams, addressConsumer: AddressConsumer): Url {
         val builder = URLBuilder(getApiUrl(addressConsumer))
-        builder.parameters.append("agentId", params.agentName)
-
-        // some libraries identify SSE by the presence of this path segment at the end :(
-        when (params) {
-            is RuntimeParams.Local -> {
-                builder.pathSegments = listOf(
-                    "sse",
-                    "v1",
-                    params.applicationId,
-                    params.privacyKey,
-                    params.session.id,
-                    "sse"
-                )
-            }
-            is RuntimeParams.Remote -> {
-                builder.pathSegments = listOf(
-                    "sse",
-                    "v1",
-                    "export",
-                    params.session.id,
-                    "sse"
-                )
-            }
-        }
+//        builder.parameters.append("agentId", params.agentName)
+//
+//        // some libraries identify SSE by the presence of this path segment at the end :(
+//        when (params) {
+//            is RuntimeParams.Local -> {
+//                builder.pathSegments = listOf(
+//                    "sse",
+//                    "v1",
+//                    params.applicationId,
+//                    params.privacyKey,
+//                    params.session.id,
+//                    "sse"
+//                )
+//            }
+//            is RuntimeParams.Remote -> {
+//                builder.pathSegments = listOf(
+//                    "sse",
+//                    "v1",
+//                    "export",
+//                    params.session.id,
+//                    "sse"
+//                )
+//            }
+//        }
 
         return builder.build()
     }

@@ -9,7 +9,7 @@ import org.coralprotocol.coralserver.mcp.McpTool
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.mcp.tools.models.CloseThreadInput
 import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
-import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
+import org.coralprotocol.coralserver.session.SessionAgent
 
 internal class CloseThreadTool: McpTool<CloseThreadInput>() {
     override val name: McpToolName
@@ -36,15 +36,16 @@ internal class CloseThreadTool: McpTool<CloseThreadInput>() {
     override val argumentsSerializer: KSerializer<CloseThreadInput>
         get() = CloseThreadInput.serializer()
 
-    override suspend fun execute(mcpServer: CoralAgentIndividualMcp, arguments: CloseThreadInput): McpToolResult {
-        return if (mcpServer.localSession.closeThread(
-                threadId = arguments.threadId,
-                summary = arguments.summary
-            )) {
-            McpToolResult.CloseThreadSuccess
-        }
-        else {
-            McpToolResult.Error("Failed to close thread: Thread not found")
-        }
+    override suspend fun execute(agent: SessionAgent, arguments: CloseThreadInput): McpToolResult {
+        TODO()
+//        return if (mcpServer.localSession.closeThread(
+//                threadId = arguments.threadId,
+//                summary = arguments.summary
+//            )) {
+//            McpToolResult.CloseThreadSuccess
+//        }
+//        else {
+//            McpToolResult.Error("Failed to close thread: Thread not found")
+//        }
     }
 }

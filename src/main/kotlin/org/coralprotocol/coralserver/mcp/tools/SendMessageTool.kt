@@ -9,8 +9,7 @@ import org.coralprotocol.coralserver.mcp.McpTool
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
 import org.coralprotocol.coralserver.mcp.tools.models.SendMessageInput
-import org.coralprotocol.coralserver.models.resolve
-import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
+import org.coralprotocol.coralserver.session.SessionAgent
 
 internal class SendMessageTool: McpTool<SendMessageInput>() {
     override val name: McpToolName
@@ -44,13 +43,13 @@ internal class SendMessageTool: McpTool<SendMessageInput>() {
     override val argumentsSerializer: KSerializer<SendMessageInput>
         get() = SendMessageInput.serializer()
 
-    override suspend fun execute(mcpServer: CoralAgentIndividualMcp, arguments: SendMessageInput): McpToolResult {
-
-        return McpToolResult.SendMessageSuccess(mcpServer.localSession.sendMessage(
-            threadId = arguments.threadId,
-            senderId = mcpServer.connectedAgentId,
-            content = arguments.content,
-            mentions = arguments.mentions
-        ).resolve())
+    override suspend fun execute(agent: SessionAgent, arguments: SendMessageInput): McpToolResult {
+        TODO()
+//        return McpToolResult.SendMessageSuccess(mcpServer.localSession.sendMessage(
+//            threadId = arguments.threadId,
+//            senderId = mcpServer.connectedAgentId,
+//            content = arguments.content,
+//            mentions = arguments.mentions
+//        ).resolve())
     }
 }

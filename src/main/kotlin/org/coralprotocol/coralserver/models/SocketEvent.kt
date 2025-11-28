@@ -8,9 +8,9 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
+import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.SessionEvent
-import org.coralprotocol.coralserver.session.models.SessionAgent
 
 @Serializable
 @JsonClassDiscriminator("type")
@@ -19,13 +19,13 @@ sealed interface SocketEvent {
     @SerialName("debug_agent_registered")
     data class DebugAgentRegistered(val id: String) : SocketEvent
 
-    @Serializable
-    @SerialName("thread_list")
-    data class ThreadList(val threads: List<ResolvedThread>) : SocketEvent
+//    @Serializable
+//    @SerialName("thread_list")
+//    data class ThreadList(val threads: List<ResolvedThread>) : SocketEvent
 
     @Serializable
     @SerialName("agent_list")
-    data class AgentList(val sessionAgents: List<SessionAgent>) : SocketEvent
+    data class AgentList(val sessionAgents: List<UniqueAgentName>) : SocketEvent
 
     @Serializable
     @SerialName("session")

@@ -10,13 +10,12 @@ data class RouteException(
     @Transient
     val status: HttpStatusCode? = null,
 
-    @Suppress("unused")
-    @SerialName("message")
-    val routeExceptionMessage: String?) : Exception(routeExceptionMessage)
+    @Transient
+    val parentException: Throwable? = null,
+    ) : Exception(parentException)
 {
-    init {
-        printStackTrace()
-    }
+    constructor(status: HttpStatusCode, message: String) : this(status, Exception(message))
+
     @Suppress("unused")
-    val stackTrace = super.stackTrace.map { it.toString() }.also { printStackTrace() }
+    val stackTrace = super.stackTrace.map { it.toString() }
 }

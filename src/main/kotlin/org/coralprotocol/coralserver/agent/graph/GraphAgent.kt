@@ -85,11 +85,4 @@ data class GraphAgent(
      * @see GraphAgentRequest.x402Budgets
      */
     val x402Budgets: List<X402BudgetedResource>,
-
-    /**
-     * Runtime secret ID.  This is given to agents as an environment variable so that they may identify themselves to
-     * the server securely.  This is useful for example, when consuming x402 budgets, we do not want to let agent A
-     * access a x402 budget given to agent B.
-     */
-    val secret: String = UUID.randomUUID().toString(),
 )

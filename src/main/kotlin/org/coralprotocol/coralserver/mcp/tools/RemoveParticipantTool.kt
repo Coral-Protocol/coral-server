@@ -9,7 +9,7 @@ import org.coralprotocol.coralserver.mcp.McpTool
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
 import org.coralprotocol.coralserver.mcp.tools.models.RemoveParticipantInput
-import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
+import org.coralprotocol.coralserver.session.SessionAgent
 
 internal class RemoveParticipantTool: McpTool<RemoveParticipantInput>() {
     override val name: McpToolName
@@ -36,15 +36,16 @@ internal class RemoveParticipantTool: McpTool<RemoveParticipantInput>() {
     override val argumentsSerializer: KSerializer<RemoveParticipantInput>
         get() = RemoveParticipantInput.serializer()
 
-    override suspend fun execute(mcpServer: CoralAgentIndividualMcp, arguments: RemoveParticipantInput): McpToolResult {
-        return if (mcpServer.localSession.removeParticipantFromThread(
-                threadId = arguments.threadId,
-                participantId = arguments.participantId
-            )) {
-            McpToolResult.RemoveParticipantSuccess
-        }
-        else {
-            McpToolResult.Error("Failed to remove participant: Thread not found, participant not found, or thread is closed")
-        }
+    override suspend fun execute(agent: SessionAgent, arguments: RemoveParticipantInput): McpToolResult {
+        TODO()
+//        return if (mcpServer.localSession.removeParticipantFromThread(
+//                threadId = arguments.threadId,
+//                participantId = arguments.participantId
+//            )) {
+//            McpToolResult.RemoveParticipantSuccess
+//        }
+//        else {
+//            McpToolResult.Error("Failed to remove participant: Thread not found, participant not found, or thread is closed")
+//        }
     }
 }

@@ -1,12 +1,6 @@
 package org.coralprotocol.coralserver.session
 
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
-import kotlinx.coroutines.withTimeoutOrNull
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.toRemote
@@ -14,95 +8,64 @@ import org.coralprotocol.coralserver.agent.payment.AgentClaimAmount
 import org.coralprotocol.coralserver.agent.payment.PaidAgent
 import org.coralprotocol.coralserver.agent.payment.toMicroCoral
 import org.coralprotocol.coralserver.agent.payment.toUsd
-import org.coralprotocol.coralserver.agent.runtime.Orchestrator
+//import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
-import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
-import org.coralprotocol.coralserver.session.models.SessionAgent
 import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.models.SessionInfo
-import java.util.*
-import java.util.concurrent.ConcurrentHashMap
+import java.util.UUID
+
+data class LocalSessionNamespace(
+    val name: String,
+    val sessions: MutableMap<String, LocalSession>,
+)
+
+data class AgentLocator(
+    val namespace: LocalSessionNamespace,
+    val session: LocalSession,
+    val agent: SessionAgent
+)
 
 private val logger = KotlinLogging.logger {  }
 
-fun AgentGraph.adjacencyMap(): Map<String, Set<String>> {
-    val map = mutableMapOf<String, MutableSet<String>>()
-
-    // each set in the set of links defines one strongly connected component (scc),
-    // where each member of the scc is bidirectionally connected to every other member of the scc
-    groups.forEach { scc ->
-        for (a in scc) {
-            for (b in scc) {
-                if (a == b) continue
-                map.getOrPut(a) { mutableSetOf() }.add(b)
-                map.getOrPut(b) { mutableSetOf() }.add(a)
-            }
-        }
-    }
-    return map
-}
-
-/**
- * Session manager to create and retrieve sessions.
- */
 class LocalSessionManager(
-    val config: Config = Config(),
-    val orchestrator: Orchestrator,
-    val blockchainService: BlockchainService?,
+    val blockchainService: BlockchainService? = null,
+//    val orchestrator: Orchestrator? = null,
     val jupiterService: JupiterService
 ) {
-    private val sessions = ConcurrentHashMap<String, LocalSession>()
-    private val sessionSemaphore = Semaphore(1)
 
-    private val sessionListeners = ConcurrentHashMap<String, MutableList<CompletableDeferred<Boolean>>>()
+    /**
+     * Main data structure containing all sessions
+     */
+    private val sessionNamespaces = mutableMapOf<String, LocalSessionNamespace>()
 
-    suspend fun waitForSession(id: String, timeoutMs: Long = 10000): LocalSession? {
-        if (sessions.containsKey(id)) return sessions[id]
-        val deferred = CompletableDeferred<Boolean>()
-        sessionListeners.computeIfAbsent(id) { mutableListOf() }.add(deferred)
+    /**
+     * Helper structure for looking up agents by their secret.  This should return an [AgentLocator] which contains the
+     * exact namespace and session that the agent is in.
+     */
+    private val agentSecretLookup = mutableMapOf<SessionAgentSecret, AgentLocator>()
 
-        val result = withTimeoutOrNull(timeoutMs) {
-            deferred.await()
-        } ?: false
+    /**
+     * Issues a secret for an agent.  This is the only function that should generate agent secrets, so that all agent
+     * secrets can be mapped to locations in the [agentSecretLookup] map.
+     */
+    fun issueAgentSecret(session: LocalSession, namespace: LocalSessionNamespace, agent: SessionAgent): SessionAgentSecret {
+        val secret: SessionAgentSecret = UUID.randomUUID().toString()
+        agentSecretLookup[secret] = AgentLocator(
+            namespace = namespace,
+            session = session,
+            agent = agent
+        )
 
-        if (!result) {
-            // If the wait timed out, remove this deferred from the list
-            sessionListeners[id]?.let {
-                it.remove(deferred)
-                // If the list is now empty, remove the target count from the map
-                if (it.isEmpty()) {
-                    sessionListeners.remove(id)
-                }
-            }
-        }
-
-        return sessions[id]
+        return secret
     }
 
     /**
-     * Create a new session with a random ID.
+     * Creates a payment session for an [AgentGraph] if [blockchainService] is not null (meaning wallet information was
+     * set up on the server) and there are paid agents in the graph.  Null will be returned otherwise.
      */
-    suspend fun createSession(applicationId: String, privacyKey: String, agentGraph: AgentGraph? = null,
-                              incomingSessionInfo: SessionInfo? = null): LocalSession =
-        createSessionWithId(UUID.randomUUID().toString(), applicationId, privacyKey, agentGraph)
-
-    /**
-     * This function should be called on any agent graph that contains remote agents.  This function is responsible for
-     * starting the transaction required to pay for the requested remote agents.
-     *
-     * This function will:
-     * - Choose the best server to provide a remote agent
-     *      * this can fail, if all servers reject us or our desired max payment
-     *      * this can also fail if no servers at all were found to provide the remote agent
-     * - Replace the RemoteRequest provider type with the Remote provider type, gathering:
-     *      * The chosen server's wallet address
-     *      * The chosen server's actual max cost
-     */
-    suspend fun createPaymentSession(
-        agentGraph: AgentGraph
-    ): SessionInfo? {
+    suspend fun createPaymentSession(agentGraph: AgentGraph): SessionInfo? {
         val paymentGraph = agentGraph.toPayment()
         if (paymentGraph.paidAgents.isEmpty())
             return null
@@ -147,134 +110,58 @@ class LocalSessionManager(
     }
 
     /**
-     * Create a new session with a specific ID.
+     * Creates a new local session. See [LocalSession] for more information about sessions and [SessionAgent]s
      */
-    suspend fun createSessionWithId(
-        sessionId: String,
-        applicationId: String,
-        privacyKey: String,
-        agentGraph: AgentGraph? = null, // Nullable for devmode
-        incomingSessionInfo: SessionInfo? = null // Can pass in for tests :3
-    ): LocalSession {
-        val sessionInfo = incomingSessionInfo ?: agentGraph?.let { createPaymentSession(it) }
-        val subgraphs = agentGraph?.let { agentGraph ->
-            val adj = agentGraph.adjacencyMap()
-            val visited = mutableSetOf<String>()
-            val subgraphs = mutableListOf<Set<String>>()
-
-            // flood fill to find all disconnected subgraphs
-            for (node in adj.keys) {
-                if (visited.contains(node)) continue
-                // non-blocking agents should not be considered part of any subgraph
-                if (agentGraph.agents[node]?.blocking == false) continue
-
-                val subgraph = mutableSetOf(node)
-                val toVisit = adj[node]?.toMutableList()
-                while (toVisit?.isNotEmpty() == true) {
-                    val next = toVisit.removeLast()
-                    if (visited.contains(next)) continue
-                    // non-blocking agents should not be considered part of any subgraph
-                    if (agentGraph.agents[next]?.blocking == false) continue
-                    subgraph.add(next)
-                    visited.add(next)
-                    adj[next]?.let { n -> toVisit.addAll(n) }
-                }
-                subgraphs.add(subgraph)
-                visited.add(node)
-            }
-
-            subgraphs
+    suspend fun createSession(namespace: String, agentGraph: AgentGraph): LocalSession {
+        val namespace = sessionNamespaces.getOrPut(namespace) {
+            LocalSessionNamespace(namespace, mutableMapOf())
         }
 
-        if (sessionInfo != null) {
-            logger.info { "Local session $sessionId contains remote payment session ${sessionInfo.sessionId}" }
-            logger.info { "Payment session ${sessionInfo.sessionId} has a cap of ${sessionInfo.totalCap} and funding of ${sessionInfo.amountFunded}" }
-        }
-
+        val sessionId: SessionId = UUID.randomUUID().toString()
         val session = LocalSession(
             id = sessionId,
-            paymentSessionId = sessionInfo?.sessionId,
-            applicationId = applicationId,
-            privacyKey = privacyKey,
+            namespace = namespace,
+            paymentSessionId = createPaymentSession(agentGraph)?.sessionId,
             agentGraph = agentGraph,
-            groups = subgraphs?.toList() ?: emptyList(),
+            sessionManager = this
         )
+        namespace.sessions[sessionId] = session
 
-        session.sessionClosedFlow.onEach {
-            cleanupSession(session, it)
-        }.launchIn(session.coroutineScope)
+//        if (orchestrator != null) {
+//            session.agents.values.forEach { agent ->
+//                orchestrator.spawn(
+//                    session = session,
+//                    agent = agent,
+//                    agentName = agent.key,
+//                    applicationId,
+//                    privacyKey,
+//                )
+//            }
+//        }
 
-        sessions[sessionId] = session
-
-        agentGraph?.agents?.forEach { agent ->
-            orchestrator.spawn(
-                session = session,
-                graphAgent = agent.value,
-                agentName = agent.key,
-                applicationId,
-                privacyKey,
-            )
-        }
-
-        sessionListeners[sessionId]?.let { it ->
-            it.forEach {
-                if (!it.isCompleted) {
-                    it.complete(true)
-                }
-            }
-        }
         return session
     }
 
+    /**
+     * Locates an agent by the agent's secret.
+     *
+     * @throws SessionException.InvalidAgentSecret if the secret does not map to an agent
+     */
+    fun locateAgent(secret: SessionAgentSecret) =
+        agentSecretLookup[secret]
+            ?: throw SessionException.InvalidAgentSecret("The provided agent secret is not valid")
 
     /**
-     * Get or create a session with a specific ID.
-     * If the session exists, return it. Otherwise, create a new one.
+     * Returns a list of sessions in the specified namespace.
+     *
+     * @throws SessionException.InvalidNamespace if the namespace does not exist
      */
-    suspend fun getOrCreateSession(
-        sessionId: String,
-        applicationId: String,
-        privacyKey: String,
-        agentGraph: AgentGraph? = null,
-        incomingSessionInfo: SessionInfo? = null
-    ): LocalSession {
-        sessionSemaphore.withPermit {
-            return sessions[sessionId] ?: createSessionWithId(sessionId, applicationId, privacyKey, agentGraph, incomingSessionInfo)
-        }
-    }
+    fun getSessions(namespace: String) =
+        sessionNamespaces[namespace]?.sessions?.values ?: SessionException.InvalidNamespace("The provided namespace does not exist")
 
     /**
-     * Get a session by ID.
+     * Returns a list of registered namespaces
      */
-    fun getSession(sessionId: String): LocalSession? {
-        return sessions[sessionId]
-    }
-
-    /**
-     * Get all sessions.
-     */
-    fun getAllSessions(): List<LocalSession> {
-        return sessions.values.toList()
-    }
-
-    /**
-     * Cleans up all data related to a session
-     */
-    private suspend fun cleanupSession(session: LocalSession, sessionCloseMode: SessionCloseMode) {
-        orchestrator.killForSession(session.id, sessionCloseMode)
-    }
-
-    /**
-     * Finds a session that contains and agent with the specified agent secret.  Returns a pair containing both the
-     * [LocalSession] and [SessionAgent] or null if no matches were found.
-     */
-    fun lookupAgentSecret(secret: String): Pair<LocalSession, SessionAgent>? {
-        for (session in getAllSessions()) {
-            session.getAllAgents().first { it.secret == secret }.let {
-                return Pair(session, it)
-            }
-        }
-
-        return null;
-    }
+    fun getNamespaces() =
+        sessionNamespaces.values.toList()
 }

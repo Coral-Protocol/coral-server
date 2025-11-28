@@ -1,335 +1,123 @@
 package org.coralprotocol.coralserver.session
-
-import io.github.oshai.kotlinlogging.KotlinLogging
-import io.ktor.util.collections.*
-import kotlinx.coroutines.CompletableDeferred
-import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
-import org.coralprotocol.coralserver.models.Message
-import org.coralprotocol.coralserver.models.Thread
-import org.coralprotocol.coralserver.models.resolve
+import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.payment.PaymentSessionId
-import org.coralprotocol.coralserver.session.models.SessionAgent
-import org.coralprotocol.coralserver.session.models.SessionAgentState
-import org.coralprotocol.coralserver.session.models.isConnected
-import java.util.*
+import org.coralprotocol.coralserver.routes.api.v1.Sessions
+import org.coralprotocol.coralserver.session.remote.RemoteSession
+import org.jetbrains.annotations.TestOnly
 import java.util.concurrent.ConcurrentHashMap
 
-private val logger = KotlinLogging.logger {}
-
 /**
- * Session class to hold stateful information for a specific application and privacy key.
- * [devRequiredAgentStartCount] is the number of agents that need to register before the session can proceed. This is for devmode only.
+ * This is the representation of a (local) Coral session.  Starting a session on a Coral server can only be done by
+ * sending POST request to [Sessions].  A local session may contain imported agents that run on other Coral servers,
+ * those agents do not have any special representation in the Local session, but on the remote server the agents ran are
+ * part of a [RemoteSession].
+ *
+ * This class is not responsible for orchestrating agents, but it is responsible for handling any session data that the
+ * agents have access to, including threads and messages.
+ *
+ * All agent states in this session are represented by [SessionAgent] classes listed in [agents].  A [SessionAgent]
+ * instance contains all runtime information for that agent, including its MCP server [CoralAgentIndividualMcp].
+ *
+ * @param id This is a unique identifier for this session.  This should be cryptographically secure as it is used to
+ * uniquely identify a session in a potentially multi-tenant environment.
+ *
+ * @param paymentSessionId This the payment session created by coral-escrow.  This will be null if there are no paid
+ * agents in [agentGraph].
+ *
+ * @param agentGraph Each agent in [AgentGraph.agents] will create a [SessionAgent].  Each group in [AgentGraph.groups]
+ * will connect the [SessionAgent]s and all tools specified in [AgentGraph.customTools] will be made available to
+ * the agents in this session.
  */
 class LocalSession(
-    override val id: String,
+    override val id: SessionId,
     override val paymentSessionId: PaymentSessionId? = null,
-    val applicationId: String,
-    val privacyKey: String,
-    val agentGraph: AgentGraph?,
-    val groups: List<Set<String>> = listOf(),
-    var devRequiredAgentStartCount: Int = 0,
+    namespace: LocalSessionNamespace,
+    agentGraph: AgentGraph,
+    sessionManager: LocalSessionManager
 ): Session() {
-    var agents = ConcurrentHashMap<String, SessionAgent>()
-    private val debugAgents = ConcurrentSet<String>()
 
-    private val threads = ConcurrentHashMap<String, Thread>()
+    /**
+     * Agent states in this session.  Note that even though one [SessionAgent] maps to one graph agent, the agent
+     * that is orchestrated is not guaranteed to be connected to the [SessionAgent].  There will always be a slight
+     * delay between orchestration and an MCP connection between the agent and the agent state.
+     */
+    val agents: Map<UniqueAgentName, SessionAgent> = agentGraph.agents.mapValues {
+        SessionAgent(this, it.value, namespace, sessionManager)
+    }
 
-    private val agentNotifications = ConcurrentHashMap<String, CompletableDeferred<List<Message>>>()
+    /**
+     * A list of threads in this session.  Threads are created by agents all messages in a session belong to threads.
+     */
+    val threads: ConcurrentHashMap<ThreadId, SessionThread> = ConcurrentHashMap()
 
-    private val lastReadMessageIndex = ConcurrentHashMap<Pair<String, String>, Int>()
-
-    private val agentGroupScheduler = GroupScheduler(groups)
-    private val countBasedScheduler = CountBasedScheduler()
-
-    private val eventBus = EventBus<SessionEvent>()
-    val events get() = eventBus.events
-
+    // Create links between agents from the groups in the agent graph
     init {
-        agentGraph?.run {
-            for (id in agents.keys) {
-                registerAgent(id.toString())
-                setAgentState(agentId = id.toString(), state = SessionAgentState.Connecting)
-            }
+        for (group in agentGraph.groups) {
+            val agentsInGroup = group.mapNotNull { agents[it] }
+            val agentPairs = agentsInGroup
+                .flatMap {agent ->
+                    agentsInGroup
+                        .filter { it != agent }
+                        .map { agent to it }
+                }
+
+            agentPairs.forEach { (a, b) -> a.links.add(b) }
         }
     }
 
+    /**
+     * Creates a new thread in this session.  The thread will start in an open state.
+     *
+     * @param threadName The name/title of the thread.  This title is visible to agents and should be used to describe
+     * the purpose of this thread to agents in the session.
+     * @param agentName The name of the agent that created this thread.  This agent will be added to the participants
+     * of the thread.
+     * @param participants The initial set of the names of the participants in this thread.  It is not necessary to add
+     * the creator of the thread to this list.
+     *
+     * @throws SessionException.MissingAgentException if [agentName] does not exist in [agents]
+     * @throws SessionException.MissingAgentException if any of the agents listed in [participants] do not exist in [agents]
+     */
+    fun createThread(
+        threadName: String,
+        agentName: UniqueAgentName,
+        participants: Set<UniqueAgentName> = setOf()
+    ): SessionThread {
+        if (!agents.containsKey(agentName))
+            throw SessionException.MissingAgentException("No agent named $agentName")
 
-    fun getAllThreadsAgentParticipatesIn(agentId: String): List<Thread> {
-        return threads.values.filter { it.participants.contains(agentId) }
-    }
+        val missing = participants.filter { !agents.containsKey(it) }
+        if (missing.isNotEmpty())
+            throw SessionException.MissingAgentException("No agents named ${missing.joinToString(", ")}}")
 
-    fun clearAll() {
-        agents.clear()
-        threads.clear()
-        agentNotifications.clear()
-        lastReadMessageIndex.clear()
-        countBasedScheduler.clear()
-        agentGroupScheduler.clear()
-    }
-
-    fun connectAgent(agentId: String): SessionAgent? {
-        val agent = agents[agentId] ?: return null
-//        if (agent.state.isConnected()) throw AssertionError("Agent $agentId is already connected")
-        if (agent.state.isConnected()) logger.warn { "Agent $agentId is already connected" }
-        agent.state = SessionAgentState.Busy;
-        agentGroupScheduler.markAgentReady(agentId)
-        countBasedScheduler.markAgentReady(agent.id)
-        eventBus.emit(SessionEvent.AgentStateUpdated(agent.id, agent.state))
-        return agent
-    }
-
-    fun setAgentState(agentId: String, state: SessionAgentState): SessionAgentState? {
-        val agent = agents[agentId] ?: return null
-        val oldState = agent.state
-        if (oldState == SessionAgentState.Connecting && state.isConnected()) {
-            agentGroupScheduler.markAgentReady(agentId)
-            countBasedScheduler.markAgentReady(agent.id)
-        }
-        agent.state = state
-        eventBus.emit(SessionEvent.AgentStateUpdated(agent.id, agent.state))
-        return oldState
-
-    }
-
-    fun disconnectAgent(agentId: String) {
-        val agent = agents[agentId] ?: return
-        agent.state = SessionAgentState.Disconnected;
-        eventBus.emit(SessionEvent.AgentStateUpdated(agent.id, agent.state))
-    }
-
-    fun registerAgent(
-        agentId: String,
-        agentUri: String? = null,
-        agentDescription: String? = null,
-        force: Boolean = false
-    ): SessionAgent? {
-        if (agents.containsKey(agentId)) {
-            logger.warn { "$agentId has already been registered" }
-            if (!force) {
-                return null;
-            }
-        }
-
-        val graphAgent = agentGraph?.agents[agentId]
-        val sessionAgent = SessionAgent(
-            id = agentId,
-            description = graphAgent?.description ?: graphAgent?.registryAgent?.info?.description ?: agentDescription ?: "",
-            extraTools = agentGraph?.let {
-                it.agents[agentId]?.customToolAccess?.mapNotNull { tool -> it.customTools[tool] }?.toSet()
-            } ?: setOf(),
-            coralPlugins = graphAgent?.plugins ?: setOf(),
-            mcpUrl = agentUri,
-            x402BudgetedResources = graphAgent?.x402Budgets?.toMutableList() ?: mutableListOf(),
-
-            // fallback here is just for uniqueness.  The agent will never know about its own secret if not specified
-            // in the GraphAgent (which happens for dev-mode agents)
-            secret = graphAgent?.secret ?: UUID.randomUUID().toString(),
+        // The creator of a thread should be a participant of a thread always.  This function is called by MCP tools,
+        // and the result is given to agents. Agents tend to assume that they have access to threads they create.
+        val thread = SessionThread(
+            name = threadName,
+            creatorName = agentName,
+            participants = (participants + setOf(agentName)).toMutableSet(),
         )
-        agents[sessionAgent.id] = sessionAgent
 
-        return sessionAgent
-    }
-
-    fun getRegisteredAgentsCount(): Int = countBasedScheduler.getRegisteredAgentsCount()
-
-    suspend fun waitForGroup(agentId: String, timeoutMs: Long): Boolean =
-        agentGroupScheduler.waitForGroup(agentId, timeoutMs)
-
-    suspend fun waitForAgentCount(targetCount: Int, timeoutMs: Long): Boolean =
-        countBasedScheduler.waitForAgentCount(targetCount, timeoutMs)
-
-    fun getAgent(agentId: String): SessionAgent? = agents[agentId]
-
-    fun getAllAgents(includeDebug: Boolean = false): List<SessionAgent> = when (includeDebug) {
-        true -> agents.values.toList()
-        false -> agents.values.filter { !debugAgents.contains(it.id) }
-    }
-
-    fun getAllThreads(): List<Thread> = threads.values.toList()
-
-    fun registerDebugAgent(): SessionAgent {
-        val id = UUID.randomUUID().toString()
-        if (agents[id] !== null) throw AssertionError("Debug agent id collision")
-        val sessionAgent = SessionAgent(id = id, description = "", mcpUrl = "n/a")
-        agents[id] = sessionAgent
-        debugAgents.add(id)
-        return sessionAgent
-    }
-
-    fun createThread(name: String, creatorId: String, participantIds: List<String>): Thread {
-        if (creatorId != "debug" && !agents.containsKey(creatorId)) {
-            throw IllegalArgumentException("Creator agent $creatorId not found")
-        }
-
-        val validParticipants = participantIds.filter { agents.containsKey(it) }.toMutableList()
-
-        if (!validParticipants.contains(creatorId)) {
-            validParticipants.add(creatorId)
-        }
-
-        val thread = Thread(
-            name = name,
-            creatorId = creatorId,
-            participants = validParticipants
-        )
         threads[thread.id] = thread
-
-        eventBus.emit(
-            SessionEvent.ThreadCreated(
-                id = thread.id,
-                name = name,
-                creatorId = creatorId,
-                participants = validParticipants,
-                summary = null
-            )
-        )
         return thread
     }
 
-    fun getThread(threadId: String): Thread? = threads[threadId]
+    /**
+     * Returns a thread by its ID.
+     * @throws SessionException.MissingThreadException if no thread exists in [threads] with the given ID.
+     */
+    fun getThreadById(threadId: ThreadId): SessionThread =
+        threads[threadId] ?: throw SessionException.MissingThreadException("Thread with ID \"$threadId\" does not exist")
 
-    fun getThreadsForAgent(agentId: String): List<Thread> {
-        return threads.values.filter { it.participants.contains(agentId) }
-    }
+    /**
+     * Returns an agent by its name.
+     * @throws SessionException.MissingAgentException if no agent exists in [agents] with the given name.
+     */
+    fun getAgent(agentName: UniqueAgentName): SessionAgent =
+        agents[agentName] ?: throw SessionException.MissingAgentException("No agent named $agentName")
 
-    fun addParticipantToThread(threadId: String, participantId: String): Boolean {
-        val thread = threads[threadId] ?: return false
-        val agent = agents[participantId] ?: return false
-
-        if (thread.isClosed) return false
-
-        if (!thread.participants.contains(participantId)) {
-            thread.participants.add(participantId)
-            lastReadMessageIndex[Pair(participantId, threadId)] = thread.messages.size
-        }
-        return true
-    }
-
-    fun removeParticipantFromThread(threadId: String, participantId: String): Boolean {
-        val thread = threads[threadId] ?: return false
-
-        if (thread.isClosed) return false
-
-        return thread.participants.remove(participantId)
-    }
-
-    fun closeThread(threadId: String, summary: String): Boolean {
-        val thread = threads[threadId] ?: return false
-
-        thread.isClosed = true
-        thread.summary = summary
-
-        return true
-    }
-
-    fun getColorForSenderId(senderId: String): String {
-        val colors = listOf(
-            "#FF5733", "#33FF57", "#3357FF", "#F3FF33", "#FF33F3",
-            "#33FFF3", "#FF8033", "#8033FF", "#33FF80", "#FF3380"
-        )
-        val hash = senderId.hashCode()
-        val index = Math.abs(hash) % colors.size
-        return colors[index]
-    }
-
-    fun sendMessage(
-        threadId: String,
-        senderId: String,
-        content: String,
-        mentions: List<String> = emptyList()
-    ): Message {
-        val thread = getThread(threadId) ?: throw IllegalArgumentException("Thread with id $threadId not found")
-        val sender = getAgent(senderId) ?: throw IllegalArgumentException("Agent with id $senderId not found")
-
-        val message = Message.create(thread, sender, content, mentions)
-        thread.messages.add(message)
-        eventBus.emit(SessionEvent.MessageSent(threadId, message.resolve()))
-        notifyMentionedAgents(message)
-        return message
-    }
-
-    private fun notifyMentionedAgents(message: Message) {
-        if (message.sender.id == "system") {
-            val thread = threads[message.thread.id] ?: return
-            thread.participants.forEach { participantId ->
-                val deferred = agentNotifications[participantId]
-                if (deferred != null && !deferred.isCompleted) {
-                    deferred.complete(listOf(message))
-                }
-            }
-            return
-        }
-
-        message.mentions.forEach { mentionId ->
-            val deferred = agentNotifications[mentionId]
-            if (deferred != null && !deferred.isCompleted) {
-                deferred.complete(listOf(message))
-            }
-        }
-    }
-
-    suspend fun waitForMentions(agentId: String, timeoutMs: Long): List<Message> {
-        if (timeoutMs <= 0) {
-            throw IllegalArgumentException("Timeout must be greater than 0")
-        }
-
-        val agent = agents[agentId] ?: return emptyList()
-
-        val unreadMessages = getUnreadMessagesForAgent(agentId)
-        if (unreadMessages.isNotEmpty()) {
-            updateLastReadIndices(agentId, unreadMessages)
-            return unreadMessages
-        }
-
-        val deferred = CompletableDeferred<List<Message>>()
-        agentNotifications[agentId] = deferred
-
-        val result = kotlinx.coroutines.withTimeoutOrNull(timeoutMs) {
-            deferred.await()
-        } ?: emptyList()
-
-        agentNotifications.remove(agentId)
-
-        updateLastReadIndices(agentId, result)
-
-        return result
-    }
-
-    fun getUnreadMessagesForAgent(agentId: String): List<Message> {
-        val agent = agents[agentId] ?: return emptyList()
-
-        val result = mutableListOf<Message>()
-
-        val agentThreads = getThreadsForAgent(agentId)
-
-        for (thread in agentThreads) {
-            val lastReadIndex = lastReadMessageIndex[Pair(agentId, thread.id)] ?: 0
-
-            val unreadMessages = thread.messages.subList(lastReadIndex, thread.messages.size)
-
-            result.addAll(unreadMessages.filter {
-                it.mentions.contains(agentId) || it.sender.id == "system"
-            })
-        }
-
-        return result
-    }
-
-    fun updateLastReadIndices(agentId: String, messages: List<Message>) {
-        val messagesByThread = messages.groupBy { it.thread }
-
-        for ((thread, threadMessages) in messagesByThread) {
-            val messageIndices = threadMessages.map { thread.messages.indexOf(it) }
-            if (messageIndices.isNotEmpty()) {
-                val maxIndex = messageIndices.maxOrNull() ?: continue
-                lastReadMessageIndex[Pair(agentId, thread.id)] = maxIndex + 1
-            }
-        }
-    }
-
-    override suspend fun destroy(sessionCloseMode: SessionCloseMode) {
-        super.destroy(sessionCloseMode)
-        clearAll()
-    }
+    @TestOnly
+    fun hasLink(agentName1: UniqueAgentName, agentName2: UniqueAgentName): Boolean =
+        agents[agentName1]?.links?.contains(agents[agentName2]) ?: false
 }

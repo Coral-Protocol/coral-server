@@ -9,8 +9,8 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
 import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
 import org.coralprotocol.coralserver.mcp.tools.models.toCallToolResult
-import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 import org.coralprotocol.coralserver.server.apiJsonConfig
+import org.coralprotocol.coralserver.session.SessionAgent
 
 abstract class McpTool<T>() {
     internal abstract val name: McpToolName
@@ -20,9 +20,9 @@ abstract class McpTool<T>() {
 
     protected val logger = KotlinLogging.logger("McpTool.$name")
 
-    internal abstract suspend fun execute(mcpServer: CoralAgentIndividualMcp, arguments: T): McpToolResult
+    internal abstract suspend fun execute(agent: SessionAgent, arguments: T): McpToolResult
 
-    internal suspend fun executeRaw(mcpServer: CoralAgentIndividualMcp, request: CallToolRequest): CallToolResult {
+    internal suspend fun executeRaw(agent: SessionAgent, request: CallToolRequest): CallToolResult {
 
         val arguments = try {
             apiJsonConfig.decodeFromString(argumentsSerializer, request.arguments.toString())
@@ -32,7 +32,7 @@ abstract class McpTool<T>() {
         }
 
         try {
-            return execute(mcpServer, arguments).toCallToolResult()
+            return execute(agent, arguments).toCallToolResult()
         }
         catch (e: McpToolException) {
             // Expected error from the tool, likely thrown because of improper input
@@ -48,7 +48,7 @@ abstract class McpTool<T>() {
     }
 }
 
-fun <T> CoralAgentIndividualMcp.addMcpTool(tool: McpTool<T>) {
+fun <T> SessionAgent.addMcpTool(tool: McpTool<T>) {
     addTool(
         name = tool.name.toString(),
         description = tool.description,

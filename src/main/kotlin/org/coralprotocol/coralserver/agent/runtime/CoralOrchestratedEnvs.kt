@@ -10,8 +10,8 @@ fun getCoralSystemEnvs(
 ): Map<String, String> {
     return listOfNotNull(
         "CORAL_CONNECTION_URL" to mcpUrl.toString(),
-        "CORAL_AGENT_ID" to params.agentName,
-        "CORAL_AGENT_SECRET" to params.agentSecret,
+//        "CORAL_AGENT_ID" to params.agentName,
+//        "CORAL_AGENT_SECRET" to params.agentSecret.toString(),
         "CORAL_ORCHESTRATION_RUNTIME" to orchestrationRuntime,
         "CORAL_SESSION_ID" to params.getId(),
         "CORAL_SEND_CLAIMS" to when (params) {
@@ -22,6 +22,6 @@ fun getCoralSystemEnvs(
         "CORAL_SSE_URL" to with(mcpUrl) { //TODO: Remove this as it should be identical to CORAL_CONNECTION_URL
             "${protocol.name}://$host:$port$encodedPath"
         },
-        params.systemPrompt?.let { "CORAL_PROMPT_SYSTEM" to it }
+//        params.systemPrompt?.let { "CORAL_PROMPT_SYSTEM" to it }
     ).toMap()
 }

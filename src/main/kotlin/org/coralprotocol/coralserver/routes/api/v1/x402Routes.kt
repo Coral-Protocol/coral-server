@@ -51,8 +51,7 @@ fun Route.x402Routes(localSessionManager: LocalSessionManager, x402Service: X402
             throw RouteException(HttpStatusCode.InternalServerError, "x402 proxying is not configured on this server")
 
         val request = call.receive<X402ProxyRequest>()
-        val (_, agent) = localSessionManager.lookupAgentSecret(post.agentSecret) ?:
-            throw RouteException(HttpStatusCode.Unauthorized, "Invalid agent secret")
+        val agent = localSessionManager.locateAgent(post.agentSecret).agent
 
         val client = HttpClient(CIO) {
             install(ContentNegotiation) {
@@ -86,7 +85,7 @@ fun Route.x402Routes(localSessionManager: LocalSessionManager, x402Service: X402
 
             // todo: use actual consumed amount
             budgetedResource.remainingBudget -= paymentRequirement.maxAmountRequired.toULong()
-            logger.info { "agent ${agent.id} consumed ${paymentRequirement.maxAmountRequired.toULong()} from their x402 budgeted resource ${budgetedResource.resource}.  ${budgetedResource.remainingBudget} remains." }
+            logger.info { "agent ${agent.name} consumed ${paymentRequirement.maxAmountRequired.toULong()} from their x402 budgeted resource ${budgetedResource.resource}.  ${budgetedResource.remainingBudget} remains." }
 
             call.respondText(apiJsonConfig.encodeToString(X402ProxiedResponse(
                 code = 200, // todo: use the service's actual response code

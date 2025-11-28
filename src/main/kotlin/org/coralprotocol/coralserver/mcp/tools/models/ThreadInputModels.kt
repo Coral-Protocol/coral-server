@@ -1,6 +1,8 @@
 package org.coralprotocol.coralserver.mcp.tools.models
 
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
+import org.coralprotocol.coralserver.session.ThreadId
 
 /**
  * Tool for creating a new thread.
@@ -8,7 +10,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class CreateThreadInput(
     val threadName: String,
-    val participantIds: List<String>
+    val participantIds: Set<UniqueAgentName>
 )
 
 /**
@@ -16,8 +18,8 @@ data class CreateThreadInput(
  */
 @Serializable
 data class AddParticipantInput(
-    val threadId: String,
-    val participantId: String
+    val threadId: ThreadId,
+    val participantId: UniqueAgentName
 )
 
 /**
@@ -25,8 +27,8 @@ data class AddParticipantInput(
  */
 @Serializable
 data class RemoveParticipantInput(
-    val threadId: String,
-    val participantId: String
+    val threadId: ThreadId,
+    val participantId: UniqueAgentName
 )
 
 /**
@@ -34,7 +36,7 @@ data class RemoveParticipantInput(
  */
 @Serializable
 data class CloseThreadInput(
-    val threadId: String,
+    val threadId: ThreadId,
     val summary: String
 )
 
@@ -43,9 +45,9 @@ data class CloseThreadInput(
  */
 @Serializable
 data class SendMessageInput(
-    val threadId: String,
+    val threadId: ThreadId,
     val content: String,
-    val mentions: List<String> = emptyList()
+    val mentions: List<UniqueAgentName> = emptyList()
 )
 
 /**

@@ -9,7 +9,7 @@ import org.coralprotocol.coralserver.mcp.McpTool
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.mcp.tools.models.AddParticipantInput
 import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
-import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
+import org.coralprotocol.coralserver.session.SessionAgent
 
 internal class AddParticipantTool: McpTool<AddParticipantInput>() {
     override val name: McpToolName
@@ -36,15 +36,19 @@ internal class AddParticipantTool: McpTool<AddParticipantInput>() {
     override val argumentsSerializer: KSerializer<AddParticipantInput>
         get() = AddParticipantInput.serializer()
 
-    override suspend fun execute(mcpServer: CoralAgentIndividualMcp, arguments: AddParticipantInput): McpToolResult {
-        return if (mcpServer.localSession.addParticipantToThread(
-                threadId = arguments.threadId,
-                participantId = arguments.participantId
-            )) {
-            McpToolResult.AddParticipantSuccess
-        }
-        else {
-            McpToolResult.Error("Failed to add participant: Thread not found, participant not found, or thread is closed")
-        }
+    override suspend fun execute(agent: SessionAgent, arguments: AddParticipantInput): McpToolResult {
+        TODO()
+//        val thread = agent.session.getThreadById(arguments.threadId)
+//        thread.participants.add(arguments.participantId)
+//
+////        return if (agent.session.addParticipantToThread(
+////                threadId = arguments.threadId,
+////                participantId = arguments.participantId
+////            )) {
+////            McpToolResult.AddParticipantSuccess
+////        }
+////        else {
+//            return McpToolResult.Error("Failed to add participant: Thread not found, participant not found, or thread is closed")
+////        }
     }
 }
