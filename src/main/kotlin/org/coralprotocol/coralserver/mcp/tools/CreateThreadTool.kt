@@ -9,8 +9,7 @@ import org.coralprotocol.coralserver.mcp.McpTool
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.mcp.tools.models.CreateThreadInput
 import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
-import org.coralprotocol.coralserver.models.resolve
-import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
+import org.coralprotocol.coralserver.session.SessionAgent
 
 internal class CreateThreadTool: McpTool<CreateThreadInput>() {
     override val name: McpToolName
@@ -40,11 +39,12 @@ internal class CreateThreadTool: McpTool<CreateThreadInput>() {
     override val argumentsSerializer: KSerializer<CreateThreadInput>
         get() = CreateThreadInput.serializer()
 
-    override suspend fun execute(mcpServer: CoralAgentIndividualMcp, arguments: CreateThreadInput): McpToolResult {
-        return McpToolResult.CreateThreadSuccess(mcpServer.localSession.createThread(
-            name = arguments.threadName,
-            creatorId = mcpServer.connectedAgentId,
-            participantIds = arguments.participantIds
-        ).resolve())
+    override suspend fun execute(agent: SessionAgent, arguments: CreateThreadInput): McpToolResult {
+        TODO()
+//        return McpToolResult.CreateThreadSuccess(mcpServer.localSession.createThread(
+//            name = arguments.threadName,
+//            creatorId = mcpServer.connectedAgentId,
+//            participantIds = arguments.participantIds
+//        ).resolve())
     }
 }

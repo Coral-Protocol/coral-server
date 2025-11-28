@@ -19,7 +19,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
-import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
+//import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val logger = KotlinLogging.logger {}
 
@@ -29,15 +29,15 @@ data class CustomTool(
     val toolSchema: Tool,
 )
 
-fun CoralAgentIndividualMcp.addExtraTool(sessionId: String, agentId: String, tool: CustomTool) {
-    addTool(
-        name = tool.toolSchema.name,
-        description = tool.toolSchema.description ?: "",
-        inputSchema = tool.toolSchema.inputSchema,
-    ) { request ->
-        tool.transport.handleRequest(sessionId, agentId, request, tool.toolSchema)
-    }
-}
+//fun CoralAgentIndividualMcp.addExtraTool(sessionId: String, agentId: String, tool: CustomTool) {
+//    addTool(
+//        name = tool.toolSchema.name,
+//        description = tool.toolSchema.description ?: "",
+//        inputSchema = tool.toolSchema.inputSchema,
+//    ) { request ->
+//        tool.transport.handleRequest(sessionId, agentId, request, tool.toolSchema)
+//    }
+//}
 
 
 @Serializable

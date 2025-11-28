@@ -65,7 +65,7 @@ fun Route.internalRoutes(
            aggregatedPaymentClaimManager.addClaim(request, session)
         }
         catch (e: IllegalArgumentException) {
-            throw RouteException(HttpStatusCode.BadRequest, e.message)
+            throw RouteException(HttpStatusCode.BadRequest, e)
         }
 
         call.respond(AgentRemainingBudget(

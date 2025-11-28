@@ -1,389 +1,472 @@
-//package org.coralprotocol.coralserver.session
-//
-//import kotlinx.coroutines.Dispatchers
-//import kotlinx.coroutines.delay
-//import kotlinx.coroutines.launch
-//import kotlinx.coroutines.runBlocking
-//import org.junit.jupiter.api.Assertions.*
-//import org.junit.jupiter.api.BeforeEach
-//import org.junit.jupiter.api.Test
-//import org.junit.jupiter.api.assertThrows
-//import java.util.concurrent.atomic.AtomicBoolean
-//
-//class SessionTest {
-//    private lateinit var session: LocalSession
-//
-//    @BeforeEach
-//    fun setup() {
-//        // Create a new session for each test
-//        session = LocalSession("test-session", "test-app", "test-key", agentGraph = null)
-//        // Clear any existing data
-//        session.clearAll()
-//    }
-//
-//    @Test
-//    fun `test agent registration`() {
-//        // Register a new agent
-//        val agent = session.registerAgent("agent1")
-//
-//        // Verify agent was registered
-//        assertNotNull(agent)
-//        assertEquals(agent, session.getAgent(agent!!.id))
-//
-//        // Try to register the same agent again
-//        val duplicateAgent = session.registerAgent("agent1")
-//        assertNull(duplicateAgent)
-//    }
-//
-//    @Test
-//    fun `test agent registration with description`() {
-//        // Register a new agent with description
-//        val agent = session.registerAgent("agent2", "This agent is responsible for testing")
-//
-//        // Verify agent was registered with description
-//        assertNotNull(agent)
-//        val retrievedAgent = session.getAgent(agent!!.id)
-//        assertEquals(agent, retrievedAgent)
-//        assertEquals("This agent is responsible for testing", retrievedAgent?.description)
-//    }
-//
-//    @Test
-//    fun `test thread creation`() {
-//        // Register agents
-//        val creator = session.registerAgent("creator")!!
-//        val participant1 = session.registerAgent("participant1")!!
-//        val participant2 = session.registerAgent("participant2")!!
-//
-//        // Create a thread
-//        val thread = session.createThread(
-//            name = "Test Thread",
-//            creatorId = creator.id,
-//            participantIds = listOf(participant1.id, participant2.id),
-//        )
-//
-//        // Verify thread was created
-//        assertNotNull(thread)
-//        assertEquals("Test Thread", thread.name)
-//        assertEquals("creator", thread.creatorId)
-//        assertTrue(thread.participants.contains("creator"))
-//        assertTrue(thread.participants.contains("participant1"))
-//        assertTrue(thread.participants.contains("participant2"))
-//        assertEquals(3, thread.participants.size)
-//    }
-//
-//    @Test
-//    fun `test adding and removing participants`() {
-//        // Register agents
-//        val creator = session.registerAgent("creator")
-//        val participant1 = session.registerAgent("participant1")
-//        val participant2 = session.registerAgent("participant2")
-//        val participant3 = session.registerAgent("participant3")
-//
-//        // Create a thread
-//        val thread = session.createThread(
-//            name = "Test Thread",
-//            creatorId = "creator",
-//            participantIds = listOf("participant1")
-//        )
-//
-//        // Add a participant
-//        val addSuccess = session.addParticipantToThread(
-//            threadId = thread.id ?: "",
-//            participantId = "participant2"
-//        )
-//
-//        // Verify participant was added
-//        assertTrue(addSuccess)
-//        val updatedThread = session.getThread(thread.id ?: "")
-//        assertTrue(updatedThread?.participants?.contains("participant2") ?: false)
-//
-//        // Remove a participant
-//        val removeSuccess = session.removeParticipantFromThread(
-//            threadId = thread.id ?: "",
-//            participantId = "participant1"
-//        )
-//
-//        // Verify participant was removed
-//        assertTrue(removeSuccess)
-//        val finalThread = session.getThread(thread.id ?: "")
-//        assertFalse(finalThread?.participants?.contains("participant1") ?: true)
-//    }
-//
-//    @Test
-//    fun `test sending messages and closing thread`() {
-//        // Register agents
-//        val creator = session.registerAgent("creator")
-//        val participant = session.registerAgent("participant")
-//
-//        // Create a thread
-//        val thread = session.createThread(
-//            name = "Test Thread",
-//            creatorId = "creator",
-//            participantIds = listOf("participant")
-//        )
-//
-//        // Send a message
-//        val message = session.sendMessage(
-//            threadId = thread.id ?: "",
-//            senderId = "creator",
-//            content = "Hello, world!",
-//            mentions = listOf("participant")
-//        )
-//
-//        // Verify message was sent
-//        assertNotNull(message)
-//        assertEquals("Hello, world!", message.content)
-//        assertEquals("creator", message.sender.id)
-//        assertEquals(thread.id, message.thread.id)
-//        assertTrue(message.mentions.contains("participant") ?: false)
-//
-//        // Close the thread
-//        val closeSuccess = session.closeThread(
-//            threadId = thread.id ?: "",
-//            summary = "Thread completed"
-//        )
-//
-//        // Verify thread was closed
-//        assertTrue(closeSuccess)
-//        val closedThread = session.getThread(thread.id ?: "")
-//        assertTrue(closedThread?.isClosed ?: false)
-//        assertEquals("Thread completed", closedThread?.summary)
-//
-//        // Try to send a message to a closed thread
-//        assertThrows<IllegalArgumentException> {
-//            val failedMessage = session.sendMessage(
-//                threadId = thread.id ?: "",
-//                senderId = "creator",
-//                content = "This should fail",
-//                mentions = listOf()
-//            )
-//        }
-//    }
-//
-//    @Test
-//    fun `test waiting for mentions`() = runBlocking {
-//        // Register agents
-//        val creator = session.registerAgent("creator")
-//        val participant = session.registerAgent("participant")
-//
-//        // Create a thread
-//        val thread = session.createThread(
-//            name = "Test Thread",
-//            creatorId = "creator",
-//            participantIds = listOf("participant")
-//        )
-//
-//        // Launch a coroutine to wait for mentions
-//        val waitJob = launch(Dispatchers.Default) {
-//            val messages = session.waitForMentions(
-//                agentId = "participant",
-//                timeoutMs = 5000
-//            )
-//
-//            // Verify messages were received
-//            assertFalse(messages.isEmpty())
-//            assertEquals(1, messages.size)
-//            assertEquals("Hello, participant!", messages[0].content)
-//        }
-//
-//        // Wait a bit to ensure the wait operation has started
-//        delay(100)
-//
-//        // Send a message with a mention
-//        session.sendMessage(
-//            threadId = thread?.id ?: "",
-//            senderId = "creator",
-//            content = "Hello, participant!",
-//            mentions = listOf("participant")
-//        )
-//
-//        // Wait for the job to complete
-//        waitJob.join()
-//    }
-//
-//    @Test
-//    fun `test waiting for mentions with timeout`() = runBlocking {
-//        // Register an agent
-//        val agent = session.registerAgent("agent")
-//
-//        // Wait for mentions with a short timeout
-//        val messages = session.waitForMentions(
-//            agentId = "agent",
-//            timeoutMs = 100
-//        )
-//
-//        // Verify no messages were received
-//        assertTrue(messages.isEmpty())
-//    }
-//
-//    @Test
-//    fun `test listing all agents`() {
-//        // Register multiple agents
-//        val agent1 = session.registerAgent("agent1")
-//        val agent2 = session.registerAgent("agent2")
-//        val agent3 = session.registerAgent("agent3")
-//
-//        // Get all agents
-//        val agents = session.getAllAgents()
-//
-//        // Verify all agents are returned
-//        assertEquals(3, agents.size)
-//        assertTrue(agents.contains(agent1))
-//        assertTrue(agents.contains(agent2))
-//        assertTrue(agents.contains(agent3))
-//    }
-//
-//    @Test
-//    fun `test waiting for agent count`() = runBlocking {
-//        // Register some agents
-//        val agent1 = session.registerAgent("agent1")
-//        val agent2 = session.registerAgent("agent2")
-//
-//        // Verify current count
-//        assertEquals(2, session.getRegisteredAgentsCount())
-//
-//        // Launch a coroutine to wait for more agents
-//        val waitJob = launch(Dispatchers.Default) {
-//            val result = session.waitForAgentCount(
-//                targetCount = 3,
-//                timeoutMs = 5000
-//            )
-//
-//            // Verify wait was successful
-//            assertTrue(result)
-//            assertEquals(3, session.getRegisteredAgentsCount())
-//        }
-//
-//        // Wait a bit to ensure the wait operation has started
-//        delay(100)
-//
-//        // Register another agent
-//        val agent3 = session.registerAgent("agent3")
-//
-//        // Wait for the job to complete
-//        waitJob.join()
-//    }
-//
-//    @Test
-//    fun `test waiting for agent count with timeout`() = runBlocking {
-//        // Register some agents
-//        val agent1 = session.registerAgent("agent1")
-//
-//        // Wait for more agents with a short timeout
-//        val result = session.waitForAgentCount(
-//            targetCount = 3,
-//            timeoutMs = 100
-//        )
-//
-//        // Verify wait timed out
-//        assertFalse(result)
-//        assertEquals(1, session.getRegisteredAgentsCount())
-//    }
-//
-//    @Test
-//    fun `test get threads for agent`() {
-//        // Register agents
-//        val creator = session.registerAgent("creator")
-//        val participant1 = session.registerAgent("participant1")
-//        val participant2 = session.registerAgent("participant2")
-//
-//        // Create threads
-//        val thread1 = session.createThread(
-//            name = "Thread 1",
-//            creatorId = "creator",
-//            participantIds = listOf("participant1")
-//        )
-//
-//        val thread2 = session.createThread(
-//            name = "Thread 2",
-//            creatorId = "creator",
-//            participantIds = listOf("participant1", "participant2")
-//        )
-//
-//        val thread3 = session.createThread(
-//            name = "Thread 3",
-//            creatorId = "participant2",
-//            participantIds = listOf("creator")
-//        )
-//
-//        // Get threads for participant1
-//        val threadsForParticipant1 = session.getThreadsForAgent("participant1")
-//
-//        // Verify correct threads are returned
-//        assertEquals(2, threadsForParticipant1.size)
-//        assertTrue(threadsForParticipant1.contains(thread1))
-//        assertTrue(threadsForParticipant1.contains(thread2))
-//        assertFalse(threadsForParticipant1.contains(thread3))
-//
-//        // Get threads for participant2
-//        val threadsForParticipant2 = session.getThreadsForAgent("participant2")
-//
-//        // Verify correct threads are returned
-//        assertEquals(2, threadsForParticipant2.size)
-//        assertTrue(threadsForParticipant2.contains(thread2))
-//        assertTrue(threadsForParticipant2.contains(thread3))
-//        assertFalse(threadsForParticipant2.contains(thread1))
-//    }
-//
-//    @Test
-//    fun `test multiple connections from same client with waitForAgents`() = runBlocking {
-//        // Set the required agent count
-//        session.devRequiredAgentStartCount = 3
-//
-//        // Create flags to track when each agent is registered
-//        val agent1Registered = AtomicBoolean(false)
-//        val agent2Registered = AtomicBoolean(false)
-//        val agent3Registered = AtomicBoolean(false)
-//
-//        // Launch 3 coroutines to simulate 3 concurrent connections
-//        val connectionJobs = List(3) { index ->
-//            launch(Dispatchers.IO) {
-//                // Simulate a delay between connections
-//                delay(100L * index)
-//
-//                // Create an agent for this connection
-//                val agentId = "agent-${index + 1}"
-//                val agent = session.registerAgent(agentId)
-//
-//                // Set the flag for this agent
-//                when (index) {
-//                    0 -> agent1Registered.set(true)
-//                    1 -> agent2Registered.set(true)
-//                    2 -> agent3Registered.set(true)
-//                }
-//
-//                // If this is the first or second agent, wait for all agents to be registered
-//                if (index < 2) {
-//                    println("[DEBUG_LOG] Agent $agentId waiting for all agents to be registered")
-//                    val result = session.waitForAgentCount(
-//                        targetCount = 3,
-//                        timeoutMs = 5000
-//                    )
-//                    println("[DEBUG_LOG] Agent $agentId wait result: $result")
-//
-//                    // Verify wait was successful
-//                    assertTrue(result, "Agent $agentId wait should succeed")
-//                    assertEquals(3, session.getRegisteredAgentsCount(), "All 3 agents should be registered")
-//
-//                    // Verify all agents are registered
-//                    assertTrue(agent1Registered.get(), "Agent 1 should be registered")
-//                    assertTrue(agent2Registered.get(), "Agent 2 should be registered")
-//                    assertTrue(agent3Registered.get(), "Agent 3 should be registered")
-//                }
-//            }
-//        }
-//
-//        // Wait for all connections to complete
-//        connectionJobs.forEach { it.join() }
-//
-//        // Verify that all 3 agents are registered
-//        assertEquals(3, session.getRegisteredAgentsCount(), "All 3 agents should be registered")
-//
-//        // Verify that all 3 agents are in the session
-//        val agents = session.getAllAgents()
-//        assertEquals(3, agents.size, "Session should have 3 registered agents")
-//        assertTrue(agents.any { it.id == "agent-1" }, "Agent 1 should be registered")
-//        assertTrue(agents.any { it.id == "agent-2" }, "Agent 2 should be registered")
-//        assertTrue(agents.any { it.id == "agent-3" }, "Agent 3 should be registered")
-//    }
-//}
+package org.coralprotocol.coralserver.session
+
+import io.kotest.assertions.throwables.shouldNotThrowAny
+import io.kotest.assertions.throwables.shouldThrow
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.resources.*
+import io.ktor.client.plugins.sse.*
+import io.ktor.http.ContentType
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.install
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.routing.*
+import io.ktor.server.testing.*
+import io.modelcontextprotocol.kotlin.sdk.Implementation
+import io.modelcontextprotocol.kotlin.sdk.client.Client
+import io.modelcontextprotocol.kotlin.sdk.client.SseClientTransport
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
+import org.coralprotocol.coralserver.agent.graph.AgentGraph
+import org.coralprotocol.coralserver.agent.graph.GraphAgent
+import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
+import org.coralprotocol.coralserver.agent.registry.RegistryAgent
+import org.coralprotocol.coralserver.agent.registry.RegistryAgentInfo
+import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
+import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.payment.JupiterService
+import org.coralprotocol.coralserver.routes.sse.v1.Mcp
+import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
+import org.coralprotocol.coralserver.server.apiJsonConfig
+import java.nio.file.Path
+import kotlin.test.Test
+import kotlin.test.assertNotNull
+import kotlin.time.Duration.Companion.seconds
+
+class SessionTest {
+    private val sessionManager = LocalSessionManager(null, JupiterService())
+
+    fun dummyRegistryAgent(name: String) =
+        RegistryAgent(
+            info = RegistryAgentInfo(
+                name = name,
+                version = "1.0.0",
+                description = "Test agent",
+                capabilities = setOf()
+            ),
+            runtimes = LocalAgentRuntimes(),
+            path = Path.of(System.getProperty("user.dir")),
+            unresolvedExportSettings = mapOf(),
+            options = mapOf()
+        )
+
+    fun dummyGraphAgent(name: String, blocking: Boolean = true) =
+        GraphAgent(
+            registryAgent = dummyRegistryAgent(name),
+            name = name,
+            description = "Test agent",
+            options = mapOf(),
+            systemPrompt = null,
+            blocking = blocking,
+            customToolAccess = setOf(),
+            plugins = setOf(),
+            provider = GraphAgentProvider.Local(
+                runtime = RuntimeId.FUNCTION
+            ),
+            x402Budgets = listOf(),
+        )
+
+    suspend fun graphToSession(agentGraph: AgentGraph) =
+        sessionManager.createSession("test namespace", agentGraph)
+
+    private fun sseEnv(body: suspend ApplicationTestBuilder.() -> Unit) {
+        testApplication {
+            application {
+                install(io.ktor.server.resources.Resources)
+                routing { mcpRoutes(sessionManager) }
+                install(ContentNegotiation) {
+                    json(apiJsonConfig, contentType = ContentType.Application.Json)
+                }
+            }
+
+            client = createClient {
+                install(Resources)
+                install(SSE)
+            }
+
+            body()
+        }
+    }
+
+    private suspend fun HttpClient.agentSseConnection(secret: String) {
+        this.sse(this.href(Mcp.Sse(secret))) {
+            // We will get a session so long as the agent secret is valid, the following line makes sure a connection
+            // was established on the server by waiting for one message
+            incoming.take(1).collect {}
+        }
+    }
+
+    @Test
+    fun testLinks() = runTest {
+        val session1 = graphToSession(AgentGraph(
+            agents = mapOf(
+                "agent1" to dummyGraphAgent("agent1"),
+                "agent2" to dummyGraphAgent("agent2"),
+                "agent3" to dummyGraphAgent("agent3"),
+            ),
+            customTools = mapOf(),
+
+            // no connection between agent1 and agent3
+            groups = setOf(
+                setOf("agent1", "agent2"),
+                setOf("agent3", "agent2")
+            )
+        ))
+
+        val session2 = graphToSession(AgentGraph(
+            agents = mapOf(
+                "agentA" to dummyGraphAgent("agentA"),
+                "agentB" to dummyGraphAgent("agentB"),
+                "agentC" to dummyGraphAgent("agentC"),
+            ),
+            customTools = mapOf(),
+
+            // every possible permutation of the same pairs
+            groups = setOf(
+                setOf("agentA"),
+                setOf("agentB"),
+                setOf("agentC"),
+                setOf("agentA", "agentB"),
+                setOf("agentA", "agentC"),
+                setOf("agentB", "agentA"),
+                setOf("agentB", "agentC"),
+                setOf("agentC", "agentA"),
+                setOf("agentC", "agentB"),
+                setOf("agentA", "agentB", "agentC"),
+                setOf("agentA", "agentC", "agentB"),
+                setOf("agentB", "agentA", "agentC"),
+                setOf("agentB", "agentC", "agentA"),
+                setOf("agentC", "agentA", "agentB"),
+                setOf("agentC", "agentB", "agentA")
+            )
+        ))
+
+        assert(session1.hasLink("agent1", "agent2"))
+        assert(session1.hasLink("agent3", "agent2"))
+        assert(!session1.hasLink("agent1", "agent3"))
+
+        assert(session2.hasLink("agentA", "agentB"))
+        assert(session2.hasLink("agentA", "agentC"))
+
+        assert(session2.hasLink("agentB", "agentC"))
+        assert(session2.hasLink("agentB", "agentA"))
+
+        assert(session2.hasLink("agentC", "agentB"))
+        assert(session2.hasLink("agentC", "agentA"))
+
+        assert(session2.agents["agentA"]?.links?.size == 2)
+        assert(session2.agents["agentB"]?.links?.size == 2)
+        assert(session2.agents["agentC"]?.links?.size == 2)
+    }
+
+    @Test
+    fun threadTest() = runTest {
+        val session = graphToSession(AgentGraph(
+            agents = mapOf(
+                "agent1" to dummyGraphAgent("agent1"),
+                "agent2" to dummyGraphAgent("agent2"),
+            ),
+            customTools = mapOf(),
+            groups = setOf()
+        ))
+
+        // creates the first thread
+        shouldNotThrowAny {
+            session.createThread("Test thread", "agent1")
+        }
+
+        // creates the second thread
+        shouldNotThrowAny {
+            run {
+                val thread = session.createThread("Test thread", "agent1", setOf("agent2"))
+                assert(thread.participants.contains("agent2"))
+                assert(thread.participants.contains("agent1"))
+                assert(!thread.participants.contains("agent100"))
+            }
+        }
+
+        // both fail, no threads created
+        shouldThrow<SessionException.MissingAgentException> { session.createThread("Test thread", "agent100") }
+        shouldThrow<SessionException.MissingAgentException> {
+            session.createThread("Test thread", "agent1", setOf("agent1", "agent100"))
+        }
+
+        assert(session.threads.size == 2)
+    }
+
+    @Test
+    fun messageTest() = runTest {
+        val session = graphToSession(AgentGraph(
+            agents = mapOf(
+                "agent1" to dummyGraphAgent("agent1"),
+                "agent2" to dummyGraphAgent("agent2"),
+                "agent3" to dummyGraphAgent("agent3"),
+            ),
+            customTools = mapOf(),
+            groups = setOf()
+        ))
+
+        val agent1 = shouldNotThrowAny { session.getAgent("agent1") }
+        val agent2 = shouldNotThrowAny { session.getAgent("agent2") }
+        val agent3 = shouldNotThrowAny { session.getAgent("agent3") }
+
+        val thread1 = shouldNotThrowAny {
+            session.createThread("Test thread", agent1.name, setOf(agent2.name))
+        }
+
+        val thread2 = shouldNotThrowAny {
+            session.createThread("Test thread", agent1.name, setOf(agent2.name, agent3.name))
+        }
+
+        shouldNotThrowAny {
+            agent1.sendMessage("Hello from agent 1", thread1.id)
+            agent2.sendMessage("Hello from agent 2", thread1.id)
+        }
+
+        // agent3 is not participating in thread1, which is the only thread with messages so far
+        assert(agent3.getVisibleMessages().isEmpty())
+
+        assert(agent1.getVisibleMessages().size == 2)
+        assert(agent2.getVisibleMessages().size == 2)
+
+        thread1.close("Nothing to see here...")
+
+        shouldThrow<SessionException.ThreadClosedException> {
+            agent1.sendMessage("Hello from agent 1", thread1.id)
+        }
+
+        // closing a thread should delete the messages
+        assert(agent1.getVisibleMessages().isEmpty())
+        assert(agent2.getVisibleMessages().isEmpty())
+
+        shouldNotThrowAny {
+            agent1.sendMessage("Hello from agent 1", thread2.id)
+        }
+    }
+
+    @Test
+    fun mentionTest() = runTest(timeout = 5.seconds) {
+        val session = graphToSession(AgentGraph(
+            agents = mapOf(
+                "agent1" to dummyGraphAgent("agent1"),
+                "agent2" to dummyGraphAgent("agent2"),
+            ),
+            customTools = mapOf(),
+            groups = setOf()
+        ))
+
+        val thread = shouldNotThrowAny {
+            session.createThread("Test thread", "agent1", setOf("agent2"))
+        }
+
+        val otherThread = shouldNotThrowAny {
+            session.createThread("Test thread 2", "agent1", setOf("agent2"))
+        }
+
+        val agent1 = shouldNotThrowAny {
+            session.getAgent("agent1")
+        }
+
+        val agent2 = shouldNotThrowAny {
+            session.getAgent("agent2")
+        }
+
+        // Ask for agent2 to wait for two messages now, waiting for messages will not return messages that were sent
+        // before the agent begins waiting
+        val messageText = "Hello world!"
+        val waitTest = launch {
+            val filters = setOf(
+                SessionThreadMessageFilter.Thread(thread.id),
+                SessionThreadMessageFilter.Mentions("agent2"),
+                SessionThreadMessageFilter.From("agent1"),
+            )
+            assert(agent2.waitForMessage(filters)?.text == messageText)
+
+            // should timeout (note that virtual test time here is used)
+            assert(agent2.waitForMessage() == null)
+        }
+
+        // need to be sure that waitForMessage is actually waiting before sending a message to it
+        // (simulated delay in tests)
+        delay(1000)
+
+        shouldNotThrowAny {
+            // should be filtered: does not mention
+            agent1.sendMessage("bad", thread.id)
+
+            // should be filtered: in the wrong thread
+            agent1.sendMessage("bad", otherThread.id, mentions = setOf("agent2"))
+
+            // should be filtered: wrong sender (and wrong mentions)
+            // checking channel buffer
+            (1..100_000).forEach { i ->
+                agent1.sendMessage("bad", thread.id, mentions = setOf("agent2"))
+            }
+
+            // just right
+            agent1.sendMessage(messageText, thread.id, mentions = setOf("agent2"))
+        }
+
+        waitTest.join()
+    }
+
+    @Test
+    fun sseBadSecret() = sseEnv {
+        shouldThrow<SSEClientException> { client.agentSseConnection("bad-secret") }
+    }
+
+    @Test
+    fun sseBlockingTimeout() = sseEnv {
+        withContext(Dispatchers.IO) {
+            withTimeout(timeout = 5.seconds) {
+                val session1 = sessionManager.createSession("test", AgentGraph(
+                    agents = mapOf(
+                        "agent1" to dummyGraphAgent("agent1"),
+                        "agent2" to dummyGraphAgent("agent2"),
+                    ),
+                    customTools = mapOf(),
+                    groups = setOf(setOf("agent1", "agent2"))
+                ))
+
+                shouldNotThrowAny {
+                    val agent1 = session1.getAgent("agent1")
+
+                    // should time out because agent2 never connects
+                    assert(withTimeoutOrNull(1000) {
+                        client.agentSseConnection(agent1.secret)
+                    } == null)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun sseChainBlockingTimeout() = sseEnv {
+        withContext(Dispatchers.IO) {
+            withTimeout(timeout = 5.seconds) {
+                val session1 = sessionManager.createSession("test", AgentGraph(
+                    agents = mapOf(
+                        "agent1" to dummyGraphAgent("agent1"),
+                        "agent2" to dummyGraphAgent("agent2"),
+                        "agent3" to dummyGraphAgent("agent3"),
+                    ),
+                    customTools = mapOf(),
+                    groups = setOf(
+                        setOf("agent1", "agent2"),
+                        setOf("agent2", "agent3")
+                    )
+                ))
+
+                shouldNotThrowAny {
+                    val agent1 = session1.getAgent("agent1")
+                    val agent2 = session1.getAgent("agent2")
+
+                    // even though agent1 is only blocked by agent2, this should time out because agent3 never connects
+                    assert(withTimeoutOrNull(1000) {
+                        launch { client.agentSseConnection(agent2.secret) }
+                        client.agentSseConnection(agent1.secret)
+                    } == null)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun sseBrokenChainBlockingTimeout() = sseEnv {
+        withContext(Dispatchers.IO) {
+            withTimeout(timeout = 5.seconds) {
+                val session1 = sessionManager.createSession("test", AgentGraph(
+                    agents = mapOf(
+                        "agent1" to dummyGraphAgent("agent1"),
+                        "agent2" to dummyGraphAgent("agent2", false),
+                        "agent3" to dummyGraphAgent("agent3"),
+                    ),
+                    customTools = mapOf(),
+                    groups = setOf(
+                        setOf("agent1", "agent2"),
+                        setOf("agent2", "agent3")
+                    )
+                ))
+
+                shouldNotThrowAny {
+                    val agent1 = session1.getAgent("agent1")
+
+                    // agent1 should have no reliance on agent3 because their common link is non-blocking
+                    assert(withTimeoutOrNull(1000) {
+                        client.agentSseConnection(agent1.secret)
+                    } != null)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun sseNonBlockingTest() = sseEnv {
+        withContext(Dispatchers.IO) {
+            withTimeout(timeout = 5.seconds) {
+                val session1 = sessionManager.createSession("test", AgentGraph(
+                    agents = mapOf(
+                        "agent1" to dummyGraphAgent("agent1", false),
+                        "agent2" to dummyGraphAgent("agent2", false),
+                    ),
+                    customTools = mapOf(),
+                    groups = setOf(setOf("agent1", "agent2"))
+                ))
+
+                shouldNotThrowAny {
+                    val agent1 = session1.getAgent("agent1")
+                    val agent2 = session1.getAgent("agent2")
+
+                    // neither agent is blocking
+                    assert(withTimeoutOrNull(1000) {
+                        client.agentSseConnection(agent1.secret)
+                        client.agentSseConnection(agent2.secret)
+                    } != null)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun sseMcpTools() = sseEnv {
+        withContext(Dispatchers.IO) {
+            withTimeout(timeout = 5.seconds) {
+                val session1 = sessionManager.createSession("test", AgentGraph(
+                    agents = mapOf(
+                        "agent1" to dummyGraphAgent("agent1", false),
+                    ),
+                    customTools = mapOf(),
+                    groups = setOf(setOf("agent1", "agent2"))
+                ))
+
+                shouldNotThrowAny {
+                    val agent1 = session1.getAgent("agent1")
+
+                    val mcpClient = Client(
+                        clientInfo = Implementation(
+                            name = "test",
+                            version = "1.0.0"
+                        )
+                    )
+
+                    val transport = SseClientTransport(
+                        client = client,
+                        urlString = client.href(Mcp.Sse(agent1.secret))
+                    )
+                    mcpClient.connect(transport)
+
+                    // Verify connection by testing for tool presence
+                    // todo: request a specific tool and check for that tool's presence
+                    val toolResult = mcpClient.listTools()
+                    assertNotNull(toolResult)
+                    assert(toolResult.tools.isNotEmpty())
+                }
+            }
+        }
+    }
+}

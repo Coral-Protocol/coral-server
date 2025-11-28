@@ -5,7 +5,7 @@ import io.modelcontextprotocol.kotlin.sdk.ReadResourceResult
 import io.modelcontextprotocol.kotlin.sdk.TextResourceContents
 import org.coralprotocol.coralserver.mcp.McpResources.INSTRUCTION_RESOURCE_URI
 import org.coralprotocol.coralserver.mcp.McpToolName.*
-import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
+//import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
 private val INSTRUCTIONS = """
 # Coral resource: $INSTRUCTION_RESOURCE_URI
@@ -33,20 +33,20 @@ private fun handle(request: ReadResourceRequest): ReadResourceResult {
     )
 }
 
-fun CoralAgentIndividualMcp.addInstructionResource() {
-    addResource(
-        name = "instructions",
-        description = "Coral instructions resource",
-        uri = INSTRUCTION_RESOURCE_URI.toString(),
-        mimeType = "text/markdown",
-        readHandler = ::handle,
-    )
-    // deprecated
-    addResource(
-        name = "instructions",
-        description = "Coral instructions resource",
-        uri = "Instruction.resource",
-        mimeType = "text/markdown",
-        readHandler = ::handle,
-    )
-}
+//fun CoralAgentIndividualMcp.addInstructionResource() {
+//    addResource(
+//        name = "instructions",
+//        description = "Coral instructions resource",
+//        uri = INSTRUCTION_RESOURCE_URI.toString(),
+//        mimeType = "text/markdown",
+//        readHandler = ::handle,
+//    )
+//    // deprecated
+//    addResource(
+//        name = "instructions",
+//        description = "Coral instructions resource",
+//        uri = "Instruction.resource",
+//        mimeType = "text/markdown",
+//        readHandler = ::handle,
+//    )
+//}

@@ -100,7 +100,7 @@ fun Route.agentApiRoutes(
                 claimId
             )
         } catch (e: AgentRequestException) {
-            throw RouteException(HttpStatusCode.BadRequest, e.message)
+            throw RouteException(HttpStatusCode.BadRequest, e)
         }
     }
 

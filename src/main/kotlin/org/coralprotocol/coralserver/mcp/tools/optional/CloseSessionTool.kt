@@ -11,7 +11,7 @@ import org.coralprotocol.coralserver.mcp.McpTool
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.mcp.tools.models.CloseSessionToolInput
 import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
-import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
+import org.coralprotocol.coralserver.session.SessionAgent
 import org.coralprotocol.coralserver.session.SessionCloseMode
 
 internal class CloseSessionTool: McpTool<CloseSessionToolInput>() {
@@ -35,12 +35,12 @@ internal class CloseSessionTool: McpTool<CloseSessionToolInput>() {
     override val argumentsSerializer: KSerializer<CloseSessionToolInput>
         get() = CloseSessionToolInput.serializer()
 
-    override suspend fun execute(mcpServer: CoralAgentIndividualMcp, arguments: CloseSessionToolInput): McpToolResult {
-        mcpServer.coroutineScope.launch {
+    override suspend fun execute(agent: SessionAgent, arguments: CloseSessionToolInput): McpToolResult {
+        agent.coroutineScope.launch {
             // Give a >p(0) chance of the agent actually receiving a response to this tool
             delay(1000)
 
-            mcpServer.localSession.destroy(SessionCloseMode.CLEAN)
+            agent.session.destroy(SessionCloseMode.CLEAN)
         }
 
         return McpToolResult.CloseSessionSuccess

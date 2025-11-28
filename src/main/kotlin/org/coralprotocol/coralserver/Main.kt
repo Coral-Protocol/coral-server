@@ -3,7 +3,7 @@ package org.coralprotocol.coralserver
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.runBlocking
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
-import org.coralprotocol.coralserver.agent.runtime.Orchestrator
+//import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.BlockchainServiceProvider
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.config.loadFromFile
@@ -33,12 +33,12 @@ fun main(args: Array<String>) {
             val blockchainServiceProvider = BlockchainServiceProvider(config.paymentConfig)
             val registry = AgentRegistry.loadFromFile(config)
 
-            val orchestrator = Orchestrator(config, registry)
+//            val orchestrator = Orchestrator(config, registry)
             val server = CoralServer(
                 devmode = devMode,
                 config = config,
                 registry = registry,
-                orchestrator = orchestrator,
+//                orchestrator = orchestrator,
                 blockchainService = blockchainServiceProvider.blockchainService,
                 x402Service = blockchainServiceProvider.x402Service
             )
@@ -48,7 +48,7 @@ fun main(args: Array<String>) {
                 logger.info { "Shutting down server..." }
                 server.stop()
                 runBlocking {
-                    orchestrator.destroy()
+//                    orchestrator.destroy()
                 }
             })
 

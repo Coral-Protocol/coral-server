@@ -21,7 +21,10 @@ fun <K, V> Map<K, V?>.filterNotNullValues(): Map<K, V> =
     filterValues { it != null } as Map<K, V>
 
 @Resource("sessions")
-class Sessions
+class Sessions() {
+    @Resource("{namespace}")
+    class WithNamespace(val namespace: String)
+}
 
 /**
  * Configures session-related routes.
@@ -31,7 +34,7 @@ fun Route.sessionApiRoutes(
     localSessionManager: LocalSessionManager,
     devMode: Boolean
 ) {
-    post<Sessions>({
+    post<Sessions.WithNamespace>({
         summary = "Create session"
         description = "Creates a new session"
         operationId = "createSession"
@@ -64,35 +67,22 @@ fun Route.sessionApiRoutes(
         val request = call.receive<SessionRequest>()
         val agentGraph = request.agentGraphRequest.toAgentGraph(registry)
 
-        // TODO(alan): actually limit agent communicating using AgentGraph.groups
-        val session = if (request.sessionId != null && devMode) {
-            localSessionManager.createSessionWithId(
-                request.sessionId,
-                request.applicationId,
-                request.privacyKey,
-                agentGraph
-            )
-        }
-        else {
-            localSessionManager.createSession(request.applicationId, request.privacyKey, agentGraph)
-        }
+        val session = localSessionManager.createSession(it.namespace, agentGraph)
 
         call.respond(
             SessionIdentifier(
                 sessionId = session.id,
-                applicationId = session.applicationId,
-                privacyKey = session.privacyKey
+                namespace = it.namespace
             )
         )
 
-        logger.info { "Created new session ${session.id} for application ${session.applicationId}" }
+        logger.info { "Created new session ${session.id}" }
     }
 
-    // TODO: this should probably be protected (only for debug maybe)
     get<Sessions>({
-        summary = "Get sessions"
-        description = "Fetches all active session IDs"
-        operationId = "getSessions"
+        summary = "Get all sessions"
+        description = "Returns a list of all sessions from all namespaces"
+        operationId = "getAllSessions"
         response {
             HttpStatusCode.OK to {
                 description = "Success"
@@ -102,7 +92,22 @@ fun Route.sessionApiRoutes(
             }
         }
     }) {
-        val sessions = localSessionManager.getAllSessions()
-        call.respond(HttpStatusCode.OK, sessions.map { it.id })
+        TODO()
+    }
+
+    get<Sessions.WithNamespace>({
+        summary = "Get sessions in a namespace"
+        description = "Returns a list of all sessions in a specific namespace"
+        operationId = "getSessionsInNamespace"
+        response {
+            HttpStatusCode.OK to {
+                description = "Success"
+                body<List<String>> {
+                    description = "List of session IDs"
+                }
+            }
+        }
+    }) {
+        TODO()
     }
 }

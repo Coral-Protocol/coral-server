@@ -23,9 +23,7 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
-import io.ktor.server.auth.Authentication
-import io.ktor.server.auth.authenticate
-import io.ktor.server.auth.bearer
+import io.ktor.server.auth.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.ktor.server.plugins.contentnegotiation.*
@@ -42,7 +40,6 @@ import kotlinx.coroutines.Job
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
-import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.mcp.McpResources
@@ -52,12 +49,8 @@ import org.coralprotocol.coralserver.models.SocketEvent
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
 import org.coralprotocol.coralserver.routes.api.v1.*
-import org.coralprotocol.coralserver.routes.sse.v1.connectionSseRoutes
-import org.coralprotocol.coralserver.routes.sse.v1.exportedAgentSseRoutes
-import org.coralprotocol.coralserver.routes.ws.v1.debugWsRoutes
-import org.coralprotocol.coralserver.routes.ws.v1.exportedAgentRoutes
+import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
 import org.coralprotocol.coralserver.session.LocalSessionManager
-import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.X402Service
 import kotlin.time.Duration.Companion.seconds
@@ -83,11 +76,10 @@ class CoralServer(
     val blockchainService: BlockchainService? = null,
     val x402Service: X402Service? = null,
     val devmode: Boolean = false,
-    val launchMode: LaunchMode = LaunchMode.DEDICATED,
-    orchestrator: Orchestrator
+    val launchMode: LaunchMode = LaunchMode.DEDICATED
 ) {
     val jupiterService = JupiterService()
-    val localSessionManager = LocalSessionManager(config, orchestrator, blockchainService, jupiterService)
+    val localSessionManager = LocalSessionManager(blockchainService, jupiterService)
 
     val aggregatedPaymentClaimManager = if (blockchainService != null) {
         AggregatedPaymentClaimManager(blockchainService, jupiterService)
@@ -96,12 +88,12 @@ class CoralServer(
         null
     }
 
-    val remoteSessionManager = if (aggregatedPaymentClaimManager != null) {
-        RemoteSessionManager(orchestrator, aggregatedPaymentClaimManager)
-    }
-    else {
-        null
-    }
+//    val remoteSessionManager = if (aggregatedPaymentClaimManager != null) {
+//        RemoteSessionManager(null, aggregatedPaymentClaimManager)
+//    }
+//    else {
+//        null
+//    }
 
     private val mcpServersByTransportId = ConcurrentMap<String, Server>()
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
@@ -193,7 +185,7 @@ class CoralServer(
                     // RouteException, giving a 500-status code
                     var wrapped = cause
                     if (cause !is RouteException) {
-                        wrapped = RouteException(HttpStatusCode.InternalServerError, cause.message)
+                        wrapped = RouteException(HttpStatusCode.InternalServerError, cause)
                     }
 
                     call.respondText(text = apiJsonConfig.encodeToString(wrapped), status = wrapped.status)
@@ -214,16 +206,16 @@ class CoralServer(
                             sessionApiRoutes(registry, localSessionManager, devmode)
                         }
 
-                        messageApiRoutes(mcpServersByTransportId, localSessionManager, remoteSessionManager)
-                        telemetryApiRoutes(localSessionManager)
-                        agentApiRoutes(
-                            registry,
-                            blockchainService,
-                            remoteSessionManager,
-                            jupiterService,
-                            config.paymentConfig
-                        )
-                        internalRoutes(remoteSessionManager, aggregatedPaymentClaimManager, jupiterService)
+//                        messageApiRoutes(mcpServersByTransportId, localSessionManager, remoteSessionManager)
+                        //telemetryApiRoutes(localSessionManager)
+//                        agentApiRoutes(
+//                            registry,
+//                            blockchainService,
+//                            remoteSessionManager,
+//                            jupiterService,
+//                            config.paymentConfig
+//                        )
+//                        internalRoutes(remoteSessionManager, aggregatedPaymentClaimManager, jupiterService)
                         publicWalletApiRoutes(config.paymentConfig.remoteAgentWallet)
                         x402Routes(localSessionManager, x402Service)
                     }
@@ -235,15 +227,14 @@ class CoralServer(
 
                 route("sse") {
                     route("v1") {
-                        connectionSseRoutes(mcpServersByTransportId, localSessionManager)
-                        exportedAgentSseRoutes(mcpServersByTransportId, remoteSessionManager)
+                        mcpRoutes(localSessionManager)
                     }
                 }
 
                 route("ws") {
                     route("v1") {
-                        debugWsRoutes(localSessionManager, orchestrator)
-                        exportedAgentRoutes(remoteSessionManager)
+//                        debugWsRoutes(localSessionManager, orchestrator)
+//                        exportedAgentRoutes(remoteSessionManager)
                     }
                 }
 

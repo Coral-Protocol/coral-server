@@ -4,7 +4,6 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
-import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
 import org.coralprotocol.coralserver.session.SessionCloseMode
@@ -21,7 +20,6 @@ data class Claim(
 )
 
 class RemoteSessionManager(
-    val orchestrator: Orchestrator,
     private val aggregatedPaymentClaimManager: AggregatedPaymentClaimManager
 ){
     @VisibleForTesting
@@ -78,11 +76,11 @@ class RemoteSessionManager(
             cleanupSession(remoteSession, it)
         }.launchIn(remoteSession.coroutineScope)
 
-        orchestrator.spawnRemote(
-            session = remoteSession,
-            graphAgent = claim.agent,
-            agentName = claim.agent.name
-        )
+//        orchestrator.spawnRemote(
+//            session = remoteSession,
+//            graphAgent = claim.agent,
+//            agentName = claim.agent.name
+//        )
 
         sessions[id] = remoteSession
         return remoteSession

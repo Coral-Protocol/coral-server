@@ -8,10 +8,9 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
+import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.models.ResolvedMessage
-import org.coralprotocol.coralserver.models.ResolvedThread
 import org.coralprotocol.coralserver.server.apiJsonConfig
-import org.coralprotocol.coralserver.session.models.SessionAgent
 
 @Serializable
 @JsonClassDiscriminator("result")
@@ -46,11 +45,11 @@ sealed interface McpToolResult {
     @SerialName("close_thread_success")
     object CloseThreadSuccess : McpToolResult
 
-    @Serializable
-    @SerialName("create_thread_success")
-    data class CreateThreadSuccess(
-        val thread: ResolvedThread
-    ) : McpToolResult
+//    @Serializable
+//    @SerialName("create_thread_success")
+//    data class CreateThreadSuccess(
+//        val thread: ResolvedThread
+//    ) : McpToolResult
 
     @Serializable
     @SerialName("wait_for_mentions_success")
@@ -71,7 +70,7 @@ sealed interface McpToolResult {
     @Serializable
     @SerialName("agent_list_success_with_details")
     data class AgentList(
-        val agents: List<SessionAgent>
+        val agents: List<UniqueAgentName>
     ) : McpToolResult
 
     @Serializable
