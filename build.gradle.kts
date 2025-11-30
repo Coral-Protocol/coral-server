@@ -50,6 +50,7 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.5.18")
     implementation("org.fusesource.jansi:jansi:2.4.2")
     implementation("com.github.sya-ri:kgit:1.1.0")
+    implementation("com.github.pgreze:kotlin-process:1.5.1")
 
     val dockerVersion = "3.6.0"
     implementation("com.github.docker-java:docker-java:$dockerVersion")
