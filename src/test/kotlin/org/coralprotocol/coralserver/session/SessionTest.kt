@@ -5,12 +5,6 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.resources.*
 import io.ktor.client.plugins.sse.*
-import io.ktor.http.ContentType
-import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.install
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.routing.*
-import io.ktor.server.testing.*
 import io.modelcontextprotocol.kotlin.sdk.Implementation
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import io.modelcontextprotocol.kotlin.sdk.client.SseClientTransport
@@ -23,75 +17,19 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
-import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
-import org.coralprotocol.coralserver.agent.registry.RegistryAgent
-import org.coralprotocol.coralserver.agent.registry.RegistryAgentInfo
-import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
+import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
+import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.routes.sse.v1.Mcp
-import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
-import org.coralprotocol.coralserver.server.apiJsonConfig
-import java.nio.file.Path
 import kotlin.test.Test
 import kotlin.test.assertNotNull
 import kotlin.time.Duration.Companion.seconds
 
-class SessionTest {
-    private val sessionManager = LocalSessionManager(null, JupiterService())
-
-    fun dummyRegistryAgent(name: String) =
-        RegistryAgent(
-            info = RegistryAgentInfo(
-                name = name,
-                version = "1.0.0",
-                description = "Test agent",
-                capabilities = setOf()
-            ),
-            runtimes = LocalAgentRuntimes(),
-            path = Path.of(System.getProperty("user.dir")),
-            unresolvedExportSettings = mapOf(),
-            options = mapOf()
-        )
-
-    fun dummyGraphAgent(name: String, blocking: Boolean = true) =
-        GraphAgent(
-            registryAgent = dummyRegistryAgent(name),
-            name = name,
-            description = "Test agent",
-            options = mapOf(),
-            systemPrompt = null,
-            blocking = blocking,
-            customToolAccess = setOf(),
-            plugins = setOf(),
-            provider = GraphAgentProvider.Local(
-                runtime = RuntimeId.FUNCTION
-            ),
-            x402Budgets = listOf(),
-        )
-
+class SessionTest : SessionBuilding() {
     suspend fun graphToSession(agentGraph: AgentGraph) =
-        sessionManager.createSession("test namespace", agentGraph)
-
-    private fun sseEnv(body: suspend ApplicationTestBuilder.() -> Unit) {
-        testApplication {
-            application {
-                install(io.ktor.server.resources.Resources)
-                routing { mcpRoutes(sessionManager) }
-                install(ContentNegotiation) {
-                    json(apiJsonConfig, contentType = ContentType.Application.Json)
-                }
-            }
-
-            client = createClient {
-                install(Resources)
-                install(SSE)
-            }
-
-            body()
-        }
-    }
+        sessionManager.createSession("test namespace", agentGraph).first
 
     private suspend fun HttpClient.agentSseConnection(secret: String) {
         this.sse(this.href(Mcp.Sse(secret))) {
@@ -105,9 +43,9 @@ class SessionTest {
     fun testLinks() = runTest {
         val session1 = graphToSession(AgentGraph(
             agents = mapOf(
-                "agent1" to dummyGraphAgent("agent1"),
-                "agent2" to dummyGraphAgent("agent2"),
-                "agent3" to dummyGraphAgent("agent3"),
+                "agent1" to graphAgent("agent1"),
+                "agent2" to graphAgent("agent2"),
+                "agent3" to graphAgent("agent3"),
             ),
             customTools = mapOf(),
 
@@ -120,9 +58,9 @@ class SessionTest {
 
         val session2 = graphToSession(AgentGraph(
             agents = mapOf(
-                "agentA" to dummyGraphAgent("agentA"),
-                "agentB" to dummyGraphAgent("agentB"),
-                "agentC" to dummyGraphAgent("agentC"),
+                "agentA" to graphAgent("agentA"),
+                "agentB" to graphAgent("agentB"),
+                "agentC" to graphAgent("agentC"),
             ),
             customTools = mapOf(),
 
@@ -168,8 +106,8 @@ class SessionTest {
     fun threadTest() = runTest {
         val session = graphToSession(AgentGraph(
             agents = mapOf(
-                "agent1" to dummyGraphAgent("agent1"),
-                "agent2" to dummyGraphAgent("agent2"),
+                "agent1" to graphAgent("agent1"),
+                "agent2" to graphAgent("agent2"),
             ),
             customTools = mapOf(),
             groups = setOf()
@@ -203,9 +141,9 @@ class SessionTest {
     fun messageTest() = runTest {
         val session = graphToSession(AgentGraph(
             agents = mapOf(
-                "agent1" to dummyGraphAgent("agent1"),
-                "agent2" to dummyGraphAgent("agent2"),
-                "agent3" to dummyGraphAgent("agent3"),
+                "agent1" to graphAgent("agent1"),
+                "agent2" to graphAgent("agent2"),
+                "agent3" to graphAgent("agent3"),
             ),
             customTools = mapOf(),
             groups = setOf()
@@ -253,8 +191,8 @@ class SessionTest {
     fun mentionTest() = runTest(timeout = 5.seconds) {
         val session = graphToSession(AgentGraph(
             agents = mapOf(
-                "agent1" to dummyGraphAgent("agent1"),
-                "agent2" to dummyGraphAgent("agent2"),
+                "agent1" to graphAgent("agent1"),
+                "agent2" to graphAgent("agent2"),
             ),
             customTools = mapOf(),
             groups = setOf()
@@ -324,10 +262,10 @@ class SessionTest {
     fun sseBlockingTimeout() = sseEnv {
         withContext(Dispatchers.IO) {
             withTimeout(timeout = 5.seconds) {
-                val session1 = sessionManager.createSession("test", AgentGraph(
+                val (session1, _) = sessionManager.createSession("test", AgentGraph(
                     agents = mapOf(
-                        "agent1" to dummyGraphAgent("agent1"),
-                        "agent2" to dummyGraphAgent("agent2"),
+                        "agent1" to graphAgent("agent1"),
+                        "agent2" to graphAgent("agent2"),
                     ),
                     customTools = mapOf(),
                     groups = setOf(setOf("agent1", "agent2"))
@@ -349,11 +287,11 @@ class SessionTest {
     fun sseChainBlockingTimeout() = sseEnv {
         withContext(Dispatchers.IO) {
             withTimeout(timeout = 5.seconds) {
-                val session1 = sessionManager.createSession("test", AgentGraph(
+                val (session1, _) = sessionManager.createSession("test", AgentGraph(
                     agents = mapOf(
-                        "agent1" to dummyGraphAgent("agent1"),
-                        "agent2" to dummyGraphAgent("agent2"),
-                        "agent3" to dummyGraphAgent("agent3"),
+                        "agent1" to graphAgent("agent1"),
+                        "agent2" to graphAgent("agent2"),
+                        "agent3" to graphAgent("agent3"),
                     ),
                     customTools = mapOf(),
                     groups = setOf(
@@ -380,11 +318,11 @@ class SessionTest {
     fun sseBrokenChainBlockingTimeout() = sseEnv {
         withContext(Dispatchers.IO) {
             withTimeout(timeout = 5.seconds) {
-                val session1 = sessionManager.createSession("test", AgentGraph(
+                val (session1, _) = sessionManager.createSession("test", AgentGraph(
                     agents = mapOf(
-                        "agent1" to dummyGraphAgent("agent1"),
-                        "agent2" to dummyGraphAgent("agent2", false),
-                        "agent3" to dummyGraphAgent("agent3"),
+                        "agent1" to graphAgent("agent1"),
+                        "agent2" to graphAgent("agent2", false),
+                        "agent3" to graphAgent("agent3"),
                     ),
                     customTools = mapOf(),
                     groups = setOf(
@@ -409,10 +347,10 @@ class SessionTest {
     fun sseNonBlockingTest() = sseEnv {
         withContext(Dispatchers.IO) {
             withTimeout(timeout = 5.seconds) {
-                val session1 = sessionManager.createSession("test", AgentGraph(
+                val (session1, _) = sessionManager.createSession("test", AgentGraph(
                     agents = mapOf(
-                        "agent1" to dummyGraphAgent("agent1", false),
-                        "agent2" to dummyGraphAgent("agent2", false),
+                        "agent1" to graphAgent("agent1", false),
+                        "agent2" to graphAgent("agent2", false),
                     ),
                     customTools = mapOf(),
                     groups = setOf(setOf("agent1", "agent2"))
@@ -436,9 +374,9 @@ class SessionTest {
     fun sseMcpTools() = sseEnv {
         withContext(Dispatchers.IO) {
             withTimeout(timeout = 5.seconds) {
-                val session1 = sessionManager.createSession("test", AgentGraph(
+                val (session1, _) = sessionManager.createSession("test", AgentGraph(
                     agents = mapOf(
-                        "agent1" to dummyGraphAgent("agent1", false),
+                        "agent1" to graphAgent("agent1", false),
                     ),
                     customTools = mapOf(),
                     groups = setOf(setOf("agent1", "agent2"))
