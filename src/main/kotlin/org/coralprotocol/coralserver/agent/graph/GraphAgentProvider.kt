@@ -70,7 +70,6 @@ sealed class GraphAgentProvider {
     ) : GraphAgentProvider()
 }
 
-
 suspend fun RemoteRequest.toRemote(
     agentId: AgentRegistryIdentifier,
     paymentSessionId: String,
