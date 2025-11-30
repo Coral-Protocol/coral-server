@@ -74,7 +74,7 @@ open class SessionBuilding {
         provider: GraphAgentProvider = GraphAgentProvider.Local(RuntimeId.FUNCTION),
         options: Map<String, AgentOptionWithValue> = mapOf()
     ) =
-        GraphAgent(
+        registryAgent.info.name to GraphAgent(
             registryAgent = registryAgent,
             name = registryAgent.info.name,
             description = registryAgent.info.description,

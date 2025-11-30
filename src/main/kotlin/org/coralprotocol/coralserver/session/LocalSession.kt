@@ -1,10 +1,11 @@
 package org.coralprotocol.coralserver.session
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.joinAll
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
+import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.session.remote.RemoteSession
@@ -73,6 +74,16 @@ class LocalSession(
      * Agent jobs associated with this session.  Populated by [launchAgents].
      */
     private val agentJobs = mutableListOf<Job>()
+
+    /**
+     * A shared flow of events that this session may emit.
+     * @see SessionEvent
+     */
+    val events = MutableSharedFlow<SessionEvent>(
+        extraBufferCapacity = 1024,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+
 
     /**
      * Creates a new thread in this session.  The thread will start in an open state.

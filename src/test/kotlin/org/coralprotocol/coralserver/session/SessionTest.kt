@@ -43,9 +43,9 @@ class SessionTest : SessionBuilding() {
     fun testLinks() = runTest {
         val session1 = graphToSession(AgentGraph(
             agents = mapOf(
-                "agent1" to graphAgent("agent1"),
-                "agent2" to graphAgent("agent2"),
-                "agent3" to graphAgent("agent3"),
+                graphAgent("agent1"),
+                graphAgent("agent2"),
+                graphAgent("agent3"),
             ),
             customTools = mapOf(),
 
@@ -58,9 +58,9 @@ class SessionTest : SessionBuilding() {
 
         val session2 = graphToSession(AgentGraph(
             agents = mapOf(
-                "agentA" to graphAgent("agentA"),
-                "agentB" to graphAgent("agentB"),
-                "agentC" to graphAgent("agentC"),
+                graphAgent("agentA"),
+                graphAgent("agentB"),
+                graphAgent("agentC"),
             ),
             customTools = mapOf(),
 
@@ -106,8 +106,8 @@ class SessionTest : SessionBuilding() {
     fun threadTest() = runTest {
         val session = graphToSession(AgentGraph(
             agents = mapOf(
-                "agent1" to graphAgent("agent1"),
-                "agent2" to graphAgent("agent2"),
+                graphAgent("agent1"),
+                graphAgent("agent2"),
             ),
             customTools = mapOf(),
             groups = setOf()
@@ -141,9 +141,9 @@ class SessionTest : SessionBuilding() {
     fun messageTest() = runTest {
         val session = graphToSession(AgentGraph(
             agents = mapOf(
-                "agent1" to graphAgent("agent1"),
-                "agent2" to graphAgent("agent2"),
-                "agent3" to graphAgent("agent3"),
+                graphAgent("agent1"),
+                graphAgent("agent2"),
+                graphAgent("agent3"),
             ),
             customTools = mapOf(),
             groups = setOf()
@@ -191,8 +191,8 @@ class SessionTest : SessionBuilding() {
     fun mentionTest() = runTest(timeout = 5.seconds) {
         val session = graphToSession(AgentGraph(
             agents = mapOf(
-                "agent1" to graphAgent("agent1"),
-                "agent2" to graphAgent("agent2"),
+                graphAgent("agent1"),
+                graphAgent("agent2"),
             ),
             customTools = mapOf(),
             groups = setOf()
@@ -264,8 +264,8 @@ class SessionTest : SessionBuilding() {
             withTimeout(timeout = 5.seconds) {
                 val (session1, _) = sessionManager.createSession("test", AgentGraph(
                     agents = mapOf(
-                        "agent1" to graphAgent("agent1"),
-                        "agent2" to graphAgent("agent2"),
+                        graphAgent("agent1"),
+                        graphAgent("agent2"),
                     ),
                     customTools = mapOf(),
                     groups = setOf(setOf("agent1", "agent2"))
@@ -289,9 +289,9 @@ class SessionTest : SessionBuilding() {
             withTimeout(timeout = 5.seconds) {
                 val (session1, _) = sessionManager.createSession("test", AgentGraph(
                     agents = mapOf(
-                        "agent1" to graphAgent("agent1"),
-                        "agent2" to graphAgent("agent2"),
-                        "agent3" to graphAgent("agent3"),
+                        graphAgent("agent1"),
+                        graphAgent("agent2"),
+                        graphAgent("agent3"),
                     ),
                     customTools = mapOf(),
                     groups = setOf(
@@ -320,9 +320,9 @@ class SessionTest : SessionBuilding() {
             withTimeout(timeout = 5.seconds) {
                 val (session1, _) = sessionManager.createSession("test", AgentGraph(
                     agents = mapOf(
-                        "agent1" to graphAgent("agent1"),
-                        "agent2" to graphAgent("agent2", false),
-                        "agent3" to graphAgent("agent3"),
+                        graphAgent("agent1"),
+                        graphAgent("agent2", false),
+                        graphAgent("agent3"),
                     ),
                     customTools = mapOf(),
                     groups = setOf(
@@ -349,8 +349,8 @@ class SessionTest : SessionBuilding() {
             withTimeout(timeout = 5.seconds) {
                 val (session1, _) = sessionManager.createSession("test", AgentGraph(
                     agents = mapOf(
-                        "agent1" to graphAgent("agent1", false),
-                        "agent2" to graphAgent("agent2", false),
+                        graphAgent("agent1", false),
+                        graphAgent("agent2", false),
                     ),
                     customTools = mapOf(),
                     groups = setOf(setOf("agent1", "agent2"))
@@ -375,9 +375,7 @@ class SessionTest : SessionBuilding() {
         withContext(Dispatchers.IO) {
             withTimeout(timeout = 5.seconds) {
                 val (session1, _) = sessionManager.createSession("test", AgentGraph(
-                    agents = mapOf(
-                        "agent1" to graphAgent("agent1", false),
-                    ),
+                    agents = mapOf(graphAgent("agent1", false)),
                     customTools = mapOf(),
                     groups = setOf(setOf("agent1", "agent2"))
                 ))
