@@ -9,6 +9,7 @@ import org.coralprotocol.coralserver.agent.registry.option.asFileSystemValue
 import org.coralprotocol.coralserver.agent.registry.option.option
 import org.coralprotocol.coralserver.agent.registry.option.toDisplayString
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
+import org.coralprotocol.coralserver.events.AgentEvent
 import java.io.File
 import java.nio.file.Path
 import kotlin.collections.forEach
@@ -86,8 +87,16 @@ class SessionAgentExecutionContext(
      * Execution logic for [GraphAgentProvider.Local]
      */
     suspend fun launchLocal(provider: GraphAgentProvider.Local) {
-        val runtime = runtimes.getById(provider.runtime)!!
-        return runtime.execute(this@SessionAgentExecutionContext, applicationRuntimeContext)
+        val runtime = runtimes.getById(provider.runtime)
+            ?: throw java.lang.IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported}")
+
+        try {
+            agent.events.tryEmit(AgentEvent.RuntimeStarted)
+            runtime.execute(this@SessionAgentExecutionContext, applicationRuntimeContext)
+        }
+        finally {
+            agent.events.tryEmit(AgentEvent.RuntimeStopped)
+        }
     }
 
     /**
