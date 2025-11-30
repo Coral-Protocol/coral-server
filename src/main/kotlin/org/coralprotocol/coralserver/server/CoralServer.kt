@@ -34,12 +34,11 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import io.ktor.server.websocket.*
-import io.ktor.util.collections.*
-import io.modelcontextprotocol.kotlin.sdk.server.Server
 import kotlinx.coroutines.Job
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
+import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.mcp.McpResources
@@ -48,7 +47,10 @@ import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
 import org.coralprotocol.coralserver.models.SocketEvent
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
-import org.coralprotocol.coralserver.routes.api.v1.*
+import org.coralprotocol.coralserver.routes.api.v1.documentationApiRoutes
+import org.coralprotocol.coralserver.routes.api.v1.publicWalletApiRoutes
+import org.coralprotocol.coralserver.routes.api.v1.sessionApiRoutes
+import org.coralprotocol.coralserver.routes.api.v1.x402Routes
 import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.payment.blockchain.BlockchainService
@@ -79,7 +81,7 @@ class CoralServer(
     val launchMode: LaunchMode = LaunchMode.DEDICATED
 ) {
     val jupiterService = JupiterService()
-    val localSessionManager = LocalSessionManager(blockchainService, jupiterService)
+    val localSessionManager = LocalSessionManager(blockchainService, ApplicationRuntimeContext(config), jupiterService)
 
     val aggregatedPaymentClaimManager = if (blockchainService != null) {
         AggregatedPaymentClaimManager(blockchainService, jupiterService)
@@ -95,7 +97,6 @@ class CoralServer(
 //        null
 //    }
 
-    private val mcpServersByTransportId = ConcurrentMap<String, Server>()
     private var server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> =
         embeddedServer(
             CIO,
