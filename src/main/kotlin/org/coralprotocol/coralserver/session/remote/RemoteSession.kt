@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.session.remote
 
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CompletableJob
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.session.Session
@@ -47,8 +48,10 @@ class RemoteSession(
     /**
      * The wallet address of the client in this transaction (they are paying for the agent in this remote session)
      */
-    val clientWalletAddress: String
-): Session() {
+    val clientWalletAddress: String,
+
+    remoteSessionManager: RemoteSessionManager
+): Session(remoteSessionManager.managementScope) {
     private val lifecycle = CompletableDeferred<SessionCloseMode>()
 
     suspend fun connectMcpTransport(transport: SseServerTransport): SessionCloseMode {
