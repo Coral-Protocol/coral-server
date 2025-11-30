@@ -36,49 +36,4 @@ data class ExecutableRuntime(
         else
             executionContext.agent.logger.info("exited with code 0")
     }
-
-    /*
-        thread(isDaemon = true) {
-            process.waitFor()
-            bus.emit(RuntimeEvent.Stopped())
-            logger.warn {"Process exited for Agent ${params.agentName}"};
-
-            when (params) {
-                is RuntimeParams.Local -> params.session.setAgentState(params.agentName, SessionAgentState.Dead)
-                is RuntimeParams.Remote -> {
-                    // we don't have the responsibility of marking remote agennt's states
-                }
-            }
-        }
-        thread(isDaemon = true) {
-            val reader = process.inputStream.bufferedReader()
-            reader.forEachLine { line ->
-                run {
-                    bus.emit(RuntimeEvent.Log(kind = LogKind.STDOUT, message = line))
-                    agentLogger.info { line }
-                }
-            }
-        }
-        thread(isDaemon = true) {
-            val reader = process.errorStream.bufferedReader()
-            reader.forEachLine { line ->
-                run {
-                    bus.emit(RuntimeEvent.Log(kind = LogKind.STDERR, message = line))
-                    agentLogger.warn { line }
-                }
-            }
-        }
-
-        return object : OrchestratorHandle(tempFiles) {
-            override suspend fun cleanup() {
-                withContext(processContext) {
-                    process.destroy()
-                    process.waitFor(30, TimeUnit.SECONDS)
-                    process.destroyForcibly()
-                    logger.info { "Process exited" }
-                }
-            }
-        }
-
-    }*/
 }

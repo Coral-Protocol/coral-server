@@ -15,6 +15,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
+import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.LoggerWithFlow
 import org.coralprotocol.coralserver.mcp.addMcpTool
 import org.coralprotocol.coralserver.mcp.tools.*
@@ -202,8 +203,10 @@ class SessionAgent(
         )
 
         sseTransports.add(transport)
-        if (!firstConnectionEstablished.isCompleted)
+        if (!firstConnectionEstablished.isCompleted) {
             firstConnectionEstablished.complete(transport)
+            this.session.events.tryEmit(SessionEvent.AgentConnected(name))
+        }
 
         handleBlocking()
         connect(transport)
