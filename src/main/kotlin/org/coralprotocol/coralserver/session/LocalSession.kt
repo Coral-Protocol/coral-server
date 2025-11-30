@@ -152,8 +152,6 @@ class LocalSession(
         if (agentJobs.isEmpty())
             throw SessionException.NotLaunchedException("This session's agents have not been launched yet")
 
-        println("Waiting for agents to finish... " + agentJobs.size)
         agentJobs.joinAll()
-        println("all agents finished")
     }
 }
