@@ -1,6 +1,5 @@
 package org.coralprotocol.coralserver.session
 
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.server.application.*
 import io.ktor.server.sse.*
 import io.modelcontextprotocol.kotlin.sdk.Implementation
@@ -10,12 +9,13 @@ import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
+import org.coralprotocol.coralserver.logging.LoggerWithFlow
 import org.coralprotocol.coralserver.mcp.addMcpTool
 import org.coralprotocol.coralserver.mcp.tools.AddParticipantTool
 import org.coralprotocol.coralserver.mcp.tools.CloseThreadTool
@@ -59,6 +59,8 @@ class SessionAgent(
         )
     ),
 ) {
+    val coroutineScope: CoroutineScope = session.sessionScope
+
     init {
         addMcpTool(AddParticipantTool())
         addMcpTool(CloseThreadTool())
@@ -119,8 +121,17 @@ class SessionAgent(
      */
     val x402BudgetedResources: List<X402BudgetedResource> = listOf()
 
-    private val logger = KotlinLogging.logger("SessionAgent:$name")
-    val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
+    /**
+     * The logger for this agent.  This will send logging messages both to logback and to a shared flow that clients can
+     * subscribe to.
+     */
+    val logger = LoggerWithFlow("AgentLogger:$name")
+
+    /**
+     * Everything to do with running this agent is done in this class.
+     * @see SessionAgentExecutionContext
+     */
+    private val executionContext = SessionAgentExecutionContext(this, sessionManager.applicationRuntimeContext)
 
     /**
      * Calls [SseServerTransport.handlePostMessage] on all [sseTransports].  This should only be called by the API
@@ -159,19 +170,19 @@ class SessionAgent(
         }
 
         if (graphAgent.blocking != true || connectedBlockingAgents.isEmpty()) {
-            logger.info { "sse connection established" }
+            logger.info("sse connection established")
             return
         }
 
-        logger.info { "waiting for blocking agents: ${connectedBlockingAgents.joinToString(", ") { it.name }}" }
+        logger.info("waiting for blocking agents: ${connectedBlockingAgents.joinToString(", ") { it.name }}")
         val timeout = withTimeoutOrNull(timeoutMs) {
             connectedBlockingAgents.forEach { it.waitForSseConnection(timeoutMs / connectedBlockingAgents.size) }
         } == null
 
         if (timeout)
-            logger.warn { "timeout occurred waiting for blocking agents to connect" }
+            logger.warn("timeout occurred waiting for blocking agents to connect")
         else
-            logger.info { "sse connection established" }
+            logger.info("sse connection established")
     }
 
     /**
@@ -289,6 +300,13 @@ class SessionAgent(
      */
     fun getVisibleMessages() =
         getThreads().flatMap { it.messages }
+
+    /**
+     * Launches this agent via [executionContext].
+     */
+    fun launch() = coroutineScope.launch {
+        executionContext.launch()
+    }
 
     override fun toString(): String {
         return "SessionAgentState(graphAgent=${name}, links=${links.joinToString(", ") { it.name }})"

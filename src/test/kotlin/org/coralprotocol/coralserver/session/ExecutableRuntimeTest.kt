@@ -11,6 +11,7 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.runtime.ExecutableRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.logging.LogMessage
 import org.junit.jupiter.api.Disabled
 import java.util.UUID
 import kotlin.test.Test
@@ -50,7 +51,7 @@ class ExecutableRuntimeTest : SessionBuilding() {
             val agent2 = session1.getAgent("agent2")
             session1.sessionScope.launch {
                 agent2.logger.getSharedFlow().collect {
-                    if (it is SessionAgentLogMessage.Info)
+                    if (it is LogMessage.Info)
                         messages.add(it.message)
                 }
             }
