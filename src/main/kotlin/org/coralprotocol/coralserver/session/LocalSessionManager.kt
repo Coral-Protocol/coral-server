@@ -1,6 +1,10 @@
 package org.coralprotocol.coralserver.session
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.toRemote
@@ -8,6 +12,7 @@ import org.coralprotocol.coralserver.agent.payment.AgentClaimAmount
 import org.coralprotocol.coralserver.agent.payment.PaidAgent
 import org.coralprotocol.coralserver.agent.payment.toMicroCoral
 import org.coralprotocol.coralserver.agent.payment.toUsd
+import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 //import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
 import org.coralprotocol.coralserver.payment.JupiterService
@@ -31,9 +36,12 @@ private val logger = KotlinLogging.logger {  }
 
 class LocalSessionManager(
     val blockchainService: BlockchainService? = null,
-//    val orchestrator: Orchestrator? = null,
+
+    // Default value will not provide a Docker runtime
+    val applicationRuntimeContext: ApplicationRuntimeContext = ApplicationRuntimeContext(),
     val jupiterService: JupiterService
 ) {
+    val managementScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     /**
      * Main data structure containing all sessions
@@ -110,9 +118,10 @@ class LocalSessionManager(
     }
 
     /**
-     * Creates a new local session. See [LocalSession] for more information about sessions and [SessionAgent]s
+     * Creates a session in [namespace].  The namespace will be created if it does not exist.  This function will not
+     * launch any agents!  See [createAndLaunchSession] if you want to one-call session creation and launching.
      */
-    suspend fun createSession(namespace: String, agentGraph: AgentGraph): LocalSession {
+    suspend fun createSession(namespace: String, agentGraph: AgentGraph): Pair<LocalSession, LocalSessionNamespace> {
         val namespace = sessionNamespaces.getOrPut(namespace) {
             LocalSessionNamespace(namespace, mutableMapOf())
         }
@@ -123,26 +132,29 @@ class LocalSessionManager(
             namespace = namespace,
             paymentSessionId = createPaymentSession(agentGraph)?.sessionId,
             agentGraph = agentGraph,
-            sessionManager = this
+            sessionManager = this,
         )
         namespace.sessions[sessionId] = session
 
-//        if (orchestrator != null) {
-//            session.agents.values.forEach { agent ->
-//                orchestrator.spawn(
-//                    session = session,
-//                    agent = agent,
-//                    agentName = agent.key,
-//                    applicationId,
-//                    privacyKey,
-//                )
-//            }
-//        }
-
-        return session
+        return Pair(session, namespace)
     }
 
     /**
+     * Helper function, calls [createSession] and then immediately launches all agents in the session.  After the
+     * session closes, [handleSessionClose] will be called.
+     */
+    suspend fun createAndLaunchSession(namespace: String, agentGraph: AgentGraph) {
+        val (session, namespace) = createSession(namespace, agentGraph)
+        session.launchAgents()
+
+        managementScope.launch {
+            session.waitForAgents()
+        }.invokeOnCompletion {
+            handleSessionClose(session, namespace, it)
+        }
+    }
+
+     /**
      * Locates an agent by the agent's secret.
      *
      * @throws SessionException.InvalidAgentSecret if the secret does not map to an agent
@@ -164,4 +176,30 @@ class LocalSessionManager(
      */
     fun getNamespaces() =
         sessionNamespaces.values.toList()
+
+    fun handleSessionClose(
+        session: LocalSession,
+        namespace: LocalSessionNamespace,
+        cause: Throwable?
+    ) {
+        // Secrets must be relinquished so that no more references to this session exist
+        session.agents.forEach { (name, agent) ->
+            agentSecretLookup.remove(agent.secret)
+        }
+
+        namespace.sessions.remove(session.id)
+        if (namespace.sessions.isEmpty())
+            sessionNamespaces.remove(namespace.name)
+    }
+
+    /**
+     * Waits for every agent of every session to exit.  Note this function does not kill anything.
+     */
+    suspend fun waitAllSessions() {
+        sessionNamespaces.values.forEach { namespace ->
+            namespace.sessions.values.forEach { session ->
+                session.waitForAgents()
+            }
+        }
+    }
 }

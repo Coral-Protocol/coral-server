@@ -1,6 +1,9 @@
 package org.coralprotocol.coralserver.session.remote
 
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
@@ -22,6 +25,8 @@ data class Claim(
 class RemoteSessionManager(
     private val aggregatedPaymentClaimManager: AggregatedPaymentClaimManager
 ){
+    val managementScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     @VisibleForTesting
     val claims = mutableMapOf<String, Claim>()
     private val sessions = mutableMapOf<String, RemoteSession>()
@@ -69,12 +74,13 @@ class RemoteSessionManager(
             deferredMcpTransport = CompletableDeferred(),
             maxCost = claim.maxCost,
             paymentSessionId = claim.paymentSessionId,
-            clientWalletAddress = claim.clientWalletAddress
+            clientWalletAddress = claim.clientWalletAddress,
+            remoteSessionManager = this
         )
 
         remoteSession.sessionClosedFlow.onEach {
             cleanupSession(remoteSession, it)
-        }.launchIn(remoteSession.coroutineScope)
+        }.launchIn(remoteSession.sessionScope)
 
 //        orchestrator.spawnRemote(
 //            session = remoteSession,

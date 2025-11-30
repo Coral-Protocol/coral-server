@@ -67,7 +67,7 @@ fun Route.sessionApiRoutes(
         val request = call.receive<SessionRequest>()
         val agentGraph = request.agentGraphRequest.toAgentGraph(registry)
 
-        val session = localSessionManager.createSession(it.namespace, agentGraph)
+        val (session, _) = localSessionManager.createSession(it.namespace, agentGraph)
 
         call.respond(
             SessionIdentifier(
