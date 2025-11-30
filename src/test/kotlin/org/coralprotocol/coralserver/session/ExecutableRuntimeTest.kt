@@ -25,14 +25,16 @@ class ExecutableRuntimeTest : SessionBuilding() {
 
             val (session1, _) = sessionManager.createSession("test", AgentGraph(
                 agents = mapOf(
-                    "agent1" to graphAgent(
+                    graphAgent(
                         registryAgent = registryAgent(
+                            name = "agent1",
                             executableRuntime = ExecutableRuntime(listOf("does not exist"))
                         ),
                         provider = GraphAgentProvider.Local(RuntimeId.EXECUTABLE),
                     ),
-                    "agent2" to graphAgent(
+                    graphAgent(
                         registryAgent = registryAgent(
+                            name = "agent2",
                             executableRuntime = ExecutableRuntime(listOf("powershell.exe", "-command", "write-output \$env:TEST_OPTION"))
                         ),
                         provider = GraphAgentProvider.Local(RuntimeId.EXECUTABLE),

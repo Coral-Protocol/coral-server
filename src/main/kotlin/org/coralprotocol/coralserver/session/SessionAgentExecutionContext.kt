@@ -1,18 +1,12 @@
 package org.coralprotocol.coralserver.session
 
-import io.ktor.http.buildUrl
-import io.ktor.utils.io.CancellationException
+import io.ktor.utils.io.*
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
-import org.coralprotocol.coralserver.agent.registry.option.asEnvVarValue
-import org.coralprotocol.coralserver.agent.registry.option.asFileSystemValue
-import org.coralprotocol.coralserver.agent.registry.option.option
-import org.coralprotocol.coralserver.agent.registry.option.toDisplayString
+import org.coralprotocol.coralserver.agent.registry.option.*
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
-import org.coralprotocol.coralserver.events.AgentEvent
+import org.coralprotocol.coralserver.events.SessionEvent
 import java.io.File
 import java.nio.file.Path
-import kotlin.collections.forEach
 
 class SessionAgentExecutionContext(
     val agent: SessionAgent,
@@ -24,9 +18,7 @@ class SessionAgentExecutionContext(
     val provider = agent.graphAgent.provider
     val runtimes = agent.graphAgent.registryAgent.runtimes
     val path = agent.graphAgent.registryAgent.path
-    val sseUrl = buildUrl {
-
-    }
+    val session = agent.session
 
     // todo: delete when agent dies
     var tempFiles = mutableListOf<Path>()
@@ -91,11 +83,11 @@ class SessionAgentExecutionContext(
             ?: throw java.lang.IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported}")
 
         try {
-            agent.events.tryEmit(AgentEvent.RuntimeStarted)
+            session.events.tryEmit(SessionEvent.RuntimeStarted(name))
             runtime.execute(this@SessionAgentExecutionContext, applicationRuntimeContext)
         }
         finally {
-            agent.events.tryEmit(AgentEvent.RuntimeStopped)
+            session.events.tryEmit(SessionEvent.RuntimeStopped(name))
         }
     }
 

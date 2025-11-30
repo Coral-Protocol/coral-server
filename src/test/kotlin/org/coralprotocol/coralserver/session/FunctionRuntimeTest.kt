@@ -42,7 +42,7 @@ class FunctionRuntimeTest : SessionBuilding() {
 
             val (session, _) = sessionManager.createSession("test", AgentGraph(
                 agents = mapOf(
-                    "agent1" to graphAgent(
+                    graphAgent(
                         registryAgent = registryAgent(
                             functionRuntime = functionRuntime
                         ),

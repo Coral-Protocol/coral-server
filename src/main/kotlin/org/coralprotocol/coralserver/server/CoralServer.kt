@@ -44,7 +44,6 @@ import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.mcp.McpResources
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
-import org.coralprotocol.coralserver.models.SocketEvent
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
 import org.coralprotocol.coralserver.routes.api.v1.documentationApiRoutes
@@ -139,9 +138,6 @@ class CoralServer(
                                 builder = TitleBuilder.BUILDER_OPENAPI_SIMPLE
                             )
                     }
-
-                    // Other types, used by SSE or WebSocket routes
-                    schema<SocketEvent>("SocketEvent")
 
                     // Mcp types
                     schema<McpToolName>("McpToolName")
