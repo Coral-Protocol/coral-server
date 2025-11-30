@@ -9,12 +9,15 @@ import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
+import org.coralprotocol.coralserver.events.AgentEvent
 import org.coralprotocol.coralserver.logging.LoggerWithFlow
 import org.coralprotocol.coralserver.mcp.addMcpTool
 import org.coralprotocol.coralserver.mcp.tools.AddParticipantTool
@@ -112,6 +115,15 @@ class SessionAgent(
      * @see [waitForSseConnection]
      */
     private val firstConnectionEstablished = CompletableDeferred<SseServerTransport>()
+
+    /**
+     * A shared flow of events that this agent may emit.
+     * @see AgentEvent
+     */
+    val events = MutableSharedFlow<AgentEvent>(
+        extraBufferCapacity = 1024,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
 
     /**
      * A list of resources that this agent has access to, each resource constrained by a budget.  This is used for x402
