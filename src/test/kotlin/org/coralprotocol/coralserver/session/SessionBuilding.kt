@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.session
 
+import DockerRuntime
 import io.ktor.client.plugins.resources.Resources
 import io.ktor.client.plugins.sse.SSE
 import io.ktor.http.ContentType
@@ -50,7 +51,8 @@ open class SessionBuilding {
         version: String = "1.0.0",
         description: String = "Test agent",
         executableRuntime: ExecutableRuntime? = null,
-        functionRuntime: FunctionRuntime? = null
+        functionRuntime: FunctionRuntime? = null,
+        dockerRuntime: DockerRuntime? = null
     ) =
         RegistryAgent(
             info = RegistryAgentInfo(
@@ -61,7 +63,8 @@ open class SessionBuilding {
             ),
             runtimes = LocalAgentRuntimes(
                 executableRuntime = executableRuntime,
-                functionRuntime = functionRuntime
+                functionRuntime = functionRuntime,
+                dockerRuntime = dockerRuntime
             ),
             path = Path.of(System.getProperty("user.dir")),
             unresolvedExportSettings = mapOf(),

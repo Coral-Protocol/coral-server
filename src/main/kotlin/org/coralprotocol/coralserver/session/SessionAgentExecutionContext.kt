@@ -122,11 +122,12 @@ class SessionAgentExecutionContext(
         }
         catch (e: Exception) {
             agent.logger.error("Exception thrown when launching agent ${agent.name}", e)
-            // todo: restart logic
         }
         finally {
             handleRuntimeStopped()
         }
+
+        // todo: restart logic
 
         agent.logger.info("Agent ${agent.name} runtime exited")
     }

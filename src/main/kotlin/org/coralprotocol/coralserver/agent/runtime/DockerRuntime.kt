@@ -1,250 +1,185 @@
-//package org.coralprotocol.coralserver.agent.runtime
-//
-//import com.github.dockerjava.api.DockerClient
-//import com.github.dockerjava.api.async.ResultCallback
-//import com.github.dockerjava.api.exception.NotModifiedException
-//import com.github.dockerjava.api.model.*
-//import io.github.oshai.kotlinlogging.KotlinLogging
-//import kotlinx.coroutines.withContext
-//import kotlinx.coroutines.withTimeoutOrNull
-//import kotlinx.html.Entities
-//import kotlinx.serialization.SerialName
-//import kotlinx.serialization.Serializable
-//import org.coralprotocol.coralserver.EventBus
-//import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
-//import org.coralprotocol.coralserver.agent.registry.option.*
-//import org.coralprotocol.coralserver.config.AddressConsumer
-//import java.io.File
-//import java.nio.file.Path
-//import java.time.Instant
-//import java.time.ZoneId
-//import java.time.format.DateTimeFormatter
-//import kotlin.collections.set
-//import kotlin.io.path.writeText
-//import kotlin.time.Duration.Companion.seconds
-//
-//private val dockerLogger = KotlinLogging.logger {}
-//
-//@Serializable
-//@SerialName("docker")
-//data class DockerRuntime(
-//    var image: String,
-//) : Orchestrate {
-//
-//    override fun spawn(
-//        params: RuntimeParams,
-//        bus: EventBus<RuntimeEvent>,
-//        applicationRuntimeContext: ApplicationRuntimeContext
-//    ): OrchestratorHandle {
-//        val agentLogger = KotlinLogging.logger("DockerRuntime:${params.agentName}")
-//        val sanitisedImageName = sanitizeDockerImageName(image, params.agentId)
-//
-//        val dockerClient = applicationRuntimeContext.dockerClient
-//        dockerLogger.info { "Spawning Docker container with image: $sanitisedImageName" }
-//
-//        dockerClient.pullImageIfNeeded(sanitisedImageName)
-//        dockerClient.printImageInfo(sanitisedImageName)
-//
-//        val apiUrl = applicationRuntimeContext.getApiUrl(AddressConsumer.CONTAINER)
-//        val mcpUrl = applicationRuntimeContext.getMcpUrl(params, AddressConsumer.CONTAINER)
-//
-//        val volumes = mutableListOf<Bind>()
-//        val environmentVariables = getCoralSystemEnvs(
-//            params = params,
-//            apiUrl = apiUrl,
-//            mcpUrl = mcpUrl,
-//            orchestrationRuntime = "docker"
-//        ).toMutableMap()
-//
-//        val tempFiles = mutableListOf<Path>()
-//        params.options.forEach { (name, value) ->
-//            if (!environmentVariables.containsKey(name)) {
-//                @Suppress("DuplicatedCode")
-//                when (value.option().transport) {
-//                    AgentOptionTransport.ENVIRONMENT_VARIABLE -> {
-//                        environmentVariables[name] = value.asEnvVarValue()
-//                        dockerLogger.debug { "Setting option \"$name\" = ${value.toDisplayString()}" }
-//                    }
-//                    AgentOptionTransport.FILE_SYSTEM -> {
-//                        val files = value.asFileSystemValue()
-//                        val env = files.joinToString(File.pathSeparator) { it.toAbsolutePath().toString() }
-//                        environmentVariables[name] = env
-//                        tempFiles.addAll(files)
-//
-//                        // Temporary files also need to be mounted into the container
-//                        files.forEach {
-//                            volumes.add(Bind(it.toAbsolutePath().toString(), Volume("/coral-options/${it.fileName}")))
-//                        }
-//
-//                        dockerLogger.info { "Setting option \"$name\" = \"$env\" for agent ${params.agentName}" }
-//                    }
-//                }
-//            }
-//        }
-//
-//        val sessionId = when (params) {
-//            is RuntimeParams.Local -> params.session.id
-//            is RuntimeParams.Remote -> params.session.id
-//        }
-//
-//        try {
-//            val containerCreation = dockerClient.createContainerCmd(sanitisedImageName)
-//                .withName(getDockerContainerName(sessionId, params.agentName))
-//                // Escape?
-//                .withEnv(environmentVariables.map { (key, value) -> "$key=$value" })
-//                .withHostConfig(HostConfig().withBinds(volumes))
-//                .withAttachStdout(true)
-//                .withAttachStderr(true)
-//                .withStopTimeout(1)
-//                .withAttachStdin(false) // Stdin makes no sense with orchestration
-//                .exec()
-//
-//            dockerClient.startContainerCmd(containerCreation.id).exec()
-//
-//            // Attach to container streams for output redirection
-//            val attachCmd = dockerClient.attachContainerCmd(containerCreation.id)
-//                .withStdOut(true)
-//                .withStdErr(true)
-//                .withFollowStream(true)
-//                .withLogs(true)
-//
-//            val streamCallback = attachCmd.exec(object : ResultCallback.Adapter<Frame>() {
-//                override fun onNext(frame: Frame) {
-//                    val message = String(frame.payload).trimEnd('\n')
-//                    when (frame.streamType) {
-//                        StreamType.STDOUT -> {
-//                            agentLogger.info { message }
-//                        }
-//
-//                        StreamType.STDERR -> {
-//                            agentLogger.warn { message }
-//                        }
-//
-//                        else -> {
-//                            agentLogger.warn { message }
-//                        }
-//                    }
-//                }
-//
-//                override fun close() {
-//                    super.close()
-//                    bus.emit(RuntimeEvent.Stopped())
-//                }
-//            })
-//
-//            return object : OrchestratorHandle(tempFiles) {
-//                override suspend fun cleanup() {
-//                    withContext(processContext) {
-//                        try {
-//                            streamCallback.close()
-//                        } catch (e: Exception) {
-//                            dockerLogger.warn { "Failed to close stream callback: ${e.message}" }
-//                        }
-//
-//                        warnOnNotModifiedExceptions { dockerClient.stopContainerCmd(containerCreation.id).exec() }
-//                        warnOnNotModifiedExceptions {
-//                            withTimeoutOrNull(30.seconds) {
-//                                dockerClient.removeContainerCmd(containerCreation.id)
-//                                    .withRemoveVolumes(true)
-//                                    .exec()
-//                                return@withTimeoutOrNull true
-//                            } ?: let {
-//                                dockerLogger.warn { "Docker container ${params.agentName} did not stop in time, force removing it" }
-//                                dockerClient.removeContainerCmd(containerCreation.id)
-//                                    .withRemoveVolumes(true)
-//                                    .withForce(true)
-//                                    .exec()
-//                            }
-//                            dockerLogger.info { "Docker container ${params.agentName} stopped and removed" }
-//                        }
-//                    }
-//                }
-//            }
-//        }
-//        catch (e: Exception) {
-//            dockerLogger.error { "Failed to start Docker container: ${e.message}" }
-//            throw e
-//        }
-//    }
-//}
-//
-//private suspend fun warnOnNotModifiedExceptions(block: suspend () -> Unit): Unit {
-//    try {
-//        block()
-//    } catch (e: NotModifiedException) {
-//        dockerLogger.warn { "Docker operation was not modified: ${e.message}" }
-//    } catch (e: Exception) {
-//        throw e
-//    }
-//}
-//
-//private fun String.asDockerContainerName(): String {
-//    return this.replace(Regex("[^a-zA-Z0-9_]"), "_")
-//        .take(63) // Network-resolvable name limit
-//        .trim('_')
-//}
-//
-//private fun getDockerContainerName(sessionId: String, agentName: String): String {
-//    // SessionID is too long for Docker container names, so we use a hash for deduplication.
-//    val randomSuffix = sessionId.hashCode().toString(16).take(11)
-//    return "${agentName.take(52)}_$randomSuffix".asDockerContainerName()
-//}
-//
-//private fun sanitizeDockerImageName(imageName: String, id: AgentRegistryIdentifier): String {
-//    if (imageName.contains(":")) {
-//        if (!imageName.endsWith(":${id.version}")) {
-//            dockerLogger.warn { "Image $imageName does not match the agent version: ${id.version}" }
-//        }
-//
-//        return imageName
-//    }
-//    else {
-//        return "$imageName:${id.version}"
-//    }
-//}
-//
-//
-///**
-// * @param imageName The name of the image to search for
-// * @return true if the image is found locally, false otherwise
-// */
-//private fun DockerClient.imageExists(imageName: String): Boolean {
-//    var name = imageName
-//    if (!imageName.contains(":")) {
-//        name = "$name:latest"
-//    }
-//
-//    return listImagesCmd().exec().firstOrNull { it.repoTags.contains(name) } != null
-//}
-//
-///**
-// * Pulls a Docker image if it doesn't exist locally.
-// * @param imageName The name of the image to pull
-// */
-//private fun DockerClient.pullImageIfNeeded(imageName: String) {
-//    if (!imageExists(imageName)) {
-//        dockerLogger.info { "Docker image $imageName not found locally, pulling..." }
-//        val callback = object : ResultCallback.Adapter<PullResponseItem>() {}
-//        pullImageCmd(imageName).exec(callback)
-//        callback.awaitCompletion()
-//        dockerLogger.info { "Docker image $imageName pulled successfully" }
-//    }
-//}
-//
-///**
-// * Checks if the image is using the 'latest' tag and logs a warning if it is.
-// * Also includes the image creation date in the warning.
-// * @param imageName The name of the image to check
-// */
-//private fun DockerClient.printImageInfo(imageName: String) {
-//    val imageInfo = inspectImageCmd(imageName).exec()
-//    val createdAt = imageInfo.created
-//
-//    if (createdAt != null)  {
-//        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-//            .withZone(ZoneId.systemDefault())
-//        val formattedDate = formatter.format(Instant.parse(createdAt))
-//
-//        dockerLogger.info { "$imageName image creation date: $formattedDate" }
-//    }
-//}
+import com.github.dockerjava.api.DockerClient
+import com.github.dockerjava.api.async.ResultCallback
+import com.github.dockerjava.api.command.WaitContainerResultCallback
+import com.github.dockerjava.api.exception.DockerClientException
+import com.github.dockerjava.api.model.*
+import io.github.smiley4.schemakenerator.core.annotations.Optional
+import io.ktor.util.rootCause
+import io.ktor.utils.io.InternalAPI
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runInterruptible
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
+import org.coralprotocol.coralserver.agent.runtime.AgentRuntime
+import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
+import org.coralprotocol.coralserver.logging.LoggerWithFlow
+import org.coralprotocol.coralserver.session.SessionAgentDisposableResource
+import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.concurrent.TimeUnit
+
+private data class DockerWithLogging(
+    val dockerClient: DockerClient,
+    val logger: LoggerWithFlow
+)
+
+@Serializable
+@SerialName("docker")
+data class DockerRuntime(
+    val image: String,
+    @Optional val command: List<String>? = null
+) : AgentRuntime() {
+    override suspend fun execute(
+        executionContext: SessionAgentExecutionContext,
+        applicationRuntimeContext: ApplicationRuntimeContext
+    ) {
+        if (applicationRuntimeContext.dockerClient == null) {
+            executionContext.logger.warn("Docker client not available, skipping execution")
+            return
+        }
+
+        val docker = DockerWithLogging(applicationRuntimeContext.dockerClient, executionContext.logger)
+        val sanitisedImageName = docker.sanitizeDockerImageName(image, executionContext.registryAgent.info.identifier)
+
+        docker.pullImageIfNeeded(sanitisedImageName)
+        docker.printImageInfo(sanitisedImageName)
+
+        // This call populates executionContext.disposableResources and must be called before the Docker volumes are
+        // created
+        val environment = executionContext.buildEnvironment()
+
+        val volumes = executionContext.disposableResources
+            .filterIsInstance<SessionAgentDisposableResource.TemporaryFile>()
+            .map {
+                executionContext.logger.info("Binding host file ${it.file} to container path ${it.mountPath}")
+                Bind(it.file.toString(), Volume(it.mountPath))
+            }
+
+        val containerCreationCmd = docker.dockerClient.createContainerCmd(sanitisedImageName)
+            .withName(executionContext.agent.secret)
+            .withEnv(environment.map { (key, value) -> "$key=$value" })
+            .withHostConfig(HostConfig().withBinds(volumes))
+            .withAttachStdout(true)
+            .withAttachStderr(true)
+            .withStopTimeout(1)
+            .withAttachStdin(false) // Stdin makes no sense with orchestration
+
+        if (command != null)
+            containerCreationCmd.withCmd(*command.toTypedArray())
+
+        val container = containerCreationCmd.exec()
+
+        try {
+            docker.dockerClient.startContainerCmd(container.id).exec()
+
+            val attachCmd = docker.dockerClient.attachContainerCmd(container.id)
+                .withStdOut(true)
+                .withStdErr(true)
+                .withFollowStream(true)
+                .withLogs(true)
+
+            attachCmd.exec(object : ResultCallback.Adapter<Frame>() {
+                override fun onNext(frame: Frame) {
+                    val message = String(frame.payload).trimEnd('\n')
+                    if (frame.streamType == StreamType.STDOUT)
+                        executionContext.logger.info(message)
+
+                    if (frame.streamType == StreamType.STDERR)
+                        executionContext.logger.warn(message)
+                }
+            })
+
+            runInterruptible {
+                val status = docker.dockerClient.waitContainerCmd(container.id)
+                    .exec(WaitContainerResultCallback())
+                    .awaitStatusCode()
+
+                executionContext.logger.info("container ${container.id} exited with code $status")
+            }
+        }
+        catch (e: DockerClientException) {
+            @OptIn(InternalAPI::class)
+            if (e.rootCause is InterruptedException)
+                throw CancellationException("Docker timeout", e)
+        }
+        finally {
+           withContext(NonCancellable) {
+               runInterruptible {
+                   docker.dockerClient.removeContainerCmd(container.id)
+                       .withRemoveVolumes(true)
+                       .withForce(true)
+                       .exec()
+
+                   executionContext.logger.info("container ${container.id} removed")
+               }
+            }
+        }
+    }
+}
+
+private fun DockerWithLogging.sanitizeDockerImageName(imageName: String, id: AgentRegistryIdentifier): String {
+    if (imageName.contains(":")) {
+        if (!imageName.endsWith(":${id.version}")) {
+            logger.warn("Image $imageName does not match the agent version: ${id.version}")
+        }
+
+        return imageName
+    }
+    else {
+        return "$imageName:${id.version}"
+    }
+}
+
+/**
+ * @param imageName The name of the image to search for
+ * @return true if the image is found locally, false otherwise
+ */
+private fun DockerWithLogging.imageExists(imageName: String): Boolean {
+    var name = imageName
+    if (!imageName.contains(":")) {
+        name = "$name:latest"
+    }
+
+    return dockerClient.listImagesCmd().exec().firstOrNull { it.repoTags.contains(name) } != null
+}
+
+/**
+ * Pulls a Docker image if it doesn't exist locally.
+ * @param imageName The name of the image to pull
+ */
+private fun DockerWithLogging.pullImageIfNeeded(imageName: String) {
+    if (!imageExists(imageName)) {
+        logger.info("Docker image $imageName not found locally, pulling...")
+        val callback = object : ResultCallback.Adapter<PullResponseItem>() {}
+        dockerClient.pullImageCmd(imageName).exec(callback)
+        callback.awaitCompletion()
+        logger.info("Docker image $imageName pulled successfully")
+    }
+}
+
+/**
+ * Checks if the image is using the 'latest' tag and logs a warning if it is.
+ * Also includes the image creation date in the warning.
+ * @param imageName The name of the image to check
+ */
+private fun DockerWithLogging.printImageInfo(imageName: String) {
+    val imageInfo = dockerClient.inspectImageCmd(imageName).exec()
+    val createdAt = imageInfo.created
+
+    if (createdAt != null)  {
+        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+            .withZone(ZoneId.systemDefault())
+        val formattedDate = formatter.format(Instant.parse(createdAt))
+
+        logger.info("$imageName image creation date: $formattedDate")
+    }
+}
