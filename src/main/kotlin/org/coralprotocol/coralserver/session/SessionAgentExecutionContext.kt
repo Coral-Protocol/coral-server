@@ -4,49 +4,102 @@ import io.ktor.utils.io.*
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.registry.option.*
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
+import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.events.SessionEvent
 import java.io.File
-import java.nio.file.Path
 
 class SessionAgentExecutionContext(
     val agent: SessionAgent,
     val applicationRuntimeContext: ApplicationRuntimeContext
 ) {
+
     val logger = agent.logger
     val name = agent.name
-    val options = agent.graphAgent.options
-    val provider = agent.graphAgent.provider
-    val runtimes = agent.graphAgent.registryAgent.runtimes
-    val path = agent.graphAgent.registryAgent.path
     val session = agent.session
 
-    // todo: delete when agent dies
-    var tempFiles = mutableListOf<Path>()
+    val graphAgent = agent.graphAgent
+    val options = graphAgent.options
+    val provider = graphAgent.provider
+
+    val registryAgent = graphAgent.registryAgent
+    val runtimes = registryAgent.runtimes
+    val path = registryAgent.path
+
+    val disposableResources = mutableListOf<SessionAgentDisposableResource>()
 
     /**
-     * Environment variables to be set for this agent.  This includes all environment variables Coral sets for an agent
-     * (e.g., variables for their connection to the MCP server) as well as all options generated from options set for
-     * this agent.
+     * Builds the required environment variables for the execution of this agent.
+     *
+     * This function will create one temporary file for each option in [options] that
+     * uses [AgentOptionTransport.FILE_SYSTEM].  The temporary file will be wrapped as
+     * a [SessionAgentDisposableResource.TemporaryFile] that will be put into [disposableResources]. Clean up for these
+     * temporary files is therefore handled by [handleRuntimeStopped]
+     *
+     * If the [provider] uses a [RuntimeId.DOCKER] runtime, the temporary files path will be translated by
      */
-    val environment: Map<String, String> = buildMap {
-        options.forEach { (name, value) ->
-            when (value.option().transport) {
-                AgentOptionTransport.ENVIRONMENT_VARIABLE -> {
-                    this[name] = value.asEnvVarValue()
-                    logger.info("Setting option \"$name\" = \"${value.toDisplayString()}\" for agent $name")
-                }
-                AgentOptionTransport.FILE_SYSTEM -> {
-                    val files = value.asFileSystemValue()
-                    val env = files.joinToString(File.pathSeparator) { it.toAbsolutePath().toString() }
-                    this[name] = env
-                    tempFiles.addAll(files)
-
-                    logger.info("Setting option \"$name\" = \"$env\" for agent $name")
-                }
+    fun buildEnvironment(): Map<String, String> {
+        return buildMap {
+            val runtime = when (provider) {
+                is GraphAgentProvider.Local -> provider.runtime
+                is GraphAgentProvider.Remote -> provider.runtime
+                is GraphAgentProvider.RemoteRequest -> provider.runtime
             }
-        }
 
-        // todo: coral env vars
+            val addressConsumer = when (runtime) {
+                RuntimeId.EXECUTABLE -> AddressConsumer.LOCAL
+                RuntimeId.DOCKER -> AddressConsumer.CONTAINER
+                RuntimeId.FUNCTION -> AddressConsumer.LOCAL
+            }
+
+            val isContainer = runtime == RuntimeId.DOCKER
+
+            val filePathSeparator = if (isContainer) {
+                applicationRuntimeContext.config.dockerConfig.containerPathSeparator
+            }
+            else {
+                File.pathSeparatorChar
+            }.toString()
+
+            // User options
+            options.forEach { (name, value) ->
+                when (value.option().transport) {
+                    AgentOptionTransport.ENVIRONMENT_VARIABLE -> {
+                        this[name] = value.asEnvVarValue()
+                    }
+                    AgentOptionTransport.FILE_SYSTEM -> {
+                        val resources = value.asFileSystemValue(applicationRuntimeContext.config.dockerConfig)
+                        disposableResources.addAll(resources)
+
+                        this[name] = resources.joinToString(filePathSeparator) {
+                            if (isContainer) {
+                                it.mountPath
+                            }
+                            else {
+                                it.file.toString()
+                            }
+                        }
+                    }
+                }
+
+                logger.info("Setting option \"$name\" = \"${this[name]}\" for agent $name")
+            }
+
+            // Coral environment variables
+            this["CORAL_CONNECTION_URL"] = applicationRuntimeContext.getMcpUrl(this@SessionAgentExecutionContext, addressConsumer).toString()
+            this["CORAL_AGENT_ID"] = agent.name
+            this["CORAL_AGENT_SECRET"] = agent.secret
+            this["CORAL_SESSION_ID"] = agent.session.id
+            this["CORAL_API_URL"] = applicationRuntimeContext.getApiUrl(addressConsumer).toString()
+            this["CORAL_SEND_CLAIMS"] = "0"
+            this["CORAL_RUNTIME_ID"] = runtime.toString().lowercase()
+
+            if (agent.graphAgent.systemPrompt != null)
+                this["CORAL_PROMPT_SYSTEM"] = agent.graphAgent.systemPrompt
+
+            if (agent.graphAgent.provider is GraphAgentProvider.Remote)
+                this["CORAL_REMOTE_AGENT"] = "1"
+        }
     }
 
     /**
@@ -57,6 +110,7 @@ class SessionAgentExecutionContext(
             throw IllegalArgumentException("SessionAgent tried to execute an unresolved RemoteRequest")
 
         try {
+            handleRuntimeStarted()
             if (provider is GraphAgentProvider.Local)
                 launchLocal(provider)
 
@@ -70,6 +124,9 @@ class SessionAgentExecutionContext(
             agent.logger.error("Exception thrown when launching agent ${agent.name}", e)
             // todo: restart logic
         }
+        finally {
+            handleRuntimeStopped()
+        }
 
         agent.logger.info("Agent ${agent.name} runtime exited")
     }
@@ -82,13 +139,7 @@ class SessionAgentExecutionContext(
         val runtime = runtimes.getById(provider.runtime)
             ?: throw java.lang.IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported}")
 
-        try {
-            session.events.tryEmit(SessionEvent.RuntimeStarted(name))
-            runtime.execute(this@SessionAgentExecutionContext, applicationRuntimeContext)
-        }
-        finally {
-            session.events.tryEmit(SessionEvent.RuntimeStopped(name))
-        }
+        runtime.execute(this@SessionAgentExecutionContext, applicationRuntimeContext)
     }
 
     /**
@@ -96,5 +147,21 @@ class SessionAgentExecutionContext(
      */
     suspend fun launchRemote(provider: GraphAgentProvider.Remote) {
         TODO()
+    }
+
+    /**
+     * Called immediately before the runtime starts.
+     */
+    private fun handleRuntimeStarted() {
+        session.events.tryEmit(SessionEvent.RuntimeStarted(name))
+    }
+
+    /**
+     * Called immediately after the runtime stops, for any reason.
+     */
+    private fun handleRuntimeStopped() {
+        session.events.tryEmit(SessionEvent.RuntimeStopped(name))
+        disposableResources.forEach { it.dispose() }
+        disposableResources.clear()
     }
 }

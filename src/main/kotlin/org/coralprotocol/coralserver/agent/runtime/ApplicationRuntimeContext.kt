@@ -9,7 +9,6 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.http.*
 import io.ktor.resources.*
 import io.ktor.resources.serialization.*
-import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.routes.sse.v1.Mcp
@@ -51,29 +50,5 @@ class ApplicationRuntimeContext(val config: Config = Config()) {
         href(ResourcesFormat(), Mcp.Sse(executionContext.agent.secret), builder)
 
         return builder.build()
-    }
-
-    fun buildEnvironment(
-        executionContext: SessionAgentExecutionContext,
-        addressConsumer: AddressConsumer,
-        runtimeId: RuntimeId
-    ): Map<String, String> {
-        return buildMap {
-            putAll(executionContext.environment)
-
-            this["CORAL_CONNECTION_URL"] = getMcpUrl(executionContext, addressConsumer).toString()
-            this["CORAL_AGENT_ID"] = executionContext.agent.name
-            this["CORAL_AGENT_SECRET"] = executionContext.agent.secret
-            this["CORAL_SESSION_ID"] = executionContext.agent.session.id
-            this["CORAL_RUNTIME_ID"] = runtimeId.toString().lowercase()
-            this["CORAL_API_URL"] = getApiUrl(addressConsumer).toString()
-            this["CORAL_SEND_CLAIMS"] = "0"
-
-            if (executionContext.agent.graphAgent.systemPrompt != null)
-                this["CORAL_PROMPT_SYSTEM"] = executionContext.agent.graphAgent.systemPrompt
-
-            if (executionContext.agent.graphAgent.provider is GraphAgentProvider.Remote)
-                this["CORAL_REMOTE_AGENT"] = "1"
-        }
     }
 }
