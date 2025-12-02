@@ -4,7 +4,6 @@ import com.github.pgreze.process.Redirect
 import com.github.pgreze.process.process
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 
 @Serializable
@@ -27,7 +26,7 @@ data class ExecutableRuntime(
             stderr = Redirect.Consume {
                 it.collect { line -> executionContext.agent.logger.warn(line) }
             },
-            env = applicationRuntimeContext.buildEnvironment(executionContext, AddressConsumer.LOCAL, RuntimeId.EXECUTABLE)
+            env = executionContext.buildEnvironment()
         )
 
         if (result.resultCode != 0) {

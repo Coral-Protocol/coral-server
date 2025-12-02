@@ -142,18 +142,46 @@ data class DockerConfig(
     /**
      * The number of seconds to wait for a response from a Docker container before timing out.
      */
+    @SerialName("response_timeout")
     val responseTimeout: Long = 30,
 
     /**
      * The number of seconds to wait for a connection to a Docker container before timing out.
      * Note that on Docker for Windows, if the Docker engine is not running, this timeout will be met.
      */
+    @SerialName("connection_timeout")
     val connectionTimeout: Long = 30,
 
     /**
      * Max number of connections to running Docker containers.
      */
+    @SerialName("max_connections")
     val maxConnections: Int = 1024,
+
+    /**
+     * The path separator used in containers.  This is used when sending multiple paths from the host machine
+     * (potentially Windows) to a container (in almost all cases Unix).  Windows Containers, though rarely used, do
+     * exist.  This config entry serves to support them.
+     */
+    @SerialName("container_path_separator")
+    val containerPathSeparator: Char = ':',
+
+    /**
+     * The character used separate names in a path in a container
+     *
+     * @see [java.nio.file.FileSystem.getSeparator]
+     * @see [containerPathSeparator]
+     */
+    @SerialName("container_name_separator")
+    val containerNameSeparator: Char = '/',
+
+    /**
+     * The path that temporary files are placed in a container
+     *
+     * @see [containerPathSeparator]
+     */
+    @SerialName("container_temporary_directory")
+    val containerTemporaryDirectory: String = "/tmp"
 )
 
 @Serializable
