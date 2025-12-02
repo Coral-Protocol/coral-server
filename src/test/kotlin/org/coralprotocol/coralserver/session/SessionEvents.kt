@@ -49,7 +49,7 @@ class SessionEvents : SessionBuilding() {
 
             collecting.await()
             session.launchAgents()
-            session.waitForAgents()
+            session.joinAgents()
 
             assert(events.any { it is SessionEvent.RuntimeStarted && it.name == "agent1" })
             assert(events.any { it is SessionEvent.RuntimeStarted && it.name == "agent2" })

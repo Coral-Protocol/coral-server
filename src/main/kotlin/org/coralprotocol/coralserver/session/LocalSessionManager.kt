@@ -148,7 +148,7 @@ class LocalSessionManager(
         session.launchAgents()
 
         managementScope.launch {
-            session.waitForAgents()
+            session.joinAgents()
         }.invokeOnCompletion {
             handleSessionClose(session, namespace, it)
         }
@@ -198,7 +198,7 @@ class LocalSessionManager(
     suspend fun waitAllSessions() {
         sessionNamespaces.values.forEach { namespace ->
             namespace.sessions.values.forEach { session ->
-                session.waitForAgents()
+                session.joinAgents()
             }
         }
     }

@@ -1,8 +1,10 @@
 package org.coralprotocol.coralserver.session
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.withTimeout
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.events.SessionEvent
@@ -11,6 +13,7 @@ import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.session.remote.RemoteSession
 import org.jetbrains.annotations.TestOnly
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * This is the representation of a (local) Coral session.  Starting a session on a Coral server can only be done by
@@ -83,7 +86,6 @@ class LocalSession(
         extraBufferCapacity = 1024,
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
-
 
     /**
      * Creates a new thread in this session.  The thread will start in an open state.
@@ -159,10 +161,23 @@ class LocalSession(
      *
      * @throws SessionException.NotLaunchedException if [launchAgents] has not been called yet.
      */
-    suspend fun waitForAgents() {
+    suspend fun joinAgents() {
         if (agentJobs.isEmpty())
             throw SessionException.NotLaunchedException("This session's agents have not been launched yet")
 
         agentJobs.joinAll()
+    }
+
+    /**
+     * Cancels all [agentJobs] and waits for the cancellation to finish. [launchAgents] must have been called before
+     * this function is called.
+     *
+     * @throws SessionException.NotLaunchedException if [launchAgents] has not been called yet.
+     */
+    suspend fun cancelAndJoinAgents() {
+        if (agentJobs.isEmpty())
+            throw SessionException.NotLaunchedException("This session's agents have not been launched yet")
+
+        agentJobs.forEach { it.cancelAndJoin() }
     }
 }

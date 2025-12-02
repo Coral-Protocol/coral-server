@@ -2,6 +2,7 @@
 
 package org.coralprotocol.coralserver.agent.runtime
 
+import DockerRuntime
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -25,9 +26,9 @@ class LocalAgentRuntimes(
     @SerialName("executable")
     val executableRuntime: ExecutableRuntime? = null,
 
-//    @SerialName("docker")
-//    val dockerRuntime: DockerRuntime? = null,
-//
+    @SerialName("docker")
+    val dockerRuntime: DockerRuntime? = null,
+
     @SerialName("function")
     @Transient
     val functionRuntime: FunctionRuntime? = null
@@ -35,14 +36,14 @@ class LocalAgentRuntimes(
     fun getById(runtimeId: RuntimeId): AgentRuntime? =
         when (runtimeId) {
             RuntimeId.EXECUTABLE -> executableRuntime
-            RuntimeId.DOCKER -> TODO()
+            RuntimeId.DOCKER -> dockerRuntime
             RuntimeId.FUNCTION -> functionRuntime
         }
 
     fun toRuntimeIds(): List<RuntimeId> {
         return buildList {
             executableRuntime?.let { add(RuntimeId.EXECUTABLE) }
-            //dockerRuntime?.let { add(RuntimeId.DOCKER) }
+            dockerRuntime?.let { add(RuntimeId.DOCKER) }
         }
     }
 }
