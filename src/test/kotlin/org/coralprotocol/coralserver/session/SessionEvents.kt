@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.session
 
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
@@ -39,9 +40,14 @@ class SessionEvents : SessionBuilding() {
                 groups = setOf()
             ))
 
+            val collecting = CompletableDeferred<Unit>()
             val events = mutableListOf<SessionEvent>()
-            session.sessionScope.launch { session.events.toList(events) }
+            session.sessionScope.launch {
+                collecting.complete(Unit)
+                session.events.toList(events)
+            }
 
+            collecting.await()
             session.launchAgents()
             session.waitForAgents()
 
