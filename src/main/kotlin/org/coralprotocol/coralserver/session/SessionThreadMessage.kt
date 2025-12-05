@@ -5,6 +5,7 @@ package org.coralprotocol.coralserver.session
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.models.Telemetry
@@ -18,7 +19,9 @@ data class SessionThreadMessage(
     val senderName: UniqueAgentName,
     val timestamp: Long = System.currentTimeMillis(),
     val mentionNames: Set<UniqueAgentName>,
-    var telemetry: Telemetry? = null
+
+    @Transient
+    val telemetry: Telemetry? = null
 )
 
 @Serializable
