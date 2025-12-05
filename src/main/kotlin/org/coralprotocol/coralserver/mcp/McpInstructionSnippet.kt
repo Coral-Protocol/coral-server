@@ -3,6 +3,17 @@ package org.coralprotocol.coralserver.mcp
 enum class McpInstructionSnippet(
     val snippet: String
 ) {
+    BASE("""
+        # Coral
+        
+        Coral is a multi-agent system designed to facilitate collaboration between agents.  You are an agent that exists 
+        in a Coral multi-agent system.  You must communicate with together with other agents to collaboratively solve 
+        problems.
+        
+        Important: Tooling must be used to collaborate with other agents in Coral.  No assistant messages will be 
+        visible to any human or agent.
+    """.trimIndent()),
+
     MESSAGING("""
         # Messaging
         
@@ -55,5 +66,5 @@ enum class McpInstructionSnippet(
         The ${McpToolName.WAIT_FOR_MENTION} tool will wait until any message that mentions you is received.  This is the
         best tool to use if another agent is likely to know how best to utilise your information.  If there exists any
         agent that plays a managerial role in the conversation, this tool should be used.
-    """.trimIndent());
+    """.trimIndent())
 }

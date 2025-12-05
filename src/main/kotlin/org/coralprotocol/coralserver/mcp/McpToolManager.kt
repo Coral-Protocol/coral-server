@@ -116,7 +116,7 @@ class McpToolManager(val logger: LoggerWithFlow = LoggerWithFlow("McpToolManager
      * @param description A description of the tool, this can be brief.  Advanced instructions for the tool should be
      * represented as snippets in the [requiredSnippets] parameter
      * @param requiredSnippets A set of [McpInstructionSnippet]s that are required for agent to understand the usage of
-     * this tool.
+     * this tool.  Note that [McpInstructionSnippet.BASE] does not need to be included in this set.
      */
     private inline fun <reified In, reified Out> buildTool(
         name: McpToolName,
@@ -150,7 +150,7 @@ class McpToolManager(val logger: LoggerWithFlow = LoggerWithFlow("McpToolManager
         return McpTool(
             name = name,
             description = description,
-            requiredSnippets = requiredSnippets,
+            requiredSnippets = setOf(McpInstructionSnippet.BASE) + requiredSnippets,
             inputSchema = inputSchema,
             executor = executor,
             inputSerializer = serializer<In>(),
