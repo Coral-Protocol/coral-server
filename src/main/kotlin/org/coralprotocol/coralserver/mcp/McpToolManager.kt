@@ -83,21 +83,21 @@ class McpToolManager(val logger: LoggerWithFlow = LoggerWithFlow("McpToolManager
     val waitForMessageTool = buildTool<WaitForSingleMessageInput, WaitForMessageOutput>(
         name = McpToolName.WAIT_FOR_MESSAGE,
         description = "Waits for and returns a single message from another agent in any Coral thread",
-        requiredSnippets = setOf(McpInstructionSnippet.MESSAGING, McpInstructionSnippet.MENTIONS),
+        requiredSnippets = setOf(McpInstructionSnippet.MESSAGING, McpInstructionSnippet.WAITING),
         executor = ::waitForSingleMessageExecutor
     )
 
     val waitForMentionTool = buildTool<WaitForMentioningMessageInput, WaitForMessageOutput>(
         name = McpToolName.WAIT_FOR_MENTION,
         description = "Waits for and returns a single message that mentions you from any agent in any Coral thread",
-        requiredSnippets = setOf(McpInstructionSnippet.MESSAGING, McpInstructionSnippet.MENTIONS),
+        requiredSnippets = setOf(McpInstructionSnippet.MESSAGING, McpInstructionSnippet.MENTIONS, McpInstructionSnippet.WAITING),
         executor = ::waitForMentioningMessageExecutor
     )
 
     val waitForAgentMessageTool = buildTool<WaitForAgentMessageInput, WaitForMessageOutput>(
         name = McpToolName.WAIT_FOR_AGENT,
         description = "Waits for and returns a single message from a specific agent in any Coral thread",
-        requiredSnippets = setOf(McpInstructionSnippet.MESSAGING, McpInstructionSnippet.MENTIONS),
+        requiredSnippets = setOf(McpInstructionSnippet.MESSAGING, McpInstructionSnippet.WAITING),
         executor = ::waitForAgentMessageExecutor
     )
 
