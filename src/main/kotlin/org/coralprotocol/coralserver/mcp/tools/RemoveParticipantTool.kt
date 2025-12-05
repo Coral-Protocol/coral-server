@@ -3,7 +3,7 @@ package org.coralprotocol.coralserver.mcp.tools
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
-import org.coralprotocol.coralserver.mcp.GenericToolSuccessOutput
+import org.coralprotocol.coralserver.mcp.GenericSuccessOutput
 import org.coralprotocol.coralserver.mcp.toMcpToolException
 import org.coralprotocol.coralserver.session.SessionAgent
 import org.coralprotocol.coralserver.session.SessionException
@@ -18,12 +18,12 @@ data class RemoveParticipantInput(
     val participantId: UniqueAgentName
 )
 
-fun removeParticipantExecutor(agent: SessionAgent, arguments: RemoveParticipantInput): GenericToolSuccessOutput {
+fun removeParticipantExecutor(agent: SessionAgent, arguments: RemoveParticipantInput): GenericSuccessOutput {
     try {
         val thread = agent.session.getThreadById(arguments.threadId)
         thread.removeParticipant(agent, agent.session.getAgent(arguments.participantId))
 
-        return GenericToolSuccessOutput("Successfully removed participant ${arguments.participantId} from thread ${arguments.threadId}")
+        return GenericSuccessOutput("Successfully removed participant ${arguments.participantId} from thread ${arguments.threadId}")
     }
     catch (e: SessionException) {
         throw e.toMcpToolException()

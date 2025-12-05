@@ -45,7 +45,7 @@ class SessionAgent(
     val graphAgent: GraphAgent,
     namespace: LocalSessionNamespace,
     sessionManager: LocalSessionManager,
-    mcpToolManager: McpToolManager
+    val mcpToolManager: McpToolManager
 ): Server(
     Implementation(
         name = "Coral Agent Server",

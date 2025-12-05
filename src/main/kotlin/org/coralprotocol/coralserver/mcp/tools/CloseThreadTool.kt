@@ -2,8 +2,7 @@ package org.coralprotocol.coralserver.mcp.tools
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.Serializable
-import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
-import org.coralprotocol.coralserver.mcp.GenericToolSuccessOutput
+import org.coralprotocol.coralserver.mcp.GenericSuccessOutput
 import org.coralprotocol.coralserver.mcp.toMcpToolException
 import org.coralprotocol.coralserver.session.SessionAgent
 import org.coralprotocol.coralserver.session.SessionException
@@ -17,12 +16,12 @@ data class CloseThreadInput(
     val summary: String
 )
 
-fun closeThreadExecutor(agent: SessionAgent, arguments: CloseThreadInput): GenericToolSuccessOutput {
+fun closeThreadExecutor(agent: SessionAgent, arguments: CloseThreadInput): GenericSuccessOutput {
     try {
         val thread = agent.session.getThreadById(arguments.threadId)
         thread.close(arguments.summary)
 
-        return GenericToolSuccessOutput("Successfully closed thread ${arguments.threadId}")
+        return GenericSuccessOutput("Successfully closed thread ${arguments.threadId}")
     }
     catch (e: SessionException) {
         throw e.toMcpToolException()

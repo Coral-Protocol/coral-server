@@ -7,18 +7,18 @@ import org.coralprotocol.coralserver.session.SessionThreadMessage
 import org.coralprotocol.coralserver.session.SessionThreadMessageFilter
 
 @Serializable
-object WaitForSingleMessageToolInput
+object WaitForSingleMessageInput
 
 @Serializable
-object WaitForMentioningMessageToolInput
+object WaitForMentioningMessageInput
 
 @Serializable
-data class WaitForAgentMessageToolInput(
+data class WaitForAgentMessageInput(
     val agentName: UniqueAgentName
 )
 
 @Serializable
-data class WaitForMessageToolOutput(
+data class WaitForMessageOutput(
     val message: SessionThreadMessage? = null
 ) {
     val status: String = message?.let { "Message received" } ?: "Timeout reached"
@@ -28,18 +28,18 @@ suspend fun waitForSingleMessageExecutor(
     agent: SessionAgent,
 
     @Suppress("UNUSED_PARAMETER")
-    arguments: WaitForSingleMessageToolInput
-): WaitForMessageToolOutput {
-    return WaitForMessageToolOutput(agent.waitForMessage())
+    arguments: WaitForSingleMessageInput
+): WaitForMessageOutput {
+    return WaitForMessageOutput(agent.waitForMessage())
 }
 
 suspend fun waitForMentioningMessageExecutor(
     agent: SessionAgent,
 
     @Suppress("UNUSED_PARAMETER")
-    arguments: WaitForMentioningMessageToolInput
-): WaitForMessageToolOutput {
-    return WaitForMessageToolOutput(
+    arguments: WaitForMentioningMessageInput
+): WaitForMessageOutput {
+    return WaitForMessageOutput(
         agent.waitForMessage(
             setOf(
                 SessionThreadMessageFilter.Mentions(
@@ -52,9 +52,9 @@ suspend fun waitForMentioningMessageExecutor(
 
 suspend fun waitForAgentMessageExecutor(
     agent: SessionAgent,
-    arguments: WaitForAgentMessageToolInput
-): WaitForMessageToolOutput {
-    return WaitForMessageToolOutput(
+    arguments: WaitForAgentMessageInput
+): WaitForMessageOutput {
+    return WaitForMessageOutput(
         agent.waitForMessage(
             setOf(
                 SessionThreadMessageFilter.From(

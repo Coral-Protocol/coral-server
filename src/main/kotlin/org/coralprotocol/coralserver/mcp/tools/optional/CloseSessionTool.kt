@@ -1,48 +1,26 @@
 package org.coralprotocol.coralserver.mcp.tools.optional
 
-import io.modelcontextprotocol.kotlin.sdk.Tool
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonObject
-import org.coralprotocol.coralserver.mcp.McpTool
-import org.coralprotocol.coralserver.mcp.McpToolName
-import org.coralprotocol.coralserver.mcp.tools.models.CloseSessionToolInput
-import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
+import io.github.smiley4.schemakenerator.core.annotations.Description
+import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.mcp.GenericSuccessOutput
+import org.coralprotocol.coralserver.mcp.toMcpToolException
 import org.coralprotocol.coralserver.session.SessionAgent
-import org.coralprotocol.coralserver.session.SessionCloseMode
+import org.coralprotocol.coralserver.session.SessionException
 
-internal class CloseSessionTool: McpTool<CloseSessionToolInput>() {
-    override val name: McpToolName
-        get() = McpToolName.CLOSE_SESSION
+@Serializable
+data class CloseSessionInput(
+    @Description("The reason that the agent closed the session, for logging purposes")
+    val reason: String,
+)
 
-    override val description: String
-        get() = "Closes the Coral session and kills all agents"
+fun closeSessionExecutor(agent: SessionAgent, arguments: CloseSessionInput): GenericSuccessOutput {
+    try {
+        agent.logger.info("Closing session with reason: ${arguments.reason}")
+        agent.session.cancelAgents()
 
-    override val inputSchema: Tool.Input
-        get() = Tool.Input(
-            properties = buildJsonObject {
-                putJsonObject("reason") {
-                    put("type", "string")
-                    put("description", "A description of why the session should be closed")
-                }
-            },
-            required = listOf("reason")
-        )
-
-    override val argumentsSerializer: KSerializer<CloseSessionToolInput>
-        get() = CloseSessionToolInput.serializer()
-
-    override suspend fun execute(agent: SessionAgent, arguments: CloseSessionToolInput): McpToolResult {
-        agent.coroutineScope.launch {
-            // Give a >p(0) chance of the agent actually receiving a response to this tool
-            delay(1000)
-
-            agent.session.destroy(SessionCloseMode.CLEAN)
-        }
-
-        return McpToolResult.CloseSessionSuccess
+        return GenericSuccessOutput("Successfully closed session")
+    }
+    catch (e: SessionException) {
+        throw e.toMcpToolException()
     }
 }

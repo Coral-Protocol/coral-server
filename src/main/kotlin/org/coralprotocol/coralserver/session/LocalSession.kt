@@ -170,6 +170,20 @@ class LocalSession(
         agentJobs.joinAll()
     }
 
+
+    /**
+     * Cancels all [agentJobs].  No waiting is done.  [launchAgents] must have been called before this function is
+     * called.
+     *
+     * @throws SessionException.NotLaunchedException if [launchAgents] has not been called yet.
+     */
+    fun cancelAgents() {
+        if (agentJobs.isEmpty())
+            throw SessionException.NotLaunchedException("This session's agents have not been launched yet")
+
+        agentJobs.forEach { it.cancel() }
+    }
+
     /**
      * Cancels all [agentJobs] and waits for the cancellation to finish. [launchAgents] must have been called before
      * this function is called.

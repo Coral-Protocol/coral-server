@@ -17,9 +17,9 @@ import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.mcp.tools.AddParticipantInput
 import org.coralprotocol.coralserver.mcp.tools.CreateThreadInput
 import org.coralprotocol.coralserver.mcp.tools.SendMessageInput
-import org.coralprotocol.coralserver.mcp.tools.WaitForAgentMessageToolInput
-import org.coralprotocol.coralserver.mcp.tools.WaitForMentioningMessageToolInput
-import org.coralprotocol.coralserver.mcp.tools.WaitForSingleMessageToolInput
+import org.coralprotocol.coralserver.mcp.tools.WaitForAgentMessageInput
+import org.coralprotocol.coralserver.mcp.tools.WaitForMentioningMessageInput
+import org.coralprotocol.coralserver.mcp.tools.WaitForSingleMessageInput
 import java.util.UUID
 import kotlin.test.Test
 import org.coralprotocol.coralserver.mcp.McpToolName
@@ -146,22 +146,22 @@ class McpToolsTest : SessionBuilding() {
                 },
                 agent2Name to { client, _ ->
                     val singleMessageResult =
-                        toolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageToolInput)
+                        toolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput)
                     assert(singleMessageResult.message?.text == singleMessageText)
 
                     val agentMessageResult =
-                        toolManager.waitForAgentMessageTool.executeOn(client, WaitForAgentMessageToolInput(agent1Name))
+                        toolManager.waitForAgentMessageTool.executeOn(client, WaitForAgentMessageInput(agent1Name))
                     assert(agentMessageResult.message?.text == agentMessageText)
 
                     val mentionResult =
-                        toolManager.waitForMentionTool.executeOn(client, WaitForMentioningMessageToolInput)
+                        toolManager.waitForMentionTool.executeOn(client, WaitForMentioningMessageInput)
                     assert(mentionResult.message?.text == mentionText)
                 },
                 agent3Name to { client, session ->
                     val agent3 = session.getAgent(agent3Name)
 
                     val singleMessageResult =
-                        toolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageToolInput).message
+                        toolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput).message
                     assertNotNull(singleMessageResult)
 
                     // the first message that this agent should receive is the first message sent by agent1, but only

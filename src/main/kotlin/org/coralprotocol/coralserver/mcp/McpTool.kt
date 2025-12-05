@@ -16,7 +16,7 @@ import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.SessionAgent
 
 @Serializable
-data class GenericToolSuccessOutput(val message: String)
+data class GenericSuccessOutput(val message: String)
 
 class McpTool<In, Out>(
     val name: McpToolName,

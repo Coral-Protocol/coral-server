@@ -16,13 +16,15 @@ import org.coralprotocol.coralserver.mcp.tools.CreateThreadOutput
 import org.coralprotocol.coralserver.mcp.tools.RemoveParticipantInput
 import org.coralprotocol.coralserver.mcp.tools.SendMessageInput
 import org.coralprotocol.coralserver.mcp.tools.SendMessageOutput
-import org.coralprotocol.coralserver.mcp.tools.WaitForAgentMessageToolInput
-import org.coralprotocol.coralserver.mcp.tools.WaitForMentioningMessageToolInput
-import org.coralprotocol.coralserver.mcp.tools.WaitForMessageToolOutput
-import org.coralprotocol.coralserver.mcp.tools.WaitForSingleMessageToolInput
+import org.coralprotocol.coralserver.mcp.tools.WaitForAgentMessageInput
+import org.coralprotocol.coralserver.mcp.tools.WaitForMentioningMessageInput
+import org.coralprotocol.coralserver.mcp.tools.WaitForMessageOutput
+import org.coralprotocol.coralserver.mcp.tools.WaitForSingleMessageInput
 import org.coralprotocol.coralserver.mcp.tools.addParticipantExecutor
 import org.coralprotocol.coralserver.mcp.tools.closeThreadExecutor
 import org.coralprotocol.coralserver.mcp.tools.createThreadExecutor
+import org.coralprotocol.coralserver.mcp.tools.optional.CloseSessionInput
+import org.coralprotocol.coralserver.mcp.tools.optional.closeSessionExecutor
 import org.coralprotocol.coralserver.mcp.tools.removeParticipantExecutor
 import org.coralprotocol.coralserver.mcp.tools.sendMessageExecutor
 import org.coralprotocol.coralserver.mcp.tools.waitForAgentMessageExecutor
@@ -50,21 +52,21 @@ class McpToolManager(val logger: LoggerWithFlow = LoggerWithFlow("McpToolManager
         executor = ::createThreadExecutor
     )
 
-    val closeThreadTool = buildTool<CloseThreadInput, GenericToolSuccessOutput>(
+    val closeThreadTool = buildTool<CloseThreadInput, GenericSuccessOutput>(
         name = McpToolName.CLOSE_THREAD,
         description = "Closes a Coral thread",
         requiredSnippets = setOf(McpInstructionSnippet.MESSAGING),
         executor = ::closeThreadExecutor
     )
 
-    val addParticipantTool = buildTool<AddParticipantInput, GenericToolSuccessOutput>(
+    val addParticipantTool = buildTool<AddParticipantInput, GenericSuccessOutput>(
         name = McpToolName.ADD_PARTICIPANT,
         description = "Adds a new participant to a Coral thread",
         requiredSnippets = setOf(McpInstructionSnippet.MESSAGING),
         executor = ::addParticipantExecutor
     )
 
-    val removeParticipantTool = buildTool<RemoveParticipantInput, GenericToolSuccessOutput>(
+    val removeParticipantTool = buildTool<RemoveParticipantInput, GenericSuccessOutput>(
         name = McpToolName.REMOVE_PARTICIPANT,
         description = "Removes a participant from a Coral thread",
         requiredSnippets = setOf(McpInstructionSnippet.MESSAGING),
@@ -78,25 +80,31 @@ class McpToolManager(val logger: LoggerWithFlow = LoggerWithFlow("McpToolManager
         executor = ::sendMessageExecutor
     )
 
-    val waitForMessageTool = buildTool<WaitForSingleMessageToolInput, WaitForMessageToolOutput>(
+    val waitForMessageTool = buildTool<WaitForSingleMessageInput, WaitForMessageOutput>(
         name = McpToolName.WAIT_FOR_MESSAGE,
         description = "Waits for and returns a single message from another agent in any Coral thread",
         requiredSnippets = setOf(McpInstructionSnippet.MESSAGING, McpInstructionSnippet.MENTIONS),
         executor = ::waitForSingleMessageExecutor
     )
 
-    val waitForMentionTool = buildTool<WaitForMentioningMessageToolInput, WaitForMessageToolOutput>(
+    val waitForMentionTool = buildTool<WaitForMentioningMessageInput, WaitForMessageOutput>(
         name = McpToolName.WAIT_FOR_MENTION,
         description = "Waits for and returns a single message that mentions you from any agent in any Coral thread",
         requiredSnippets = setOf(McpInstructionSnippet.MESSAGING, McpInstructionSnippet.MENTIONS),
         executor = ::waitForMentioningMessageExecutor
     )
 
-    val waitForAgentMessageTool = buildTool<WaitForAgentMessageToolInput, WaitForMessageToolOutput>(
+    val waitForAgentMessageTool = buildTool<WaitForAgentMessageInput, WaitForMessageOutput>(
         name = McpToolName.WAIT_FOR_AGENT,
         description = "Waits for and returns a single message from a specific agent in any Coral thread",
         requiredSnippets = setOf(McpInstructionSnippet.MESSAGING, McpInstructionSnippet.MENTIONS),
         executor = ::waitForAgentMessageExecutor
+    )
+
+    val closeSessionTool = buildTool<CloseSessionInput, GenericSuccessOutput>(
+        name = McpToolName.CLOSE_SESSION,
+        description = "Closes the session",
+        executor = ::closeSessionExecutor
     )
 
     /**

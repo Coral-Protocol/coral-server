@@ -3,7 +3,7 @@ package org.coralprotocol.coralserver.mcp.tools
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
-import org.coralprotocol.coralserver.mcp.GenericToolSuccessOutput
+import org.coralprotocol.coralserver.mcp.GenericSuccessOutput
 import org.coralprotocol.coralserver.mcp.toMcpToolException
 import org.coralprotocol.coralserver.session.SessionAgent
 import org.coralprotocol.coralserver.session.SessionException
@@ -18,12 +18,12 @@ data class AddParticipantInput(
     val participantId: UniqueAgentName
 )
 
-fun addParticipantExecutor(agent: SessionAgent, arguments: AddParticipantInput): GenericToolSuccessOutput {
+fun addParticipantExecutor(agent: SessionAgent, arguments: AddParticipantInput): GenericSuccessOutput {
     try {
         val thread = agent.session.getThreadById(arguments.threadId)
         thread.addParticipant(agent, agent.session.getAgent(arguments.participantId))
 
-        return GenericToolSuccessOutput("Successfully added participant ${arguments.participantId} to thread ${arguments.threadId}")
+        return GenericSuccessOutput("Successfully added participant ${arguments.participantId} to thread ${arguments.threadId}")
     }
     catch (e: SessionException) {
         throw e.toMcpToolException()
