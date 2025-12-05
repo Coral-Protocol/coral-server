@@ -118,9 +118,10 @@ dependencies {
     implementation("io.github.smiley4:ktor-redoc:${ktorToolsVersion}")
 
     val schemaVersion = "2.4.0.1"
-    implementation("io.github.smiley4:schema-kenerator-core:${schemaVersion}")
-    implementation("io.github.smiley4:schema-kenerator-serialization:${schemaVersion}")
-    implementation("io.github.smiley4:schema-kenerator-swagger:${schemaVersion}")
+    implementation("io.github.smiley4:schema-kenerator-core:$schemaVersion")
+    implementation("io.github.smiley4:schema-kenerator-serialization:$schemaVersion")
+    implementation("io.github.smiley4:schema-kenerator-swagger:$schemaVersion")
+    implementation("io.github.smiley4:schema-kenerator-jsonschema:$schemaVersion")
 
     val koogVersion = "0.3.0.4" // Custom temp version from fork on CaelumF/koog
     testImplementation("ai.koog:koog-agents:$koogVersion") {
