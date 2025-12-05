@@ -46,9 +46,12 @@ import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
+import org.coralprotocol.coralserver.routes.api.v1.agentApiRoutes
 import org.coralprotocol.coralserver.routes.api.v1.documentationApiRoutes
+import org.coralprotocol.coralserver.routes.api.v1.internalRoutes
 import org.coralprotocol.coralserver.routes.api.v1.publicWalletApiRoutes
 import org.coralprotocol.coralserver.routes.api.v1.sessionApiRoutes
+import org.coralprotocol.coralserver.routes.api.v1.telemetryApiRoutes
 import org.coralprotocol.coralserver.routes.api.v1.x402Routes
 import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
 import org.coralprotocol.coralserver.session.LocalSessionManager
@@ -203,16 +206,14 @@ class CoralServer(
                             sessionApiRoutes(registry, localSessionManager, devmode)
                         }
 
-//                        messageApiRoutes(mcpServersByTransportId, localSessionManager, remoteSessionManager)
-                        //telemetryApiRoutes(localSessionManager)
-//                        agentApiRoutes(
-//                            registry,
-//                            blockchainService,
-//                            remoteSessionManager,
-//                            jupiterService,
-//                            config.paymentConfig
-//                        )
-//                        internalRoutes(remoteSessionManager, aggregatedPaymentClaimManager, jupiterService)
+                        telemetryApiRoutes(localSessionManager)
+                        agentApiRoutes(
+                            registry,
+                            blockchainService,
+                            jupiterService,
+                            config.paymentConfig
+                        )
+                        internalRoutes(aggregatedPaymentClaimManager, jupiterService)
                         publicWalletApiRoutes(config.paymentConfig.remoteAgentWallet)
                         x402Routes(localSessionManager, x402Service)
                     }

@@ -35,7 +35,6 @@ class Agents() {
 fun Route.agentApiRoutes(
     registry: AgentRegistry,
     blockchainService: BlockchainService?,
-    remoteSessionManager: RemoteSessionManager?,
     jupiterService: JupiterService,
     paymentConfig: PaymentConfig
 ) {
@@ -52,8 +51,9 @@ fun Route.agentApiRoutes(
             }
         }
     }) {
-        val agents = registry.agents.map { it.toPublic() }
-        call.respond(HttpStatusCode.OK, agents)
+        TODO()
+//        val agents = registry.agents.map { it.toPublic() }
+//        call.respond(HttpStatusCode.OK, agents)
     }
 
     post<Agents.Claim>({
@@ -80,28 +80,29 @@ fun Route.agentApiRoutes(
             }
         }
     }) {
-        if (remoteSessionManager == null || blockchainService == null)
-            throw RouteException(HttpStatusCode.InternalServerError, "Remote agents are disabled")
-
-        val paidGraphAgentRequest = call.receive<PaidGraphAgentRequest>()
-
-        try {
-            val claimId =
-                checkPaymentAndCreateClaim(
-                    request = paidGraphAgentRequest,
-                    registry = registry,
-                    blockchainService = blockchainService,
-                    remoteSessionManager = remoteSessionManager,
-                    jupiterService = jupiterService,
-                    paymentConfig = paymentConfig
-                )
-            call.respond(
-                HttpStatusCode.OK,
-                claimId
-            )
-        } catch (e: AgentRequestException) {
-            throw RouteException(HttpStatusCode.BadRequest, e)
-        }
+        TODO()
+//        if (remoteSessionManager == null || blockchainService == null)
+//            throw RouteException(HttpStatusCode.InternalServerError, "Remote agents are disabled")
+//
+//        val paidGraphAgentRequest = call.receive<PaidGraphAgentRequest>()
+//
+//        try {
+//            val claimId =
+//                checkPaymentAndCreateClaim(
+//                    request = paidGraphAgentRequest,
+//                    registry = registry,
+//                    blockchainService = blockchainService,
+//                    remoteSessionManager = remoteSessionManager,
+//                    jupiterService = jupiterService,
+//                    paymentConfig = paymentConfig
+//                )
+//            call.respond(
+//                HttpStatusCode.OK,
+//                claimId
+//            )
+//        } catch (e: AgentRequestException) {
+//            throw RouteException(HttpStatusCode.BadRequest, e)
+//        }
     }
 
     get<Agents.ExportedAgent>({
@@ -131,10 +132,11 @@ fun Route.agentApiRoutes(
             }
         }
     }) {
-        val agent = registry.findAgent(AgentRegistryIdentifier(it.name, it.version))
-            ?: throw RouteException(HttpStatusCode.NotFound, "Agent with ${it.name}:${it.version} not found")
-
-        call.respond(agent.exportSettings.toPublic())
+        TODO()
+//        val agent = registry.findAgent(AgentRegistryIdentifier(it.name, it.version))
+//            ?: throw RouteException(HttpStatusCode.NotFound, "Agent with ${it.name}:${it.version} not found")
+//
+//        call.respond(agent.exportSettings.toPublic())
     }
 }
 

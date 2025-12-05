@@ -17,7 +17,6 @@ import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 class Claim(val remoteSessionId: String)
 
 fun Route.internalRoutes(
-    remoteSessionManager: RemoteSessionManager?,
     aggregatedPaymentClaimManager: AggregatedPaymentClaimManager?,
     jupiterService: JupiterService
 ) {
@@ -54,23 +53,24 @@ fun Route.internalRoutes(
             }
         }
     }) {claim ->
-        if (remoteSessionManager == null || aggregatedPaymentClaimManager == null)
-            throw RouteException(HttpStatusCode.InternalServerError, "Remote sessions are disabled")
-
-        val request = call.receive<AgentPaymentClaimRequest>()
-        val session = remoteSessionManager.findSession(claim.remoteSessionId)
-            ?: throw RouteException(HttpStatusCode.NotFound, "Session not found")
-
-        val remainingToClaim = try {
-           aggregatedPaymentClaimManager.addClaim(request, session)
-        }
-        catch (e: IllegalArgumentException) {
-            throw RouteException(HttpStatusCode.BadRequest, e)
-        }
-
-        call.respond(AgentRemainingBudget(
-            remainingBudget = remainingToClaim,
-            coralUsdPrice = jupiterService.coralToUsd(1.0)
-        ))
+        TODO()
+//        if (remoteSessionManager == null || aggregatedPaymentClaimManager == null)
+//            throw RouteException(HttpStatusCode.InternalServerError, "Remote sessions are disabled")
+//
+//        val request = call.receive<AgentPaymentClaimRequest>()
+//        val session = remoteSessionManager.findSession(claim.remoteSessionId)
+//            ?: throw RouteException(HttpStatusCode.NotFound, "Session not found")
+//
+//        val remainingToClaim = try {
+//           aggregatedPaymentClaimManager.addClaim(request, session)
+//        }
+//        catch (e: IllegalArgumentException) {
+//            throw RouteException(HttpStatusCode.BadRequest, e)
+//        }
+//
+//        call.respond(AgentRemainingBudget(
+//            remainingBudget = remainingToClaim,
+//            coralUsdPrice = jupiterService.coralToUsd(1.0)
+//        ))
     }
 }
