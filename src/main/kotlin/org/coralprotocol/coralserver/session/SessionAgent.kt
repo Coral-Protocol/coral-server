@@ -10,6 +10,10 @@ import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
@@ -17,8 +21,8 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.LoggerWithFlow
-import org.coralprotocol.coralserver.mcp.addMcpTool
-import org.coralprotocol.coralserver.mcp.tools.*
+import org.coralprotocol.coralserver.mcp.McpTool
+import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.x402.X402BudgetedResource
 
 typealias SessionAgentSecret = String
@@ -40,7 +44,8 @@ class SessionAgent(
     val session: LocalSession,
     val graphAgent: GraphAgent,
     namespace: LocalSessionNamespace,
-    sessionManager: LocalSessionManager
+    sessionManager: LocalSessionManager,
+    mcpToolManager: McpToolManager
 ): Server(
     Implementation(
         name = "Coral Agent Server",
@@ -57,13 +62,14 @@ class SessionAgent(
     val coroutineScope: CoroutineScope = session.sessionScope
 
     init {
-        addMcpTool(AddParticipantTool())
-        addMcpTool(CloseThreadTool())
-        addMcpTool(CreateThreadTool())
-        addMcpTool(ListAgentsTool())
-        addMcpTool(RemoveParticipantTool())
-        addMcpTool(SendMessageTool())
-        addMcpTool(WaitForMentionsTool())
+        addMcpTool(mcpToolManager.createThreadTool)
+        addMcpTool(mcpToolManager.closeThreadTool)
+        addMcpTool(mcpToolManager.addParticipantTool)
+        addMcpTool(mcpToolManager.removeParticipantTool)
+        addMcpTool(mcpToolManager.sendMessageTool)
+        addMcpTool(mcpToolManager.waitForMessageTool)
+        addMcpTool(mcpToolManager.waitForMentionTool)
+        addMcpTool(mcpToolManager.waitForAgentMessageTool)
 
         // todo: custom tools
         // todo: plugins
@@ -107,6 +113,12 @@ class SessionAgent(
      * @see [waitForSseConnection]
      */
     private val firstConnectionEstablished = CompletableDeferred<SseServerTransport>()
+
+    /**
+     * This is true when [waitForMessage] is called and the agent is waiting for a message.  This will only be set to
+     * false when all calls to [waitForMessage] have returned.
+     */
+    private val isWaiting = MutableStateFlow(false)
 
     /**
      * A list of resources that this agent has access to, each resource constrained by a budget.  This is used for x402
@@ -260,6 +272,7 @@ class SessionAgent(
     ): SessionThreadMessage? {
         val messageChannel = Channel<SessionThreadMessage>(Channel.CONFLATED)
         messageChannels.add(messageChannel)
+        isWaiting.update { true }
 
         try {
             return withTimeoutOrNull(timeout) {
@@ -274,6 +287,28 @@ class SessionAgent(
         }
         finally {
             messageChannels.remove(messageChannel)
+            isWaiting.update { messageChannels.isNotEmpty() }
+        }
+    }
+
+    /**
+     * This will suspend until the [isWaiting] state is set to [state].  This was designed for tests, where the test
+     * needs to post messages but only after an agent enters a waiting state.
+     */
+    suspend fun waitForWaitState(state: Boolean) {
+        isWaiting.asStateFlow().first { it == state }
+    }
+
+    /**
+     * Adds a tool to this agent's MCP server.  This can be called at any time during the lifetime of the agent.
+     */
+    fun <In, Out> addMcpTool(tool: McpTool<In, Out>) {
+        addTool(
+            name = tool.name.toString(),
+            description = tool.description,
+            inputSchema = tool.inputSchema
+        ) { request ->
+            tool.execute(this, request.arguments)
         }
     }
 

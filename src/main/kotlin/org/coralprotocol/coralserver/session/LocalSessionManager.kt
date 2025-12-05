@@ -15,6 +15,7 @@ import org.coralprotocol.coralserver.agent.payment.toUsd
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 //import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
+import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
 import org.coralprotocol.payment.blockchain.BlockchainService
@@ -39,7 +40,9 @@ class LocalSessionManager(
 
     // Default value will not provide a Docker runtime
     val applicationRuntimeContext: ApplicationRuntimeContext = ApplicationRuntimeContext(),
-    val jupiterService: JupiterService
+    val jupiterService: JupiterService,
+
+    val mcpToolManager: McpToolManager = McpToolManager()
 ) {
     val managementScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -133,6 +136,7 @@ class LocalSessionManager(
             paymentSessionId = createPaymentSession(agentGraph)?.sessionId,
             agentGraph = agentGraph,
             sessionManager = this,
+            mcpToolManager = mcpToolManager
         )
         namespace.sessions[sessionId] = session
 

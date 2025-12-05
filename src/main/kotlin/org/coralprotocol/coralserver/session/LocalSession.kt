@@ -8,6 +8,7 @@ import kotlinx.coroutines.withTimeout
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.events.SessionEvent
+import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.session.remote.RemoteSession
@@ -42,16 +43,17 @@ class LocalSession(
     override val paymentSessionId: PaymentSessionId? = null,
     namespace: LocalSessionNamespace,
     agentGraph: AgentGraph,
-    sessionManager: LocalSessionManager
+    sessionManager: LocalSessionManager,
+    mcpToolManager: McpToolManager
 ): Session(sessionManager.managementScope) {
     /**
      * Agent states in this session.  Note that even though one [SessionAgent] maps to one graph agent, the agent
      * that is orchestrated is not guaranteed to be connected to the [SessionAgent].  There will always be a slight
      * delay between orchestration and an MCP connection between the agent and the agent state.
      */
-    val agents: Map<UniqueAgentName, SessionAgent> = agentGraph.agents.mapValues {
-        SessionAgent(this, it.value, namespace, sessionManager)
-    }
+    val agents: Map<UniqueAgentName, SessionAgent> = agentGraph.agents.map { (_, graphAgent) ->
+        graphAgent.name to SessionAgent(this, graphAgent, namespace, sessionManager, mcpToolManager)
+    }.toMap()
 
     /**
      * A list of threads in this session.  Threads are created by agents all messages in a session belong to threads.
