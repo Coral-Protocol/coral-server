@@ -58,7 +58,41 @@ class SessionThread(
     }
 
     /**
-     * Transitions this thread to being closed.  All messages in the thread will be deleted, the only remainining data
+     * Adds an agent to this thread.  The [requestingAgent] must be a participant of this thread.  The agent will
+     * receive a notification for each message posted historically to this thread, even if they were previously
+     * a participant of the thread.
+     *
+     * @throws SessionException.AlreadyParticipatingException If [targetAgent] is already participating in this thread
+     * @throws SessionException.NotParticipatingException If [requestingAgent] is not participating in this thread
+     */
+    fun addParticipant(requestingAgent: SessionAgent, targetAgent: SessionAgent) {
+        if (!participants.contains(requestingAgent.name))
+            throw SessionException.NotParticipatingException("Agent ${requestingAgent.name} is not participating in thread ${this.id}.  Agents must be participants of a thread before they can add others.")
+
+        if (participants.contains(targetAgent.name))
+            throw SessionException.AlreadyParticipatingException("Agent ${targetAgent.name} is already participating in thread ${this.id}")
+
+        participants.add(targetAgent.name)
+        messages.forEach { targetAgent.notifyMessage(it) }
+    }
+
+    /**
+     * Removes an agent from this thread.
+     *
+     * @throws SessionException.NotParticipatingException If neither [requestingAgent] nor [targetAgent] is not participating in this thread
+     */
+    fun removeParticipant(requestingAgent: SessionAgent, targetAgent: SessionAgent) {
+        if (!participants.contains(requestingAgent.name))
+            throw SessionException.NotParticipatingException("Agent ${requestingAgent.name} is not participating in thread ${this.id}.  Agents must be participants of a thread before they can remove others.")
+
+        if (!participants.contains(targetAgent.name))
+            throw SessionException.NotParticipatingException("Agent ${targetAgent.name} is not participating in thread ${this.id}")
+
+        participants.remove(targetAgent.name)
+    }
+
+    /**
+     * Transitions this thread to being closed.  All messages in the thread will be deleted, the only remaining data
      * on this thread will be the [summary].
      *
      * @param summary A summary of the thread content previous to its closing.
@@ -70,6 +104,7 @@ class SessionThread(
         state = SessionThreadState.Closed(summary)
         messages.clear()
     }
+
 }
 
 @Serializable
