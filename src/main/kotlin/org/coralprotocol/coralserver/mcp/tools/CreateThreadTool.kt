@@ -1,50 +1,34 @@
 package org.coralprotocol.coralserver.mcp.tools
 
-import io.modelcontextprotocol.kotlin.sdk.Tool
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonObject
-import org.coralprotocol.coralserver.mcp.McpTool
-import org.coralprotocol.coralserver.mcp.McpToolName
-import org.coralprotocol.coralserver.mcp.tools.models.CreateThreadInput
-import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
+import io.github.smiley4.schemakenerator.core.annotations.Description
+import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
+import org.coralprotocol.coralserver.mcp.toMcpToolException
 import org.coralprotocol.coralserver.session.SessionAgent
+import org.coralprotocol.coralserver.session.SessionException
+import org.coralprotocol.coralserver.session.SessionThread
 
-internal class CreateThreadTool: McpTool<CreateThreadInput>() {
-    override val name: McpToolName
-        get() = McpToolName.CREATE_THREAD
+@Serializable
+data class CreateThreadInput(
+    @Description("The name of the thread to create, this should be a short summary of the intended topic")
+    val threadName: String,
 
-    override val description: String
-        get() = "Create a new Coral thread with a list of participants"
+    @Description("The list of participants to include in the thread, this should include any agent that is expected to be involved in the thread's topic.  You do not need to include yourself in this list.")
+    val participantIds: Set<UniqueAgentName>
+)
 
-    override val inputSchema: Tool.Input
-        get() = Tool.Input(
-            properties = buildJsonObject {
-                putJsonObject("threadName") {
-                    put("type", "string")
-                    put("description", "Name of the thread")
-                }
-                putJsonObject("participantIds") {
-                    put("type", "array")
-                    put("description", "List of agent IDs to include as participants")
-                    putJsonObject("items") {
-                        put("type", "string")
-                    }
-                }
-            },
-            required = listOf("threadName", "participantIds")
+@Serializable
+data class CreateThreadOutput(
+    val thread: SessionThread
+)
+
+fun createThreadExecutor(agent: SessionAgent, arguments: CreateThreadInput): CreateThreadOutput {
+    try {
+        return CreateThreadOutput(
+            agent.session.createThread(arguments.threadName, agent.name, arguments.participantIds)
         )
-
-    override val argumentsSerializer: KSerializer<CreateThreadInput>
-        get() = CreateThreadInput.serializer()
-
-    override suspend fun execute(agent: SessionAgent, arguments: CreateThreadInput): McpToolResult {
-        TODO()
-//        return McpToolResult.CreateThreadSuccess(mcpServer.localSession.createThread(
-//            name = arguments.threadName,
-//            creatorId = mcpServer.connectedAgentId,
-//            participantIds = arguments.participantIds
-//        ).resolve())
+    }
+    catch (e: SessionException) {
+        throw e.toMcpToolException()
     }
 }

@@ -1,51 +1,30 @@
 package org.coralprotocol.coralserver.mcp.tools
 
-import io.modelcontextprotocol.kotlin.sdk.Tool
-import kotlinx.serialization.KSerializer
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonObject
-import org.coralprotocol.coralserver.mcp.McpTool
-import org.coralprotocol.coralserver.mcp.McpToolName
-import org.coralprotocol.coralserver.mcp.tools.models.CloseThreadInput
-import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
+import io.github.smiley4.schemakenerator.core.annotations.Description
+import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
+import org.coralprotocol.coralserver.mcp.GenericToolSuccessOutput
+import org.coralprotocol.coralserver.mcp.toMcpToolException
 import org.coralprotocol.coralserver.session.SessionAgent
+import org.coralprotocol.coralserver.session.SessionException
 
-internal class CloseThreadTool: McpTool<CloseThreadInput>() {
-    override val name: McpToolName
-        get() = McpToolName.CLOSE_THREAD
+@Serializable
+data class CloseThreadInput(
+    @Description("The unique identifier for the thread to close")
+    val threadId: String,
 
-    override val description: String
-        get() = "Closes a Coral thread with a summary"
+    @Description("A shortened summary of all important details in this thread.  This could also be considered the thread's \"conclusion\".")
+    val summary: String
+)
 
-    override val inputSchema: Tool.Input
-        get() = Tool.Input(
-            properties = buildJsonObject {
-                putJsonObject("threadId") {
-                    put("type", "string")
-                    put("description", "ID of the thread to close")
-                }
-                putJsonObject("summary") {
-                    put("type", "string")
-                    put("description", "Summary of the thread")
-                }
-            },
-            required = listOf("threadId", "summary")
-        )
+fun closeThreadExecutor(agent: SessionAgent, arguments: CloseThreadInput): GenericToolSuccessOutput {
+    try {
+        val thread = agent.session.getThreadById(arguments.threadId)
+        thread.close(arguments.summary)
 
-    override val argumentsSerializer: KSerializer<CloseThreadInput>
-        get() = CloseThreadInput.serializer()
-
-    override suspend fun execute(agent: SessionAgent, arguments: CloseThreadInput): McpToolResult {
-        TODO()
-//        return if (mcpServer.localSession.closeThread(
-//                threadId = arguments.threadId,
-//                summary = arguments.summary
-//            )) {
-//            McpToolResult.CloseThreadSuccess
-//        }
-//        else {
-//            McpToolResult.Error("Failed to close thread: Thread not found")
-//        }
+        return GenericToolSuccessOutput("Successfully closed thread ${arguments.threadId}")
+    }
+    catch (e: SessionException) {
+        throw e.toMcpToolException()
     }
 }

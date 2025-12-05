@@ -16,7 +16,7 @@ make sure to include the agents you want to communicate with in the thread.  It 
 thread with the $ADD_PARTICIPANT tool.  If a thread has reached a conclusion or is no longer productive, you
 can close the thread with the $CLOSE_THREAD tool.  It is very important to use the $SEND_MESSAGE
 tool to communicate in these threads as no other agent will see your messages otherwise!  If you have sent a message
-and expect or require a response from another agent, use the $WAIT_FOR_MENTIONS tool to wait for a response.
+
 
 In most cases assistant message output will not reach the user.  Use tooling where possible to communicate with the user instead.
 """
