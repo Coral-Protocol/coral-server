@@ -41,18 +41,10 @@ import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.Config
-import org.coralprotocol.coralserver.mcp.McpResources
 import org.coralprotocol.coralserver.mcp.McpToolName
-import org.coralprotocol.coralserver.mcp.tools.models.McpToolResult
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
-import org.coralprotocol.coralserver.routes.api.v1.agentApiRoutes
-import org.coralprotocol.coralserver.routes.api.v1.documentationApiRoutes
-import org.coralprotocol.coralserver.routes.api.v1.internalRoutes
-import org.coralprotocol.coralserver.routes.api.v1.publicWalletApiRoutes
-import org.coralprotocol.coralserver.routes.api.v1.sessionApiRoutes
-import org.coralprotocol.coralserver.routes.api.v1.telemetryApiRoutes
-import org.coralprotocol.coralserver.routes.api.v1.x402Routes
+import org.coralprotocol.coralserver.routes.api.v1.*
 import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.payment.blockchain.BlockchainService
@@ -144,8 +136,6 @@ class CoralServer(
 
                     // Mcp types
                     schema<McpToolName>("McpToolName")
-                    schema<McpResources>("McpResources")
-                    schema<McpToolResult>("McpToolResult")
                 }
                 specAssigner = { url: String, tags: List<String> ->
                     // when another spec version is added, determine the version based on the url here or use
