@@ -424,25 +424,37 @@ class SessionAgent(
      * that they understand the current Coral-managed state.
      */
     fun renderState(): String {
+        val agents = links.map { it.asJsonState() }
+        val threads = getThreads().map { it.asJsonState() }
+
         val agentsText = """
         # Agents
         You collaborate with ${links.size} other agents, described below:
         
         ```json
-        ${links.map { it.asJsonState() }.joinToString("\n")}
+        [${agents.joinToString(",")}]
         ```
         """
 
-        val composed = """
-        # General
-        You are an agent named $name.  The current UNIX time is ${System.currentTimeMillis()}.${if (links.isEmpty()) "\n" else agentsText}
+        val threadsText = """
         # Threads and messages
         You have access to the following threads and their messages:
         
         ```json
-        [${getThreads().map { it.asJsonState() }.joinToString("\n")}]
+        [${threads.joinToString(",")}]
         ```
         """
+
+        var composed = """
+        # General
+        You are an agent named $name.  The current UNIX time is ${System.currentTimeMillis()}.
+        """
+
+        if (agents.isNotEmpty())
+            composed += agentsText
+
+        if (threads.isNotEmpty())
+            composed += threadsText
 
         return composed.trimIndent()
     }
