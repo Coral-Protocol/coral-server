@@ -41,8 +41,6 @@ class McpToolsTest : McpSessionBuilding() {
      */
     @Test
     fun testCommonTools() = runTest {
-        val toolManager = McpToolManager()
-
         val singleMessageText = UUID.randomUUID().toString()
         val agentMessageText = UUID.randomUUID().toString()
         val mentionText = UUID.randomUUID().toString()
@@ -60,7 +58,7 @@ class McpToolsTest : McpSessionBuilding() {
 
                         val threadName = "test thread"
                         val createThreadResult =
-                            toolManager.createThreadTool.executeOn(client, CreateThreadInput(threadName, setOf(agent2Name)))
+                            mcpToolManager.createThreadTool.executeOn(client, CreateThreadInput(threadName, setOf(agent2Name)))
 
                         assert(createThreadResult.thread.name == threadName)
                         assert(createThreadResult.thread.creatorName == agent1Name)
@@ -71,7 +69,7 @@ class McpToolsTest : McpSessionBuilding() {
                         agent3.waitForWaitState(true)
 
                         val sendMessageResult =
-                            toolManager.sendMessageTool.executeOn(
+                            mcpToolManager.sendMessageTool.executeOn(
                                 client,
                                 SendMessageInput(createThreadResult.thread.id, singleMessageText, setOf())
                             )
@@ -82,7 +80,7 @@ class McpToolsTest : McpSessionBuilding() {
 
                         // wait for agent2 to begin waiting for this message, this time narrowed to just agent1
                         agent2.waitForWaitState(true)
-                        toolManager.sendMessageTool.executeOn(client, SendMessageInput(createThreadResult.thread.id, agentMessageText, setOf()))
+                        mcpToolManager.sendMessageTool.executeOn(client, SendMessageInput(createThreadResult.thread.id, agentMessageText, setOf()))
                         agent2.waitForWaitState(false)
 
                         // wait for agent2 to begin waiting for a MENTIONING message
@@ -90,38 +88,38 @@ class McpToolsTest : McpSessionBuilding() {
 
                         // send a bunch of garbage messages, these should not be picked up by the wait
                         repeat(100) {
-                            toolManager.sendMessageTool.executeOn(
+                            mcpToolManager.sendMessageTool.executeOn(
                                 client,
                                 SendMessageInput(createThreadResult.thread.id, "test", setOf())
                             )
                         }
 
                         // now send the last message, with the mention
-                        toolManager.sendMessageTool.executeOn(client, SendMessageInput(createThreadResult.thread.id, mentionText, setOf(agent2Name)))
+                        mcpToolManager.sendMessageTool.executeOn(client, SendMessageInput(createThreadResult.thread.id, mentionText, setOf(agent2Name)))
                         agent2.waitForWaitState(false)
 
-                        toolManager.addParticipantTool.executeOn(client, AddParticipantInput(createThreadResult.thread.id, agent3Name))
+                        mcpToolManager.addParticipantTool.executeOn(client, AddParticipantInput(createThreadResult.thread.id, agent3Name))
                         agent3.waitForWaitState(false)
                     }
                 },
                 agent2Name to { client, _ ->
                     val singleMessageResult =
-                        toolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput)
+                        mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput)
                     assert(singleMessageResult.message?.text == singleMessageText)
 
                     val agentMessageResult =
-                        toolManager.waitForAgentMessageTool.executeOn(client, WaitForAgentMessageInput(agent1Name))
+                        mcpToolManager.waitForAgentMessageTool.executeOn(client, WaitForAgentMessageInput(agent1Name))
                     assert(agentMessageResult.message?.text == agentMessageText)
 
                     val mentionResult =
-                        toolManager.waitForMentionTool.executeOn(client, WaitForMentioningMessageInput)
+                        mcpToolManager.waitForMentionTool.executeOn(client, WaitForMentioningMessageInput)
                     assert(mentionResult.message?.text == mentionText)
                 },
                 agent3Name to { client, session ->
                     val agent3 = session.getAgent(agent3Name)
 
                     val singleMessageResult =
-                        toolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput).message
+                        mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput).message
                     assertNotNull(singleMessageResult)
 
                     // the first message that this agent should receive is the first message sent by agent1, but only
@@ -129,7 +127,7 @@ class McpToolsTest : McpSessionBuilding() {
                     assert(singleMessageResult.text == singleMessageText)
                     assert(agent3.getVisibleMessages().isNotEmpty())
 
-                    toolManager.closeThreadTool.executeOn(client,
+                    mcpToolManager.closeThreadTool.executeOn(client,
                         CloseThreadInput(singleMessageResult.threadId, "Test thread closed")
                     )
 
@@ -140,7 +138,7 @@ class McpToolsTest : McpSessionBuilding() {
                     assert(agent3.getThreads().isNotEmpty())
 
                     // until agent3 is removed as a participant
-                    toolManager.removeParticipantTool.executeOn(client, RemoveParticipantInput(singleMessageResult.threadId, agent3Name))
+                    mcpToolManager.removeParticipantTool.executeOn(client, RemoveParticipantInput(singleMessageResult.threadId, agent3Name))
 
                     // and now agent3 should have no threads
                     assert(agent3.getThreads().isEmpty())
