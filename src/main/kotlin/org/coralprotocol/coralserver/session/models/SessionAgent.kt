@@ -13,6 +13,7 @@ data class SessionAgent(
     val id: String,
     var description: String = "",
     var state: SessionAgentState = SessionAgentState.Disconnected,
+    var sleeping: Boolean = false,
     var mcpUrl: String?,
     val extraTools: Set<CustomTool> = setOf(),
     val coralPlugins: Set<GraphAgentPlugin> = setOf(),

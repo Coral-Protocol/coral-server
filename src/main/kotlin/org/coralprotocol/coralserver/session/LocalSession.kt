@@ -3,8 +3,12 @@ package org.coralprotocol.coralserver.session
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.util.collections.*
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.currentCoroutineContext
 import org.coralprotocol.coralserver.EventBus
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
+import org.coralprotocol.coralserver.agent.graph.SleepEvent
+import org.coralprotocol.coralserver.agent.graph.WakeEvent
 import org.coralprotocol.coralserver.models.Message
 import org.coralprotocol.coralserver.models.Thread
 import org.coralprotocol.coralserver.models.resolve
@@ -44,6 +48,10 @@ class LocalSession(
 
     private val eventBus = EventBus<SessionEvent>()
     val events get() = eventBus.events
+
+    private val firstThreadAdded = ConcurrentSet<String>()
+
+    private val sleepingWaiters = ConcurrentHashMap<String, CompletableDeferred<Unit>>()
 
     init {
         agentGraph?.run {
@@ -128,6 +136,13 @@ class LocalSession(
         )
         agents[sessionAgent.id] = sessionAgent
 
+        graphAgent?.sleepEvents?.let { events ->
+            if (events.contains(SleepEvent.AGENT_STARTED)) {
+                setAgentSleeping(agentId, true)
+            }
+        }
+        // TODO: eventBus.emit(SessionEvent.AgentRegistered(sessionAgent)) ?
+
         return sessionAgent
     }
 
@@ -202,6 +217,18 @@ class LocalSession(
         if (!thread.participants.contains(participantId)) {
             thread.participants.add(participantId)
             lastReadMessageIndex[Pair(participantId, threadId)] = thread.messages.size
+
+            val graphAgent = agentGraph?.agents[participantId]
+            val isFirstTime = !firstThreadAdded.contains(participantId)
+            if (graphAgent != null) { // else devmode
+                if (graphAgent.wakeEvents.contains(WakeEvent.ADDED_TO_ANY_THREAD)) {
+                    setAgentSleeping(participantId, false)
+                }
+                if (isFirstTime && graphAgent.wakeEvents.contains(WakeEvent.ADDED_TO_THREAD_FIRST_TIME)) {
+                    setAgentSleeping(participantId, false)
+                }
+            }
+            if (isFirstTime) firstThreadAdded.add(participantId)
         }
         return true
     }
@@ -211,7 +238,15 @@ class LocalSession(
 
         if (thread.isClosed) return false
 
-        return thread.participants.remove(participantId)
+        val wasActuallyRemoved = thread.participants.remove(participantId)
+        if (wasActuallyRemoved) {
+            val hasRemainingOpenThreads = threads.values.any { it.participants.contains(participantId) && !it.isClosed }
+            val graphAgent = agentGraph?.agents[participantId]
+            if (!hasRemainingOpenThreads && graphAgent?.sleepEvents?.contains(SleepEvent.REMOVED_FROM_LAST_THREAD) == true) {
+                setAgentSleeping(participantId, true)
+            }
+        }
+        return wasActuallyRemoved
     }
 
     fun closeThread(threadId: String, summary: String): Boolean {
@@ -219,6 +254,16 @@ class LocalSession(
 
         thread.isClosed = true
         thread.summary = summary
+
+        // Sleep agents that now have no open threads if configured
+        val participantsSnapshot = thread.participants.toList()
+        participantsSnapshot.forEach { participantId ->
+            val graphAgent = agentGraph?.agents[participantId]
+            val hasAnyOpenThreads = threads.values.any { it.participants.contains(participantId) && !it.isClosed }
+            if (!hasAnyOpenThreads && graphAgent?.sleepEvents?.contains(SleepEvent.LAST_THREAD_CLOSED) == true) {
+                setAgentSleeping(participantId, true)
+            }
+        }
 
         return true
     }
@@ -265,6 +310,11 @@ class LocalSession(
             val deferred = agentNotifications[mentionId]
             if (deferred != null && !deferred.isCompleted) {
                 deferred.complete(listOf(message))
+            }
+            // Wake on mention if configured
+            val graphAgent = agentGraph?.agents[mentionId]
+            if (graphAgent?.wakeEvents?.contains(WakeEvent.MENTIONED) == true) {
+                setAgentSleeping(mentionId, false)
             }
         }
     }
@@ -331,5 +381,37 @@ class LocalSession(
     override suspend fun destroy(sessionCloseMode: SessionCloseMode) {
         super.destroy(sessionCloseMode)
         clearAll()
+    }
+
+    fun isAgentSleeping(agentId: String): Boolean {
+        return agents[agentId]?.sleeping ?: false
+    }
+
+    fun setAgentSleeping(agentId: String, sleeping: Boolean): Boolean {
+        val agent = agents[agentId] ?: return false
+        agent.sleeping = sleeping
+        if (!sleeping) {
+            sleepingWaiters.remove(agentId)?.complete(Unit)
+        } else {
+            sleepingWaiters.remove(agentId)
+        }
+        return true
+    }
+
+    suspend fun awaitAwake(agentId: String) {
+        val agent = agents[agentId] ?: return
+        if (!agent.sleeping) return
+        var waiter = sleepingWaiters[agentId]
+        if (waiter == null) {
+            val newWaiter = CompletableDeferred<Unit>()
+            val prev = sleepingWaiters.putIfAbsent(agentId, newWaiter)
+            waiter = prev ?: newWaiter
+        }
+        if (!agent.sleeping) {
+            sleepingWaiters.remove(agentId)?.complete(Unit)
+            return
+        }
+        currentCoroutineContext().ensureActive()
+        waiter.await()
     }
 }

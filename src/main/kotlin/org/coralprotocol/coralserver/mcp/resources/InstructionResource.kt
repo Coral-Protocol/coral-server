@@ -21,7 +21,8 @@ and expect or require a response from another agent, use the $WAIT_FOR_MENTIONS 
 In most cases assistant message output will not reach the user.  Use tooling where possible to communicate with the user instead.
 """
 
-private fun handle(request: ReadResourceRequest): ReadResourceResult {
+private suspend fun CoralAgentIndividualMcp.handle(request: ReadResourceRequest): ReadResourceResult {
+    localSession.awaitAwake(connectedAgentId)
     return ReadResourceResult(
         contents = listOf(
             TextResourceContents(
@@ -39,7 +40,7 @@ fun CoralAgentIndividualMcp.addInstructionResource() {
         description = "Coral instructions resource",
         uri = INSTRUCTION_RESOURCE_URI.toString(),
         mimeType = "text/markdown",
-        readHandler = ::handle,
+        readHandler = { request -> this.handle(request) },
     )
     // deprecated
     addResource(
@@ -47,6 +48,6 @@ fun CoralAgentIndividualMcp.addInstructionResource() {
         description = "Coral instructions resource",
         uri = "Instruction.resource",
         mimeType = "text/markdown",
-        readHandler = ::handle,
+        readHandler = { request -> this.handle(request) },
     )
 }

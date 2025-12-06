@@ -48,6 +48,14 @@ data class GraphAgentRequest(
 
     @Description("An optional list of resources and an accompanied budget that this agent may spend on services that accept x402 payments")
     val x402Budgets: List<X402BudgetedResource> = listOf(),
+
+    @Description("Events that should cause this agent to go to sleep")
+    @SerialName("sleepEvents")
+    val sleepEvents: Set<SleepEvent> = emptySet(),
+
+    @Description("Events that should cause this agent to wake up")
+    @SerialName("wakeEvents")
+    val wakeEvents: Set<WakeEvent> = emptySet(),
 ) {
     /**
      * Given a reference to the agent registry [AgentRegistry], this function will attempt to convert this request into
@@ -124,6 +132,38 @@ data class GraphAgentRequest(
             plugins = plugins,
             provider = provider,
             x402Budgets = x402Budgets,
+            sleepEvents = sleepEvents,
+            wakeEvents = wakeEvents,
         )
     }
+}
+
+/**
+ * Events that will put the agent into a sleeping state.
+ */
+@Serializable
+enum class SleepEvent {
+    @SerialName("agent_started")
+    AGENT_STARTED,
+
+    @SerialName("removed_from_last_thread")
+    REMOVED_FROM_LAST_THREAD,
+
+    @SerialName("last_thread_closed")
+    LAST_THREAD_CLOSED,
+}
+
+/**
+ * Events that will wake the agent from a sleeping state.
+ */
+@Serializable
+enum class WakeEvent {
+    @SerialName("added_to_any_thread")
+    ADDED_TO_ANY_THREAD,
+
+    @SerialName("added_to_thread_first_time")
+    ADDED_TO_THREAD_FIRST_TIME,
+
+    @SerialName("mentioned")
+    MENTIONED,
 }

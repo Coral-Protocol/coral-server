@@ -87,6 +87,18 @@ data class GraphAgent(
     val x402Budgets: List<X402BudgetedResource>,
 
     /**
+     * A set of events that should cause this agent to enter a sleeping state
+     * @see GraphAgentRequest.sleepEvents
+     */
+    val sleepEvents: Set<SleepEvent> = emptySet(),
+
+    /**
+     * A set of events that should cause this agent to wake from a sleeping state
+     * @see GraphAgentRequest.sleepEvents
+     */
+    val wakeEvents: Set<WakeEvent> = emptySet(),
+
+    /**
      * Runtime secret ID.  This is given to agents as an environment variable so that they may identify themselves to
      * the server securely.  This is useful for example, when consuming x402 budgets, we do not want to let agent A
      * access a x402 budget given to agent B.

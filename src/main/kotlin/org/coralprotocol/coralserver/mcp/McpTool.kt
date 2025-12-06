@@ -23,6 +23,7 @@ abstract class McpTool<T>() {
     internal abstract suspend fun execute(mcpServer: CoralAgentIndividualMcp, arguments: T): McpToolResult
 
     internal suspend fun executeRaw(mcpServer: CoralAgentIndividualMcp, request: CallToolRequest): CallToolResult {
+        mcpServer.localSession.awaitAwake(mcpServer.connectedAgentId)
 
         val arguments = try {
             apiJsonConfig.decodeFromString(argumentsSerializer, request.arguments.toString())
