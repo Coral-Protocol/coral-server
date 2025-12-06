@@ -33,8 +33,6 @@ class McpResourceTest : McpSessionBuilding() {
      */
     @Test
     fun testCommonTools() = runTest {
-        val toolManager = McpToolManager()
-
         val agent1Name = "agent1"
         val agent2Name = "agent2"
         val agent3Name = "agent3"
@@ -46,9 +44,9 @@ class McpResourceTest : McpSessionBuilding() {
                 agent1Name to { client, _ ->
                     shouldNotThrowAny {
                         val createThreadResult =
-                            toolManager.createThreadTool.executeOn(client, CreateThreadInput("$agent1Name thread", setOf(agent2Name, agent3Name)))
+                            mcpToolManager.createThreadTool.executeOn(client, CreateThreadInput("$agent1Name thread", setOf(agent2Name, agent3Name)))
 
-                        toolManager.sendMessageTool.executeOn(client, SendMessageInput(createThreadResult.thread.id, "test message", setOf()))
+                        mcpToolManager.sendMessageTool.executeOn(client, SendMessageInput(createThreadResult.thread.id, "test message", setOf()))
 
                         // should include 1 thread and 1 message
                         val state = client.readResourceByName(McpResourceName.STATE_RESOURCE_URI)
@@ -72,9 +70,9 @@ class McpResourceTest : McpSessionBuilding() {
                         threads.first { it == 1 }
 
                         val createThreadResult =
-                            toolManager.createThreadTool.executeOn(client, CreateThreadInput("$agent2Name thread", setOf(agent1Name, agent3Name)))
+                            mcpToolManager.createThreadTool.executeOn(client, CreateThreadInput("$agent2Name thread", setOf(agent1Name, agent3Name)))
 
-                        toolManager.sendMessageTool.executeOn(client, SendMessageInput(createThreadResult.thread.id, "test message", setOf()))
+                        mcpToolManager.sendMessageTool.executeOn(client, SendMessageInput(createThreadResult.thread.id, "test message", setOf()))
 
                         // should include output from agent1 and agent2 but not agent3
                         val state = client.readResourceByName(McpResourceName.STATE_RESOURCE_URI)
@@ -92,9 +90,9 @@ class McpResourceTest : McpSessionBuilding() {
                         threads.first { it == 2 }
 
                         val createThreadResult =
-                            toolManager.createThreadTool.executeOn(client, CreateThreadInput("$agent3Name thread", setOf(agent1Name, agent2Name)))
+                            mcpToolManager.createThreadTool.executeOn(client, CreateThreadInput("$agent3Name thread", setOf(agent1Name, agent2Name)))
 
-                        toolManager.sendMessageTool.executeOn(client, SendMessageInput(createThreadResult.thread.id, "test message", setOf()))
+                        mcpToolManager.sendMessageTool.executeOn(client, SendMessageInput(createThreadResult.thread.id, "test message", setOf()))
 
                         // should include all threads
                         val state = client.readResourceByName(McpResourceName.STATE_RESOURCE_URI)

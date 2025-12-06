@@ -12,6 +12,7 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
+import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
 import org.coralprotocol.coralserver.agent.registry.RegistryAgent
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentInfo
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
@@ -23,12 +24,14 @@ import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.config.NetworkConfig
+import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
 import org.coralprotocol.coralserver.server.apiJsonConfig
 import java.nio.file.Path
 
 open class SessionBuilding {
+    protected val mcpToolManager = McpToolManager()
     protected val sessionManager = LocalSessionManager(
         // no blockchain services in testing
         blockchainService = null,
@@ -44,6 +47,7 @@ open class SessionBuilding {
 
         // might as well...
         jupiterService = JupiterService(),
+        mcpToolManager = mcpToolManager
     )
 
     protected fun registryAgent(
@@ -75,7 +79,8 @@ open class SessionBuilding {
         registryAgent: RegistryAgent = registryAgent(),
         blocking: Boolean = true,
         provider: GraphAgentProvider = GraphAgentProvider.Local(RuntimeId.FUNCTION),
-        options: Map<String, AgentOptionWithValue> = mapOf()
+        options: Map<String, AgentOptionWithValue> = mapOf(),
+        plugins: Set<GraphAgentPlugin> = setOf(),
     ) =
         registryAgent.info.name to GraphAgent(
             registryAgent = registryAgent,
@@ -85,7 +90,7 @@ open class SessionBuilding {
             systemPrompt = null,
             blocking = blocking,
             customToolAccess = setOf(),
-            plugins = setOf(),
+            plugins = plugins,
             provider = provider,
             x402Budgets = listOf(),
         )
