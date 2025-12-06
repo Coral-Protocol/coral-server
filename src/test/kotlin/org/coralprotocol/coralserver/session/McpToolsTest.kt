@@ -27,47 +27,7 @@ import org.coralprotocol.coralserver.mcp.tools.CloseThreadInput
 import org.coralprotocol.coralserver.mcp.tools.RemoveParticipantInput
 import kotlin.test.assertNotNull
 
-class McpToolsTest : SessionBuilding() {
-    fun buildSession(agents: Map<UniqueAgentName, suspend (Client, LocalSession) -> Unit>) = sseEnv {
-        withContext(Dispatchers.IO) {
-            val (session, _) = sessionManager.createSession(
-                "test", AgentGraph(
-                    agents = agents.mapValues { (name, func) ->
-                        graphAgent(
-                            registryAgent = registryAgent(
-                                name = name,
-                                functionRuntime = FunctionRuntime { executionContext, applicationRuntimeContext ->
-                                    val mcpClient = Client(
-                                        clientInfo = Implementation(
-                                            name = name,
-                                            version = "1.0.0"
-                                        )
-                                    )
-
-                                    val transport = SseClientTransport(
-                                        client = client,
-                                        urlString = applicationRuntimeContext.getMcpUrl(
-                                            executionContext,
-                                            AddressConsumer.LOCAL
-                                        ).toString()
-                                    )
-                                    mcpClient.connect(transport)
-                                    func(mcpClient, executionContext.session)
-                                }
-                            ),
-                            provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
-                        ).second
-                    },
-                    customTools = mapOf(),
-                    groups = setOf()
-                )
-            )
-
-            session.launchAgents()
-            session.joinAgents()
-        }
-    }
-
+class McpToolsTest : McpSessionBuilding() {
     /**
      * Tool coverage:
      * [McpToolName.CREATE_THREAD]
