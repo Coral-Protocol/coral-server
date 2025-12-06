@@ -39,8 +39,7 @@ data class GraphAgentRequest(
     @Description("A list of custom tools that this agent can access.  The custom tools must be defined in the parent AgentGraphRequest object")
     val customToolAccess: Set<String>,
 
-    @Description("Optional Coral features that this agent should have access to")
-    @SerialName("coralPlugins")
+    @Description("Plugins that should be installed on this agent.  See GraphAgentPlugin for more information")
     val plugins: Set<GraphAgentPlugin>,
 
     @Description("The server that should provide this agent and the runtime to use")
