@@ -1,10 +1,6 @@
 package org.coralprotocol.coralserver.session
 
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.runtime.ExecutableRuntime
@@ -13,17 +9,46 @@ import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.events.SessionEvent
 import kotlin.test.Test
 
-class SessionEvents : SessionBuilding() {
+open class SessionEvents : McpSessionBuilding() {
+    suspend fun LocalSession.shouldPostEvents(expectedEvents: MutableList<(event: SessionEvent) -> Boolean>, block: suspend () -> Unit) {
+        val listening = CompletableDeferred<Unit>()
+        val eventJob = sessionScope.launch {
+            listening.complete(Unit)
+
+            events.collect { event ->
+                expectedEvents.removeAll { it(event) }
+
+                if (expectedEvents.isEmpty())
+                    cancel()
+            }
+        }
+
+        val blockJob = sessionScope.launch {
+            listening.await()
+            block()
+        }
+
+        withTimeoutOrNull(1000) {
+            joinAll(eventJob, blockJob)
+        } ?: throw AssertionError("timeout waiting for events ${expectedEvents.size} more events")
+    }
+
     @Test
-    fun testAgentEvents() = sseEnv {
+    fun testRuntimeEvents() = sseEnv {
         withContext(Dispatchers.IO) {
             val (session, _) = sessionManager.createSession("test", AgentGraph(
                 agents = mapOf(
                     graphAgent(
                         registryAgent = registryAgent(
                             name = "agent1",
-                            functionRuntime = FunctionRuntime { _, _ ->
-
+                            functionRuntime = FunctionRuntime { executionContext, applicationRuntimeContext ->
+                                executionContext.session.shouldPostEvents(mutableListOf(
+                                    { it == SessionEvent.AgentConnected("agent1") },
+                                )) {
+                                    client.mcpFunctionRuntime("agent1") { _, _ ->
+                                        // just to trigger AgentConnected
+                                    }.execute(executionContext, applicationRuntimeContext)
+                                }
                             }
                         ),
                         provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
@@ -40,21 +65,16 @@ class SessionEvents : SessionBuilding() {
                 groups = setOf()
             ))
 
-            val collecting = CompletableDeferred<Unit>()
-            val events = mutableListOf<SessionEvent>()
-            session.sessionScope.launch {
-                collecting.complete(Unit)
-                session.events.toList(events)
+            session.shouldPostEvents(mutableListOf(
+                { it == SessionEvent.RuntimeStarted("agent1") },
+                { it == SessionEvent.RuntimeStarted("agent2") },
+                { it == SessionEvent.RuntimeStopped("agent1") },
+                { it == SessionEvent.RuntimeStopped("agent1") },
+            )) {
+                session.launchAgents()
             }
 
-            collecting.await()
-            session.launchAgents()
             session.joinAgents()
-
-            assert(events.any { it is SessionEvent.RuntimeStarted && it.name == "agent1" })
-            assert(events.any { it is SessionEvent.RuntimeStarted && it.name == "agent2" })
-            assert(events.any { it is SessionEvent.RuntimeStopped && it.name == "agent1" })
-            assert(events.any { it is SessionEvent.RuntimeStopped && it.name == "agent2" })
         }
     }
 }
