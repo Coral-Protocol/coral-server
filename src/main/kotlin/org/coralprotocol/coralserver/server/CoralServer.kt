@@ -200,6 +200,7 @@ class CoralServer(
                 debugApiRoutes(localSessionManager)
                 sessionApiRoutes(registry, localSessionManager, devmode)
                 messageApiRoutes(mcpServersByTransportId, localSessionManager, remoteSessionManager)
+                sleepingRoutes(localSessionManager)
                 telemetryApiRoutes(localSessionManager)
                 documentationApiRoutes()
                 agentApiRoutes(registry, blockchainService, remoteSessionManager, jupiterService, config.paymentConfig)

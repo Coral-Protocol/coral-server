@@ -10,7 +10,8 @@ import org.coralprotocol.coralserver.models.ResolvedThread
 import org.coralprotocol.coralserver.models.resolve
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
-private fun CoralAgentIndividualMcp.handler(request: ReadResourceRequest): ReadResourceResult {
+private suspend fun CoralAgentIndividualMcp.handler(request: ReadResourceRequest): ReadResourceResult {
+    localSession.awaitAwake(connectedAgentId)
     val threadsAgentPrivyIn: List<ResolvedThread> = this.localSession.getAllThreadsAgentParticipatesIn(this.connectedAgentId).map { it -> it.resolve() }
     val renderedThreads: String = XML.encodeToString(threadsAgentPrivyIn, rootName = QName("threads"))
     return ReadResourceResult(

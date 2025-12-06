@@ -6,7 +6,8 @@ import io.modelcontextprotocol.kotlin.sdk.TextResourceContents
 import org.coralprotocol.coralserver.mcp.McpResources.AGENT_RESOURCE_URI
 import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
 
-private fun CoralAgentIndividualMcp.handler(request: ReadResourceRequest): ReadResourceResult {
+private suspend fun CoralAgentIndividualMcp.handler(request: ReadResourceRequest): ReadResourceResult {
+    localSession.awaitAwake(connectedAgentId)
     val otherAgents = localSession
         .agents
         .filter { (name, _) -> name != connectedAgentId }
