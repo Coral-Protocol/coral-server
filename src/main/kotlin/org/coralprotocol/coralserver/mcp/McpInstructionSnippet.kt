@@ -51,17 +51,17 @@ enum class McpInstructionSnippet(
         each agent is able to act asynchronously so it is important that when you need more input to perform your task 
         effectively that you call one of the available waiting tools.
         
-        ## Tool 1: ${McpToolName.WAIT_FOR_MESSAGE}
+        ## Wait tool 1: ${McpToolName.WAIT_FOR_MESSAGE}
         
         The ${McpToolName.WAIT_FOR_MESSAGE} tool will wait until one message, from any agent, is received.  This tool 
         should only be used if it is not clear what agent has information you would benefit from.
         
-        ## Tool 2: ${McpToolName.WAIT_FOR_AGENT}
+        ## Wait tool 2: ${McpToolName.WAIT_FOR_AGENT}
         
         The ${McpToolName.WAIT_FOR_AGENT} tool will wait for one message posted by a specific agent in any thread. 
         This tool is useful if you know that a specific agent has information you would benefit from.
         
-        ## Tool 3: ${McpToolName.WAIT_FOR_MENTION}
+        ## Wait tool 3: ${McpToolName.WAIT_FOR_MENTION}
         
         The ${McpToolName.WAIT_FOR_MENTION} tool will wait until any message that mentions you is received.  This is the
         best tool to use if another agent is likely to know how best to utilise your information.  If there exists any
