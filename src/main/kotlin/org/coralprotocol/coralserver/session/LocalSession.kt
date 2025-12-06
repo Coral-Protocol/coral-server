@@ -122,6 +122,8 @@ class LocalSession(
             participants = (participants + setOf(agentName)).toMutableSet(),
         )
 
+        events.tryEmit(SessionEvent.ThreadCreated(thread))
+
         threads[thread.id] = thread
         return thread
     }

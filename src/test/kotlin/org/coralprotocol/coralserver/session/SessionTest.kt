@@ -172,7 +172,7 @@ class SessionTest : SessionBuilding() {
         assert(agent1.getVisibleMessages().size == 2)
         assert(agent2.getVisibleMessages().size == 2)
 
-        thread1.close("Nothing to see here...")
+        thread1.close(agent1, "Nothing to see here...")
 
         shouldThrow<SessionException.ThreadClosedException> {
             agent1.sendMessage("Hello from agent 1", thread1.id)

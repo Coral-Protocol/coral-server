@@ -12,6 +12,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
+import org.coralprotocol.coralserver.events.SessionEvent
 import java.util.*
 
 typealias ThreadId = String
@@ -59,6 +60,8 @@ class SessionThread(
         )
         this.messages.add(msg)
 
+        sender.session.events.tryEmit(SessionEvent.ThreadMessageSent(msg))
+
         return msg
     }
 
@@ -79,6 +82,8 @@ class SessionThread(
 
         participants.add(targetAgent.name)
         messages.forEach { targetAgent.notifyMessage(it) }
+
+        requestingAgent.session.events.tryEmit(SessionEvent.ThreadParticipantAdded(id, targetAgent.name))
     }
 
     /**
@@ -94,6 +99,8 @@ class SessionThread(
             throw SessionException.NotParticipatingException("Agent ${targetAgent.name} is not participating in thread ${this.id}")
 
         participants.remove(targetAgent.name)
+
+        requestingAgent.session.events.tryEmit(SessionEvent.ThreadParticipantRemoved(id, targetAgent.name))
     }
 
     /**
@@ -124,14 +131,15 @@ class SessionThread(
      *
      * @param summary A summary of the thread content previous to its closing.
      */
-    fun close(summary: String) {
+    fun close(requestingAgent: SessionAgent, summary: String) {
         if (state is SessionThreadState.Closed)
             throw SessionException.ThreadClosedException("Thread ${this.id} cannot be closed because it is not open")
 
         state = SessionThreadState.Closed(summary)
         messages.clear()
-    }
 
+        requestingAgent.session.events.tryEmit(SessionEvent.ThreadClosed(id, summary))
+    }
 }
 
 @Serializable

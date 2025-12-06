@@ -304,12 +304,20 @@ class SessionAgent(
     ): SessionThreadMessage? {
         val messageChannel = Channel<SessionThreadMessage>(Channel.CONFLATED)
         messageChannels.add(messageChannel)
-        isWaiting.update { true }
+
+        isWaiting.update {
+            if (!it) {
+                session.events.tryEmit(SessionEvent.AgentWaitStart(name, filters))
+            }
+
+            true
+        }
 
         try {
             return withTimeoutOrNull(timeout) {
                 for (message in messageChannel) {
                     if (filters.all { it.matches(message) }) {
+                        session.events.tryEmit(SessionEvent.AgentWaitStop(name, message))
                         return@withTimeoutOrNull message
                     }
                 }

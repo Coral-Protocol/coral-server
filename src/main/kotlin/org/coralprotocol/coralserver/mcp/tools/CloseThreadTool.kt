@@ -19,7 +19,7 @@ data class CloseThreadInput(
 fun closeThreadExecutor(agent: SessionAgent, arguments: CloseThreadInput): GenericSuccessOutput {
     try {
         val thread = agent.session.getThreadById(arguments.threadId)
-        thread.close(arguments.summary)
+        thread.close(agent, arguments.summary)
 
         return GenericSuccessOutput("Successfully closed thread ${arguments.threadId}")
     }
