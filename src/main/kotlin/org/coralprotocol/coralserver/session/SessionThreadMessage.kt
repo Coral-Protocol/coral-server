@@ -6,7 +6,13 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonClassDiscriminator
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.models.Telemetry
 import java.util.UUID
@@ -22,7 +28,20 @@ data class SessionThreadMessage(
 
     @Transient
     val telemetry: Telemetry? = null
-)
+) {
+    /**
+     * Creates a version of this message that is designed to be placed in an agent's state resource.  This contains only
+     * vital information about the message and does not include any IDs.
+     */
+    fun asJsonState() = buildJsonObject {
+        put("messageText", text)
+        put("sendingAgentName", senderName)
+        put("messageUnixTime", timestamp)
+
+        if (mentionNames.isNotEmpty())
+            put("mentionAgentNames", JsonArray(mentionNames.map { JsonPrimitive(it) }))
+    }
+}
 
 @Serializable
 @JsonClassDiscriminator("type")

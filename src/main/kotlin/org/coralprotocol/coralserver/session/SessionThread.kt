@@ -5,7 +5,12 @@ package org.coralprotocol.coralserver.session
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonClassDiscriminator
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import java.util.*
 
@@ -92,6 +97,28 @@ class SessionThread(
     }
 
     /**
+     * Creates a version of this thread that is designed to be placed in an agent's state resource.  This contains all
+     * information about the thread, except messages are also filtered with the similar [SessionThreadMessage.asJsonState]
+     * function.
+     */
+    fun asJsonState(): JsonObject = buildJsonObject {
+        put("threadId", id)
+        put("threadName", name)
+        put("owningAgentName", creatorName)
+        put("participatingAgents", JsonArray(participants.map { JsonPrimitive(it) }))
+        when (val state = state) {
+            is SessionThreadState.Closed -> {
+                put("state", "closed")
+                put("summary", state.summary)
+            }
+            SessionThreadState.Open -> {
+                put("state", "open")
+                put("messages", JsonArray(messages.map { it.asJsonState() }))
+            }
+        }
+    }
+
+    /**
      * Transitions this thread to being closed.  All messages in the thread will be deleted, the only remaining data
      * on this thread will be the [summary].
      *
@@ -119,6 +146,8 @@ sealed interface SessionThreadState {
     data class Closed(
         val summary: String
     ) : SessionThreadState
+
+
 }
 
 

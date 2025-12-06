@@ -3,7 +3,10 @@ package org.coralprotocol.coralserver.session
 import io.ktor.server.application.*
 import io.ktor.server.sse.*
 import io.modelcontextprotocol.kotlin.sdk.Implementation
+import io.modelcontextprotocol.kotlin.sdk.ReadResourceRequest
+import io.modelcontextprotocol.kotlin.sdk.ReadResourceResult
 import io.modelcontextprotocol.kotlin.sdk.ServerCapabilities
+import io.modelcontextprotocol.kotlin.sdk.TextResourceContents
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
@@ -16,14 +19,20 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.LoggerWithFlow
+import org.coralprotocol.coralserver.mcp.McpInstructionSnippet
+import org.coralprotocol.coralserver.mcp.McpResourceName
 import org.coralprotocol.coralserver.mcp.McpTool
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.x402.X402BudgetedResource
+import kotlin.String
 
 typealias SessionAgentSecret = String
 
@@ -60,20 +69,6 @@ class SessionAgent(
     ),
 ) {
     val coroutineScope: CoroutineScope = session.sessionScope
-
-    init {
-        addMcpTool(mcpToolManager.createThreadTool)
-        addMcpTool(mcpToolManager.closeThreadTool)
-        addMcpTool(mcpToolManager.addParticipantTool)
-        addMcpTool(mcpToolManager.removeParticipantTool)
-        addMcpTool(mcpToolManager.sendMessageTool)
-        addMcpTool(mcpToolManager.waitForMessageTool)
-        addMcpTool(mcpToolManager.waitForMentionTool)
-        addMcpTool(mcpToolManager.waitForAgentMessageTool)
-
-        // todo: custom tools
-        // todo: plugins
-    }
 
     /**
      * Agent name
@@ -139,6 +134,42 @@ class SessionAgent(
      * @see SessionAgentExecutionContext
      */
     private val executionContext = SessionAgentExecutionContext(this, sessionManager.applicationRuntimeContext)
+
+    /**
+     * A list of all required instruction snippets.  This list is populated by calls to [addMcpTool].  The snippets are
+     * then presented to the client using the Instruction resource, see [handleInstructionResource]
+     */
+    private val requiredInstructionSnippets = mutableSetOf<McpInstructionSnippet>()
+
+    init {
+        addMcpTool(mcpToolManager.createThreadTool)
+        addMcpTool(mcpToolManager.closeThreadTool)
+        addMcpTool(mcpToolManager.addParticipantTool)
+        addMcpTool(mcpToolManager.removeParticipantTool)
+        addMcpTool(mcpToolManager.sendMessageTool)
+        addMcpTool(mcpToolManager.waitForMessageTool)
+        addMcpTool(mcpToolManager.waitForMentionTool)
+        addMcpTool(mcpToolManager.waitForAgentMessageTool)
+
+        addResource(
+            name = "Instructions",
+            description = "Instructions resource",
+            uri = McpResourceName.INSTRUCTION_RESOURCE_URI.toString(),
+            mimeType = "text/markdown",
+            readHandler = ::handleInstructionResource
+        )
+
+        addResource(
+            name = "State",
+            description = "State resource",
+            uri = McpResourceName.STATE_RESOURCE_URI.toString(),
+            mimeType = "text/markdown",
+            readHandler = ::handleStateResource
+        )
+
+        // todo: custom tools
+        // todo: plugins
+    }
 
     /**
      * Calls [SseServerTransport.handlePostMessage] on all [sseTransports].  This should only be called by the API
@@ -310,6 +341,42 @@ class SessionAgent(
         ) { request ->
             tool.execute(this, request.arguments)
         }
+
+        requiredInstructionSnippets += tool.requiredSnippets
+    }
+
+    /**
+     * Responds to the MCP read resource of [McpResourceName.INSTRUCTION_RESOURCE_URI] with a string made out of all
+     * the snippets ([McpInstructionSnippet]) in [requiredInstructionSnippets].
+     */
+    private fun handleInstructionResource(request: ReadResourceRequest): ReadResourceResult {
+        return ReadResourceResult(
+            contents = listOf(
+                TextResourceContents(
+                    text = requiredInstructionSnippets.joinToString("\n\n") { it.snippet },
+                    uri = request.uri,
+                    mimeType = "text/markdown",
+                )
+            )
+        )
+    }
+
+    /**
+     * Responds to the MCP read resource of [McpResourceName.STATE_RESOURCE_URI] with various resources describing the
+     * observable state of the session from the perspective of this agent.
+     *
+     * This resource is how the agent knows about past messages, threads and other agents.
+     */
+    fun handleStateResource(request: ReadResourceRequest): ReadResourceResult {
+        return ReadResourceResult(
+            contents = listOf(
+                TextResourceContents(
+                    text = renderState(),
+                    uri = request.uri,
+                    mimeType = "text/markdown",
+                )
+            )
+        )
     }
 
     /**
@@ -338,6 +405,46 @@ class SessionAgent(
      */
     fun launch() = coroutineScope.launch {
         executionContext.launch()
+    }
+
+    /**
+     * Returns a JSON object used for describing this agent in ANOTHER agent's state resource.  This should only contain
+     * information that is relevant to another agent.
+     */
+    fun asJsonState(): JsonObject =
+        buildJsonObject {
+            put("agentName", name)
+            put("agentDescription", description)
+            put("agentWaiting", isWaiting.value)
+            put("agentConnected", firstConnectionEstablished.isCompleted)
+        }
+
+    /**
+     * Renders the state of the session from the perspective of this agent.  This should be injected into prompts so
+     * that they understand the current Coral-managed state.
+     */
+    fun renderState(): String {
+        val agentsText = """
+        # Agents
+        You collaborate with ${links.size} other agents, described below:
+        
+        ```json
+        ${links.map { it.asJsonState() }.joinToString("\n")}
+        ```
+        """
+
+        val composed = """
+        # General
+        You are an agent named $name.  The current UNIX time is ${System.currentTimeMillis()}.${if (links.isEmpty()) "\n" else agentsText}
+        # Threads and messages
+        You have access to the following threads and their messages:
+        
+        ```json
+        [${getThreads().map { it.asJsonState() }.joinToString("\n")}]
+        ```
+        """
+
+        return composed.trimIndent()
     }
 
     override fun toString(): String {
