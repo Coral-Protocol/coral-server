@@ -167,8 +167,9 @@ class SessionAgent(
             readHandler = ::handleStateResource
         )
 
+        graphAgent.plugins.forEach { it.install(this) }
+
         // todo: custom tools
-        // todo: plugins
     }
 
     /**
