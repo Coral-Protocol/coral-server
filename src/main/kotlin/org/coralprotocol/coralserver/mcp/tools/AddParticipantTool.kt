@@ -18,7 +18,7 @@ data class AddParticipantInput(
     val participantId: UniqueAgentName
 )
 
-fun addParticipantExecutor(agent: SessionAgent, arguments: AddParticipantInput): GenericSuccessOutput {
+suspend fun addParticipantExecutor(agent: SessionAgent, arguments: AddParticipantInput): GenericSuccessOutput {
     try {
         val thread = agent.session.getThreadById(arguments.threadId)
         thread.addParticipant(agent, agent.session.getAgent(arguments.participantId))

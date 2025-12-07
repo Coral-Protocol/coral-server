@@ -62,7 +62,7 @@ class McpToolsTest : McpSessionBuilding() {
 
                         assert(createThreadResult.thread.name == threadName)
                         assert(createThreadResult.thread.creatorName == agent1Name)
-                        assert(createThreadResult.thread.participants.contains(agent2Name))
+                        assert(createThreadResult.thread.hasParticipant(agent2Name))
 
                         // wait for both agent2 and agent3 to enter a waiting state before sending any messages
                         agent2.waitForWaitState(true)

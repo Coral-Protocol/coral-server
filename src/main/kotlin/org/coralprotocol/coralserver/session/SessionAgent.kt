@@ -269,7 +269,7 @@ class SessionAgent(
      * @throws SessionException.IllegalThreadMentionException if any of the [mentions] are not participants in the thread or if
      * this agent exists in the [mentions].
      */
-    fun sendMessage(
+    suspend fun sendMessage(
         message: String,
         threadId: ThreadId,
         mentions: Set<UniqueAgentName> = setOf()
@@ -283,12 +283,6 @@ class SessionAgent(
         }.toSet()
 
         val message= thread.addMessage(message, this, mentions)
-
-        // notify participating agents
-        thread.participants.forEach {
-            session.getAgent(it).notifyMessage(message)
-        }
-
         return message
     }
 
@@ -376,7 +370,7 @@ class SessionAgent(
      *
      * This resource is how the agent knows about past messages, threads and other agents.
      */
-    fun handleStateResource(request: ReadResourceRequest): ReadResourceResult {
+    suspend fun handleStateResource(request: ReadResourceRequest): ReadResourceResult {
         return ReadResourceResult(
             contents = listOf(
                 TextResourceContents(
@@ -398,16 +392,22 @@ class SessionAgent(
     /**
      * Returns a list of all threads that this agent is currently participating in.
      */
-    fun getThreads() =
+    suspend fun getThreads() =
         session.threads.values.filter {
-            it.participants.contains(graphAgent.name)
+            it.hasParticipant(graphAgent.name)
         }
 
     /**
      * Returns a list of all messages that this agent can see (from threads that it is participating in)
      */
-    fun getVisibleMessages() =
-        getThreads().flatMap { it.messages }
+    suspend fun getVisibleMessages(): List<SessionThreadMessage> {
+        val visibleMessages = mutableListOf<SessionThreadMessage>()
+        getThreads().forEach { thread ->
+            thread.withMessageLock { visibleMessages.addAll(it) }
+        }
+
+        return visibleMessages
+    }
 
     /**
      * Launches this agent via [executionContext].
@@ -432,7 +432,7 @@ class SessionAgent(
      * Renders the state of the session from the perspective of this agent.  This should be injected into prompts so
      * that they understand the current Coral-managed state.
      */
-    fun renderState(): String {
+    suspend fun renderState(): String {
         val agents = links.map { it.asJsonState() }
         val threads = getThreads().map { it.asJsonState() }
 

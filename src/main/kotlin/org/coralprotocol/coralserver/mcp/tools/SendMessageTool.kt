@@ -26,7 +26,7 @@ data class SendMessageOutput(
     val message: SessionThreadMessage
 )
 
-fun sendMessageExecutor(agent: SessionAgent, arguments: SendMessageInput): SendMessageOutput {
+suspend fun sendMessageExecutor(agent: SessionAgent, arguments: SendMessageInput): SendMessageOutput {
     try {
         return SendMessageOutput(
             status = "Message sent successfully",

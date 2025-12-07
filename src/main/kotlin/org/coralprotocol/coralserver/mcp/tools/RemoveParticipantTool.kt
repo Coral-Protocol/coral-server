@@ -18,7 +18,7 @@ data class RemoveParticipantInput(
     val participantId: UniqueAgentName
 )
 
-fun removeParticipantExecutor(agent: SessionAgent, arguments: RemoveParticipantInput): GenericSuccessOutput {
+suspend fun removeParticipantExecutor(agent: SessionAgent, arguments: RemoveParticipantInput): GenericSuccessOutput {
     try {
         val thread = agent.session.getThreadById(arguments.threadId)
         thread.removeParticipant(agent, agent.session.getAgent(arguments.participantId))

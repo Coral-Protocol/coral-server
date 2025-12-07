@@ -122,9 +122,9 @@ class SessionTest : SessionBuilding() {
         shouldNotThrowAny {
             run {
                 val thread = session.createThread("Test thread", "agent1", setOf("agent2"))
-                assert(thread.participants.contains("agent2"))
-                assert(thread.participants.contains("agent1"))
-                assert(!thread.participants.contains("agent100"))
+                assert(thread.hasParticipant("agent2"))
+                assert(thread.hasParticipant("agent1"))
+                assert(!thread.hasParticipant("agent100"))
             }
         }
 

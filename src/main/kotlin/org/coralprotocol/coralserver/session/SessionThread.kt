@@ -2,9 +2,12 @@
 
 package org.coralprotocol.coralserver.session
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonObject
@@ -22,10 +25,16 @@ class SessionThread(
     val id: ThreadId = UUID.randomUUID().toString(),
     val name: String,
     val creatorName: UniqueAgentName,
-    val participants: MutableSet<UniqueAgentName> = mutableSetOf(),
-    val messages: MutableList<SessionThreadMessage> = mutableListOf(),
+    private val participants: MutableSet<UniqueAgentName> = mutableSetOf(),
+    private val messages: MutableList<SessionThreadMessage> = mutableListOf(),
     var state: SessionThreadState = SessionThreadState.Open
 ) {
+    @Transient
+    private val participantsMutex = Mutex()
+
+    @Transient
+    private val messagesMutex = Mutex()
+
     /**
      * Adds a message to this thread
      *
@@ -37,7 +46,7 @@ class SessionThread(
      * @throws SessionException.IllegalThreadMentionException If [sender] is mentioned in [mentions]
      * @throws SessionException.MissingAgentException If any of the agents in [mentions] do not exist in [participants]
      */
-    fun addMessage(
+    suspend fun addMessage(
         message: String,
         sender: SessionAgent,
         mentions: Set<SessionAgent>
@@ -48,9 +57,11 @@ class SessionThread(
         if (mentions.contains(sender))
             throw SessionException.IllegalThreadMentionException("Messages cannot mention the sender")
 
-        val missing = mentions.filter { !participants.contains(it.name) }
-        if (missing.isNotEmpty())
-            throw SessionException.MissingAgentException("Cannot mention agents (${missing.joinToString(", ")}}) as they are not participants of thread ${this.id}")
+        participantsMutex.withLock {
+            val missing = mentions.filter { !participants.contains(it.name) }
+            if (missing.isNotEmpty())
+                throw SessionException.MissingAgentException("Cannot mention agents (${missing.joinToString(", ")}}) as they are not participants of thread ${this.id}")
+        }
 
         val msg = SessionThreadMessage(
             text = message,
@@ -58,7 +69,14 @@ class SessionThread(
             threadId = this.id,
             mentionNames = mentions.map { it.name }.toSet()
         )
-        this.messages.add(msg)
+        messagesMutex.withLock { messages.add(msg) }
+
+        // notify participating agents
+        participantsMutex.withLock {
+            participants.forEach {
+                sender.session.getAgent(it).notifyMessage(msg)
+            }
+        }
 
         sender.session.events.tryEmit(SessionEvent.ThreadMessageSent(msg))
 
@@ -73,15 +91,20 @@ class SessionThread(
      * @throws SessionException.AlreadyParticipatingException If [targetAgent] is already participating in this thread
      * @throws SessionException.NotParticipatingException If [requestingAgent] is not participating in this thread
      */
-    fun addParticipant(requestingAgent: SessionAgent, targetAgent: SessionAgent) {
-        if (!participants.contains(requestingAgent.name))
-            throw SessionException.NotParticipatingException("Agent ${requestingAgent.name} is not participating in thread ${this.id}.  Agents must be participants of a thread before they can add others.")
+    suspend fun addParticipant(requestingAgent: SessionAgent, targetAgent: SessionAgent) {
+        participantsMutex.withLock {
+            if (!participants.contains(requestingAgent.name))
+                throw SessionException.NotParticipatingException("Agent ${requestingAgent.name} is not participating in thread ${this.id}.  Agents must be participants of a thread before they can add others.")
 
-        if (participants.contains(targetAgent.name))
-            throw SessionException.AlreadyParticipatingException("Agent ${targetAgent.name} is already participating in thread ${this.id}")
+            if (participants.contains(targetAgent.name))
+                throw SessionException.AlreadyParticipatingException("Agent ${targetAgent.name} is already participating in thread ${this.id}")
 
-        participants.add(targetAgent.name)
-        messages.forEach { targetAgent.notifyMessage(it) }
+            participants.add(targetAgent.name)
+        }
+
+        messagesMutex.withLock {
+            messages.forEach { targetAgent.notifyMessage(it) }
+        }
 
         requestingAgent.session.events.tryEmit(SessionEvent.ThreadParticipantAdded(id, targetAgent.name))
     }
@@ -91,28 +114,56 @@ class SessionThread(
      *
      * @throws SessionException.NotParticipatingException If neither [requestingAgent] nor [targetAgent] is not participating in this thread
      */
-    fun removeParticipant(requestingAgent: SessionAgent, targetAgent: SessionAgent) {
-        if (!participants.contains(requestingAgent.name))
-            throw SessionException.NotParticipatingException("Agent ${requestingAgent.name} is not participating in thread ${this.id}.  Agents must be participants of a thread before they can remove others.")
+    suspend fun removeParticipant(requestingAgent: SessionAgent, targetAgent: SessionAgent) {
+        participantsMutex.withLock {
+            if (!participants.contains(requestingAgent.name))
+                throw SessionException.NotParticipatingException("Agent ${requestingAgent.name} is not participating in thread ${this.id}.  Agents must be participants of a thread before they can remove others.")
 
-        if (!participants.contains(targetAgent.name))
-            throw SessionException.NotParticipatingException("Agent ${targetAgent.name} is not participating in thread ${this.id}")
+            if (!participants.contains(targetAgent.name))
+                throw SessionException.NotParticipatingException("Agent ${targetAgent.name} is not participating in thread ${this.id}")
 
-        participants.remove(targetAgent.name)
+            participants.remove(targetAgent.name)
+        }
 
         requestingAgent.session.events.tryEmit(SessionEvent.ThreadParticipantRemoved(id, targetAgent.name))
     }
+
+    /**
+     * Returns true if the given agent is participating in this thread.  This function is thread-safe.
+     */
+    suspend fun hasParticipant(agentName: UniqueAgentName): Boolean =
+        participantsMutex.withLock { participants.contains(agentName) }
+
+    /**
+     * Calls [body] with a list of all messages in this thread.  This function is thread-safe.
+     */
+    suspend fun withMessageLock(body: suspend (messages: List<SessionThreadMessage>) -> Unit) =
+        messagesMutex.withLock {
+            body(messages)
+        }
+
+    /**
+     * Calls [body] with a list of all participants in this thread.  This function is thread-safe.
+     */
+    suspend fun withParticipantLock(body: suspend (participants: Set<UniqueAgentName>) -> Unit) =
+        participantsMutex.withLock {
+            body(participants)
+        }
 
     /**
      * Creates a version of this thread that is designed to be placed in an agent's state resource.  This contains all
      * information about the thread, except messages are also filtered with the similar [SessionThreadMessage.asJsonState]
      * function.
      */
-    fun asJsonState(): JsonObject = buildJsonObject {
+    suspend fun asJsonState(): JsonObject = buildJsonObject {
         put("threadId", id)
         put("threadName", name)
         put("owningAgentName", creatorName)
-        put("participatingAgents", JsonArray(participants.map { JsonPrimitive(it) }))
+
+        participantsMutex.withLock {
+            put("participatingAgents", JsonArray(participants.map { JsonPrimitive(it) }))
+        }
+
         when (val state = state) {
             is SessionThreadState.Closed -> {
                 put("state", "closed")
@@ -120,7 +171,10 @@ class SessionThread(
             }
             SessionThreadState.Open -> {
                 put("state", "open")
-                put("messages", JsonArray(messages.map { it.asJsonState() }))
+
+                messagesMutex.withLock {
+                    put("messages", JsonArray(messages.map { it.asJsonState() }))
+                }
             }
         }
     }
@@ -131,12 +185,12 @@ class SessionThread(
      *
      * @param summary A summary of the thread content previous to its closing.
      */
-    fun close(requestingAgent: SessionAgent, summary: String) {
+    suspend fun close(requestingAgent: SessionAgent, summary: String) {
         if (state is SessionThreadState.Closed)
             throw SessionException.ThreadClosedException("Thread ${this.id} cannot be closed because it is not open")
 
         state = SessionThreadState.Closed(summary)
-        messages.clear()
+        messagesMutex.withLock { messages.clear() }
 
         requestingAgent.session.events.tryEmit(SessionEvent.ThreadClosed(id, summary))
     }
