@@ -4,7 +4,6 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.joinAll
-import kotlinx.coroutines.withTimeout
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.events.SessionEvent
@@ -14,7 +13,6 @@ import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.session.remote.RemoteSession
 import org.jetbrains.annotations.TestOnly
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * This is the representation of a (local) Coral session.  Starting a session on a Coral server can only be done by
@@ -57,6 +55,7 @@ class LocalSession(
 
     /**
      * A list of threads in this session.  Threads are created by agents all messages in a session belong to threads.
+     * todo: make a kotlin version of this
      */
     val threads: ConcurrentHashMap<ThreadId, SessionThread> = ConcurrentHashMap()
 

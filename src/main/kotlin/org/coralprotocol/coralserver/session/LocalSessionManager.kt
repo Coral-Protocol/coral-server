@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.session
 
+//import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -13,18 +14,19 @@ import org.coralprotocol.coralserver.agent.payment.PaidAgent
 import org.coralprotocol.coralserver.agent.payment.toMicroCoral
 import org.coralprotocol.coralserver.agent.payment.toUsd
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
-//import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
 import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.models.SessionInfo
-import java.util.UUID
+import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 data class LocalSessionNamespace(
     val name: String,
-    val sessions: MutableMap<String, LocalSession>,
+    // todo: make a kotlin version of this
+    val sessions: ConcurrentHashMap<String, LocalSession>,
 )
 
 data class AgentLocator(
@@ -48,14 +50,16 @@ class LocalSessionManager(
 
     /**
      * Main data structure containing all sessions
+     * todo: make a kotlin version of this
      */
-    private val sessionNamespaces = mutableMapOf<String, LocalSessionNamespace>()
+    private val sessionNamespaces = ConcurrentHashMap<String, LocalSessionNamespace>()
 
     /**
      * Helper structure for looking up agents by their secret.  This should return an [AgentLocator] which contains the
      * exact namespace and session that the agent is in.
+     * todo: make a kotlin version of this
      */
-    private val agentSecretLookup = mutableMapOf<SessionAgentSecret, AgentLocator>()
+    private val agentSecretLookup = ConcurrentHashMap<SessionAgentSecret, AgentLocator>()
 
     /**
      * Issues a secret for an agent.  This is the only function that should generate agent secrets, so that all agent
@@ -126,7 +130,7 @@ class LocalSessionManager(
      */
     suspend fun createSession(namespace: String, agentGraph: AgentGraph): Pair<LocalSession, LocalSessionNamespace> {
         val namespace = sessionNamespaces.getOrPut(namespace) {
-            LocalSessionNamespace(namespace, mutableMapOf())
+            LocalSessionNamespace(namespace, ConcurrentHashMap())
         }
 
         val sessionId: SessionId = UUID.randomUUID().toString()
