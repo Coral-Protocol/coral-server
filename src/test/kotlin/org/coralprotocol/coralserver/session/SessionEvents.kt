@@ -29,9 +29,8 @@ open class SessionEvents : McpSessionBuilding() {
             block()
         }
 
-        withTimeoutOrNull(5.seconds) {
-            joinAll(eventJob, blockJob)
-        } ?: throw AssertionError("timeout waiting for events ${expectedEvents.size} more events")
+        // removed timeout here, just going to rely on runTest timeout for more reliability with GH actions
+        joinAll(eventJob, blockJob)
     }
 
     @Test

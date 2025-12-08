@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver.session
 
 import DockerRuntime
+import io.ktor.test.dispatcher.runTestWithRealTime
 import kotlinx.coroutines.*
 import kotlinx.coroutines.test.runTest
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
@@ -83,7 +84,7 @@ class DockerRuntimeTest : SessionBuilding() {
 
     @Test
     @Disabled("Requires Docker")
-    fun cleanupTest() = runTest {
+    fun cleanupTest() = runTestWithRealTime {
         withContext(Dispatchers.IO) {
             val (session1, _) = sessionManager.createSession(
                 "test", AgentGraph(
