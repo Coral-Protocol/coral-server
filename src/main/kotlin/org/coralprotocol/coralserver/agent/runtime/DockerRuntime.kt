@@ -4,16 +4,12 @@ import com.github.dockerjava.api.command.WaitContainerResultCallback
 import com.github.dockerjava.api.exception.DockerClientException
 import com.github.dockerjava.api.model.*
 import io.github.smiley4.schemakenerator.core.annotations.Optional
-import io.ktor.util.rootCause
-import io.ktor.utils.io.InternalAPI
+import io.ktor.util.*
+import io.ktor.utils.io.*
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
@@ -25,7 +21,6 @@ import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.concurrent.TimeUnit
 
 private data class DockerWithLogging(
     val dockerClient: DockerClient,

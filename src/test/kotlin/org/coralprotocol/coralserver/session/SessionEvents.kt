@@ -8,6 +8,7 @@ import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.events.SessionEvent
 import kotlin.test.Test
+import kotlin.time.Duration.Companion.seconds
 
 open class SessionEvents : McpSessionBuilding() {
     suspend fun LocalSession.shouldPostEvents(expectedEvents: MutableList<(event: SessionEvent) -> Boolean>, block: suspend () -> Unit) {
@@ -28,53 +29,51 @@ open class SessionEvents : McpSessionBuilding() {
             block()
         }
 
-        withTimeoutOrNull(1000) {
+        withTimeoutOrNull(5.seconds) {
             joinAll(eventJob, blockJob)
         } ?: throw AssertionError("timeout waiting for events ${expectedEvents.size} more events")
     }
 
     @Test
     fun testRuntimeEvents() = sseEnv {
-        withContext(Dispatchers.IO) {
-            val (session, _) = sessionManager.createSession("test", AgentGraph(
-                agents = mapOf(
-                    graphAgent(
-                        registryAgent = registryAgent(
-                            name = "agent1",
-                            functionRuntime = FunctionRuntime { executionContext, applicationRuntimeContext ->
-                                executionContext.session.shouldPostEvents(mutableListOf(
-                                    { it == SessionEvent.AgentConnected("agent1") },
-                                )) {
-                                    client.mcpFunctionRuntime("agent1") { _, _ ->
-                                        // just to trigger AgentConnected
-                                    }.execute(executionContext, applicationRuntimeContext)
-                                }
+        val (session, _) = sessionManager.createSession("test", AgentGraph(
+            agents = mapOf(
+                graphAgent(
+                    registryAgent = registryAgent(
+                        name = "agent1",
+                        functionRuntime = FunctionRuntime { executionContext, applicationRuntimeContext ->
+                            executionContext.session.shouldPostEvents(mutableListOf(
+                                { it == SessionEvent.AgentConnected("agent1") },
+                            )) {
+                                client.mcpFunctionRuntime("agent1") { _, _ ->
+                                    // just to trigger AgentConnected
+                                }.execute(executionContext, applicationRuntimeContext)
                             }
-                        ),
-                        provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
+                        }
                     ),
-                    graphAgent(
-                        registryAgent = registryAgent(
-                            name = "agent2",
-                            executableRuntime = ExecutableRuntime(listOf("doesn't exist"))
-                        ),
-                        provider = GraphAgentProvider.Local(RuntimeId.EXECUTABLE)
-                    ),
+                    provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
                 ),
-                customTools = mapOf(),
-                groups = setOf()
-            ))
+                graphAgent(
+                    registryAgent = registryAgent(
+                        name = "agent2",
+                        executableRuntime = ExecutableRuntime(listOf("doesn't exist"))
+                    ),
+                    provider = GraphAgentProvider.Local(RuntimeId.EXECUTABLE)
+                ),
+            ),
+            customTools = mapOf(),
+            groups = setOf()
+        ))
 
-            session.shouldPostEvents(mutableListOf(
-                { it == SessionEvent.RuntimeStarted("agent1") },
-                { it == SessionEvent.RuntimeStarted("agent2") },
-                { it == SessionEvent.RuntimeStopped("agent1") },
-                { it == SessionEvent.RuntimeStopped("agent1") },
-            )) {
-                session.launchAgents()
-            }
-
-            session.joinAgents()
+        session.shouldPostEvents(mutableListOf(
+            { it == SessionEvent.RuntimeStarted("agent1") },
+            { it == SessionEvent.RuntimeStarted("agent2") },
+            { it == SessionEvent.RuntimeStopped("agent1") },
+            { it == SessionEvent.RuntimeStopped("agent1") },
+        )) {
+            session.launchAgents()
         }
+
+        session.joinAgents()
     }
 }

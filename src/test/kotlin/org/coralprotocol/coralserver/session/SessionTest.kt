@@ -2,26 +2,19 @@ package org.coralprotocol.coralserver.session
 
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
-import io.ktor.client.HttpClient
+import io.ktor.client.*
 import io.ktor.client.plugins.resources.*
 import io.ktor.client.plugins.sse.*
 import io.modelcontextprotocol.kotlin.sdk.Implementation
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import io.modelcontextprotocol.kotlin.sdk.client.SseClientTransport
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.withTimeoutOrNull
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
-import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
-import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
-import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
-import org.coralprotocol.coralserver.agent.runtime.RuntimeId
-import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.routes.sse.v1.Mcp
 import kotlin.test.Test
 import kotlin.test.assertNotNull
@@ -260,148 +253,138 @@ class SessionTest : SessionBuilding() {
 
     @Test
     fun sseBlockingTimeout() = sseEnv {
-        withContext(Dispatchers.IO) {
-            withTimeout(timeout = 5.seconds) {
-                val (session1, _) = sessionManager.createSession("test", AgentGraph(
-                    agents = mapOf(
-                        graphAgent("agent1"),
-                        graphAgent("agent2"),
-                    ),
-                    customTools = mapOf(),
-                    groups = setOf(setOf("agent1", "agent2"))
-                ))
+        withTimeout(timeout = 5.seconds) {
+            val (session1, _) = sessionManager.createSession("test", AgentGraph(
+                agents = mapOf(
+                    graphAgent("agent1"),
+                    graphAgent("agent2"),
+                ),
+                customTools = mapOf(),
+                groups = setOf(setOf("agent1", "agent2"))
+            ))
 
-                shouldNotThrowAny {
-                    val agent1 = session1.getAgent("agent1")
+            shouldNotThrowAny {
+                val agent1 = session1.getAgent("agent1")
 
-                    // should time out because agent2 never connects
-                    assert(withTimeoutOrNull(1000) {
-                        client.agentSseConnection(agent1.secret)
-                    } == null)
-                }
+                // should time out because agent2 never connects
+                assert(withTimeoutOrNull(1.seconds) {
+                    client.agentSseConnection(agent1.secret)
+                } == null)
             }
         }
     }
 
     @Test
     fun sseChainBlockingTimeout() = sseEnv {
-        withContext(Dispatchers.IO) {
-            withTimeout(timeout = 5.seconds) {
-                val (session1, _) = sessionManager.createSession("test", AgentGraph(
-                    agents = mapOf(
-                        graphAgent("agent1"),
-                        graphAgent("agent2"),
-                        graphAgent("agent3"),
-                    ),
-                    customTools = mapOf(),
-                    groups = setOf(
-                        setOf("agent1", "agent2"),
-                        setOf("agent2", "agent3")
-                    )
-                ))
+        withTimeout(timeout = 5.seconds) {
+            val (session1, _) = sessionManager.createSession("test", AgentGraph(
+                agents = mapOf(
+                    graphAgent("agent1"),
+                    graphAgent("agent2"),
+                    graphAgent("agent3"),
+                ),
+                customTools = mapOf(),
+                groups = setOf(
+                    setOf("agent1", "agent2"),
+                    setOf("agent2", "agent3")
+                )
+            ))
 
-                shouldNotThrowAny {
-                    val agent1 = session1.getAgent("agent1")
-                    val agent2 = session1.getAgent("agent2")
+            shouldNotThrowAny {
+                val agent1 = session1.getAgent("agent1")
+                val agent2 = session1.getAgent("agent2")
 
-                    // even though agent1 is only blocked by agent2, this should time out because agent3 never connects
-                    assert(withTimeoutOrNull(1000) {
-                        launch { client.agentSseConnection(agent2.secret) }
-                        client.agentSseConnection(agent1.secret)
-                    } == null)
-                }
+                // even though agent1 is only blocked by agent2, this should time out because agent3 never connects
+                assert(withTimeoutOrNull(1.seconds) {
+                    launch { client.agentSseConnection(agent2.secret) }
+                    client.agentSseConnection(agent1.secret)
+                } == null)
             }
         }
     }
 
     @Test
     fun sseBrokenChainBlockingTimeout() = sseEnv {
-        withContext(Dispatchers.IO) {
-            withTimeout(timeout = 5.seconds) {
-                val (session1, _) = sessionManager.createSession("test", AgentGraph(
-                    agents = mapOf(
-                        graphAgent("agent1"),
-                        graphAgent("agent2", false),
-                        graphAgent("agent3"),
-                    ),
-                    customTools = mapOf(),
-                    groups = setOf(
-                        setOf("agent1", "agent2"),
-                        setOf("agent2", "agent3")
-                    )
-                ))
+        withTimeout(timeout = 5.seconds) {
+            val (session1, _) = sessionManager.createSession("test", AgentGraph(
+                agents = mapOf(
+                    graphAgent("agent1"),
+                    graphAgent("agent2", false),
+                    graphAgent("agent3"),
+                ),
+                customTools = mapOf(),
+                groups = setOf(
+                    setOf("agent1", "agent2"),
+                    setOf("agent2", "agent3")
+                )
+            ))
 
-                shouldNotThrowAny {
-                    val agent1 = session1.getAgent("agent1")
+            shouldNotThrowAny {
+                val agent1 = session1.getAgent("agent1")
 
-                    // agent1 should have no reliance on agent3 because their common link is non-blocking
-                    assert(withTimeoutOrNull(1000) {
-                        client.agentSseConnection(agent1.secret)
-                    } != null)
-                }
+                // agent1 should have no reliance on agent3 because their common link is non-blocking
+                assert(withTimeoutOrNull(1.seconds) {
+                    client.agentSseConnection(agent1.secret)
+                } != null)
             }
         }
     }
 
     @Test
     fun sseNonBlockingTest() = sseEnv {
-        withContext(Dispatchers.IO) {
-            withTimeout(timeout = 5.seconds) {
-                val (session1, _) = sessionManager.createSession("test", AgentGraph(
-                    agents = mapOf(
-                        graphAgent("agent1", false),
-                        graphAgent("agent2", false),
-                    ),
-                    customTools = mapOf(),
-                    groups = setOf(setOf("agent1", "agent2"))
-                ))
+        withTimeout(timeout = 5.seconds) {
+            val (session1, _) = sessionManager.createSession("test", AgentGraph(
+                agents = mapOf(
+                    graphAgent("agent1", false),
+                    graphAgent("agent2", false),
+                ),
+                customTools = mapOf(),
+                groups = setOf(setOf("agent1", "agent2"))
+            ))
 
-                shouldNotThrowAny {
-                    val agent1 = session1.getAgent("agent1")
-                    val agent2 = session1.getAgent("agent2")
+            shouldNotThrowAny {
+                val agent1 = session1.getAgent("agent1")
+                val agent2 = session1.getAgent("agent2")
 
-                    // neither agent is blocking
-                    assert(withTimeoutOrNull(1000) {
-                        client.agentSseConnection(agent1.secret)
-                        client.agentSseConnection(agent2.secret)
-                    } != null)
-                }
+                // neither agent is blocking
+                assert(withTimeoutOrNull(1.seconds) {
+                    client.agentSseConnection(agent1.secret)
+                    client.agentSseConnection(agent2.secret)
+                } != null)
             }
         }
     }
 
     @Test
     fun sseMcpTools() = sseEnv {
-        withContext(Dispatchers.IO) {
-            withTimeout(timeout = 5.seconds) {
-                val (session1, _) = sessionManager.createSession("test", AgentGraph(
-                    agents = mapOf(graphAgent("agent1", false)),
-                    customTools = mapOf(),
-                    groups = setOf(setOf("agent1", "agent2"))
-                ))
+        withTimeout(timeout = 5.seconds) {
+            val (session1, _) = sessionManager.createSession("test", AgentGraph(
+                agents = mapOf(graphAgent("agent1", false)),
+                customTools = mapOf(),
+                groups = setOf(setOf("agent1", "agent2"))
+            ))
 
-                shouldNotThrowAny {
-                    val agent1 = session1.getAgent("agent1")
+            shouldNotThrowAny {
+                val agent1 = session1.getAgent("agent1")
 
-                    val mcpClient = Client(
-                        clientInfo = Implementation(
-                            name = "test",
-                            version = "1.0.0"
-                        )
+                val mcpClient = Client(
+                    clientInfo = Implementation(
+                        name = "test",
+                        version = "1.0.0"
                     )
+                )
 
-                    val transport = SseClientTransport(
-                        client = client,
-                        urlString = client.href(Mcp.Sse(agent1.secret))
-                    )
-                    mcpClient.connect(transport)
+                val transport = SseClientTransport(
+                    client = client,
+                    urlString = client.href(Mcp.Sse(agent1.secret))
+                )
+                mcpClient.connect(transport)
 
-                    // Verify connection by testing for tool presence
-                    // todo: request a specific tool and check for that tool's presence
-                    val toolResult = mcpClient.listTools()
-                    assertNotNull(toolResult)
-                    assert(toolResult.tools.isNotEmpty())
-                }
+                // Verify connection by testing for tool presence
+                // todo: request a specific tool and check for that tool's presence
+                val toolResult = mcpClient.listTools()
+                assertNotNull(toolResult)
+                assert(toolResult.tools.isNotEmpty())
             }
         }
     }

@@ -1,30 +1,11 @@
 package org.coralprotocol.coralserver.session
 
 import io.kotest.assertions.throwables.shouldNotThrowAny
-import io.modelcontextprotocol.kotlin.sdk.Implementation
-import io.modelcontextprotocol.kotlin.sdk.client.Client
-import io.modelcontextprotocol.kotlin.sdk.client.SseClientTransport
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.withContext
-import org.coralprotocol.coralserver.agent.graph.AgentGraph
-import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
-import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
-import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
-import org.coralprotocol.coralserver.agent.runtime.RuntimeId
-import org.coralprotocol.coralserver.config.AddressConsumer
-import org.coralprotocol.coralserver.mcp.McpToolManager
-import org.coralprotocol.coralserver.mcp.tools.AddParticipantInput
-import org.coralprotocol.coralserver.mcp.tools.CreateThreadInput
-import org.coralprotocol.coralserver.mcp.tools.SendMessageInput
-import org.coralprotocol.coralserver.mcp.tools.WaitForAgentMessageInput
-import org.coralprotocol.coralserver.mcp.tools.WaitForMentioningMessageInput
-import org.coralprotocol.coralserver.mcp.tools.WaitForSingleMessageInput
-import java.util.UUID
-import kotlin.test.Test
 import org.coralprotocol.coralserver.mcp.McpToolName
-import org.coralprotocol.coralserver.mcp.tools.CloseThreadInput
-import org.coralprotocol.coralserver.mcp.tools.RemoveParticipantInput
+import org.coralprotocol.coralserver.mcp.tools.*
+import java.util.*
+import kotlin.test.Test
 import kotlin.test.assertNotNull
 
 class McpToolsTest : McpSessionBuilding() {

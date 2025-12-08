@@ -15,7 +15,7 @@ import org.coralprotocol.coralserver.agent.runtime.ExecutableRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.logging.LogMessage
 import org.junit.jupiter.api.Disabled
-import java.util.UUID
+import java.util.*
 import kotlin.test.Test
 
 class ExecutableRuntimeTest : SessionBuilding() {

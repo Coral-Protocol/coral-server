@@ -3,8 +3,6 @@ package org.coralprotocol.coralserver.session
 import io.modelcontextprotocol.kotlin.sdk.Implementation
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import io.modelcontextprotocol.kotlin.sdk.client.SseClientTransport
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
@@ -16,41 +14,39 @@ import kotlin.test.assertNotNull
 class FunctionRuntimeTest : SessionBuilding() {
     @Test
     fun testSse() = sseEnv {
-        withContext(Dispatchers.IO) {
-            val functionRuntime = FunctionRuntime { executionContext, applicationRuntimeContext ->
-                val mcpClient = Client(
-                    clientInfo = Implementation(
-                        name = "test",
-                        version = "1.0.0"
-                    )
+        val functionRuntime = FunctionRuntime { executionContext, applicationRuntimeContext ->
+            val mcpClient = Client(
+                clientInfo = Implementation(
+                    name = "test",
+                    version = "1.0.0"
                 )
+            )
 
-                val transport = SseClientTransport(
-                    client = client,
-                    urlString = applicationRuntimeContext.getMcpUrl(executionContext, AddressConsumer.LOCAL).toString()
-                )
-                mcpClient.connect(transport)
+            val transport = SseClientTransport(
+                client = client,
+                urlString = applicationRuntimeContext.getMcpUrl(executionContext, AddressConsumer.LOCAL).toString()
+            )
+            mcpClient.connect(transport)
 
-                val toolResult = mcpClient.listTools()
-                assertNotNull(toolResult)
-                assert(toolResult.tools.isNotEmpty())
-            }
-
-            val (session, _) = sessionManager.createSession("test", AgentGraph(
-                agents = mapOf(
-                    graphAgent(
-                        registryAgent = registryAgent(
-                            functionRuntime = functionRuntime
-                        ),
-                        provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
-                    ),
-                ),
-                customTools = mapOf(),
-                groups = setOf()
-            ))
-
-            session.launchAgents()
-            session.joinAgents()
+            val toolResult = mcpClient.listTools()
+            assertNotNull(toolResult)
+            assert(toolResult.tools.isNotEmpty())
         }
+
+        val (session, _) = sessionManager.createSession("test", AgentGraph(
+            agents = mapOf(
+                graphAgent(
+                    registryAgent = registryAgent(
+                        functionRuntime = functionRuntime
+                    ),
+                    provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
+                ),
+            ),
+            customTools = mapOf(),
+            groups = setOf()
+        ))
+
+        session.launchAgents()
+        session.joinAgents()
     }
 }

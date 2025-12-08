@@ -1,27 +1,22 @@
 package org.coralprotocol.coralserver.session
 
 import DockerRuntime
-import io.ktor.client.plugins.resources.Resources
-import io.ktor.client.plugins.sse.SSE
-import io.ktor.http.ContentType
-import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.install
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.routing.routing
-import io.ktor.server.testing.ApplicationTestBuilder
-import io.ktor.server.testing.testApplication
+import io.ktor.client.plugins.resources.*
+import io.ktor.client.plugins.sse.*
+import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.application.*
+import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.routing.*
+import io.ktor.server.testing.*
+import kotlinx.coroutines.test.runTest
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
 import org.coralprotocol.coralserver.agent.registry.RegistryAgent
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentInfo
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
-import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
-import org.coralprotocol.coralserver.agent.runtime.ExecutableRuntime
-import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
-import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
-import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.agent.runtime.*
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.mcp.McpToolManager
@@ -106,7 +101,7 @@ open class SessionBuilding {
             provider = provider
         )
 
-    protected fun sseEnv(body: suspend ApplicationTestBuilder.() -> Unit) {
+    protected fun sseEnv(body: suspend ApplicationTestBuilder.() -> Unit) = runTest {
         testApplication {
             application {
                 install(io.ktor.server.resources.Resources)

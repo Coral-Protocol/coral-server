@@ -5,10 +5,11 @@ import io.ktor.client.plugins.sse.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
-import io.ktor.server.plugins.statuspages.StatusPages
-import io.ktor.server.response.respondText
+import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
+import kotlinx.coroutines.test.runTest
 import org.coralprotocol.coralserver.agent.registry.LocalAgentRegistry
 import org.coralprotocol.coralserver.agent.registry.RegistryAgent
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
@@ -30,7 +31,7 @@ open class SessionBuildingE2E(val agents: List<RegistryAgent>) {
     val sessionManager = LocalSessionManager(null, applicationRuntimeContext, jupiterService, mcpToolManager)
     val registry = LocalAgentRegistry(agents)
 
-    protected fun env(body: suspend ApplicationTestBuilder.() -> Unit) {
+    protected fun env(body: suspend ApplicationTestBuilder.() -> Unit) = runTest {
         testApplication {
             application {
                 install(io.ktor.server.resources.Resources)

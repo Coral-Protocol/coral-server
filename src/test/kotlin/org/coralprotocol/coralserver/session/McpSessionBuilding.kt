@@ -1,11 +1,9 @@
 package org.coralprotocol.coralserver.session
 
-import io.ktor.client.HttpClient
+import io.ktor.client.*
 import io.modelcontextprotocol.kotlin.sdk.Implementation
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import io.modelcontextprotocol.kotlin.sdk.client.SseClientTransport
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
@@ -35,25 +33,23 @@ open class McpSessionBuilding : SessionBuilding() {
         }
 
     fun buildSession(agents: Map<UniqueAgentName, suspend (Client, LocalSession) -> Unit>) = sseEnv {
-        withContext(Dispatchers.IO) {
-            val (session, _) = sessionManager.createSession(
-                "test", AgentGraph(
-                    agents = agents.mapValues { (name, func) ->
-                        graphAgent(
-                            registryAgent = registryAgent(
-                                name = name,
-                                functionRuntime = client.mcpFunctionRuntime(name, func)
-                            ),
-                            provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
-                        ).second
-                    },
-                    customTools = mapOf(),
-                    groups = setOf(agents.keys.toSet())
-                )
+        val (session, _) = sessionManager.createSession(
+            "test", AgentGraph(
+                agents = agents.mapValues { (name, func) ->
+                    graphAgent(
+                        registryAgent = registryAgent(
+                            name = name,
+                            functionRuntime = client.mcpFunctionRuntime(name, func)
+                        ),
+                        provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
+                    ).second
+                },
+                customTools = mapOf(),
+                groups = setOf(agents.keys.toSet())
             )
+        )
 
-            session.launchAgents()
-            session.joinAgents()
-        }
+        session.launchAgents()
+        session.joinAgents()
     }
 }

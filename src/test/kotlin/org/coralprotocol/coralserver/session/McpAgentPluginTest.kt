@@ -41,7 +41,7 @@ class McpAgentPluginTest : McpSessionBuilding() {
                             agent2Ready.complete(Unit)
 
                             // agent1 should close the session, cancelling this coroutine
-                            delay(3000)
+                            delay(1000)
                             throw AssertionError("session should close before this exception is thrown")
                         }
                     ),

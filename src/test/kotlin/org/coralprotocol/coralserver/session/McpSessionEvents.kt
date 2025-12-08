@@ -1,12 +1,7 @@
 package org.coralprotocol.coralserver.session
 
 import org.coralprotocol.coralserver.events.SessionEvent
-import org.coralprotocol.coralserver.mcp.tools.AddParticipantInput
-import org.coralprotocol.coralserver.mcp.tools.CloseThreadInput
-import org.coralprotocol.coralserver.mcp.tools.CreateThreadInput
-import org.coralprotocol.coralserver.mcp.tools.RemoveParticipantInput
-import org.coralprotocol.coralserver.mcp.tools.SendMessageInput
-import org.coralprotocol.coralserver.mcp.tools.WaitForSingleMessageInput
+import org.coralprotocol.coralserver.mcp.tools.*
 import kotlin.test.Test
 
 class McpSessionEvents : SessionEvents() {
