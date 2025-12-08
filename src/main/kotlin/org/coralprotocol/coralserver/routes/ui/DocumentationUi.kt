@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.routes.api.v1
+package org.coralprotocol.coralserver.routes.ui
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.resources.get
@@ -13,7 +13,7 @@ private val logger = KotlinLogging.logger {}
 @Resource("docs")
 class Documentation
 
-fun Route.documentationApiRoutes() {
+fun Route.documentationInterface() {
     get<Documentation>({
         hidden = true
     }) {
@@ -32,6 +32,7 @@ fun Route.documentationApiRoutes() {
                 script(src = "https://cdn.jsdelivr.net/npm/@scalar/api-reference") {}
 
                 // Initialize the Scalar API Reference
+                // this can accept multiple versions of the spec if we need it in the future
                 script {
                     unsafe {
                         raw("""

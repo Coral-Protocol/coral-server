@@ -1,29 +1,24 @@
 package org.coralprotocol.coralserver.routes.api.v1
 
 import io.github.smiley4.ktoropenapi.resources.post
-import io.ktor.http.*
-import io.ktor.resources.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.http.HttpStatusCode
+import io.ktor.resources.Resource
+import io.ktor.server.routing.Route
 import org.coralprotocol.coralserver.agent.payment.AgentPaymentClaimRequest
 import org.coralprotocol.coralserver.agent.payment.AgentRemainingBudget
-import org.coralprotocol.coralserver.payment.JupiterService
-import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
 import org.coralprotocol.coralserver.server.RouteException
-import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 
-@Resource("internal/claim/{remoteSessionId}")
-class Claim(val remoteSessionId: String)
+@Resource("agent-rpc")
+class Rpc {
+    @Resource("rental-claim")
+    class Claim()
+}
 
-fun Route.internalRoutes(
-    aggregatedPaymentClaimManager: AggregatedPaymentClaimManager?,
-    jupiterService: JupiterService
-) {
-    post<Claim>({
-        summary = "Claim payment"
-        description = "API endpoint for agents to claim payment for their work.  This is used by exported agents"
-        operationId = "claimPayment"
+fun Route.agentRpcApi() {
+    post<Rpc.Claim>({
+        summary = "Submit rental agent claim"
+        description = "Requests a certain amount of money to be paid for a work done by a rental agent"
+        operationId = "submitRentalClaim"
         request {
             pathParameter<String>("remoteSessionId") {
                 description = "The remote session ID"

@@ -18,6 +18,7 @@ import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
+import org.coralprotocol.coralserver.session.SessionException
 import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.models.SessionInfo
 import java.util.*
@@ -151,7 +152,7 @@ class LocalSessionManager(
      * Helper function, calls [createSession] and then immediately launches all agents in the session.  After the
      * session closes, [handleSessionClose] will be called.
      */
-    suspend fun createAndLaunchSession(namespace: String, agentGraph: AgentGraph) {
+    suspend fun createAndLaunchSession(namespace: String, agentGraph: AgentGraph): Pair<LocalSession, LocalSessionNamespace> {
         val (session, namespace) = createSession(namespace, agentGraph)
         session.launchAgents()
 
@@ -160,6 +161,8 @@ class LocalSessionManager(
         }.invokeOnCompletion {
             handleSessionClose(session, namespace, it)
         }
+
+        return Pair(session, namespace)
     }
 
      /**
@@ -177,7 +180,7 @@ class LocalSessionManager(
      * @throws SessionException.InvalidNamespace if the namespace does not exist
      */
     fun getSessions(namespace: String) =
-        sessionNamespaces[namespace]?.sessions?.values ?: SessionException.InvalidNamespace("The provided namespace does not exist")
+        sessionNamespaces[namespace]?.sessions?.values?.toList() ?: throw SessionException.InvalidNamespace("The provided namespace does not exist")
 
     /**
      * Returns a list of registered namespaces

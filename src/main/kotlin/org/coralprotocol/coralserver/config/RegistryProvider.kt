@@ -4,9 +4,10 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import net.peanuuutz.tomlkt.decodeFromNativeReader
 import org.coralprotocol.coralserver.Main
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
+import org.coralprotocol.coralserver.agent.registry.LocalAgentRegistry
 import org.coralprotocol.coralserver.agent.registry.RegistryException
 import org.coralprotocol.coralserver.agent.registry.RegistryResolutionContext
-import org.coralprotocol.coralserver.agent.registry.UnresolvedAgentRegistry
+import org.coralprotocol.coralserver.agent.registry.UnresolvedLocalAgentRegistry
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.nio.file.Path
@@ -42,7 +43,7 @@ private fun registrySource(): RegistrySource {
     }
 }
 
-fun AgentRegistry.Companion.loadFromFile(config: Config): AgentRegistry {
+fun LocalAgentRegistry.Companion.loadFromFile(config: Config): LocalAgentRegistry {
     val source = registrySource()
     logger.info { "Loading registry from ${source.path.absolutePathString()}" }
 
@@ -51,9 +52,9 @@ fun AgentRegistry.Companion.loadFromFile(config: Config): AgentRegistry {
             throw FileNotFoundException("Registry file not found")
         }
 
-        var registry: AgentRegistry
+        var registry: LocalAgentRegistry
         val time = measureTimeMillis {
-            val unresolved = toml.decodeFromNativeReader<UnresolvedAgentRegistry>(source.stream.reader())
+            val unresolved = toml.decodeFromNativeReader<UnresolvedLocalAgentRegistry>(source.stream.reader())
             val context = RegistryResolutionContext(
                 serializer = toml,
                 config = config,
@@ -84,6 +85,6 @@ fun AgentRegistry.Companion.loadFromFile(config: Config): AgentRegistry {
 
         logger.warn { "Using a default empty registry" }
 
-        return AgentRegistry()
+        return LocalAgentRegistry()
     }
 }

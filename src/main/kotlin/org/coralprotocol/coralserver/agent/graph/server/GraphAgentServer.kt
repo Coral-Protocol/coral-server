@@ -17,8 +17,7 @@ import kotlinx.serialization.Transient
 import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
 import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
 import org.coralprotocol.coralserver.agent.registry.PublicAgentExportSettingsMap
-import org.coralprotocol.coralserver.routes.api.v1.Agents
-import org.coralprotocol.coralserver.routes.api.v1.PublicWallet
+import org.coralprotocol.coralserver.routes.api.v1.AgentRental
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.server.apiJsonConfig
 
@@ -57,7 +56,7 @@ class GraphAgentServer (
      * @throws RouteException if the request fails.
      */
     suspend fun getWallet(): String {
-        val resource = PublicWallet()
+        val resource = AgentRental.Wallet()
         val response = client.get(resource)
 
         val body = response.bodyAsText()
@@ -75,7 +74,7 @@ class GraphAgentServer (
      * @see Agents.ExportedAgent
      */
     suspend fun getAgentExportSettings(id: AgentRegistryIdentifier): PublicAgentExportSettingsMap {
-        val resource = Agents.ExportedAgent(
+        val resource = AgentRental.Catalog.Details(
             name = id.name,
             version = id.version
         )
@@ -101,7 +100,7 @@ class GraphAgentServer (
      * @see Agents.ExportedAgent
      */
     suspend fun createClaim(paidGraphAgentRequest: PaidGraphAgentRequest): String {
-        val response = client.post(Agents.Claim()) {
+        val response = client.post(AgentRental.Reserve) {
             contentType(ContentType.Application.Json)
             setBody(paidGraphAgentRequest)
         }

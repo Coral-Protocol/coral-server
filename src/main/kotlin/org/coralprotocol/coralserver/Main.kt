@@ -1,9 +1,8 @@
 package org.coralprotocol.coralserver
 
-import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.runBlocking
-import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 //import org.coralprotocol.coralserver.agent.runtime.Orchestrator
+import io.github.oshai.kotlinlogging.KotlinLogging
+import org.coralprotocol.coralserver.agent.registry.LocalAgentRegistry
 import org.coralprotocol.coralserver.config.BlockchainServiceProvider
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.config.loadFromFile
@@ -28,7 +27,7 @@ fun main(args: Array<String>) {
     when (command) {
         "--sse-server" -> {
             val blockchainServiceProvider = BlockchainServiceProvider(config.paymentConfig)
-            val registry = AgentRegistry.loadFromFile(config)
+            val registry = LocalAgentRegistry.loadFromFile(config)
 
             val server = CoralServer(
                 devmode = devMode,

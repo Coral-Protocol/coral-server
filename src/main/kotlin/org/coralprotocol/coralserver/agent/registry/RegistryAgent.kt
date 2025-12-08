@@ -11,7 +11,6 @@ import org.coralprotocol.coralserver.agent.registry.option.defaultAsValue
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.SecurityConfig
-import org.coralprotocol.coralserver.routes.api.v1.filterNotNullValues
 import java.io.File
 import java.nio.file.Path
 
@@ -23,17 +22,17 @@ const val CURRENT_AGENT_EDITION = 2
 class RegistryAgent(
     val info: RegistryAgentInfo,
     val runtimes: LocalAgentRuntimes,
-    val options: Map<String, AgentOption>,
-    val path: Path,
-    unresolvedExportSettings: UnresolvedAgentExportSettingsMap
+    val options: Map<String, AgentOption> = mapOf(),
+    val path: Path? = null,
+    unresolvedExportSettings: UnresolvedAgentExportSettingsMap = mapOf(),
 ) {
     val exportSettings: AgentExportSettingsMap = unresolvedExportSettings.mapValues { (runtime, settings) ->
         settings.resolve(runtime, this)
     }
 
     val defaultOptions = options
-        .mapValues { (name, option) -> option.defaultAsValue() }
-        .filterNotNullValues()
+        .mapNotNull { (name, option) -> option.defaultAsValue()?.let { name to it } }
+        .toMap()
 
     val requiredOptions = options
         .filterValues { it.required }

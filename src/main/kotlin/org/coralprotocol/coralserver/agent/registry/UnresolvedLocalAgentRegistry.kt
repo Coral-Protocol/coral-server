@@ -15,7 +15,7 @@ private val logger = KotlinLogging.logger {}
  * using the "Array of Tables" syntax.  See https://toml.io/en/v1.0.0#array-of-tables
  */
 @Serializable
-data class UnresolvedAgentRegistry(
+data class UnresolvedLocalAgentRegistry(
     @SerialName("local-agent")
     val localAgents: List<LocalUnresolvedRegistryAgent> = listOf(),
 
@@ -28,7 +28,7 @@ data class UnresolvedAgentRegistry(
     @SerialName("inline-agent")
     val inlineAgents: List<UnresolvedInlineRegistryAgent> = listOf(),
 ) {
-    fun resolve(context: RegistryResolutionContext): AgentRegistry {
+    fun resolve(context: RegistryResolutionContext): LocalAgentRegistry {
         // Agents resolved from a local path require a reference to that path during the resolution process
         val agents = localAgents.flatMap {
             it.resolve(AgentResolutionContext(
@@ -56,6 +56,6 @@ data class UnresolvedAgentRegistry(
             throw RegistryException("Registry contains duplicate agents: ${duplicates.keys.joinToString(", ")}")
         }
 
-        return AgentRegistry(agents)
+        return LocalAgentRegistry(agents)
     }
 }

@@ -46,6 +46,7 @@ import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
 import org.coralprotocol.coralserver.routes.api.v1.*
 import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
+import org.coralprotocol.coralserver.routes.ui.documentationInterface
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.X402Service
@@ -193,24 +194,33 @@ class CoralServer(
                 route("api") {
                     route("v1") {
                         authenticate("token") {
-                            sessionApiRoutes(registry, localSessionManager, devmode)
+                            sessionApi(registry, localSessionManager)
                         }
 
-                        telemetryApiRoutes(localSessionManager)
-                        agentApiRoutes(
+                        agentRentalApi(
+                            config.paymentConfig.remoteAgentWallet,
                             registry,
                             blockchainService,
-                            jupiterService,
-                            config.paymentConfig
+                            null
                         )
-                        internalRoutes(aggregatedPaymentClaimManager, jupiterService)
-                        publicWalletApiRoutes(config.paymentConfig.remoteAgentWallet)
-                        x402Routes(localSessionManager, x402Service)
+
+                        agentRpcApi()
+
+//                        telemetryApiRoutes(localSessionManager)
+//                        agentApiRoutes(
+//                            registry,
+//                            blockchainService,
+//                            jupiterService,
+//                            config.paymentConfig
+//                        )
+//                        internalRoutes(aggregatedPaymentClaimManager, jupiterService)
+//                        publicWalletApiRoutes(config.paymentConfig.remoteAgentWallet)
+//                        x402Routes(localSessionManager, x402Service)
                     }
                 }
 
                 route("v1") {
-                    documentationApiRoutes()
+                    documentationInterface()
                 }
 
                 route("sse") {
