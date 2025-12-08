@@ -56,7 +56,7 @@ class SessionApiTest : SessionBuildingE2E(
     @Test
     fun testCreateSession() = env {
         val sessionsRes = Sessions()
-        val testNamespace = Sessions.WithNamespace("test namespace")
+        val testNamespace = Sessions.WithNamespace(namespace = "test namespace")
 
         repeat(10) {
             val response = client.post(testNamespace) {
@@ -98,7 +98,7 @@ class SessionApiTest : SessionBuildingE2E(
 
     @Test
     fun testDeleteSession() = env {
-        val testNamespace = Sessions.WithNamespace("test namespace")
+        val testNamespace = Sessions.WithNamespace(namespace = "test namespace")
 
         val sessionId: SessionIdentifier  = client.post(testNamespace) {
             contentType(ContentType.Application.Json)
