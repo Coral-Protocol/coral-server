@@ -28,9 +28,9 @@ data class BasicNamespace(
 )
 
 @Resource("sessions")
-class Sessions() {
+class Sessions {
     @Resource("{namespace}")
-    class WithNamespace(val namespace: String) {
+    class WithNamespace(val parent: Sessions, val namespace: String) {
 
         @Resource("{sessionId}")
         class Session(val parent: WithNamespace, val sessionId: SessionId)

@@ -44,10 +44,13 @@ import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
-import org.coralprotocol.coralserver.routes.api.v1.*
+import org.coralprotocol.coralserver.routes.api.v1.agentRentalApi
+import org.coralprotocol.coralserver.routes.api.v1.agentRpcApi
+import org.coralprotocol.coralserver.routes.api.v1.sessionApi
 import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
 import org.coralprotocol.coralserver.routes.ui.documentationInterface
 import org.coralprotocol.coralserver.session.LocalSessionManager
+import org.coralprotocol.coralserver.session.SessionException
 import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.X402Service
 import kotlin.time.Duration.Companion.seconds
@@ -189,6 +192,18 @@ class CoralServer(
                             return@authenticate null
                     }
                 }
+
+                bearer("agentSecret") {
+                    authenticate { credential ->
+                        try {
+                            val agentLocator = localSessionManager.locateAgent(credential.token)
+                            return@authenticate agentLocator.agent
+                        }
+                        catch (_: SessionException.InvalidAgentSecret) {
+                            return@authenticate null
+                        }
+                    }
+                }
             }
             routing {
                 route("api") {
@@ -197,30 +212,17 @@ class CoralServer(
                             sessionApi(registry, localSessionManager)
                         }
 
+                        authenticate("agentSecret") {
+                            agentRpcApi(localSessionManager, x402Service)
+                        }
+
                         agentRentalApi(
                             config.paymentConfig.remoteAgentWallet,
                             registry,
                             blockchainService,
                             null
                         )
-
-                        agentRpcApi()
-
-//                        telemetryApiRoutes(localSessionManager)
-//                        agentApiRoutes(
-//                            registry,
-//                            blockchainService,
-//                            jupiterService,
-//                            config.paymentConfig
-//                        )
-//                        internalRoutes(aggregatedPaymentClaimManager, jupiterService)
-//                        publicWalletApiRoutes(config.paymentConfig.remoteAgentWallet)
-//                        x402Routes(localSessionManager, x402Service)
                     }
-                }
-
-                route("v1") {
-                    documentationInterface()
                 }
 
                 route("sse") {
@@ -239,6 +241,10 @@ class CoralServer(
                 // source of truth for OpenAPI docs/codegen
                 route("api_v1.json") {
                     openApi("v1")
+                }
+
+                route("ui") {
+                    documentationInterface()
                 }
             }.run {
                 getAllRoutes().forEach {

@@ -18,15 +18,15 @@ import org.coralprotocol.payment.blockchain.BlockchainService
 @Resource("agent-rental")
 class AgentRental {
     @Resource("reserve")
-    class Reserve()
+    class Reserve(val parent: AgentRental = AgentRental())
 
     @Resource("wallet")
-    class Wallet()
+    class Wallet(val parent: AgentRental = AgentRental())
 
     @Resource("catalog")
-    class Catalog {
+    class Catalog(val parent: AgentRental = AgentRental()) {
         @Resource("{name}/{version}")
-        class Details(val name: String, val version: String) {
+        class Details(val parent: Catalog = Catalog(), val name: String, val version: String) {
             @Transient
             val identifier = AgentRegistryIdentifier(name, version)
         }
