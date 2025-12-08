@@ -15,7 +15,7 @@ class AgentGraphRequest(
     val groups: Set<Set<String>>,
 
     @Description("A map of custom tools to provide to the agents in this graph")
-    val customTools: Map<String, CustomTool>,
+    val customTools: Map<String, CustomTool> = mapOf(),
 ) {
     /**
      * Converts this request into an [AgentGraph] using the provided [AgentRegistry].  Most of the work done by this

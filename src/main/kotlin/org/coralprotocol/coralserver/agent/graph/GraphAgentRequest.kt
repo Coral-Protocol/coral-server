@@ -28,19 +28,19 @@ data class GraphAgentRequest(
     val description: String?,
 
     @Description("The arguments to pass to the agent")
-    val options: Map<String, AgentOptionValue>,
+    val options: Map<String, AgentOptionValue> = mapOf(),
 
     @Description("The system prompt/developer text/preamble passed to the agent")
-    val systemPrompt: String?,
+    val systemPrompt: String? = null,
 
     @Description("All blocking agents in a group must be instantiated before the group can communicate.  Non-blocking agents' contributions to groups are optional")
-    val blocking: Boolean?,
+    val blocking: Boolean? = null,
 
     @Description("A list of custom tools that this agent can access.  The custom tools must be defined in the parent AgentGraphRequest object")
-    val customToolAccess: Set<String>,
+    val customToolAccess: Set<String> = setOf(),
 
     @Description("Plugins that should be installed on this agent.  See GraphAgentPlugin for more information")
-    val plugins: Set<GraphAgentPlugin>,
+    val plugins: Set<GraphAgentPlugin> = setOf(),
 
     @Description("The server that should provide this agent and the runtime to use")
     val provider: GraphAgentProvider,

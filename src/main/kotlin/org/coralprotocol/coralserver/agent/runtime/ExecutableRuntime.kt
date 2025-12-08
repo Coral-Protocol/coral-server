@@ -19,7 +19,7 @@ data class ExecutableRuntime(
 
         val result = process(
             command = command.toTypedArray(),
-            directory = executionContext.path.toFile(),
+            directory = executionContext.path?.toFile(),
             stdout = Redirect.Consume {
                 it.collect { line -> executionContext.agent.logger.info(line) }
             },

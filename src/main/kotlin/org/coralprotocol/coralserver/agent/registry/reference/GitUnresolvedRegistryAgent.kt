@@ -6,7 +6,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.coralprotocol.coralserver.agent.registry.*
-import org.coralprotocol.coralserver.routes.api.v1.filterNotNullValues
 import java.nio.file.Path
 import java.util.*
 import kotlin.io.path.isDirectory
@@ -29,11 +28,11 @@ data class GitUnresolvedRegistryAgent (
 
     override fun resolve(context: AgentResolutionContext): List<RegistryAgent> {
         val safeRepoName = encoder.encodeToString(repo.toByteArray())
-        val identifiers = mapOf(
-            "branch" to branch,
-            "tag" to tag,
-            "rev" to rev,
-        ).filterNotNullValues()
+        val identifiers = buildMap {
+            branch?.let { put("branch", it) }
+            tag?.let { put("branch", it) }
+            rev?.let { put("branch", it) }
+        }
 
         // Instead of some arcane priority logic, it will be an error if more than one identifier is specified.
         if (identifiers.size > 1) {
