@@ -48,6 +48,7 @@ import org.coralprotocol.coralserver.routes.api.v1.agentRentalApi
 import org.coralprotocol.coralserver.routes.api.v1.agentRpcApi
 import org.coralprotocol.coralserver.routes.api.v1.sessionApi
 import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
+import org.coralprotocol.coralserver.routes.ui.consoleUi
 import org.coralprotocol.coralserver.routes.ui.documentationInterface
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionException
@@ -245,6 +246,7 @@ class CoralServer(
 
                 route("ui") {
                     documentationInterface()
+                    consoleUi()
                 }
             }.run {
                 getAllRoutes().forEach {
