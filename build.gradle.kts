@@ -60,7 +60,7 @@ dependencies {
     implementation("com.sksamuel.hoplite:hoplite-core:2.9.0")
     implementation("com.sksamuel.hoplite:hoplite-yaml:2.9.0")
 
-    val ktorVersion = "3.3.2"
+    val ktorVersion = "3.3.3"
     implementation(enforcedPlatform("io.ktor:ktor-bom:$ktorVersion"))
     implementation("io.ktor:ktor-server-status-pages:${ktorVersion}")
     implementation("io.ktor:ktor-server-auth:${ktorVersion}")
@@ -77,9 +77,10 @@ dependencies {
     testImplementation("io.mockk:mockk:1.14.2")
 
     // kotest
-    val kotestVersion = "6.0.1"
+    val kotestVersion = "6.0.7"
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
     testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
+    testImplementation("io.kotest:kotest-assertions-ktor:${kotestVersion}")
     testImplementation("io.kotest:kotest-property:$kotestVersion")
 
     // Ktor client dependencies
