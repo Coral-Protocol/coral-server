@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.session
 
 //import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -44,10 +45,10 @@ class LocalSessionManager(
     // Default value will not provide a Docker runtime
     val applicationRuntimeContext: ApplicationRuntimeContext = ApplicationRuntimeContext(),
     val jupiterService: JupiterService,
-
-    val mcpToolManager: McpToolManager = McpToolManager()
+    val mcpToolManager: McpToolManager = McpToolManager(),
+    val managementScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+    val supervisedSessions: Boolean = true
 ) {
-    val managementScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     /**
      * Main data structure containing all sessions
@@ -206,10 +207,15 @@ class LocalSessionManager(
     /**
      * Waits for every agent of every session to exit.  Note this function does not kill anything.
      */
-    suspend fun waitAllSessions() {
+    suspend fun waitAllSessions(cancel: Boolean = false) {
         sessionNamespaces.values.forEach { namespace ->
             namespace.sessions.values.forEach { session ->
-                session.joinAgents()
+                if (cancel) {
+                    session.cancelAndJoinAgents()
+                }
+                else {
+                    session.joinAgents()
+                }
             }
         }
     }

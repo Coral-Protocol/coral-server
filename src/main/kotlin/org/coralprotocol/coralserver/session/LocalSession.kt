@@ -43,7 +43,7 @@ class LocalSession(
     agentGraph: AgentGraph,
     sessionManager: LocalSessionManager,
     mcpToolManager: McpToolManager
-): Session(sessionManager.managementScope) {
+): Session(sessionManager.managementScope, sessionManager.supervisedSessions) {
     /**
      * Agent states in this session.  Note that even though one [SessionAgent] maps to one graph agent, the agent
      * that is orchestrated is not guaranteed to be connected to the [SessionAgent].  There will always be a slight

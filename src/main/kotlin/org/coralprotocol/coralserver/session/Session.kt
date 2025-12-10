@@ -7,11 +7,12 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.plus
+import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.payment.PaymentSessionId
 
 typealias SessionId = String
 
-abstract class Session(parentScope: CoroutineScope) {
+abstract class Session(parentScope: CoroutineScope, supervisedSessions: Boolean = true) {
     /**
      * Unique ID for this session, passed to agents
      */
@@ -25,7 +26,12 @@ abstract class Session(parentScope: CoroutineScope) {
     /**
      * Coroutine scope for this session
      */
-    val sessionScope = CoroutineScope(parentScope.coroutineContext + SupervisorJob(parentScope.coroutineContext[Job]))
+    val sessionScope = if (supervisedSessions) {
+        CoroutineScope(parentScope.coroutineContext + SupervisorJob(parentScope.coroutineContext[Job]))
+    }
+    else {
+        CoroutineScope(parentScope.coroutineContext)
+    }
 
     /**
      * Called by the destroy function.  Should be listened to by managers to clean up any related context
