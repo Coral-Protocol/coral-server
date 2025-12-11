@@ -17,9 +17,11 @@ import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.models.Telemetry
 import java.util.UUID
 
+typealias MessageId  = String
+
 @Serializable
 data class SessionThreadMessage(
-    val id: String = UUID.randomUUID().toString(),
+    val id: MessageId = UUID.randomUUID().toString(),
     val threadId: ThreadId,
     val text: String,
     val senderName: UniqueAgentName,

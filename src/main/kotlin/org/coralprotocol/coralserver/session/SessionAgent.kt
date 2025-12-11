@@ -12,11 +12,6 @@ import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonObject
@@ -31,6 +26,7 @@ import org.coralprotocol.coralserver.mcp.McpInstructionSnippet
 import org.coralprotocol.coralserver.mcp.McpResourceName
 import org.coralprotocol.coralserver.mcp.McpTool
 import org.coralprotocol.coralserver.mcp.McpToolManager
+import org.coralprotocol.coralserver.util.ConcurrentMutableList
 import org.coralprotocol.coralserver.x402.X402BudgetedResource
 import kotlin.String
 
@@ -92,10 +88,10 @@ class SessionAgent(
     val links = mutableSetOf<SessionAgent>()
 
     /**
-     * A mutable list of channels.  Every channel in this list will receive messages that are posted to threads that
-     * this agent participates in.  [Channel.trySend] is used to write messages.
+     * A list of all ongoing waits this agent is performing.  Usually, this will never be more than one at a time.
+     * @see ConcurrentMutableList
      */
-    private val messageChannels = mutableListOf<Channel<SessionThreadMessage>>()
+    val waiters = ConcurrentMutableList<SessionAgentWaiter>()
 
     /**
      * A list of SSE connections to this agent's MCP server.
@@ -108,12 +104,6 @@ class SessionAgent(
      * @see [waitForSseConnection]
      */
     private val firstConnectionEstablished = CompletableDeferred<SseServerTransport>()
-
-    /**
-     * This is true when [waitForMessage] is called and the agent is waiting for a message.  This will only be set to
-     * false when all calls to [waitForMessage] have returned.
-     */
-    private val isWaiting = MutableStateFlow(false)
 
     /**
      * A list of resources that this agent has access to, each resource constrained by a budget.  This is used for x402
@@ -287,50 +277,18 @@ class SessionAgent(
     }
 
     /**
-     * Suspends until this agent receives a message that matches all specified [filters] or until [timeout] is reached.
-     *
-     * Note that under normal conditions this would only be called once per agent, but for testing / debugging purposes
-     * multiple channels are used to support multiple ongoing waits.
+     * Suspends until this agent receives a message that matches all specified [filters].  Returns null if the wait
+     * channel closes or timeout is reached.
      */
     suspend fun waitForMessage(
         filters: Set<SessionThreadMessageFilter> = setOf(),
-        timeout: Long = 60_000
+        timeoutMs: Long = 60_000L
     ): SessionThreadMessage? {
-        val messageChannel = Channel<SessionThreadMessage>(Channel.CONFLATED)
-        messageChannels.add(messageChannel)
-
-        isWaiting.update {
-            if (!it) {
-                session.events.tryEmit(SessionEvent.AgentWaitStart(name, filters))
-            }
-
-            true
+        return withTimeoutOrNull(timeoutMs) {
+            val waiter = SessionAgentWaiter(filters)
+            waiters.add(waiter)
+            waiter.deferred.await()
         }
-
-        try {
-            return withTimeoutOrNull(timeout) {
-                for (message in messageChannel) {
-                    if (filters.all { it.matches(message) }) {
-                        session.events.tryEmit(SessionEvent.AgentWaitStop(name, message))
-                        return@withTimeoutOrNull message
-                    }
-                }
-
-                return@withTimeoutOrNull null
-            }
-        }
-        finally {
-            messageChannels.remove(messageChannel)
-            isWaiting.update { messageChannels.isNotEmpty() }
-        }
-    }
-
-    /**
-     * This will suspend until the [isWaiting] state is set to [state].  This was designed for tests, where the test
-     * needs to post messages but only after an agent enters a waiting state.
-     */
-    suspend fun waitForWaitState(state: Boolean) {
-        isWaiting.asStateFlow().first { it == state }
     }
 
     /**
@@ -385,8 +343,8 @@ class SessionAgent(
     /**
      * Called when a message was posted to a thread that mentioned this agent.
      */
-    fun notifyMessage(message: SessionThreadMessage) {
-        messageChannels.forEach { it.trySend(message) }
+    suspend fun notifyMessage(message: SessionThreadMessage) {
+        waiters.forEach { it.tryMessage(message) }
     }
 
     /**
@@ -420,11 +378,11 @@ class SessionAgent(
      * Returns a JSON object used for describing this agent in ANOTHER agent's state resource.  This should only contain
      * information that is relevant to another agent.
      */
-    fun asJsonState(): JsonObject =
+    suspend fun asJsonState(): JsonObject =
         buildJsonObject {
             put("agentName", name)
             put("agentDescription", description)
-            put("agentWaiting", isWaiting.value)
+            put("agentWaiting", waiters.isNotEmpty())
             put("agentConnected", firstConnectionEstablished.isCompleted)
         }
 
