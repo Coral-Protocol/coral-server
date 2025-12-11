@@ -1,7 +1,9 @@
 package org.coralprotocol.coralserver.session
 
 import DockerRuntime
+import io.kotest.assertions.asClue
 import io.kotest.core.test.TestScope
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.ktor.client.*
 import io.ktor.client.plugins.resources.*
 import io.ktor.client.plugins.sse.*
@@ -13,6 +15,7 @@ import io.ktor.server.testing.*
 import io.modelcontextprotocol.kotlin.sdk.Implementation
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import io.modelcontextprotocol.kotlin.sdk.client.SseClientTransport
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.take
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
@@ -26,12 +29,14 @@ import org.coralprotocol.coralserver.agent.runtime.*
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.config.NetworkConfig
+import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.routes.sse.v1.Mcp
 import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
 import org.coralprotocol.coralserver.server.apiJsonConfig
 import java.nio.file.Path
+import kotlin.time.Duration
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
 
@@ -201,4 +206,38 @@ suspend fun SessionAgent.synchronizedMessageTransaction(sendMessageFn: suspend (
 
     if (returnedMsg.id != msgId)
         throw IllegalStateException("$name's active waiter returned message ${returnedMsg.id} instead of expected $msgId")
+}
+
+data class ExpectedSessionEvent(
+    val description: String,
+    val predicate: (event: SessionEvent) -> Boolean
+)
+
+suspend fun LocalSession.shouldPostEvents(
+    timeout: Duration,
+    expectedEvents: MutableList<ExpectedSessionEvent>,
+    block: suspend () -> Unit,
+) {
+    val listening = CompletableDeferred<Unit>()
+    val eventJob = sessionScope.launch {
+        listening.complete(Unit)
+
+        events.collect { event ->
+            expectedEvents.removeAll { it.predicate(event) }
+
+            if (expectedEvents.isEmpty())
+                cancel()
+        }
+    }
+
+    val blockJob = sessionScope.launch {
+        listening.await()
+        block()
+    };
+
+    { "missing expected events: ${expectedEvents.joinToString(", ") { it.description }}" }.asClue {
+        withTimeoutOrNull(timeout) {
+            joinAll(eventJob, blockJob)
+        }.shouldNotBeNull()
+    }
 }
