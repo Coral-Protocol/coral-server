@@ -1,129 +1,146 @@
 package org.coralprotocol.coralserver.session
 
-import io.kotest.assertions.throwables.shouldNotThrowAny
-import kotlinx.coroutines.test.runTest
-import org.coralprotocol.coralserver.mcp.McpToolName
+import io.kotest.assertions.nondeterministic.continually
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.collections.shouldNotBeEmpty
+import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.shouldBe
 import org.coralprotocol.coralserver.mcp.tools.*
 import java.util.*
-import kotlin.test.Test
-import kotlin.test.assertNotNull
+import kotlin.time.Duration.Companion.seconds
 
-class McpToolsTest : McpSessionBuilding() {
-    /**
-     * Tool coverage:
-     * [McpToolName.CREATE_THREAD]
-     * [McpToolName.CLOSE_THREAD]
-     * [McpToolName.SEND_MESSAGE]
-     * [McpToolName.ADD_PARTICIPANT]
-     * [McpToolName.REMOVE_PARTICIPANT]
-     * [McpToolName.WAIT_FOR_MESSAGE]
-     * [McpToolName.WAIT_FOR_AGENT]
-     * [McpToolName.WAIT_FOR_MENTION]
-     */
-    @Test
-    fun testCommonTools() = runTest {
-        val singleMessageText = UUID.randomUUID().toString()
-        val agentMessageText = UUID.randomUUID().toString()
-        val mentionText = UUID.randomUUID().toString()
+class McpToolsTest : FunSpec({
+    test("commonTools") {
+        continually(10.seconds) {
+            sessionTest {
+                val singleMessageText = UUID.randomUUID().toString()
+                val agentMessageText = UUID.randomUUID().toString()
+                val mentionText = UUID.randomUUID().toString()
 
-        val agent1Name = "agent1"
-        val agent2Name = "agent2"
-        val agent3Name = "agent3"
+                val agent1Name = "agent1"
+                val agent2Name = "agent2"
+                val agent3Name = "agent3"
 
-        buildSession(
-            mapOf(
-                agent1Name to { client, session ->
-                    shouldNotThrowAny {
-                        val agent2 = session.getAgent(agent2Name)
-                        val agent3 = session.getAgent(agent3Name)
+                buildSession(
+                    mapOf(
+                        agent1Name to { client, session ->
+                            val agent2 = session.getAgent(agent2Name)
+                            val agent3 = session.getAgent(agent3Name)
 
-                        val threadName = "test thread"
-                        val createThreadResult =
-                            mcpToolManager.createThreadTool.executeOn(client, CreateThreadInput(threadName, setOf(agent2Name)))
+                            val threadName = "test thread"
+                            val createThreadResult =
+                                mcpToolManager.createThreadTool.executeOn(
+                                    client,
+                                    CreateThreadInput(threadName, setOf(agent2Name))
+                                )
 
-                        assert(createThreadResult.thread.name == threadName)
-                        assert(createThreadResult.thread.creatorName == agent1Name)
-                        assert(createThreadResult.thread.hasParticipant(agent2Name))
+                            createThreadResult.thread.name shouldBe threadName
+                            createThreadResult.thread.creatorName shouldBe agent1Name
+                            createThreadResult.thread.hasParticipant(agent2Name) shouldBe true
 
-                        // wait for both agent2 and agent3 to enter a waiting state before sending any messages
-                        agent2.waitForWaitState(true)
-                        agent3.waitForWaitState(true)
+                            // wait for both agent2 and agent3 to enter a waiting state before sending any messages
+                            agent2.synchronizedMessageTransaction {
+                                val sendMessageResult = mcpToolManager.sendMessageTool.executeOn(
+                                    client,
+                                    SendMessageInput(createThreadResult.thread.id, singleMessageText, setOf())
+                                )
 
-                        val sendMessageResult =
-                            mcpToolManager.sendMessageTool.executeOn(
+                                assert(sendMessageResult.message.text == singleMessageText)
+                                assert(sendMessageResult.message.threadId == createThreadResult.thread.id)
+
+                                sendMessageResult.message.id
+                            }
+
+                            // wait for agent2 to begin waiting for this message, this time narrowed to just agent1
+                            agent2.synchronizedMessageTransaction {
+                                mcpToolManager.sendMessageTool.executeOn(
+                                    client,
+                                    SendMessageInput(createThreadResult.thread.id, agentMessageText, setOf())
+                                ).message.id
+                            }
+
+                            agent2.synchronizedMessageTransaction {
+                                repeat(100) {
+                                    // not mentioned, should not be picked up
+                                    mcpToolManager.sendMessageTool.executeOn(
+                                        client,
+                                        SendMessageInput(createThreadResult.thread.id, "spam", setOf())
+                                    )
+                                }
+
+                                // does mention, should be picked up
+                                mcpToolManager.sendMessageTool.executeOn(
+                                    client,
+                                    SendMessageInput(createThreadResult.thread.id, mentionText, setOf(agent2Name))
+                                ).message.id
+                            }
+
+                            // now send the last message, with the mention
+                            agent3.synchronizedMessageTransaction {
+                                mcpToolManager.addParticipantTool.executeOn(
+                                    client,
+                                    AddParticipantInput(createThreadResult.thread.id, agent3Name)
+                                )
+
+                                mcpToolManager.sendMessageTool.executeOn(
+                                    client,
+                                    SendMessageInput(createThreadResult.thread.id, mentionText, setOf(agent3Name))
+                                ).message.id
+                            }
+                        },
+                        agent2Name to { client, _ ->
+                            val singleMessageResult =
+                                mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput)
+                            singleMessageResult.message?.text shouldBe singleMessageText
+
+                            val agentMessageResult =
+                                mcpToolManager.waitForAgentMessageTool.executeOn(
+                                    client,
+                                    WaitForAgentMessageInput(agent1Name)
+                                )
+                            agentMessageResult.message?.text shouldBe agentMessageText
+
+                            val mentionResult =
+                                mcpToolManager.waitForMentionTool.executeOn(client, WaitForMentioningMessageInput)
+                            mentionResult.message?.text shouldBe mentionText
+                        },
+                        agent3Name to { client, session ->
+                            val agent3 = session.getAgent(agent3Name)
+
+                            val mentionMessageResult =
+                                mcpToolManager.waitForMentionTool.executeOn(
+                                    client,
+                                    WaitForMentioningMessageInput
+                                ).message.shouldNotBeNull()
+
+                            // the first message that this agent should receive is the first message sent by agent1, but only
+                            // after being added to the thread
+                            mentionMessageResult.text shouldBe mentionText
+                            agent3.getVisibleMessages().shouldNotBeEmpty()
+
+                            mcpToolManager.closeThreadTool.executeOn(
                                 client,
-                                SendMessageInput(createThreadResult.thread.id, singleMessageText, setOf())
+                                CloseThreadInput(mentionMessageResult.threadId, "Test thread closed")
                             )
 
-                        agent2.waitForWaitState(false)
-                        assert(sendMessageResult.message.text == singleMessageText)
-                        assert(sendMessageResult.message.threadId == createThreadResult.thread.id)
+                            // thread closed, no messages should be visible anymore
+                            agent3.getVisibleMessages().shouldBeEmpty()
 
-                        // wait for agent2 to begin waiting for this message, this time narrowed to just agent1
-                        agent2.waitForWaitState(true)
-                        mcpToolManager.sendMessageTool.executeOn(client, SendMessageInput(createThreadResult.thread.id, agentMessageText, setOf()))
-                        agent2.waitForWaitState(false)
+                            // but the thread should still be visible
+                            agent3.getThreads().shouldNotBeEmpty()
 
-                        // wait for agent2 to begin waiting for a MENTIONING message
-                        agent2.waitForWaitState(true)
-
-                        // send a bunch of garbage messages, these should not be picked up by the wait
-                        repeat(100) {
-                            mcpToolManager.sendMessageTool.executeOn(
+                            // until agent3 is removed as a participant
+                            mcpToolManager.removeParticipantTool.executeOn(
                                 client,
-                                SendMessageInput(createThreadResult.thread.id, "test", setOf())
+                                RemoveParticipantInput(mentionMessageResult.threadId, agent3Name)
                             )
+
+                            // and now agent3 should have no threads
+                            agent3.getThreads().shouldBeEmpty()
                         }
-
-                        // now send the last message, with the mention
-                        mcpToolManager.sendMessageTool.executeOn(client, SendMessageInput(createThreadResult.thread.id, mentionText, setOf(agent2Name)))
-                        agent2.waitForWaitState(false)
-
-                        mcpToolManager.addParticipantTool.executeOn(client, AddParticipantInput(createThreadResult.thread.id, agent3Name))
-                        agent3.waitForWaitState(false)
-                    }
-                },
-                agent2Name to { client, _ ->
-                    val singleMessageResult =
-                        mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput)
-                    assert(singleMessageResult.message?.text == singleMessageText)
-
-                    val agentMessageResult =
-                        mcpToolManager.waitForAgentMessageTool.executeOn(client, WaitForAgentMessageInput(agent1Name))
-                    assert(agentMessageResult.message?.text == agentMessageText)
-
-                    val mentionResult =
-                        mcpToolManager.waitForMentionTool.executeOn(client, WaitForMentioningMessageInput)
-                    assert(mentionResult.message?.text == mentionText)
-                },
-                agent3Name to { client, session ->
-                    val agent3 = session.getAgent(agent3Name)
-
-                    val singleMessageResult =
-                        mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput).message
-                    assertNotNull(singleMessageResult)
-
-                    // the first message that this agent should receive is the first message sent by agent1, but only
-                    // after being added to the thread
-                    assert(singleMessageResult.text == singleMessageText)
-                    assert(agent3.getVisibleMessages().isNotEmpty())
-
-                    mcpToolManager.closeThreadTool.executeOn(client,
-                        CloseThreadInput(singleMessageResult.threadId, "Test thread closed")
-                    )
-
-                    // thread closed, no messages should be visible anymore
-                    assert(agent3.getVisibleMessages().isEmpty())
-
-                    // but the thread should still be visible
-                    assert(agent3.getThreads().isNotEmpty())
-
-                    // until agent3 is removed as a participant
-                    mcpToolManager.removeParticipantTool.executeOn(client, RemoveParticipantInput(singleMessageResult.threadId, agent3Name))
-
-                    // and now agent3 should have no threads
-                    assert(agent3.getThreads().isEmpty())
-                }
-            ))
+                    ))
+            }
+        }
     }
-}
+})
