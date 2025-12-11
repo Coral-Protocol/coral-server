@@ -287,7 +287,12 @@ class SessionAgent(
         return withTimeoutOrNull(timeoutMs) {
             val waiter = SessionAgentWaiter(filters)
             waiters.add(waiter)
-            waiter.deferred.await()
+
+            session.events.tryEmit(SessionEvent.AgentWaitStart(name, filters))
+            val msg = waiter.deferred.await()
+            session.events.tryEmit(SessionEvent.AgentWaitStop(name, msg))
+
+            msg
         }
     }
 
