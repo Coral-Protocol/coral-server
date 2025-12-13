@@ -10,6 +10,8 @@ import io.ktor.client.plugins.sse.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import io.modelcontextprotocol.kotlin.sdk.Implementation
@@ -22,8 +24,7 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
-import org.coralprotocol.coralserver.agent.registry.RegistryAgent
-import org.coralprotocol.coralserver.agent.registry.RegistryAgentInfo
+import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.runtime.*
 import org.coralprotocol.coralserver.config.AddressConsumer
@@ -32,8 +33,10 @@ import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.payment.JupiterService
+import org.coralprotocol.coralserver.routes.api.v1.sessionApi
 import org.coralprotocol.coralserver.routes.sse.v1.Mcp
 import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
+import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.server.apiJsonConfig
 import java.nio.file.Path
 import kotlin.time.Duration
@@ -41,8 +44,9 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientCon
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
 
 class SessionTestScope(
-    val testScope: TestScope,
+    testScope: TestScope,
     val ktor: ApplicationTestBuilder,
+    registryBuilder: AgentRegistrySourceBuilder.() -> Unit = {}
 ) {
     val config = Config(
         // port for testing is zero
@@ -50,6 +54,7 @@ class SessionTestScope(
             bindPort = 0u
         )
     )
+    val registry = AgentRegistry(config, registryBuilder)
     val applicationRuntimeContext = ApplicationRuntimeContext(config)
     val mcpToolManager = McpToolManager()
     val jupiterService = JupiterService()
@@ -75,10 +80,9 @@ class SessionTestScope(
     ) =
         RegistryAgent(
             info = RegistryAgentInfo(
-                name = name,
-                version = version,
                 description = description,
-                capabilities = setOf()
+                capabilities = setOf(),
+                identifier = RegistryAgentIdentifier(name, version, AgentRegistrySourceIdentifier.Local)
             ),
             runtimes = LocalAgentRuntimes(
                 executableRuntime = executableRuntime,
@@ -97,10 +101,10 @@ class SessionTestScope(
         options: Map<String, AgentOptionWithValue> = mapOf(),
         plugins: Set<GraphAgentPlugin> = setOf(),
     ) =
-        registryAgent.info.name to GraphAgent(
+        registryAgent.name to GraphAgent(
             registryAgent = registryAgent,
-            name = registryAgent.info.name,
-            description = registryAgent.info.description,
+            name = registryAgent.name,
+            description = registryAgent.description,
             options = options,
             systemPrompt = null,
             blocking = blocking,
@@ -174,15 +178,31 @@ class SessionTestScope(
         sessionManager.createSession("graphToSession", graph).first
 }
 
-suspend fun TestScope.sessionTest(test: suspend SessionTestScope.() -> Unit) {
+suspend fun TestScope.sessionTest(
+    registryBuilder: AgentRegistrySourceBuilder.() -> Unit = {},
+    test: suspend SessionTestScope.() -> Unit
+) {
     runTestApplication(coroutineContext) {
-        val sessionTestScope = SessionTestScope(this@sessionTest, this);
+        val sessionTestScope = SessionTestScope(this@sessionTest, this, registryBuilder);
 
         application {
             install(io.ktor.server.resources.Resources)
-            routing { mcpRoutes(sessionTestScope.sessionManager) }
+            routing {
+                mcpRoutes(sessionTestScope.sessionManager)
+                sessionApi(sessionTestScope.registry, sessionTestScope.sessionManager)
+            }
             install(ServerContentNegotiation) {
                 json(apiJsonConfig, contentType = ContentType.Application.Json)
+            }
+            install(StatusPages) {
+                exception<Throwable> { call, cause ->
+                    var wrapped = cause
+                    if (cause !is RouteException) {
+                        wrapped = RouteException(HttpStatusCode.InternalServerError, cause)
+                    }
+
+                    call.respondText(text = apiJsonConfig.encodeToString(wrapped), status = wrapped.status)
+                }
             }
         }
 

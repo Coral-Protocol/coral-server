@@ -10,12 +10,15 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 @Serializable
 @JsonClassDiscriminator("type")
 sealed class AgentRegistrySourceIdentifier {
+    @Serializable
     @SerialName("local")
     object Local : AgentRegistrySourceIdentifier()
 
+    @Serializable
     @SerialName("marketplace")
     object Marketplace : AgentRegistrySourceIdentifier()
 
+    @Serializable
     @SerialName("linked")
     data class Linked(val linkedServerId: String) : AgentRegistrySourceIdentifier()
 
