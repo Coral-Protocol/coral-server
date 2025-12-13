@@ -1,12 +1,12 @@
 package org.coralprotocol.coralserver
 
-//import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import io.github.oshai.kotlinlogging.KotlinLogging
-import org.coralprotocol.coralserver.agent.registry.LocalAgentRegistry
+import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.config.BlockchainServiceProvider
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.config.loadFromFile
 import org.coralprotocol.coralserver.server.CoralServer
+import java.nio.file.Path
 
 private val logger = KotlinLogging.logger {}
 
@@ -27,7 +27,13 @@ fun main(args: Array<String>) {
     when (command) {
         "--sse-server" -> {
             val blockchainServiceProvider = BlockchainServiceProvider(config.paymentConfig)
-            val registry = LocalAgentRegistry.loadFromFile(config)
+
+            val registry = AgentRegistry(config) {
+                if (config.registryConfig.enableMarketplaceAgentRegistrySource)
+                    addMarketplace()
+
+                config.registryConfig.localRegistries.forEach { addLocal(Path.of(it)) }
+            }
 
             val server = CoralServer(
                 devmode = devMode,
