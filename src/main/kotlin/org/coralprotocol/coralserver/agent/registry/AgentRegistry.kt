@@ -44,12 +44,17 @@ class AgentRegistrySourceBuilder(val config: Config) {
             }
 
         val agents = if (duplicates.isNotEmpty()) {
-            logger.warn { "Registry '$identifier' contains ${duplicates.size} duplicate agent(s): ${duplicates.joinToString(", ") { it.identifier.toString() }}" }
+            logger.warn {
+                "Registry '$identifier' contains ${duplicates.size} duplicate agent(s): ${
+                    duplicates.joinToString(
+                        ", "
+                    ) { it.identifier.toString() }
+                }"
+            }
             logger.warn { "These duplicates will be ignored from this registry source" }
 
             agents.filter { !duplicates.contains(it) }
-        }
-        else {
+        } else {
             agents
         }
 
@@ -70,11 +75,9 @@ class AgentRegistrySourceBuilder(val config: Config) {
             )
 
             addLocalAgents(unresolved.resolve(context), "file:$path")
-        }
-        catch (e: SerializationException) {
+        } catch (e: SerializationException) {
             logger.error(e) { "Failed to parse agent registry $path" }
-        }
-        catch (e: RegistryException) {
+        } catch (e: RegistryException) {
             logger.error(e) { "Registry $path contains badly formatted agents" }
         }
     }
@@ -122,6 +125,31 @@ class AgentRegistry(config: Config, build: AgentRegistrySourceBuilder.() -> Unit
     val agents = sources.flatMap { it.agents }
 
     /**
+     * Returns a list of all exported agents from all local sources.
+     *
+     * Exported agents are agents sourced in a local registry that have defined export settings.  Exported agents can be
+     * rented by other Coral servers, compensated via (currently) Solana-backed payments.  The presence of export
+     * settings fully controls an agents' export status.
+     */
+    suspend fun getExportedAgents(): List<RestrictedRegistryAgent> {
+        return sources
+            .filter { it.identifier == AgentRegistrySourceIdentifier.Local }
+            .flatMap { source ->
+                buildList {
+                    source.agents.forEach { catalog ->
+                        catalog.versions.forEach { version ->
+                            val agent =
+                                source.resolveAgent(RegistryAgentIdentifier(catalog.name, version, source.identifier))
+
+                            if (agent.registryAgent.exportSettings.isNotEmpty())
+                                add(agent)
+                        }
+                    }
+                }
+            }
+    }
+
+    /**
      * Resolves an agent using a [RegistryAgentIdentifier].  This identifier specifies the name, version, and registry
      * source of the requested agent.  If [id] contains a [AgentRegistrySourceIdentifier.Local] identifier, this
      * function is almost instant.  If [id] uses [AgentRegistrySourceIdentifier.Marketplace] or
@@ -143,8 +171,7 @@ class AgentRegistry(config: Config, build: AgentRegistrySourceBuilder.() -> Unit
             sources.forEach {
                 return it.resolveAgent(id)
             }
-        }
-        catch (_: RegistryException.AgentNotFoundException) {
+        } catch (_: RegistryException.AgentNotFoundException) {
 
         }
 
