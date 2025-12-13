@@ -1,14 +1,12 @@
 package org.coralprotocol.coralserver.agent.graph
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
 import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
-import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
-import org.coralprotocol.coralserver.agent.registry.RegistryException
+import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.compareTypeWithValue
 import org.coralprotocol.coralserver.agent.registry.option.requireValue
@@ -19,7 +17,7 @@ import org.coralprotocol.coralserver.x402.X402BudgetedResource
 @Description("A request for an agent.  GraphAgentRequest -> GraphAgent")
 data class GraphAgentRequest(
     @Description("The ID of this agent in the registry")
-    val id: AgentRegistryIdentifier,
+    val id: RegistryAgentIdentifier,
 
     @Description("A given name for this agent in the session/group")
     val name: String,
@@ -55,9 +53,11 @@ data class GraphAgentRequest(
      *
      * @throws IllegalArgumentException if the agent registry cannot be resolved.
      */
-    fun toGraphAgent(registry: AgentRegistry, isRemote: Boolean = false): GraphAgent {
-        val registryAgent = registry.findAgent(id)
-            ?: throw AgentRequestException("Agent $id not found in registry")
+    suspend fun toGraphAgent(registry: AgentRegistry, isRemote: Boolean = false): GraphAgent {
+        val restrictedRegistryAgent = registry.resolveAgent(id)
+        restrictedRegistryAgent.restrictions.forEach { it.requireNotRestricted(this) }
+
+        val registryAgent = restrictedRegistryAgent.registryAgent
 
         // It is an error to specify unknown options
         val unknownOptions = options.filter { !registryAgent.options.containsKey(it.key) }
@@ -88,6 +88,7 @@ data class GraphAgentRequest(
         allOptions += if (isRemote) {
             val runtime = when (provider) {
                 is GraphAgentProvider.Local -> provider.runtime
+                is GraphAgentProvider.Linked -> provider.runtime
 
                 // Don't allow a remote request that requests another remote request
                 is GraphAgentProvider.RemoteRequest, is GraphAgentProvider.Remote -> {

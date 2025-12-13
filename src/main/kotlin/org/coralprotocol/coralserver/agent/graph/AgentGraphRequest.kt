@@ -26,7 +26,7 @@ class AgentGraphRequest(
      * @throws AgentRequestException if any of the [groups] contain references to agents not in [agents]
      * @throws AgentRequestException if any of the [agents] reference custom tools that don't exist inside of [customTools]
      */
-    fun toAgentGraph(registry: AgentRegistry): AgentGraph {
+    suspend fun toAgentGraph(registry: AgentRegistry): AgentGraph {
         val duplicateAgentNames = agents.groupingBy { it.name }.eachCount().filter { it.value > 1 }
         if (duplicateAgentNames.isNotEmpty()) {
             throw AgentRequestException("Agent graph contains duplicate agent names: $duplicateAgentNames")
