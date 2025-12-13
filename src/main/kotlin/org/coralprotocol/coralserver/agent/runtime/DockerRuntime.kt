@@ -43,7 +43,7 @@ data class DockerRuntime(
         }
 
         val docker = DockerWithLogging(applicationRuntimeContext.dockerClient, executionContext.logger)
-        val sanitisedImageName = docker.sanitizeDockerImageName(image, executionContext.registryAgent.info.identifier)
+        val sanitisedImageName = docker.sanitizeDockerImageName(image, executionContext.registryAgent.identifier)
 
         docker.pullImageIfNeeded(sanitisedImageName)
         docker.printImageInfo(sanitisedImageName)

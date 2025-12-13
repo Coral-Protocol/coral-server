@@ -80,7 +80,7 @@ class SessionAgent(
      * Default description, this description may be changed when the agent connects to the MCP server and specifies a
      * description as a path parameter
      */
-    var description = graphAgent.description ?: graphAgent.registryAgent.info.description
+    var description = graphAgent.description ?: graphAgent.registryAgent.description
 
     /**
      * Connections to other agents.  These connections should be built using groups specified in [AgentGraph.groups]

@@ -95,7 +95,7 @@ class LocalSessionManager(
 
         var fundAmount = 0L
         for (agent in paymentGraph.paidAgents) {
-            val id = agent.registryAgent.info.identifier
+            val id = agent.registryAgent.identifier
             val provider = agent.provider
             if (provider !is GraphAgentProvider.RemoteRequest)
                 throw IllegalArgumentException("createPaymentSession given non remote agent ${agent.name}")

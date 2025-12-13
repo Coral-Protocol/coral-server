@@ -21,14 +21,16 @@ const val CURRENT_AGENT_EDITION = 2
 
 @Serializable
 data class RegistryAgent(
-    val info: RegistryAgentInfo,
+    private val info: RegistryAgentInfo,
     val runtimes: LocalAgentRuntimes,
     val options: Map<String, AgentOption> = mapOf(),
     val path: Path? = null,
     private val unresolvedExportSettings: UnresolvedAgentExportSettingsMap = mapOf(),
 ) {
-    val name = info.identifier.name
-    val version = info.identifier.version
+    val description = info.description
+    val identifier = info.identifier
+    val name = identifier.name
+    val version = identifier.version
 
     val exportSettings: AgentExportSettingsMap = unresolvedExportSettings.mapValues { (runtime, settings) ->
         settings.resolve(runtime, this)
@@ -51,7 +53,7 @@ data class PublicRegistryAgent(
 )
 
 fun RegistryAgent.toPublic(): PublicRegistryAgent = PublicRegistryAgent(
-    id = info.identifier,
+    id = identifier,
     runtimes = runtimes.toRuntimeIds(),
     options = options,
     exportSettings = exportSettings.mapValues { (_, settings) -> settings.toPublic() }

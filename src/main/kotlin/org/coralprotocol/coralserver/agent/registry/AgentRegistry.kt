@@ -40,7 +40,7 @@ class AgentRegistrySourceBuilder(val config: Config) {
             }
 
         val agents = if (duplicates.isNotEmpty()) {
-            logger.warn { "Registry '$identifier' contains ${duplicates.size} duplicate agent(s): ${duplicates.joinToString(", ") { it.info.identifier.toString() }}" }
+            logger.warn { "Registry '$identifier' contains ${duplicates.size} duplicate agent(s): ${duplicates.joinToString(", ") { it.identifier.toString() }}" }
             logger.warn { "These duplicates will be ignored from this registry source" }
 
             agents.filter { !duplicates.contains(it) }

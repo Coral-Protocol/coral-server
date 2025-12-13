@@ -13,14 +13,14 @@ class ListAgentRegistrySource(
     override val agents: List<RegistryAgentCatalog> = buildList {
         buildMap {
             registryAgents.forEach {
-                getOrPut(it.info.identifier.name, ::mutableListOf).add(it.info.identifier.version)
+                getOrPut(it.name, ::mutableListOf).add(it.version)
             }
         }.forEach { (name, versions) ->
             add(RegistryAgentCatalog(name, versions))
         }
     }
 
-    private val agentMap = registryAgents.associateBy { it.info.identifier }
+    private val agentMap = registryAgents.associateBy { it.identifier }
 
     override suspend fun resolveAgent(agent: RegistryAgentIdentifier): RestrictedRegistryAgent {
         val agent = agentMap[agent]
