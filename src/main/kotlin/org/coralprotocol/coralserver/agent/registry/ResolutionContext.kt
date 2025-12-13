@@ -23,6 +23,7 @@ abstract class ResolutionContext() {
 }
 
 data class RegistryResolutionContext(
+    val registrySourceIdentifier: AgentRegistrySourceIdentifier,
     val serializer: Toml,
     val config: Config,
     override val path: Path

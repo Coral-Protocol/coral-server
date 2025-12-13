@@ -1,14 +1,11 @@
 package org.coralprotocol.coralserver.agent.registry
 
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.reference.GitUnresolvedRegistryAgent
 import org.coralprotocol.coralserver.agent.registry.reference.IndexUnresolvedRegistryAgent
 import org.coralprotocol.coralserver.agent.registry.reference.LocalUnresolvedRegistryAgent
 import java.nio.file.Path
-
-private val logger = KotlinLogging.logger {}
 
 /**
  * The serial names provided here are not pluralized because it makes the config file a little easier to understand when
@@ -28,7 +25,7 @@ data class UnresolvedLocalAgentRegistry(
     @SerialName("inline-agent")
     val inlineAgents: List<UnresolvedInlineRegistryAgent> = listOf(),
 ) {
-    fun resolve(context: RegistryResolutionContext): LocalAgentRegistry {
+    fun resolve(context: RegistryResolutionContext): List<RegistryAgent> {
         // Agents resolved from a local path require a reference to that path during the resolution process
         val agents = localAgents.flatMap {
             it.resolve(AgentResolutionContext(
@@ -56,6 +53,6 @@ data class UnresolvedLocalAgentRegistry(
             throw RegistryException("Registry contains duplicate agents: ${duplicates.keys.joinToString(", ")}")
         }
 
-        return LocalAgentRegistry(agents)
+        return agents
     }
 }

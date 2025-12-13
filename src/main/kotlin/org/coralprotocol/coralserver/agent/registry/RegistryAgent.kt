@@ -19,13 +19,17 @@ private val logger = KotlinLogging.logger {  }
 const val FIRST_AGENT_EDITION = 1
 const val CURRENT_AGENT_EDITION = 2
 
-class RegistryAgent(
+@Serializable
+data class RegistryAgent(
     val info: RegistryAgentInfo,
     val runtimes: LocalAgentRuntimes,
     val options: Map<String, AgentOption> = mapOf(),
     val path: Path? = null,
-    unresolvedExportSettings: UnresolvedAgentExportSettingsMap = mapOf(),
+    private val unresolvedExportSettings: UnresolvedAgentExportSettingsMap = mapOf(),
 ) {
+    val name = info.identifier.name
+    val version = info.identifier.version
+
     val exportSettings: AgentExportSettingsMap = unresolvedExportSettings.mapValues { (runtime, settings) ->
         settings.resolve(runtime, this)
     }
@@ -40,7 +44,7 @@ class RegistryAgent(
 
 @Serializable
 data class PublicRegistryAgent(
-    val id: AgentRegistryIdentifier,
+    val id: RegistryAgentIdentifier,
     val runtimes: List<RuntimeId>,
     val options: Map<String, AgentOption>,
     val exportSettings: PublicAgentExportSettingsMap

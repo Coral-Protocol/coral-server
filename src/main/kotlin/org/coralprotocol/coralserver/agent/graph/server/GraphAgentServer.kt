@@ -15,8 +15,8 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
-import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
 import org.coralprotocol.coralserver.agent.registry.PublicAgentExportSettingsMap
+import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.routes.api.v1.AgentRental
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.server.apiJsonConfig
@@ -73,10 +73,10 @@ class GraphAgentServer (
      * @throws RouteException if the request fails.
      * @see Agents.ExportedAgent
      */
-    suspend fun getAgentExportSettings(id: AgentRegistryIdentifier): PublicAgentExportSettingsMap {
+    suspend fun getAgentExportSettings(id: RegistryAgentIdentifier): PublicAgentExportSettingsMap {
         val resource = AgentRental.Catalog.Details(
-            name = id.name,
-            version = id.version
+            agentName = id.name,
+            agentVersion = id.version,
         )
         val response = client.get(resource)
         println("Getting export settings from $this for agent $id")

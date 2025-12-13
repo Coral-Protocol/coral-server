@@ -40,19 +40,13 @@ class SessionAgentExecutionContext(
      */
     fun buildEnvironment(): Map<String, String> {
         return buildMap {
-            val runtime = when (provider) {
-                is GraphAgentProvider.Local -> provider.runtime
-                is GraphAgentProvider.Remote -> provider.runtime
-                is GraphAgentProvider.RemoteRequest -> provider.runtime
-            }
-
-            val addressConsumer = when (runtime) {
+            val addressConsumer = when (provider.runtime) {
                 RuntimeId.EXECUTABLE -> AddressConsumer.LOCAL
                 RuntimeId.DOCKER -> AddressConsumer.CONTAINER
                 RuntimeId.FUNCTION -> AddressConsumer.LOCAL
             }
 
-            val isContainer = runtime == RuntimeId.DOCKER
+            val isContainer = provider.runtime == RuntimeId.DOCKER
 
             val filePathSeparator = if (isContainer) {
                 applicationRuntimeContext.config.dockerConfig.containerPathSeparator
@@ -92,7 +86,7 @@ class SessionAgentExecutionContext(
             this["CORAL_SESSION_ID"] = agent.session.id
             this["CORAL_API_URL"] = applicationRuntimeContext.getApiUrl(addressConsumer).toString()
             this["CORAL_SEND_CLAIMS"] = "0"
-            this["CORAL_RUNTIME_ID"] = runtime.toString().lowercase()
+            this["CORAL_RUNTIME_ID"] = provider.runtime.toString().lowercase()
 
             if (agent.graphAgent.systemPrompt != null)
                 this["CORAL_PROMPT_SYSTEM"] = agent.graphAgent.systemPrompt

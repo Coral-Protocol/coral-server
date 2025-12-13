@@ -12,7 +12,7 @@ import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
+import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.agent.runtime.AgentRuntime
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.logging.LoggerWithFlow
@@ -121,7 +121,7 @@ data class DockerRuntime(
     }
 }
 
-private fun DockerWithLogging.sanitizeDockerImageName(imageName: String, id: AgentRegistryIdentifier): String {
+private fun DockerWithLogging.sanitizeDockerImageName(imageName: String, id: RegistryAgentIdentifier): String {
     if (imageName.contains(":")) {
         if (!imageName.endsWith(":${id.version}")) {
             logger.warn("Image $imageName does not match the agent version: ${id.version}")

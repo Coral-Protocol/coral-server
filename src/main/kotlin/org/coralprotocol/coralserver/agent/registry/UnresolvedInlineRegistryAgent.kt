@@ -15,7 +15,7 @@ data class UnresolvedInlineRegistryAgent(
     val edition: Int = 1,
 
     @SerialName("agent")
-    val agentInfo: RegistryAgentInfo,
+    val agentInfo: UnresolvedRegistryAgentInfo,
 
     @Description("The runtimes that this agent supports")
     val runtimes: LocalAgentRuntimes,
@@ -40,7 +40,7 @@ data class UnresolvedInlineRegistryAgent(
         }
 
         return listOf(RegistryAgent(
-            info = agentInfo,
+            info = agentInfo.resolve(context.registryResolutionContext),
             runtimes = runtimes,
             options = options,
             unresolvedExportSettings = unresolvedExportSettings,

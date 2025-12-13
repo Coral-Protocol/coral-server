@@ -207,6 +207,18 @@ data class RegistryConfig(
         }
 
     /**
+     * A list of paths to registry files.
+     */
+    @SerialName("local_registries")
+    val localRegistries: List<String> = listOf()
+
+    /**
+     * If this is true, the entire marketplace will be used as a potential agent registry source.
+     */
+    @SerialName("enable_marketplace_agent_registry_source")
+    val enableMarketplaceAgentRegistrySource = false
+
+    /**
      * If the given name is null, returns the indexer with the highest priority.  If a name is specified, return an
      * indexer with a matching name or throw a RegistryException.  If the given name is null and there are no defined
      * indexers, this returns the default Coral indexer.
