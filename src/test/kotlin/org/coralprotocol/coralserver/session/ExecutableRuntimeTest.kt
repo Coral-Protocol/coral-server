@@ -1,10 +1,11 @@
+
 package org.coralprotocol.coralserver.session
 
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.collections.shouldContain
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.withContext
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
@@ -14,15 +15,12 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.runtime.ExecutableRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.logging.LogMessage
-import org.junit.jupiter.api.Disabled
+import org.coralprotocol.coralserver.util.isWindows
 import java.util.*
-import kotlin.test.Test
 
-class ExecutableRuntimeTest : SessionBuilding() {
-    @Test
-    @Disabled("Requires Windows/PowerShell")
-    fun testOptions() = runTest {
-        withContext(Dispatchers.IO) {
+class ExecutableRuntimeTest : FunSpec({
+    test("testOptions").config(enabled = isWindows()) {
+        sessionTest {
             val optionValue1 = UUID.randomUUID().toString()
             val optionValue2 = UUID.randomUUID().toString()
 
@@ -74,7 +72,7 @@ class ExecutableRuntimeTest : SessionBuilding() {
             val collecting = CompletableDeferred<Unit>()
             val messages = mutableListOf<String>()
             val agent2 = session1.getAgent("agent2")
-            session1.sessionScope.launch {
+            val collector = session1.sessionScope.launch {
                 collecting.complete(Unit)
                 agent2.logger.getSharedFlow().collect {
                     if (it is LogMessage.Info)
@@ -88,8 +86,10 @@ class ExecutableRuntimeTest : SessionBuilding() {
             session1.joinAgents()
 
             // Test that the script printed both env and fs option values
-            assert(messages.contains(optionValue1))
-            assert(messages.contains(optionValue2))
+            messages.shouldContain(optionValue1)
+            messages.shouldContain(optionValue2)
+
+            collector.cancelAndJoin()
         }
     }
-}
+})
