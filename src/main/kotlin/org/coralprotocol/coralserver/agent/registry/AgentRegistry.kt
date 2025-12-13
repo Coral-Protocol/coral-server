@@ -11,7 +11,11 @@ import java.nio.file.Path
 private val logger = KotlinLogging.logger { }
 
 class AgentRegistrySourceBuilder(val config: Config) {
-    internal val sources = mutableListOf<AgentRegistrySource>()
+    val sources = mutableListOf<AgentRegistrySource>()
+
+    fun addSource(source: AgentRegistrySource) {
+        sources.add(source)
+    }
 
     fun addMarketplace() {
         sources.add(MarketplaceAgentRegistrySource())
@@ -123,13 +127,6 @@ class AgentRegistry(config: Config, build: AgentRegistrySourceBuilder.() -> Unit
      * function is almost instant.  If [id] uses [AgentRegistrySourceIdentifier.Marketplace] or
      * [AgentRegistrySourceIdentifier.Linked] this function requires network communication and may operate slower.
      *
-     * If multiple registry sources have a definition for [id], the following resolution order is used:
-     * 1. Local
-     * 2. Linked
-     * 3. Marketplace
-     *
-     * This resolution order also ensures no unnecessary network communication occurs.
-     *
      * @param id The identifier of the agent to resolve
      *
      * @throws RegistryException.RegistrySourceNotFoundException if the specified registry source does not exist
@@ -138,13 +135,6 @@ class AgentRegistry(config: Config, build: AgentRegistrySourceBuilder.() -> Unit
     suspend fun resolveAgent(id: RegistryAgentIdentifier): RestrictedRegistryAgent {
         val sources = sources
             .filter { it.identifier == id.registrySourceId }
-            .sortedBy {
-                when (it.identifier) {
-                    AgentRegistrySourceIdentifier.Local -> 3
-                    is AgentRegistrySourceIdentifier.Linked -> 2
-                    AgentRegistrySourceIdentifier.Marketplace -> 1
-                }
-            }
 
         if (sources.isEmpty())
             throw RegistryException.RegistrySourceNotFoundException("No registry sources for '${id.registrySourceId}' found")
