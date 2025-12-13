@@ -14,8 +14,8 @@ import org.coralprotocol.coralserver.agent.graph.server.GraphAgentServer
 import org.coralprotocol.coralserver.agent.graph.server.GraphAgentServerScoring
 import org.coralprotocol.coralserver.agent.graph.server.GraphAgentServerSource
 import org.coralprotocol.coralserver.agent.payment.AgentClaimAmount
-import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
 import org.coralprotocol.coralserver.agent.registry.PublicAgentExportSettings
+import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.payment.JupiterService
 
@@ -25,11 +25,21 @@ private val logger = KotlinLogging.logger {}
 @JsonClassDiscriminator("type")
 @Description("A local or remote provider for an agent")
 sealed class GraphAgentProvider {
+    abstract val runtime: RuntimeId
+
     @Serializable
     @SerialName("local")
     @Description("The agent will be provided by this server")
     data class Local(
-        val runtime: RuntimeId,
+        override val runtime: RuntimeId,
+    ) : GraphAgentProvider()
+
+    @Serializable
+    @SerialName("linked")
+    @Description("The agent will be provided by a linked server")
+    data class Linked(
+        val linkedServerName: String,
+        override val runtime: RuntimeId,
     ) : GraphAgentProvider()
 
     @Serializable
@@ -37,7 +47,7 @@ sealed class GraphAgentProvider {
     @Description("A request for a remote agent and a list of places to try and source a server from")
     data class RemoteRequest(
         @Description("The runtime that should be used for this remote agent.  Servers can export only specific runtimes so the runtime choice may narrow servers that can adequately provide the agent")
-        val runtime: RuntimeId,
+        override val runtime: RuntimeId,
 
         @Description("The maximum we are willing to pay for this remote agent, note that if this is not high enough there may be no remotes willing to provide the agent")
         val maxCost: AgentClaimAmount,
@@ -57,7 +67,7 @@ sealed class GraphAgentProvider {
         val server: GraphAgentServer,
 
         @Description("The runtime to be used on the remote server.  Likely Docker or Phala")
-        val runtime: RuntimeId,
+        override val runtime: RuntimeId,
 
         @Description("The wallet address of the server that is providing this remote agent")
         val wallet: String,
@@ -71,7 +81,7 @@ sealed class GraphAgentProvider {
 }
 
 suspend fun RemoteRequest.toRemote(
-    agentId: AgentRegistryIdentifier,
+    agentId: RegistryAgentIdentifier,
     paymentSessionId: String,
     jupiterService: JupiterService
 ): GraphAgentProvider.Remote {
