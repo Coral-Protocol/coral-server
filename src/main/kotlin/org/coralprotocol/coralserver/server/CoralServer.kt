@@ -4,6 +4,8 @@ package org.coralprotocol.coralserver.server
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.OpenApi
+import io.github.smiley4.ktoropenapi.config.AuthScheme
+import io.github.smiley4.ktoropenapi.config.AuthType
 import io.github.smiley4.ktoropenapi.config.OutputFormat
 import io.github.smiley4.ktoropenapi.config.SchemaGenerator
 import io.github.smiley4.ktoropenapi.openApi
@@ -34,6 +36,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import io.ktor.server.websocket.*
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType
 import kotlinx.coroutines.Job
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
@@ -109,6 +112,18 @@ class CoralServer(
                 }
                 tags {
                     tagGenerator = { url -> listOf(url.getOrNull(2)) }
+                }
+                security {
+                    securityScheme("token") {
+                        type = AuthType.HTTP
+                        scheme = AuthScheme.BEARER
+                        bearerFormat = "Configured token"
+                    }
+                    securityScheme("agentSecret") {
+                        type = AuthType.HTTP
+                        scheme = AuthScheme.BEARER
+                        bearerFormat = "Generated agent secret"
+                    }
                 }
                 schemas {
                     generator = SchemaGenerator.kotlinx {  }

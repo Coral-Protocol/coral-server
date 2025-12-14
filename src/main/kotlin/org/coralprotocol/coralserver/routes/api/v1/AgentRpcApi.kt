@@ -43,6 +43,7 @@ fun Route.agentRpcApi(
         summary = "Submit rental agent claim"
         description = "Requests a certain amount of money to be paid for a work done by a rental agent"
         operationId = "submitRentalClaim"
+        securitySchemeNames("agentSecret")
         request {
             pathParameter<String>("remoteSessionId") {
                 description = "The remote session ID"
@@ -100,6 +101,7 @@ fun Route.agentRpcApi(
         summary = "Request for x402 proxying"
         description = "Allows an agent to request that the server pays for an x402 service by proxy"
         operationId = "requestX402Proxy"
+        securitySchemeNames("agentSecret")
         request {
             pathParameter<String>("agentSecret") {
                 description = "The agent's unique secret"

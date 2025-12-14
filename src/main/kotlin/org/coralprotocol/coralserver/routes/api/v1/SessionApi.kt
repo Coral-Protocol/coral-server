@@ -47,6 +47,7 @@ fun Route.sessionApi(
         summary = "Create session"
         description = "Creates a new session in a given namespace"
         operationId = "createSession"
+        securitySchemeNames("token")
         request {
             body<AgentGraphRequest> {
                 description = "Graph of agents to be used in the session"
@@ -93,6 +94,7 @@ fun Route.sessionApi(
         summary = "List sessions in namespace"
         description = "Returns a list of all sessions in a specific namespace"
         operationId = "getSessionsInNamespace"
+        securitySchemeNames("token")
         request {
             pathParameter<String>("namespace") {
                 description = "The namespace to list sessions from"
@@ -125,6 +127,7 @@ fun Route.sessionApi(
         summary = "Get all sessions from all namespaces"
         description = "Returns a list of namespaces containing their respective sessions"
         operationId = "getAllSessions"
+        securitySchemeNames("token")
         response {
             HttpStatusCode.OK to {
                 description = "Success"
@@ -143,6 +146,7 @@ fun Route.sessionApi(
         summary = "Close an active session"
         description = "Closes an active session, cancelling all running awgents"
         operationId = "closeSession"
+        securitySchemeNames("token")
         request {
             pathParameter<String>("namespace") {
                 description = "The namespace of the session to close"
