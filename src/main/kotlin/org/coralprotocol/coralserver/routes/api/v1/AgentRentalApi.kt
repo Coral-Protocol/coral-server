@@ -7,9 +7,9 @@ import io.ktor.resources.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.serialization.Transient
 import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
-import org.coralprotocol.coralserver.agent.registry.*
+import org.coralprotocol.coralserver.agent.registry.AgentRegistry
+import org.coralprotocol.coralserver.agent.registry.PublicRestrictedRegistryAgent
 import org.coralprotocol.coralserver.config.Wallet
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
@@ -24,15 +24,15 @@ class AgentRental {
     class Wallet(val parent: AgentRental = AgentRental())
 
     @Resource("catalog")
-    class Catalog(val parent: AgentRental = AgentRental()) {
-        @Resource("{name}/{version}")
-        class Details(val parent: Catalog = Catalog(), val name: String, val version: String) {
-            @Transient
-            val identifier = AgentRegistryIdentifier(name, version)
-        }
-    }
+    class Catalog(val parent: AgentRental = AgentRental())
 }
 
+/**
+ * WARNING!
+ *
+ * These routes are public.  Before extending these routes or modifying them, make sure that the modifications or new
+ * routes do not users to gain any unnecessary access to system resources or information.
+ */
 fun Route.agentRentalApi(
     wallet: Wallet?,
     registry: AgentRegistry,
@@ -132,18 +132,18 @@ fun Route.agentRentalApi(
                     description = "The wallet address"
                 }
             }
-            HttpStatusCode.NotFound to {
-                description = "No wallet configured on this server"
+            HttpStatusCode.Forbidden to {
+                description = "This server is not configured to allow rental agents"
                 body<RouteException> {
                     description = "Error message"
                 }
             }
         }
     }) {
-        call.respond(HttpStatusCode.OK, wallet?.walletAddress ?: throw RouteException(
-            HttpStatusCode.NotFound,
-            "No wallet configured on this server"
-        ))
+        call.respond(
+            HttpStatusCode.OK, wallet?.walletAddress
+                ?: throw RouteException(HttpStatusCode.Forbidden)
+        )
     }
 
     get<AgentRental.Catalog>({
@@ -153,46 +153,12 @@ fun Route.agentRentalApi(
         response {
             HttpStatusCode.OK to {
                 description = "Success"
-                body<List<PublicRegistryAgent>> {
-                    description = "List of available agents"
+                body<List<PublicRestrictedRegistryAgent>> {
+                    description = "List of exported agents"
                 }
             }
         }
     }) {
-        val agents = registry.listAgents().map { it.toPublic() }
-        call.respond(HttpStatusCode.OK, agents)
-    }
-
-    get<AgentRental.Catalog.Details>({
-        summary = "Get rental agent info"
-        description = "Returns agent rental details for the specified agent"
-        operationId = "getRentalAgentDetails"
-        request {
-            pathParameter<String>("name") {
-                description = "The name of the exported agent"
-            }
-            pathParameter<String>("version") {
-                description = "The version of the exported agent"
-            }
-        }
-        response {
-            HttpStatusCode.OK to {
-                description = "Success"
-                body<PublicAgentExportSettingsMap> {
-                    description = "Agent settings map, keyed by runtime"
-                }
-            }
-            HttpStatusCode.NotFound to {
-                description = "Agent was not found or is not exported"
-                body<RouteException> {
-                    description = "Error message"
-                }
-            }
-        }
-    }) {
-        val agent = registry.findAgent(AgentRegistryIdentifier(it.name, it.version))
-            ?: throw RouteException(HttpStatusCode.NotFound, "Agent with ${it.name}:${it.version} not found")
-
-        call.respond(agent.exportSettings.toPublic())
+        call.respond(HttpStatusCode.OK, registry.getExportedAgents().map { it.toPublic() })
     }
 }

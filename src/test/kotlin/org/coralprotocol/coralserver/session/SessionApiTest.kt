@@ -8,6 +8,7 @@ import io.ktor.client.call.*
 import io.ktor.client.plugins.resources.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import io.ktor.server.testing.*
 import kotlinx.coroutines.delay
 import org.coralprotocol.coralserver.agent.graph.AgentGraphRequest
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
@@ -27,8 +28,8 @@ class SessionApiTest : FunSpec({
     val agentName = "delay"
     val agentVersion = "1.0.0"
     val agentIdentifier = RegistryAgentIdentifier(agentName, agentVersion, AgentRegistrySourceIdentifier.Local)
-    val registryBuilder: (AgentRegistrySourceBuilder) -> Unit = {
-        it.addLocalAgents(
+    val registryBuilder: AgentRegistrySourceBuilder.(ApplicationTestBuilder) -> Unit = {
+        this.addLocalAgents(
             listOf(
                 RegistryAgent(
                     info = RegistryAgentInfo(

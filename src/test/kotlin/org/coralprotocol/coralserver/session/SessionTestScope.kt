@@ -1,6 +1,5 @@
 package org.coralprotocol.coralserver.session
 
-import org.coralprotocol.coralserver.agent.runtime.DockerRuntime
 import io.kotest.assertions.asClue
 import io.kotest.core.test.TestScope
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -14,9 +13,7 @@ import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
-import io.modelcontextprotocol.kotlin.sdk.Implementation
 import io.modelcontextprotocol.kotlin.sdk.client.Client
-import io.modelcontextprotocol.kotlin.sdk.client.SseClientTransport
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.take
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
@@ -27,17 +24,17 @@ import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.runtime.*
-import org.coralprotocol.coralserver.config.AddressConsumer
-import org.coralprotocol.coralserver.config.Config
-import org.coralprotocol.coralserver.config.NetworkConfig
+import org.coralprotocol.coralserver.config.*
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.payment.JupiterService
+import org.coralprotocol.coralserver.routes.api.v1.agentRentalApi
 import org.coralprotocol.coralserver.routes.api.v1.sessionApi
 import org.coralprotocol.coralserver.routes.sse.v1.Mcp
 import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.server.apiJsonConfig
+import org.coralprotocol.coralserver.util.mcpFunctionRuntime
 import java.nio.file.Path
 import kotlin.time.Duration
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
@@ -52,6 +49,17 @@ class SessionTestScope(
         // port for testing is zero
         networkConfig = NetworkConfig(
             bindPort = 0u
+        ),
+        paymentConfig = PaymentConfig(
+            wallets = listOf(
+                Wallet.Solana(
+                    name = "fake test wallet",
+                    cluster = SolanaCluster.DEV_NET,
+                    keypairPath = "fake-test-wallet.json",
+                    walletAddress = "this is not a real wallet address"
+                )
+            ),
+            remoteAgentWalletName = "fake test wallet"
         )
     )
     val registry = AgentRegistry(config, registryBuilder)
@@ -125,26 +133,6 @@ class SessionTestScope(
             provider = provider
         )
 
-    fun HttpClient.mcpFunctionRuntime(name: String, func: suspend (Client, LocalSession) -> Unit) =
-        FunctionRuntime { executionContext, applicationRuntimeContext ->
-            val mcpClient = Client(
-                clientInfo = Implementation(
-                    name = name,
-                    version = "1.0.0"
-                )
-            )
-
-            val transport = SseClientTransport(
-                client = this,
-                urlString = applicationRuntimeContext.getMcpUrl(
-                    executionContext,
-                    AddressConsumer.LOCAL
-                ).toString()
-            )
-            mcpClient.connect(transport)
-            func(mcpClient, executionContext.session)
-        }
-
     suspend fun HttpClient.sseHandshake(secret: String) {
         this.sse(this.href(Mcp.Sse(secret))) {
             // We will get a session so long as the agent secret is valid, the following line makes sure a connection
@@ -160,7 +148,7 @@ class SessionTestScope(
                     graphAgent(
                         registryAgent = registryAgent(
                             name = name,
-                            functionRuntime = ktor.client.mcpFunctionRuntime(name, func)
+                            functionRuntime = ktor.client.mcpFunctionRuntime(name, "1.0.0", func)
                         ),
                         provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
                     ).second
@@ -179,17 +167,33 @@ class SessionTestScope(
 }
 
 suspend fun TestScope.sessionTest(
-    registryBuilder: AgentRegistrySourceBuilder.() -> Unit = {},
+    registryBuilder: AgentRegistrySourceBuilder.(env: ApplicationTestBuilder) -> Unit = {},
     test: suspend SessionTestScope.() -> Unit
 ) {
     runTestApplication(coroutineContext) {
-        val sessionTestScope = SessionTestScope(this@sessionTest, this, registryBuilder);
+        client = createClient {
+            install(Resources)
+            install(SSE)
+            install(ClientContentNegotiation) {
+                json(apiJsonConfig, contentType = ContentType.Application.Json)
+            }
+        }
+
+        val sessionTestScope = SessionTestScope(this@sessionTest, this) {
+            registryBuilder(this@runTestApplication)
+        };
 
         application {
             install(io.ktor.server.resources.Resources)
             routing {
                 mcpRoutes(sessionTestScope.sessionManager)
                 sessionApi(sessionTestScope.registry, sessionTestScope.sessionManager)
+                agentRentalApi(
+                    sessionTestScope.config.paymentConfig.remoteAgentWallet,
+                    sessionTestScope.registry,
+                    null, // todo: mock blockchain service (also remote sessions)
+                    null // todo: remote sessions
+                )
             }
             install(ServerContentNegotiation) {
                 json(apiJsonConfig, contentType = ContentType.Application.Json)
@@ -203,14 +207,6 @@ suspend fun TestScope.sessionTest(
 
                     call.respondText(text = apiJsonConfig.encodeToString(wrapped), status = wrapped.status)
                 }
-            }
-        }
-
-        client = createClient {
-            install(Resources)
-            install(SSE)
-            install(ClientContentNegotiation) {
-                json(apiJsonConfig, contentType = ContentType.Application.Json)
             }
         }
 

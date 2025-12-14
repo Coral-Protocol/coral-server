@@ -7,6 +7,7 @@ import org.coralprotocol.coralserver.agent.runtime.ExecutableRuntime
 import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.events.SessionEvent
+import org.coralprotocol.coralserver.util.mcpFunctionRuntime
 import kotlin.time.Duration.Companion.seconds
 
 open class SessionEventsTest : FunSpec({
@@ -32,7 +33,7 @@ open class SessionEventsTest : FunSpec({
                                             },
                                         )
                                     ) {
-                                        ktor.client.mcpFunctionRuntime(agent1Name) { _, _ ->
+                                        ktor.client.mcpFunctionRuntime(agent1Name, "1.0.0") { _, _ ->
                                             // just to trigger AgentConnected
                                         }.execute(executionContext, applicationRuntimeContext)
                                     }

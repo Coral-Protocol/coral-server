@@ -427,3 +427,13 @@ fun AgentOption.compareTypeWithValue(value: AgentOptionValue) =
         is AgentOption.UShort -> value is AgentOptionValue.UShort
         is AgentOption.UShortList -> value is AgentOptionValue.UShortList
     }
+
+fun AgentOption.buildFullOption(
+    name: String,
+    description: String,
+    required: Boolean
+): Pair<String, AgentOption> {
+    this.display = AgentOptionDisplay(description = description)
+    this.required = required
+    return name to this
+}
