@@ -9,7 +9,6 @@ import io.ktor.resources.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import jdk.javadoc.internal.doclets.formats.html.markup.HtmlStyle
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.graph.AgentGraphRequest
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
@@ -52,6 +51,9 @@ fun Route.sessionApi(
             body<AgentGraphRequest> {
                 description = "Graph of agents to be used in the session"
             }
+            pathParameter<String>("namespace") {
+                description = "The namespace this session should be created in.  This namespace will be created if it does not exist."
+            }
         }
         response {
             HttpStatusCode.OK to {
@@ -91,6 +93,11 @@ fun Route.sessionApi(
         summary = "List sessions in namespace"
         description = "Returns a list of all sessions in a specific namespace"
         operationId = "getSessionsInNamespace"
+        request {
+            pathParameter<String>("namespace") {
+                description = "The namespace to list sessions from"
+            }
+        }
         response {
             HttpStatusCode.OK to {
                 description = "Success"
@@ -136,6 +143,15 @@ fun Route.sessionApi(
         summary = "Close an active session"
         description = "Closes an active session, cancelling all running awgents"
         operationId = "closeSession"
+        request {
+            pathParameter<String>("namespace") {
+                description = "The namespace of the session to close"
+            }
+
+            pathParameter<String>("sessionId") {
+                description = "The sessionId of the session to close"
+            }
+        }
         response {
             HttpStatusCode.OK to {
                 description = "Success"
