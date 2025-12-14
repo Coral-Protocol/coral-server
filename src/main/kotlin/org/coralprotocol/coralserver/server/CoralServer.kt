@@ -37,6 +37,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import io.ktor.server.websocket.*
+import javassist.CtNewMethod.wrapped
 import kotlinx.coroutines.Job
 import kotlinx.html.Entities
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -195,13 +196,15 @@ class CoralServer(
                 exception<Throwable> { call, cause ->
                     // Other exceptions should still be serialized, wrap non RouteException type exceptions in a
                     // RouteException, giving a 500-status code
-                    var wrapped = cause
-                    if (cause !is RouteException) {
+                    var routeException = if (cause !is RouteException) {
                         logger.error(cause) { "Unexpected exception thrown from route ${call.request.uri}" }
-                        wrapped = RouteException(HttpStatusCode.InternalServerError, cause)
+                        RouteException(HttpStatusCode.InternalServerError, cause)
+                    }
+                    else {
+                        cause
                     }
 
-                    call.respondText(text = apiJsonConfig.encodeToString(wrapped), status = wrapped.status)
+                    call.respond(routeException.status, routeException)
                 }
             }
             install(Authentication) {
