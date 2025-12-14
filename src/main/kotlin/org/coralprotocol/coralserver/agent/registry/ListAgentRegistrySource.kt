@@ -5,11 +5,9 @@ package org.coralprotocol.coralserver.agent.registry
  * local sources.
  */
 class ListAgentRegistrySource(
-    identifier: AgentRegistrySourceIdentifier,
-    private val registryAgents: List<RegistryAgent>,
+    val registryAgents: List<RegistryAgent> = listOf(),
     private val restrictions: Set<RegistryAgentRestriction> = setOf()
-) : AgentRegistrySource(identifier) {
-
+) : AgentRegistrySource(AgentRegistrySourceIdentifier.Local) {
     override val agents: List<RegistryAgentCatalog> = buildList {
         buildMap {
             registryAgents.forEach {

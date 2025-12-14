@@ -11,6 +11,7 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
 import org.coralprotocol.coralserver.session.SessionException
 
+@Serializable
 data class RestrictedRegistryAgent(
     val registryAgent: RegistryAgent,
     val restrictions: Set<RegistryAgentRestriction> = setOf()

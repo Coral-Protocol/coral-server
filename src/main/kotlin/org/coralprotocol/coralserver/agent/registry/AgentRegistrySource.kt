@@ -31,17 +31,25 @@ sealed class AgentRegistrySourceIdentifier {
     }
 }
 
+/**
+ * This cannot be an abstract class.  Kotlinx serialization will try to serialize this as a polymorphic type if it is
+ * either abstract or an interface, in this case we only want this base class to be what is serialized regardless of
+ * implementation.
+ */
 @Serializable
-abstract class AgentRegistrySource(val identifier: AgentRegistrySourceIdentifier) {
+open class AgentRegistrySource(val identifier: AgentRegistrySourceIdentifier) {
+    @Suppress("unused")
     val timestamp: Long = System.currentTimeMillis()
 
     /**
      * All agents that are available in this registry agent source
      */
-    abstract val agents: List<RegistryAgentCatalog>
+    open val agents: List<RegistryAgentCatalog> = listOf()
 
     /**
      * @see [AgentRegistry.resolveAgent]
      */
-    abstract suspend fun resolveAgent(agent: RegistryAgentIdentifier): RestrictedRegistryAgent
+    open suspend fun resolveAgent(agent: RegistryAgentIdentifier): RestrictedRegistryAgent {
+        throw RegistryException.AgentNotFoundException("Agent ${agent.name} not found in registry")
+    }
 }

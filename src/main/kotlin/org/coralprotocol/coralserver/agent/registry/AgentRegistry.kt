@@ -61,7 +61,7 @@ class AgentRegistrySourceBuilder(val config: Config) {
         if (agents.isEmpty())
             logger.warn { "Registry '$identifier' contains no agents" }
 
-        sources.add(ListAgentRegistrySource(AgentRegistrySourceIdentifier.Local, agents))
+        sources.add(ListAgentRegistrySource(agents))
     }
 
     fun addFromStream(stream: InputStream, path: Path = Path.of(System.getProperty("user.dir"))) {
@@ -123,6 +123,23 @@ class AgentRegistry(config: Config, build: AgentRegistrySourceBuilder.() -> Unit
      * linked server registries and local/marketplace registries.
      */
     val agents = sources.flatMap { it.agents }
+
+    /**
+     * A list of all sources where all local sources of type [ListAgentRegistrySource] are merged into a single source.
+     */
+    val mergedSources = buildList {
+        val localAgents = mutableListOf<RegistryAgent>()
+
+        sources.forEach { source ->
+            if (source.identifier == AgentRegistrySourceIdentifier.Local && source is ListAgentRegistrySource) {
+                localAgents.addAll(source.registryAgents)
+            } else {
+                add(source)
+            }
+        }
+
+        add(ListAgentRegistrySource(localAgents))
+    }
 
     /**
      * Returns a list of all exported agents from all local sources.

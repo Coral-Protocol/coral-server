@@ -31,24 +31,25 @@ import io.ktor.server.engine.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.request.uri
 import io.ktor.server.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import io.ktor.server.websocket.*
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeType
 import kotlinx.coroutines.Job
+import kotlinx.html.Entities
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
-import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
 import org.coralprotocol.coralserver.routes.api.v1.agentRentalApi
 import org.coralprotocol.coralserver.routes.api.v1.agentRpcApi
+import org.coralprotocol.coralserver.routes.api.v1.registryApi
 import org.coralprotocol.coralserver.routes.api.v1.sessionApi
 import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
 import org.coralprotocol.coralserver.routes.ui.consoleUi
@@ -86,8 +87,7 @@ class CoralServer(
 
     val aggregatedPaymentClaimManager = if (blockchainService != null) {
         AggregatedPaymentClaimManager(blockchainService, jupiterService)
-    }
-    else {
+    } else {
         null
     }
 
@@ -126,7 +126,7 @@ class CoralServer(
                     }
                 }
                 schemas {
-                    generator = SchemaGenerator.kotlinx {  }
+                    generator = SchemaGenerator.kotlinx { }
                     // Generated types from routes
                     generator = { type ->
                         type
@@ -197,6 +197,7 @@ class CoralServer(
                     // RouteException, giving a 500-status code
                     var wrapped = cause
                     if (cause !is RouteException) {
+                        logger.error(cause) { "Unexpected exception thrown from route ${call.request.uri}" }
                         wrapped = RouteException(HttpStatusCode.InternalServerError, cause)
                     }
 
@@ -216,8 +217,7 @@ class CoralServer(
                         try {
                             val agentLocator = localSessionManager.locateAgent(credential.token)
                             return@authenticate agentLocator.agent
-                        }
-                        catch (_: SessionException.InvalidAgentSecret) {
+                        } catch (_: SessionException.InvalidAgentSecret) {
                             return@authenticate null
                         }
                     }
@@ -228,6 +228,7 @@ class CoralServer(
                     route("v1") {
                         authenticate("token") {
                             sessionApi(registry, localSessionManager)
+                            registryApi(registry)
                         }
 
                         authenticate("agentSecret") {
@@ -285,7 +286,7 @@ class CoralServer(
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "trace");
 
         server.start(wait)
-        server.application.routing {  }.getAllRoutes()
+        server.application.routing { }.getAllRoutes()
             .forEach { logger.info { it.toString() } }
     }
 

@@ -5,6 +5,7 @@ package org.coralprotocol.coralserver.agent.registry
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import net.peanuuutz.tomlkt.decodeFromNativeReader
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.defaultAsValue
@@ -25,21 +26,32 @@ data class RegistryAgent(
     val runtimes: LocalAgentRuntimes,
     val options: Map<String, AgentOption> = mapOf(),
     val path: Path? = null,
+
+    @Transient
     private val unresolvedExportSettings: UnresolvedAgentExportSettingsMap = mapOf(),
 ) {
+    @Transient
     val description = info.description
+
+    @Transient
     val identifier = info.identifier
+
+    @Transient
     val name = identifier.name
+
+    @Transient
     val version = identifier.version
 
     val exportSettings: AgentExportSettingsMap = unresolvedExportSettings.mapValues { (runtime, settings) ->
         settings.resolve(runtime, this)
     }
 
+    @Transient
     val defaultOptions = options
         .mapNotNull { (name, option) -> option.defaultAsValue()?.let { name to it } }
         .toMap()
 
+    @Transient
     val requiredOptions = options
         .filterValues { it.required }
 }
