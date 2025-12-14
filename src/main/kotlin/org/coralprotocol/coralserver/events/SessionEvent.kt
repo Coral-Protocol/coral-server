@@ -58,4 +58,12 @@ sealed interface SessionEvent {
     @Serializable
     @SerialName("thread_message_sent")
     data class ThreadMessageSent(val message: SessionThreadMessage) : SessionEvent
+
+    @Serializable
+    @SerialName("docker_container_created")
+    data class DockerContainerCreated(val containerId: String) : SessionEvent
+
+    @Serializable
+    @SerialName("docker_container_removed")
+    data class DockerContainerRemoved(val containerId: String) : SessionEvent
 }

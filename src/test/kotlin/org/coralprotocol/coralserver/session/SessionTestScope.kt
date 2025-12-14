@@ -1,6 +1,6 @@
 package org.coralprotocol.coralserver.session
 
-import DockerRuntime
+import org.coralprotocol.coralserver.agent.runtime.DockerRuntime
 import io.kotest.assertions.asClue
 import io.kotest.core.test.TestScope
 import io.kotest.matchers.nulls.shouldNotBeNull

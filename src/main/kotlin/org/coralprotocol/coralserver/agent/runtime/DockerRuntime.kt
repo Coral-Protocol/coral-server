@@ -1,3 +1,5 @@
+package org.coralprotocol.coralserver.agent.runtime
+
 import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.async.ResultCallback
 import com.github.dockerjava.api.command.WaitContainerResultCallback
@@ -6,21 +8,18 @@ import com.github.dockerjava.api.model.*
 import io.github.smiley4.schemakenerator.core.annotations.Optional
 import io.ktor.util.*
 import io.ktor.utils.io.*
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.runInterruptible
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
-import org.coralprotocol.coralserver.agent.runtime.AgentRuntime
-import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
+import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.LoggerWithFlow
 import org.coralprotocol.coralserver.session.SessionAgentDisposableResource
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.time.measureTime
 
 private data class DockerWithLogging(
     val dockerClient: DockerClient,
@@ -36,47 +35,60 @@ data class DockerRuntime(
     override suspend fun execute(
         executionContext: SessionAgentExecutionContext,
         applicationRuntimeContext: ApplicationRuntimeContext
-    ) {
+    ) = withContext(Dispatchers.IO) {
         if (applicationRuntimeContext.dockerClient == null) {
             executionContext.logger.warn("Docker client not available, skipping execution")
-            return
+            return@withContext
         }
 
         val docker = DockerWithLogging(applicationRuntimeContext.dockerClient, executionContext.logger)
         val sanitisedImageName = docker.sanitizeDockerImageName(image, executionContext.registryAgent.identifier)
-
-        docker.pullImageIfNeeded(sanitisedImageName)
-        docker.printImageInfo(sanitisedImageName)
-
-        // This call populates executionContext.disposableResources and must be called before the Docker volumes are
-        // created
-        val environment = executionContext.buildEnvironment()
-
-        val volumes = executionContext.disposableResources
-            .filterIsInstance<SessionAgentDisposableResource.TemporaryFile>()
-            .map {
-                executionContext.logger.info("Binding host file ${it.file} to container path ${it.mountPath}")
-                Bind(it.file.toString(), Volume(it.mountPath))
-            }
-
-        val containerCreationCmd = docker.dockerClient.createContainerCmd(sanitisedImageName)
-            .withName(executionContext.agent.secret)
-            .withEnv(environment.map { (key, value) -> "$key=$value" })
-            .withHostConfig(HostConfig().withBinds(volumes))
-            .withAttachStdout(true)
-            .withAttachStderr(true)
-            .withStopTimeout(1)
-            .withAttachStdin(false) // Stdin makes no sense with orchestration
-
-        if (command != null)
-            containerCreationCmd.withCmd(*command.toTypedArray())
-
-        val container = containerCreationCmd.exec()
+        var containerId: String? = null
 
         try {
-            docker.dockerClient.startContainerCmd(container.id).exec()
+            runInterruptible {
+                var image = docker.findImage(sanitisedImageName)
 
-            val attachCmd = docker.dockerClient.attachContainerCmd(container.id)
+                if (image == null) {
+                    image = docker.pullImage(sanitisedImageName)
+                        ?: throw IllegalStateException("Docker image $sanitisedImageName not found after pulling")
+                }
+
+                docker.printImageInfo(image)
+            }
+
+            // This call populates executionContext.disposableResources and must be called before the Docker volumes are
+            // created
+            val environment = executionContext.buildEnvironment()
+
+            val volumes = executionContext.disposableResources
+                .filterIsInstance<SessionAgentDisposableResource.TemporaryFile>()
+                .map {
+                    executionContext.logger.info("Binding host file ${it.file} to container path ${it.mountPath}")
+                    Bind(it.file.toString(), Volume(it.mountPath))
+                }
+
+            val containerCreationCmd = docker.dockerClient.createContainerCmd(sanitisedImageName)
+                .withName(executionContext.agent.secret)
+                .withEnv(environment.map { (key, value) -> "$key=$value" })
+                .withHostConfig(HostConfig().withBinds(volumes))
+                .withAttachStdout(true)
+                .withAttachStderr(true)
+                .withStopTimeout(1)
+                .withAttachStdin(false) // Stdin makes no sense with orchestration
+
+            if (command != null)
+                containerCreationCmd.withCmd(*command.toTypedArray())
+
+            val container = containerCreationCmd.exec()
+            containerId = container.id
+
+            executionContext.logger.info("container $containerId created")
+            executionContext.session.events.tryEmit(SessionEvent.DockerContainerCreated(containerId))
+
+            docker.dockerClient.startContainerCmd(containerId).exec()
+
+            val attachCmd = docker.dockerClient.attachContainerCmd(containerId)
                 .withStdOut(true)
                 .withStdErr(true)
                 .withFollowStream(true)
@@ -94,28 +106,30 @@ data class DockerRuntime(
             })
 
             runInterruptible {
-                val status = docker.dockerClient.waitContainerCmd(container.id)
+                val status = docker.dockerClient.waitContainerCmd(containerId)
                     .exec(WaitContainerResultCallback())
                     .awaitStatusCode()
 
-                executionContext.logger.info("container ${container.id} exited with code $status")
+                executionContext.logger.info("container $containerId exited with code $status")
             }
-        }
-        catch (e: DockerClientException) {
+        } catch (e: DockerClientException) {
             @OptIn(InternalAPI::class)
             if (e.rootCause is InterruptedException)
                 throw CancellationException("Docker timeout", e)
-        }
-        finally {
-           withContext(NonCancellable) {
-               runInterruptible {
-                   docker.dockerClient.removeContainerCmd(container.id)
-                       .withRemoveVolumes(true)
-                       .withForce(true)
-                       .exec()
+        } finally {
+            withContext(NonCancellable) {
+                when (val containerId = containerId) {
+                    null -> {}
+                    else -> runInterruptible {
+                        docker.dockerClient.removeContainerCmd(containerId)
+                            .withRemoveVolumes(true)
+                            .withForce(true)
+                            .exec()
 
-                   executionContext.logger.info("container ${container.id} removed")
-               }
+                        executionContext.session.events.tryEmit(SessionEvent.DockerContainerRemoved(containerId))
+                        executionContext.logger.info("container $containerId removed")
+                    }
+                }
             }
         }
     }
@@ -128,53 +142,42 @@ private fun DockerWithLogging.sanitizeDockerImageName(imageName: String, id: Reg
         }
 
         return imageName
-    }
-    else {
+    } else {
         return "$imageName:${id.version}"
     }
 }
 
-/**
- * @param imageName The name of the image to search for
- * @return true if the image is found locally, false otherwise
- */
-private fun DockerWithLogging.imageExists(imageName: String): Boolean {
-    var name = imageName
-    if (!imageName.contains(":")) {
-        name = "$name:latest"
+private fun DockerWithLogging.findImage(imageName: String): Image? =
+    dockerClient.listImagesCmd()
+        .exec()
+        .firstOrNull { it.repoTags.contains(imageName) }
+
+private fun DockerWithLogging.pullImage(imageName: String): Image? {
+    logger.info("Docker image $imageName not found locally, pulling...")
+
+    val time = measureTime {
+        dockerClient.pullImageCmd(imageName)
+            .exec(object : ResultCallback.Adapter<PullResponseItem>() {
+
+            })
+            .awaitCompletion()
     }
 
-    return dockerClient.listImagesCmd().exec().firstOrNull { it.repoTags.contains(name) } != null
+    logger.info("Docker image $imageName pulled in $time")
+    return findImage(imageName)
 }
 
-/**
- * Pulls a Docker image if it doesn't exist locally.
- * @param imageName The name of the image to pull
- */
-private fun DockerWithLogging.pullImageIfNeeded(imageName: String) {
-    if (!imageExists(imageName)) {
-        logger.info("Docker image $imageName not found locally, pulling...")
-        val callback = object : ResultCallback.Adapter<PullResponseItem>() {}
-        dockerClient.pullImageCmd(imageName).exec(callback)
-        callback.awaitCompletion()
-        logger.info("Docker image $imageName pulled successfully")
-    }
-}
-
-/**
- * Checks if the image is using the 'latest' tag and logs a warning if it is.
- * Also includes the image creation date in the warning.
- * @param imageName The name of the image to check
- */
-private fun DockerWithLogging.printImageInfo(imageName: String) {
-    val imageInfo = dockerClient.inspectImageCmd(imageName).exec()
+private fun DockerWithLogging.printImageInfo(image: Image) {
+    val imageInfo = dockerClient.inspectImageCmd(image.id).exec()
     val createdAt = imageInfo.created
 
-    if (createdAt != null)  {
+    if (createdAt != null) {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
             .withZone(ZoneId.systemDefault())
         val formattedDate = formatter.format(Instant.parse(createdAt))
 
-        logger.info("$imageName image creation date: $formattedDate")
+        logger.info("Image tags: ${image.repoTags?.joinToString(", ")}")
+        logger.info("Image ID: ${image.id}")
+        logger.info("Image creation date: $formattedDate")
     }
 }
