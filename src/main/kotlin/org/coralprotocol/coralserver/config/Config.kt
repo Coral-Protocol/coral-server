@@ -124,6 +124,12 @@ data class NetworkConfig(
      */
     @SerialName("bind_port")
     val bindPort: UShort = 5555u,
+
+    /**
+     * Allows anyHost in the server's CORS settings.  Should only be used for development
+     */
+    @SerialName("allow_any_host")
+    val allowAnyHost: Boolean = false,
 )
 
 @Serializable
@@ -211,6 +217,18 @@ data class RegistryConfig(
      */
     @SerialName("local_registries")
     val localRegistries: List<String> = listOf()
+
+    /**
+     * If this is true, all debug agents will be included in the registry
+     */
+    @SerialName("include_debug_agents")
+    val includeDebugAgents = false
+
+    /**
+     * If this is true and [includeDebugAgents] is true, the debug agents included will also be exported
+     */
+    @SerialName("export_debug_agents")
+    val exportDebugAgents = false
 
     /**
      * If this is true, the entire marketplace will be used as a potential agent registry source.

@@ -76,7 +76,6 @@ class CoralServer(
     val registry: AgentRegistry,
     val blockchainService: BlockchainService? = null,
     val x402Service: X402Service? = null,
-    val devmode: Boolean = false,
     val launchMode: LaunchMode = LaunchMode.DEDICATED
 ) {
     val jupiterService = JupiterService()
@@ -172,7 +171,10 @@ class CoralServer(
                 allowMethod(HttpMethod.Get)
                 allowHeader(HttpHeaders.AccessControlAllowOrigin)
                 allowHeader(HttpHeaders.ContentType)
-                anyHost()
+                allowCredentials = true
+
+                if (config.networkConfig.allowAnyHost)
+                    anyHost()
             }
             install(StatusPages) {
                 exception<Throwable> { call, cause ->
@@ -267,16 +269,6 @@ class CoralServer(
         logger.info { "Starting sse server on port ${config.networkConfig.bindPort}" }
         System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "trace");
 
-        if (devmode) {
-            logger.info {
-                "In development, agents can connect to " +
-                        "${config.resolveAddress(AddressConsumer.LOCAL)}/sse/v1/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=exampleAgent"
-            }
-            logger.info {
-                "Connect the inspector to " +
-                        "${config.resolveAddress(AddressConsumer.LOCAL)}/sse/v1/devmode/exampleApplicationId/examplePrivacyKey/exampleSessionId/sse?agentId=inspector"
-            }
-        }
         server.start(wait)
         server.application.routing {  }.getAllRoutes()
             .forEach { logger.info { it.toString() } }
