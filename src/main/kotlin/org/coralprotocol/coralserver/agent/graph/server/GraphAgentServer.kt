@@ -74,20 +74,21 @@ class GraphAgentServer (
      * @see Agents.ExportedAgent
      */
     suspend fun getAgentExportSettings(id: RegistryAgentIdentifier): PublicAgentExportSettingsMap {
-        val resource = AgentRental.Catalog.Details(
-            agentName = id.name,
-            agentVersion = id.version,
-        )
-        val response = client.get(resource)
-        println("Getting export settings from $this for agent $id")
-
-        val body = response.bodyAsText()
-        if (response.status == HttpStatusCode.OK) {
-            return apiJsonConfig.decodeFromString<PublicAgentExportSettingsMap>(body)
-        }
-        else {
-            throw apiJsonConfig.decodeFromString<RouteException>(body)
-        }
+        TODO()
+//        val resource = AgentRental.Catalog.Details(
+//            agentName = id.name,
+//            agentVersion = id.version,
+//        )
+//        val response = client.get(resource)
+//        println("Getting export settings from $this for agent $id")
+//
+//        val body = response.bodyAsText()
+//        if (response.status == HttpStatusCode.OK) {
+//            return apiJsonConfig.decodeFromString<PublicAgentExportSettingsMap>(body)
+//        }
+//        else {
+//            throw apiJsonConfig.decodeFromString<RouteException>(body)
+//        }
     }
 
     override fun toString(): String {

@@ -3,6 +3,8 @@ package org.coralprotocol.coralserver.agent.debug
 import io.ktor.client.*
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import kotlinx.coroutines.delay
+import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
+import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.agent.registry.UnresolvedAgentExportSettingsMap
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
@@ -12,7 +14,15 @@ import org.coralprotocol.coralserver.mcp.tools.WaitForSingleMessageInput
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.SessionAgent
 
-class EchoDebugAgent(client: HttpClient) : DebugAgent(client, "echo") {
+class EchoDebugAgent(client: HttpClient) : DebugAgent(client) {
+    override val companion: DebugAgentIdHolder
+        get() = Companion
+
+    companion object : DebugAgentIdHolder {
+        override val identifier: RegistryAgentIdentifier
+            get() = RegistryAgentIdentifier("echo", "1.0.0", AgentRegistrySourceIdentifier.Local)
+    }
+
     override val options: Map<String, AgentOption>
         get() = mapOf(
             AgentOption.UInt().buildFullOption(

@@ -14,11 +14,12 @@ import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.SessionAgent
 import org.coralprotocol.coralserver.util.mcpFunctionRuntime
 
-abstract class DebugAgent(
-    val client: HttpClient,
-    val name: String,
-    val version: String = "1.0.0"
-) {
+interface DebugAgentIdHolder {
+    val identifier: RegistryAgentIdentifier
+}
+
+abstract class DebugAgent(val client: HttpClient) {
+    abstract val companion: DebugAgentIdHolder
     abstract val options: Map<String, AgentOption>
     abstract val description: String
     abstract val exportSettings: UnresolvedAgentExportSettingsMap
@@ -58,18 +59,17 @@ abstract class DebugAgent(
     }
 
     fun generate(
-        registrySourceIdentifier: AgentRegistrySourceIdentifier = AgentRegistrySourceIdentifier.Local,
         export: Boolean = false
     ): RegistryAgent {
         return RegistryAgent(
             info = RegistryAgentInfo(
                 description = description,
                 capabilities = setOf(),
-                identifier = RegistryAgentIdentifier(name, version, registrySourceIdentifier)
+                identifier = companion.identifier
             ),
             runtimes = LocalAgentRuntimes(
                 functionRuntime = FunctionRuntime { executionContext, runtimeContext ->
-                    client.mcpFunctionRuntime(name, version) { client, session ->
+                    client.mcpFunctionRuntime(companion.identifier.name, companion.identifier.name) { client, session ->
                         execute(client, session, executionContext.agent)
                     }.execute(executionContext, runtimeContext)
                 }
