@@ -37,14 +37,14 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import io.ktor.server.websocket.*
-import javassist.CtNewMethod.wrapped
 import kotlinx.coroutines.Job
-import kotlinx.html.Entities
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.events.ServerEvent
+import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
@@ -156,6 +156,10 @@ class CoralServer(
 
                     // Mcp types
                     schema<McpToolName>("McpToolName")
+
+                    // WebSocket types
+                    schema<ServerEvent>("ServerEvent")
+                    schema<SessionEvent>("SessionEvent")
                 }
                 specAssigner = { url: String, tags: List<String> ->
                     // when another spec version is added, determine the version based on the url here or use
