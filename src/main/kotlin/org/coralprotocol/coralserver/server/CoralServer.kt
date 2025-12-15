@@ -200,8 +200,7 @@ class CoralServer(
                     var routeException = if (cause !is RouteException) {
                         logger.error(cause) { "Unexpected exception thrown from route ${call.request.uri}" }
                         RouteException(HttpStatusCode.InternalServerError, cause)
-                    }
-                    else {
+                    } else {
                         cause
                     }
 
@@ -228,48 +227,31 @@ class CoralServer(
                 }
             }
             routing {
-                route("api") {
-                    route("v1") {
-                        authenticate("token") {
-                            sessionApi(registry, localSessionManager)
-                            registryApi(registry)
-                        }
-
-                        authenticate("agentSecret") {
-                            agentRpcApi(localSessionManager, x402Service)
-                        }
-
-                        agentRentalApi(
-                            config.paymentConfig.remoteAgentWallet,
-                            registry,
-                            blockchainService,
-                            null
-                        )
-                    }
+                authenticate("token") {
+                    sessionApi(registry, localSessionManager)
+                    registryApi(registry)
                 }
 
-                route("sse") {
-                    route("v1") {
-                        mcpRoutes(localSessionManager)
-                    }
+                authenticate("agentSecret") {
+                    agentRpcApi(localSessionManager, x402Service)
                 }
 
-                route("ws") {
-                    route("v1") {
-//                        debugWsRoutes(localSessionManager, orchestrator)
-//                        exportedAgentRoutes(remoteSessionManager)
-                    }
-                }
+                agentRentalApi(
+                    config.paymentConfig.remoteAgentWallet,
+                    registry,
+                    blockchainService,
+                    null
+                )
+
+                mcpRoutes(localSessionManager)
+                documentationInterface()
+
+//              debugWsRoutes(localSessionManager, orchestrator)
+//              exportedAgentRoutes(remoteSessionManager)
 
                 // source of truth for OpenAPI docs/codegen
-                route("api_v1.json") {
-                    openApi("v1")
-                }
-
-                route("ui") {
-                    documentationInterface()
-                    consoleUi()
-                }
+                route("api_v1.json") { openApi("v1") }
+                route("ui") { consoleUi() }
             }.run {
                 getAllRoutes().forEach {
                     logger.info {

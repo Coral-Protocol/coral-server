@@ -11,12 +11,13 @@ import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.PublicRestrictedRegistryAgent
 import org.coralprotocol.coralserver.config.Wallet
+import org.coralprotocol.coralserver.routes.ApiV1
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
 import org.coralprotocol.payment.blockchain.BlockchainService
 
 @Resource("agent-rental")
-class AgentRental {
+class AgentRental(val parent: ApiV1 = ApiV1()) {
     @Resource("reserve")
     class Reserve(val parent: AgentRental = AgentRental())
 

@@ -26,6 +26,7 @@ import org.coralprotocol.coralserver.mcp.McpInstructionSnippet
 import org.coralprotocol.coralserver.mcp.McpResourceName
 import org.coralprotocol.coralserver.mcp.McpTool
 import org.coralprotocol.coralserver.mcp.McpToolManager
+import org.coralprotocol.coralserver.session.state.SessionAgentState
 import org.coralprotocol.coralserver.util.ConcurrentMutableList
 import org.coralprotocol.coralserver.x402.X402BudgetedResource
 import kotlin.String
@@ -390,6 +391,19 @@ class SessionAgent(
             put("agentWaiting", waiters.isNotEmpty())
             put("agentConnected", firstConnectionEstablished.isCompleted)
         }
+
+    /**
+     * Returns the current state of this agent.  Used by the session API.
+     */
+    suspend fun getState(): SessionAgentState =
+        SessionAgentState(
+            name = name,
+            registryAgentIdentifier = graphAgent.registryAgent.identifier,
+            isWaiting = waiters.isNotEmpty(),
+            isConnected = firstConnectionEstablished.isCompleted,
+            description = description,
+            links = links.map { it.name }.toSet()
+        )
 
     /**
      * Renders the state of the session from the perspective of this agent.  This should be injected into prompts so

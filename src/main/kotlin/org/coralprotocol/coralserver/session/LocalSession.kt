@@ -1,4 +1,5 @@
 package org.coralprotocol.coralserver.session
+
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.BufferOverflow
@@ -11,6 +12,7 @@ import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.session.remote.RemoteSession
+import org.coralprotocol.coralserver.session.state.SessionState
 import org.jetbrains.annotations.TestOnly
 import java.util.concurrent.ConcurrentHashMap
 
@@ -39,11 +41,13 @@ import java.util.concurrent.ConcurrentHashMap
 class LocalSession(
     override val id: SessionId,
     override val paymentSessionId: PaymentSessionId? = null,
-    namespace: LocalSessionNamespace,
+    val namespace: LocalSessionNamespace,
     agentGraph: AgentGraph,
     sessionManager: LocalSessionManager,
     mcpToolManager: McpToolManager
-): Session(sessionManager.managementScope, sessionManager.supervisedSessions) {
+) : Session(sessionManager.managementScope, sessionManager.supervisedSessions) {
+    val timestamp = System.currentTimeMillis()
+
     /**
      * Agent states in this session.  Note that even though one [SessionAgent] maps to one graph agent, the agent
      * that is orchestrated is not guaranteed to be connected to the [SessionAgent].  There will always be a slight
@@ -64,7 +68,7 @@ class LocalSession(
         for (group in agentGraph.groups) {
             val agentsInGroup = group.mapNotNull { agents[it] }
             val agentPairs = agentsInGroup
-                .flatMap {agent ->
+                .flatMap { agent ->
                     agentsInGroup
                         .filter { it != agent }
                         .map { agent to it }
@@ -132,7 +136,8 @@ class LocalSession(
      * @throws SessionException.MissingThreadException if no thread exists in [threads] with the given ID.
      */
     fun getThreadById(threadId: ThreadId): SessionThread =
-        threads[threadId] ?: throw SessionException.MissingThreadException("Thread with ID \"$threadId\" does not exist")
+        threads[threadId]
+            ?: throw SessionException.MissingThreadException("Thread with ID \"$threadId\" does not exist")
 
     /**
      * Returns an agent by its name.
@@ -140,6 +145,18 @@ class LocalSession(
      */
     fun getAgent(agentName: UniqueAgentName): SessionAgent =
         agents[agentName] ?: throw SessionException.MissingAgentException("No agent named $agentName")
+
+    /**
+     * Returns the current state of this session.  Used by the session API.
+     */
+    suspend fun getState() =
+        SessionState(
+            timestamp = timestamp,
+            id = id,
+            namespace = namespace.name,
+            agents = agents.values.map { it.getState() },
+            threads = threads.values.toList()
+        )
 
     @TestOnly
     fun hasLink(agentName1: UniqueAgentName, agentName2: UniqueAgentName): Boolean =

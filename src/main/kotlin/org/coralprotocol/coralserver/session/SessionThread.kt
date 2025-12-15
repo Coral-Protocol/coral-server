@@ -208,8 +208,6 @@ sealed interface SessionThreadState {
     data class Closed(
         val summary: String
     ) : SessionThreadState
-
-
 }
 
 

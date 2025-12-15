@@ -16,6 +16,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.agent.payment.AgentPaymentClaimRequest
 import org.coralprotocol.coralserver.agent.payment.AgentRemainingBudget
+import org.coralprotocol.coralserver.routes.ApiV1
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.LocalSessionManager
@@ -27,7 +28,7 @@ import org.coralprotocol.coralserver.x402.withinBudget
 import org.coralprotocol.payment.blockchain.X402Service
 
 @Resource("agent-rpc")
-class Rpc {
+class Rpc(val parent: ApiV1 = ApiV1()) {
     @Resource("rental-claim")
     class RentalClaim(val parent: Rpc = Rpc())
 

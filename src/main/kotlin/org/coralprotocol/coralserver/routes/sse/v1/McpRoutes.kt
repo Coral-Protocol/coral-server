@@ -12,6 +12,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import kotlinx.serialization.serializer
+import org.coralprotocol.coralserver.routes.SseV1
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionAgentSecret
@@ -24,13 +25,13 @@ import org.coralprotocol.coralserver.session.SessionException
  * URL in manually anyway.
  */
 @Resource("mcp")
-class Mcp() {
+class Mcp(val parent: SseV1 = SseV1()) {
     /**
      * This path NEEDS the trailing slash, or else Anthropic in their infinite wisdom decide that the /sse part of this
      * should be stripped off when constructing a base URL (in the MCP Kotlin SDK).
      */
     @Resource("{agentSecret}/sse/")
-    class Sse(val agentSecret: SessionAgentSecret)
+    class Sse(val parent: Mcp = Mcp(), val agentSecret: SessionAgentSecret)
 }
 
 fun Route.mcpRoutes(sessionManager: LocalSessionManager) {

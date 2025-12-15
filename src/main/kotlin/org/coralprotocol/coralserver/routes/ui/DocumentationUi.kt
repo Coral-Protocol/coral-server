@@ -7,11 +7,12 @@ import io.ktor.resources.*
 import io.ktor.server.html.*
 import io.ktor.server.routing.*
 import kotlinx.html.*
+import org.coralprotocol.coralserver.routes.UiV1
 
 private val logger = KotlinLogging.logger {}
 
 @Resource("docs")
-class Documentation
+class Documentation(val parent: UiV1 = UiV1())
 
 fun Route.documentationInterface() {
     get<Documentation>({

@@ -12,11 +12,13 @@ import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.graph.AgentGraphRequest
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
+import org.coralprotocol.coralserver.routes.ApiV1
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionException
 import org.coralprotocol.coralserver.session.SessionId
 import org.coralprotocol.coralserver.session.models.SessionIdentifier
+import org.coralprotocol.coralserver.session.state.SessionState
 
 private val logger = KotlinLogging.logger {}
 
@@ -27,7 +29,7 @@ data class BasicNamespace(
 )
 
 @Resource("sessions")
-class Sessions {
+class Sessions(val parent: ApiV1 = ApiV1()) {
     @Resource("{namespace}")
     class WithNamespace(val parent: Sessions = Sessions(), val namespace: String) {
 
@@ -53,7 +55,8 @@ fun Route.sessionApi(
                 description = "Graph of agents to be used in the session"
             }
             pathParameter<String>("namespace") {
-                description = "The namespace this session should be created in.  This namespace will be created if it does not exist."
+                description =
+                    "The namespace this session should be created in.  This namespace will be created if it does not exist."
             }
         }
         response {
@@ -82,10 +85,12 @@ fun Route.sessionApi(
 
         val (session, _) = localSessionManager.createAndLaunchSession(it.namespace, agentGraph)
 
-        call.respond(SessionIdentifier(
-            sessionId = session.id,
-            namespace = it.namespace
-        ))
+        call.respond(
+            SessionIdentifier(
+                sessionId = session.id,
+                namespace = it.namespace
+            )
+        )
 
         logger.info { "Created new session ${session.id}" }
     }
@@ -117,8 +122,7 @@ fun Route.sessionApi(
     }) { path ->
         try {
             call.respond(localSessionManager.getSessions(path.namespace).map { it.id })
-        }
-        catch (e: SessionException.InvalidNamespace) {
+        } catch (e: SessionException.InvalidNamespace) {
             throw RouteException(HttpStatusCode.NotFound, e)
         }
     }
@@ -144,7 +148,7 @@ fun Route.sessionApi(
 
     delete<Sessions.WithNamespace.Session>({
         summary = "Close an active session"
-        description = "Closes an active session, cancelling all running awgents"
+        description = "Closes an active session, cancelling all running agents"
         operationId = "closeSession"
         securitySchemeNames("token")
         request {
@@ -167,7 +171,7 @@ fun Route.sessionApi(
                 }
             }
         }
-    }) {path ->
+    }) { path ->
         try {
             val namespace = localSessionManager.getSessions(path.parent.namespace)
             val session = namespace.find { it.id == path.sessionId }
@@ -175,8 +179,47 @@ fun Route.sessionApi(
 
             session.cancelAndJoinAgents()
             call.respond(HttpStatusCode.OK)
+        } catch (e: SessionException.InvalidNamespace) {
+            throw RouteException(HttpStatusCode.NotFound, e)
         }
-        catch (e: SessionException.InvalidNamespace) {
+    }
+
+    get<Sessions.WithNamespace.Session>({
+        summary = "Get session state"
+        description = "Returns the current state of a session, the agents, threads and their messages"
+        operationId = "getSessionState"
+        securitySchemeNames("token")
+        request {
+            pathParameter<String>("namespace") {
+                description = "The namespace of the session"
+            }
+
+            pathParameter<String>("sessionId") {
+                description = "The sessionId of the session"
+            }
+        }
+        response {
+            HttpStatusCode.OK to {
+                description = "Success"
+                body<SessionState> {
+                    description = "The session state"
+                }
+            }
+            HttpStatusCode.NotFound to {
+                description = "If either namespace or session ID is invalid"
+                body<RouteException> {
+                    description = "Error message"
+                }
+            }
+        }
+    }) { path ->
+        try {
+            val namespace = localSessionManager.getSessions(path.parent.namespace)
+            val session = namespace.find { it.id == path.sessionId }
+                ?: throw RouteException(HttpStatusCode.NotFound, "Session not found")
+
+            call.respond(HttpStatusCode.OK, session.getState())
+        } catch (e: SessionException.InvalidNamespace) {
             throw RouteException(HttpStatusCode.NotFound, e)
         }
     }

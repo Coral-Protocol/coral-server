@@ -6,10 +6,11 @@ import io.ktor.resources.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.agent.registry.*
+import org.coralprotocol.coralserver.routes.ApiV1
 import org.coralprotocol.coralserver.server.RouteException
 
 @Resource("registry")
-class Registry {
+class Registry(val parent: ApiV1 = ApiV1()) {
     @Resource("local/{agentName}/{agentVersion}")
     class Local(val parent: Registry = Registry(), val agentName: String, val agentVersion: String)
 

@@ -33,8 +33,7 @@ class ApplicationRuntimeContext(val config: Config = Config()) {
                 .build()
 
             DockerClientImpl.getInstance(dockerClientConfig, httpClient)
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             logger.warn { "Failed to create Docker client: ${e.message}" }
             logger.warn { "Docker runtime will not be available" }
             null
@@ -47,7 +46,7 @@ class ApplicationRuntimeContext(val config: Config = Config()) {
 
     fun getMcpUrl(executionContext: SessionAgentExecutionContext, addressConsumer: AddressConsumer): Url {
         val builder = URLBuilder(getApiUrl(addressConsumer))
-        href(ResourcesFormat(), Mcp.Sse(executionContext.agent.secret), builder)
+        href(ResourcesFormat(), Mcp.Sse(agentSecret = executionContext.agent.secret), builder)
 
         return builder.build()
     }
