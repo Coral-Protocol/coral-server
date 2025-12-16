@@ -25,6 +25,8 @@ data class RegistryAgent(
     private val info: RegistryAgentInfo,
     val runtimes: LocalAgentRuntimes,
     val options: Map<String, AgentOption> = mapOf(),
+
+    @Transient
     val path: Path? = null,
 
     @Transient
