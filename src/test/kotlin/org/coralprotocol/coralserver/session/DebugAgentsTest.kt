@@ -18,6 +18,7 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.session.models.SessionIdentifier
+import org.coralprotocol.coralserver.session.models.SessionRequest
 import kotlin.time.Duration.Companion.seconds
 
 class DebugAgentsTest : FunSpec({
@@ -36,21 +37,24 @@ class DebugAgentsTest : FunSpec({
             val sessionId: SessionIdentifier = ktor.client.post(namespace) {
                 contentType(ContentType.Application.Json)
                 setBody(
-                    AgentGraphRequest(
-                        agents = listOf(
-                            GraphAgentRequest(
-                                id = SeedDebugAgent.identifier,
-                                name = "seed",
-                                description = "",
-                                provider = GraphAgentProvider.Local(RuntimeId.FUNCTION),
-                                options = mapOf(
-                                    "START_DELAY" to AgentOptionValue.UInt(100u),
-                                    "SEED_THREAD_COUNT" to AgentOptionValue.UInt(threadCount),
-                                    "SEED_MESSAGE_COUNT" to AgentOptionValue.UInt(messageCount),
-                                )
+                    SessionRequest(
+                        agentGraphRequest =
+                            AgentGraphRequest(
+                                agents = listOf(
+                                    GraphAgentRequest(
+                                        id = SeedDebugAgent.identifier,
+                                        name = "seed",
+                                        description = "",
+                                        provider = GraphAgentProvider.Local(RuntimeId.FUNCTION),
+                                        options = mapOf(
+                                            "START_DELAY" to AgentOptionValue.UInt(100u),
+                                            "SEED_THREAD_COUNT" to AgentOptionValue.UInt(threadCount),
+                                            "SEED_MESSAGE_COUNT" to AgentOptionValue.UInt(messageCount),
+                                        )
+                                    )
+                                ),
+                                groups = setOf(setOf("seed")),
                             )
-                        ),
-                        groups = setOf(setOf("seed")),
                     )
                 )
             }.body()
@@ -83,35 +87,38 @@ class DebugAgentsTest : FunSpec({
             val sessionId: SessionIdentifier = ktor.client.post(namespace) {
                 contentType(ContentType.Application.Json)
                 setBody(
-                    AgentGraphRequest(
-                        agents = listOf(
-                            GraphAgentRequest(
-                                id = SeedDebugAgent.identifier,
-                                name = "seed",
-                                description = "",
-                                provider = GraphAgentProvider.Local(RuntimeId.FUNCTION),
-                                options = mapOf(
-                                    "START_DELAY" to AgentOptionValue.UInt(10u), // start delay required so that echo has a chance start listening
-                                    "OPERATION_DELAY" to AgentOptionValue.UInt(10u), // operation delay required so that echo has a change to wait again
-                                    "SEED_THREAD_COUNT" to AgentOptionValue.UInt(threadCount),
-                                    "SEED_MESSAGE_COUNT" to AgentOptionValue.UInt(messageCount),
-                                    "PARTICIPANTS" to AgentOptionValue.StringList(listOf("echo")),
-                                    "MENTIONS" to AgentOptionValue.StringList(listOf("echo")),
-                                )
-                            ),
-                            GraphAgentRequest(
-                                id = EchoDebugAgent.identifier,
-                                name = "echo",
-                                description = "",
-                                provider = GraphAgentProvider.Local(RuntimeId.FUNCTION),
-                                options = mapOf(
-                                    "ITERATION_COUNT" to AgentOptionValue.UInt(threadCount * messageCount),
-                                    "FROM_AGENT" to AgentOptionValue.String("seed"),
-                                    "MENTIONS" to AgentOptionValue.Boolean(true),
-                                )
+                    SessionRequest(
+                        agentGraphRequest =
+                            AgentGraphRequest(
+                                agents = listOf(
+                                    GraphAgentRequest(
+                                        id = SeedDebugAgent.identifier,
+                                        name = "seed",
+                                        description = "",
+                                        provider = GraphAgentProvider.Local(RuntimeId.FUNCTION),
+                                        options = mapOf(
+                                            "START_DELAY" to AgentOptionValue.UInt(10u), // start delay required so that echo has a chance start listening
+                                            "OPERATION_DELAY" to AgentOptionValue.UInt(10u), // operation delay required so that echo has a change to wait again
+                                            "SEED_THREAD_COUNT" to AgentOptionValue.UInt(threadCount),
+                                            "SEED_MESSAGE_COUNT" to AgentOptionValue.UInt(messageCount),
+                                            "PARTICIPANTS" to AgentOptionValue.StringList(listOf("echo")),
+                                            "MENTIONS" to AgentOptionValue.StringList(listOf("echo")),
+                                        )
+                                    ),
+                                    GraphAgentRequest(
+                                        id = EchoDebugAgent.identifier,
+                                        name = "echo",
+                                        description = "",
+                                        provider = GraphAgentProvider.Local(RuntimeId.FUNCTION),
+                                        options = mapOf(
+                                            "ITERATION_COUNT" to AgentOptionValue.UInt(threadCount * messageCount),
+                                            "FROM_AGENT" to AgentOptionValue.String("seed"),
+                                            "MENTIONS" to AgentOptionValue.Boolean(true),
+                                        )
+                                    )
+                                ),
+                                groups = setOf(setOf("seed", "echo")),
                             )
-                        ),
-                        groups = setOf(setOf("seed", "echo")),
                     )
                 )
             }.body()

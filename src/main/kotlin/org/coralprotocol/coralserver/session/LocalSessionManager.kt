@@ -2,11 +2,7 @@ package org.coralprotocol.coralserver.session
 
 //import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.toRemote
@@ -19,11 +15,13 @@ import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
-import org.coralprotocol.coralserver.session.SessionException
+import org.coralprotocol.coralserver.session.models.SessionRuntimeSettings
 import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.models.SessionInfo
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 data class LocalSessionNamespace(
     val name: String,
@@ -37,7 +35,7 @@ data class AgentLocator(
     val agent: SessionAgent
 )
 
-private val logger = KotlinLogging.logger {  }
+private val logger = KotlinLogging.logger { }
 
 class LocalSessionManager(
     val blockchainService: BlockchainService? = null,
@@ -67,7 +65,11 @@ class LocalSessionManager(
      * Issues a secret for an agent.  This is the only function that should generate agent secrets, so that all agent
      * secrets can be mapped to locations in the [agentSecretLookup] map.
      */
-    fun issueAgentSecret(session: LocalSession, namespace: LocalSessionNamespace, agent: SessionAgent): SessionAgentSecret {
+    fun issueAgentSecret(
+        session: LocalSession,
+        namespace: LocalSessionNamespace,
+        agent: SessionAgent
+    ): SessionAgentSecret {
         val secret: SessionAgentSecret = UUID.randomUUID().toString()
         agentSecretLookup[secret] = AgentLocator(
             namespace = namespace,
@@ -105,11 +107,13 @@ class LocalSessionManager(
 
             val resolvedRemote = provider.toRemote(id, paymentSessionId, jupiterService)
 
-            agents.add(PaidAgent(
-                id = agent.name,
-                cap = maxCostMicro,
-                developer = resolvedRemote.wallet
-            ))
+            agents.add(
+                PaidAgent(
+                    id = agent.name,
+                    cap = maxCostMicro,
+                    developer = resolvedRemote.wallet
+                )
+            )
 
             // Important! Replace the RemoteRequest with the resolved Remote type
             agent.provider = resolvedRemote
@@ -153,20 +157,30 @@ class LocalSessionManager(
      * Helper function, calls [createSession] and then immediately launches all agents in the session.  After the
      * session closes, [handleSessionClose] will be called.
      */
-    suspend fun createAndLaunchSession(namespace: String, agentGraph: AgentGraph): Pair<LocalSession, LocalSessionNamespace> {
+    suspend fun createAndLaunchSession(
+        namespace: String,
+        agentGraph: AgentGraph,
+        settings: SessionRuntimeSettings
+    ): Pair<LocalSession, LocalSessionNamespace> {
         val (session, namespace) = createSession(namespace, agentGraph)
         session.launchAgents()
 
+        val timeout = settings.ttl?.milliseconds ?: Duration.INFINITE
+
         managementScope.launch {
-            session.joinAgents()
+            withTimeout(timeout) {
+                session.joinAgents()
+            }
         }.invokeOnCompletion {
-            handleSessionClose(session, namespace, it)
+            managementScope.launch {
+                handleSessionClose(session, namespace, it, settings)
+            }
         }
 
         return Pair(session, namespace)
     }
 
-     /**
+    /**
      * Locates an agent by the agent's secret.
      *
      * @throws SessionException.InvalidAgentSecret if the secret does not map to an agent
@@ -181,7 +195,8 @@ class LocalSessionManager(
      * @throws SessionException.InvalidNamespace if the namespace does not exist
      */
     fun getSessions(namespace: String) =
-        sessionNamespaces[namespace]?.sessions?.values?.toList() ?: throw SessionException.InvalidNamespace("The provided namespace does not exist")
+        sessionNamespaces[namespace]?.sessions?.values?.toList()
+            ?: throw SessionException.InvalidNamespace("The provided namespace does not exist")
 
     /**
      * Returns a list of registered namespaces
@@ -189,14 +204,36 @@ class LocalSessionManager(
     fun getNamespaces() =
         sessionNamespaces.values.toList()
 
-    fun handleSessionClose(
+    /**
+     * Behaviour for session exit.
+     *
+     * @param session The session that exited.
+     * @param namespace The namespace that the session was in.
+     * @param cause The reason the session exited.
+     * @param settings The settings used to create the session.
+     */
+    suspend fun handleSessionClose(
         session: LocalSession,
         namespace: LocalSessionNamespace,
-        cause: Throwable?
+        cause: Throwable?,
+        settings: SessionRuntimeSettings
     ) {
+        if (cause is TimeoutCancellationException) {
+            logger.warn { "session ${session.id} timed out" }
+        }
+
         // Secrets must be relinquished so that no more references to this session exist
         session.agents.forEach { (name, agent) ->
             agentSecretLookup.remove(agent.secret)
+        }
+
+        // If the session had a TTL and wanted to stay alive for that long, delay the deletion of the session (and
+        // possibly namespace) until after the TTL would have exited.  Note that it is intentional that the agent
+        // secrets are released before this delay
+        if (settings.ttl != null && settings.holdForTtl) {
+            val remainingTime = (session.timestamp + settings.ttl) - System.currentTimeMillis();
+            logger.info { "holding session ${session.id} in memory for $remainingTime milliseconds" }
+            delay(remainingTime)
         }
 
         namespace.sessions.remove(session.id)
@@ -212,8 +249,7 @@ class LocalSessionManager(
             namespace.sessions.values.forEach { session ->
                 if (cancel) {
                     session.cancelAndJoinAgents()
-                }
-                else {
+                } else {
                     session.joinAgents()
                 }
             }

@@ -18,6 +18,7 @@ import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionException
 import org.coralprotocol.coralserver.session.SessionId
 import org.coralprotocol.coralserver.session.models.SessionIdentifier
+import org.coralprotocol.coralserver.session.models.SessionRequest
 import org.coralprotocol.coralserver.session.state.SessionState
 
 private val logger = KotlinLogging.logger {}
@@ -51,8 +52,8 @@ fun Route.sessionApi(
         operationId = "createSession"
         securitySchemeNames("token")
         request {
-            body<AgentGraphRequest> {
-                description = "Graph of agents to be used in the session"
+            body<SessionRequest> {
+                description = "The session request body, containing the agents to use in the session and other settings"
             }
             pathParameter<String>("namespace") {
                 description =
@@ -80,10 +81,14 @@ fun Route.sessionApi(
             }
         }
     }) {
-        val agentGraphRequest = call.receive<AgentGraphRequest>()
-        val agentGraph = agentGraphRequest.toAgentGraph(registry)
+        val sessionRequest = call.receive<SessionRequest>()
+        val agentGraph = sessionRequest.agentGraphRequest.toAgentGraph(registry)
 
-        val (session, _) = localSessionManager.createAndLaunchSession(it.namespace, agentGraph)
+        val (session, _) = localSessionManager.createAndLaunchSession(
+            it.namespace,
+            agentGraph,
+            sessionRequest.sessionRuntimeSettings
+        )
 
         call.respond(
             SessionIdentifier(

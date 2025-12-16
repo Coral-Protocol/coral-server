@@ -6,6 +6,8 @@ import org.coralprotocol.coralserver.agent.graph.AgentGraphRequest
 
 @Serializable
 data class SessionRequest(
-    @Description("A request for a graph of agents")
-    val agentGraphRequest: AgentGraphRequest
+    @Description("A request for the agents in this session")
+    val agentGraphRequest: AgentGraphRequest,
+
+    val sessionRuntimeSettings: SessionRuntimeSettings = SessionRuntimeSettings()
 )
