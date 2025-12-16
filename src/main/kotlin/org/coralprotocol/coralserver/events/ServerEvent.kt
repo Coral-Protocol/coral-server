@@ -27,6 +27,6 @@ class ServerEvent {
     data class NamespaceCreated(val namespace: String) : SessionEvent
 
     @Serializable
-    @SerialName("session_closed")
+    @SerialName("namespace_closed")
     data class NamespaceClosed(val namespace: String) : SessionEvent
 }
