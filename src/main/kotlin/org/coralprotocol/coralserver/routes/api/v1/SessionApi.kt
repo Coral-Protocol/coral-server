@@ -135,7 +135,7 @@ fun Route.sessionApi(
         response {
             HttpStatusCode.OK to {
                 description = "Success"
-                body<List<String>> {
+                body<List<BasicNamespace>> {
                     description = "List of session IDs"
                 }
             }
