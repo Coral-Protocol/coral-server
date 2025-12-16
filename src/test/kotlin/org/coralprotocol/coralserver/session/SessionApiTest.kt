@@ -29,6 +29,7 @@ import org.coralprotocol.coralserver.session.models.SessionIdentifier
 import org.coralprotocol.coralserver.session.models.SessionRequest
 import org.coralprotocol.coralserver.session.models.SessionRuntimeSettings
 import org.coralprotocol.coralserver.session.state.SessionState
+import kotlin.time.Duration.Companion.seconds
 
 class SessionApiTest : FunSpec({
     val agentName = "delay"
@@ -195,6 +196,49 @@ class SessionApiTest : FunSpec({
                 it.withMessageLock { messages ->
                     messages.shouldHaveSize(messageCount.toInt())
                 }
+            }
+
+            sessionManager.waitAllSessions()
+        }
+    }
+
+    test("testSessionTtl").config(timeout = 5.seconds) {
+        sessionTest({
+            addLocalAgents(
+                listOf(
+                    SeedDebugAgent(it.client).generate(),
+                ), "debug agents"
+            )
+        }) {
+            val namespace = Sessions.WithNamespace(namespace = "debug agent namespace")
+            val threadCount = 5u
+            val messageCount = 5u
+
+            ktor.client.post(namespace) {
+                contentType(ContentType.Application.Json)
+                setBody(
+                    SessionRequest(
+                        agentGraphRequest = AgentGraphRequest(
+                            agents = listOf(
+                                GraphAgentRequest(
+                                    id = SeedDebugAgent.identifier,
+                                    name = "seed",
+                                    description = "",
+                                    provider = GraphAgentProvider.Local(RuntimeId.FUNCTION),
+                                    options = mapOf(
+                                        "OPERATION_DELAY" to AgentOptionValue.UInt(1000u), // should take 25 seconds naturally
+                                        "SEED_THREAD_COUNT" to AgentOptionValue.UInt(threadCount),
+                                        "SEED_MESSAGE_COUNT" to AgentOptionValue.UInt(messageCount),
+                                    )
+                                )
+                            ),
+                            groups = setOf(setOf("seed")),
+                        ),
+                        sessionRuntimeSettings = SessionRuntimeSettings(
+                            ttl = 100 // should die for test timeout
+                        )
+                    )
+                )
             }
 
             sessionManager.waitAllSessions()

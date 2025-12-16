@@ -165,11 +165,16 @@ class LocalSessionManager(
         val (session, namespace) = createSession(namespace, agentGraph)
         session.launchAgents()
 
-        val timeout = settings.ttl?.milliseconds ?: Duration.INFINITE
+        val timeoutDuration = settings.ttl?.milliseconds ?: Duration.INFINITE
 
         managementScope.launch {
-            withTimeout(timeout) {
+            val timedOut = withTimeoutOrNull(timeoutDuration) {
                 session.joinAgents()
+            } == null
+
+            if (timedOut) {
+                logger.warn { "session ${session.id} reached $timeoutDuration timeout" }
+                session.cancelAndJoinAgents()
             }
         }.invokeOnCompletion {
             managementScope.launch {
@@ -218,10 +223,6 @@ class LocalSessionManager(
         cause: Throwable?,
         settings: SessionRuntimeSettings
     ) {
-        if (cause is TimeoutCancellationException) {
-            logger.warn { "session ${session.id} timed out" }
-        }
-
         // Secrets must be relinquished so that no more references to this session exist
         session.agents.forEach { (name, agent) ->
             agentSecretLookup.remove(agent.secret)
@@ -231,7 +232,7 @@ class LocalSessionManager(
         // possibly namespace) until after the TTL would have exited.  Note that it is intentional that the agent
         // secrets are released before this delay
         if (settings.ttl != null && settings.holdForTtl) {
-            val remainingTime = (session.timestamp + settings.ttl) - System.currentTimeMillis();
+            val remainingTime = ((session.timestamp + settings.ttl) - System.currentTimeMillis()).milliseconds;
             logger.info { "holding session ${session.id} in memory for $remainingTime milliseconds" }
             delay(remainingTime)
         }
