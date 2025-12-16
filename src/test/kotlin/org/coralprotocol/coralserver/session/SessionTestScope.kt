@@ -134,7 +134,7 @@ class SessionTestScope(
         )
 
     suspend fun HttpClient.sseHandshake(secret: String) {
-        this.sse(this.href(Mcp.Sse(secret))) {
+        this.sse(this.href(Mcp.Sse(agentSecret = secret))) {
             // We will get a session so long as the agent secret is valid, the following line makes sure a connection
             // was established on the server by waiting for one message
             incoming.take(1).collect {}

@@ -373,7 +373,7 @@ class SessionTest : FunSpec({
 
                 val transport = SseClientTransport(
                     client = ktor.client,
-                    urlString = ktor.client.href(Mcp.Sse(agent1.secret))
+                    urlString = ktor.client.href(Mcp.Sse(agentSecret = agent1.secret))
                 )
                 mcpClient.connect(transport)
                 return mcpClient.listTools()
