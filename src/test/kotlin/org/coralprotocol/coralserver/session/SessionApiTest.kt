@@ -71,6 +71,7 @@ class SessionApiTest : FunSpec({
 
             repeat(10) {
                 val response = ktor.client.post(testNamespace) {
+                    withAuthToken()
                     contentType(ContentType.Application.Json)
                     setBody(
                         SessionRequest(
@@ -94,21 +95,29 @@ class SessionApiTest : FunSpec({
             }
 
             var namespaces: List<BasicNamespace> = shouldNotThrowAny {
-                ktor.client.get(sessionsRes).body()
+                ktor.client.get(sessionsRes) {
+                    withAuthToken()
+                }.body()
             }
             namespaces.shouldHaveSize(1)
             namespaces.first().sessions.shouldHaveSize(10)
 
-            val sessions: List<SessionId> = ktor.client.get(testNamespace).body()
+            val sessions: List<SessionId> = ktor.client.get(testNamespace) {
+                withAuthToken()
+            }.body()
             sessions.shouldHaveSize(10)
 
             sessionManager.waitAllSessions()
 
-            namespaces = ktor.client.get(sessionsRes).body()
+            namespaces = ktor.client.get(sessionsRes) {
+                withAuthToken()
+            }.body()
             assert(namespaces.isEmpty())
 
             // namespace should be deleted when the last session exits
-            ktor.client.get(testNamespace).shouldHaveStatus(HttpStatusCode.NotFound)
+            ktor.client.get(testNamespace) {
+                withAuthToken()
+            }.shouldHaveStatus(HttpStatusCode.NotFound)
         }
     }
 
@@ -117,6 +126,7 @@ class SessionApiTest : FunSpec({
             val testNamespace = Sessions.WithNamespace(namespace = "test namespace")
 
             val sessionId: SessionIdentifier = ktor.client.post(testNamespace) {
+                withAuthToken()
                 contentType(ContentType.Application.Json)
                 setBody(
                     SessionRequest(
@@ -140,7 +150,9 @@ class SessionApiTest : FunSpec({
             }.body()
 
             val testSession = Sessions.WithNamespace.Session(testNamespace, sessionId.sessionId)
-            ktor.client.delete(testSession).shouldHaveStatus(HttpStatusCode.OK)
+            ktor.client.delete(testSession) {
+                withAuthToken()
+            }.shouldHaveStatus(HttpStatusCode.OK)
 
             sessionManager.waitAllSessions()
         }
@@ -159,6 +171,7 @@ class SessionApiTest : FunSpec({
             val messageCount = 5u
 
             val sessionId: SessionIdentifier = ktor.client.post(namespace) {
+                withAuthToken()
                 contentType(ContentType.Application.Json)
                 setBody(
                     SessionRequest(
@@ -190,7 +203,9 @@ class SessionApiTest : FunSpec({
             session.joinAgents()
 
             val state: SessionState =
-                ktor.client.get(Sessions.WithNamespace.Session(namespace, sessionId.sessionId)).body()
+                ktor.client.get(Sessions.WithNamespace.Session(namespace, sessionId.sessionId)) {
+                    withAuthToken()
+                }.body()
             state.threads.shouldHaveSize(threadCount.toInt())
             state.threads.forAll {
                 it.withMessageLock { messages ->
@@ -215,6 +230,7 @@ class SessionApiTest : FunSpec({
             val messageCount = 5u
 
             ktor.client.post(namespace) {
+                withAuthToken()
                 contentType(ContentType.Application.Json)
                 setBody(
                     SessionRequest(

@@ -39,6 +39,7 @@ class WebSocketTest : FunSpec({
             val messageCount = 10u
 
             val id: SessionIdentifier = ktor.client.post(namespace) {
+                withAuthToken()
                 contentType(ContentType.Application.Json)
                 setBody(
                     SessionRequest(
@@ -63,7 +64,7 @@ class WebSocketTest : FunSpec({
                 )
             }.body()
 
-            val resource = Events.SessionEvents(Events(token = authToken), id.namespace, id.sessionId)
+            val resource = Events.WithToken.SessionEvents(Events.WithToken(token = authToken), id.namespace, id.sessionId)
             val eventsDeferred = CompletableDeferred<List<SessionEvent>>()
             ktor.client.webSocket(ktor.client.href(resource)) {
                 eventsDeferred.complete(

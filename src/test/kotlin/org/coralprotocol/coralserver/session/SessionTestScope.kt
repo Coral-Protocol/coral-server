@@ -1,20 +1,27 @@
 package org.coralprotocol.coralserver.session
 
+import io.github.oshai.kotlinlogging.KotlinLogging
 import io.kotest.assertions.asClue
 import io.kotest.assertions.withClue
 import io.kotest.core.test.TestScope
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.ktor.client.*
+import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.plugins.resources.*
 import io.ktor.client.plugins.sse.*
 import io.ktor.client.plugins.websocket.*
+import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.request.uri
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.sessions.SessionStorageMemory
+import io.ktor.server.sessions.Sessions
+import io.ktor.server.sessions.cookie
 import io.ktor.server.testing.*
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import kotlinx.coroutines.*
@@ -34,18 +41,23 @@ import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.routes.api.v1.agentRentalApi
+import org.coralprotocol.coralserver.routes.api.v1.authApi
 import org.coralprotocol.coralserver.routes.api.v1.sessionApi
 import org.coralprotocol.coralserver.routes.sse.v1.Mcp
 import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
 import org.coralprotocol.coralserver.routes.ws.v1.eventRoutes
+import org.coralprotocol.coralserver.server.AuthSession
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.server.apiJsonConfig
+import org.coralprotocol.coralserver.server.coralServerModule
 import org.coralprotocol.coralserver.util.mcpFunctionRuntime
 import java.nio.file.Path
 import java.util.*
 import kotlin.time.Duration
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
+
+private val logger = KotlinLogging.logger {}
 
 class SessionTestScope(
     testScope: TestScope,
@@ -152,6 +164,10 @@ class SessionTestScope(
         }
     }
 
+    fun HttpRequestBuilder.withAuthToken() {
+        headers.append(HttpHeaders.Authorization, "Bearer $authToken")
+    }
+
     suspend fun buildSession(agents: Map<UniqueAgentName, suspend (Client, LocalSession) -> Unit>) {
         val (session, _) = sessionManager.createSession(
             "test", AgentGraph(
@@ -186,6 +202,7 @@ suspend fun TestScope.sessionTest(
             install(Resources)
             install(WebSockets)
             install(SSE)
+            install(HttpCookies)
             install(ClientContentNegotiation) {
                 json(apiJsonConfig, contentType = ContentType.Application.Json)
             }
@@ -196,32 +213,13 @@ suspend fun TestScope.sessionTest(
         };
 
         application {
-            install(io.ktor.server.resources.Resources)
-            install(io.ktor.server.websocket.WebSockets)
-            routing {
-                mcpRoutes(sessionTestScope.sessionManager)
-                sessionApi(sessionTestScope.registry, sessionTestScope.sessionManager)
-                agentRentalApi(
-                    sessionTestScope.config.paymentConfig.remoteAgentWallet,
-                    sessionTestScope.registry,
-                    null, // todo: mock blockchain service (also remote sessions)
-                    null // todo: remote sessions
-                )
-                eventRoutes(sessionTestScope.config, sessionTestScope.sessionManager)
-            }
-            install(ServerContentNegotiation) {
-                json(apiJsonConfig, contentType = ContentType.Application.Json)
-            }
-            install(StatusPages) {
-                exception<Throwable> { call, cause ->
-                    var wrapped = cause
-                    if (cause !is RouteException) {
-                        wrapped = RouteException(HttpStatusCode.InternalServerError, cause)
-                    }
-
-                    call.respondText(text = apiJsonConfig.encodeToString(wrapped), status = wrapped.status)
-                }
-            }
+            coralServerModule(
+                config = sessionTestScope.config,
+                localSessionManager = sessionTestScope.sessionManager,
+                registry = sessionTestScope.registry,
+                x402Service = null,
+                blockchainService = null
+            )
         }
 
         sessionTestScope.test()

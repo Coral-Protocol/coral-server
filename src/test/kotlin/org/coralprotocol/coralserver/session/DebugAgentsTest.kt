@@ -35,6 +35,7 @@ class DebugAgentsTest : FunSpec({
             val messageCount = 100u
 
             val sessionId: SessionIdentifier = ktor.client.post(namespace) {
+                withAuthToken()
                 contentType(ContentType.Application.Json)
                 setBody(
                     SessionRequest(
@@ -85,6 +86,7 @@ class DebugAgentsTest : FunSpec({
             val messageCount = 10u
 
             val sessionId: SessionIdentifier = ktor.client.post(namespace) {
+                withAuthToken()
                 contentType(ContentType.Application.Json)
                 setBody(
                     SessionRequest(
