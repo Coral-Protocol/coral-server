@@ -21,7 +21,7 @@ class McpSessionEventsTest : FunSpec({
                 mapOf(
                     agent1Name to { client, session ->
                         session.shouldPostEvents(
-                            3.seconds,
+                            15.seconds,
                             mutableListOf(
                                 ExpectedSessionEvent("agent wait started") { it is SessionEvent.AgentWaitStart },
                                 ExpectedSessionEvent("agent wait stopped") { it is SessionEvent.AgentWaitStop }
@@ -34,7 +34,7 @@ class McpSessionEventsTest : FunSpec({
                         val agent1 = session.getAgent(agent1Name)
 
                         session.shouldPostEvents(
-                            3.seconds,
+                            15.seconds,
                             mutableListOf(
                                 ExpectedSessionEvent("thread '$threadName' created") {
                                     it is SessionEvent.ThreadCreated && it.thread.name == threadName

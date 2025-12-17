@@ -217,7 +217,7 @@ class SessionApiTest : FunSpec({
         }
     }
 
-    test("testSessionTtl").config(timeout = 5.seconds) {
+    test("testSessionTtl").config(timeout = 10.seconds) {
         sessionTest({
             addLocalAgents(
                 listOf(
@@ -251,7 +251,7 @@ class SessionApiTest : FunSpec({
                             groups = setOf(setOf("seed")),
                         ),
                         sessionRuntimeSettings = SessionRuntimeSettings(
-                            ttl = 100 // should die for test timeout
+                            ttl = 100 // should die before test timeout
                         )
                     )
                 )

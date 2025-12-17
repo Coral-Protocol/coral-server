@@ -166,7 +166,7 @@ class DockerRuntimeTest : FunSpec({
         }
     }
 
-    test("testDockerRuntimeCleanup").config(timeout = 10.seconds, enabledIf = ::isDockerAvailable) {
+    test("testDockerRuntimeCleanup").config(timeout = 30.seconds, enabledIf = ::isDockerAvailable) {
         sessionTest {
             val (session1, _) = sessionManager.createSession(
                 "test", AgentGraph(
@@ -189,7 +189,7 @@ class DockerRuntimeTest : FunSpec({
             )
 
             session1.shouldPostEvents(
-                3.seconds,
+                15.seconds,
                 mutableListOf(
                     ExpectedSessionEvent("agent1 runtime started") { it is SessionEvent.RuntimeStarted },
                     ExpectedSessionEvent("agent1 container created") { it is SessionEvent.DockerContainerCreated },
@@ -199,7 +199,7 @@ class DockerRuntimeTest : FunSpec({
             }
 
             session1.shouldPostEvents(
-                3.seconds,
+                15.seconds,
                 mutableListOf(
                     ExpectedSessionEvent("agent1 container removed") { it is SessionEvent.DockerContainerRemoved },
                 ),

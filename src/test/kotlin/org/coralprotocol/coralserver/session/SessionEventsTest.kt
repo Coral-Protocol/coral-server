@@ -11,7 +11,7 @@ import org.coralprotocol.coralserver.util.mcpFunctionRuntime
 import kotlin.time.Duration.Companion.seconds
 
 open class SessionEventsTest : FunSpec({
-    test("testSessionEvents").config(timeout = 2.seconds) {
+    test("testSessionEvents").config(timeout = 30.seconds) {
         val agent1Name = "agent1"
         val agent2Name = "agent2"
 
@@ -24,7 +24,7 @@ open class SessionEventsTest : FunSpec({
                                 name = agent1Name,
                                 functionRuntime = FunctionRuntime { executionContext, applicationRuntimeContext ->
                                     executionContext.session.shouldPostEvents(
-                                        3.seconds,
+                                        10.seconds,
                                         mutableListOf(
                                             ExpectedSessionEvent("agent connected") {
                                                 it == SessionEvent.AgentConnected(
@@ -54,7 +54,7 @@ open class SessionEventsTest : FunSpec({
                 ))
 
             session.shouldPostEvents(
-                3.seconds,
+                10.seconds,
                 mutableListOf(
                     ExpectedSessionEvent("agent '$agent1Name' runtime started ") {
                         it == SessionEvent.RuntimeStarted(

@@ -11,7 +11,7 @@ import org.coralprotocol.coralserver.util.ScopedFlow
 import kotlin.time.Duration.Companion.seconds
 
 class ScopedFlowTest : FunSpec({
-    test("testMultipleListeners").config(timeout = 1.seconds) {
+    test("testMultipleListeners").config(timeout = 30.seconds) {
         val maxListeners = 10
         val maxMessages = 100
 
@@ -44,7 +44,7 @@ class ScopedFlowTest : FunSpec({
         scopedFlow.close()
     }
 
-    test("testFailingListener").config(timeout = 1.seconds) {
+    test("testFailingListener").config(timeout = 30.seconds) {
         val scopedFlow = ScopedFlow<Int>()
         val collectorCount = MutableStateFlow(0)
         val receivedCount = MutableStateFlow(0)

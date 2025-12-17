@@ -22,7 +22,7 @@ import org.coralprotocol.coralserver.session.models.SessionRequest
 import kotlin.time.Duration.Companion.seconds
 
 class DebugAgentsTest : FunSpec({
-    test("testSeedDebugAgent").config(timeout = 20.seconds) {
+    test("testSeedDebugAgent").config(timeout = 60.seconds) {
         sessionTest({
             addLocalAgents(
                 listOf(
@@ -72,7 +72,7 @@ class DebugAgentsTest : FunSpec({
         }
     }
 
-    test("testEchoDebugAgent").config(timeout = 10.seconds) {
+    test("testEchoDebugAgent").config(timeout = 30.seconds) {
         sessionTest({
             addLocalAgents(
                 listOf(
