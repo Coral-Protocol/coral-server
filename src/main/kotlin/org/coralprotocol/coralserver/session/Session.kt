@@ -36,5 +36,5 @@ abstract class Session(parentScope: CoroutineScope, supervisedSessions: Boolean 
     /**
      * Called by the above session manager when this session is closed
      */
-    abstract fun onClose(cause: Throwable?)
+    abstract fun close()
 }

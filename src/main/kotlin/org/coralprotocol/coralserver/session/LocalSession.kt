@@ -1,10 +1,6 @@
 package org.coralprotocol.coralserver.session
 
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.*
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.events.SessionEvent
@@ -13,6 +9,7 @@ import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.session.remote.RemoteSession
 import org.coralprotocol.coralserver.session.state.SessionState
+import org.coralprotocol.coralserver.util.ScopedFlow
 import org.jetbrains.annotations.TestOnly
 import java.util.concurrent.ConcurrentHashMap
 
@@ -84,11 +81,14 @@ class LocalSession(
     private val agentJobs = mutableListOf<Job>()
 
     /**
-     * A shared flow of events that this session may emit.
      * @see SessionEvent
      */
-    val events = Channel<SessionEvent>(
-        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    val events = ScopedFlow<SessionEvent>(
+        if (sessionManager.supervisedSessions) {
+            CoroutineScope(sessionScope.coroutineContext + SupervisorJob(sessionScope.coroutineContext[Job]))
+        } else {
+            CoroutineScope(sessionScope.coroutineContext + Job())
+        }
     )
 
     /**
@@ -104,7 +104,7 @@ class LocalSession(
      * @throws SessionException.MissingAgentException if [agentName] does not exist in [agents]
      * @throws SessionException.MissingAgentException if any of the agents listed in [participants] do not exist in [agents]
      */
-    suspend fun createThread(
+    fun createThread(
         threadName: String,
         agentName: UniqueAgentName,
         participants: Set<UniqueAgentName> = setOf()
@@ -124,7 +124,7 @@ class LocalSession(
             participants = (participants + setOf(agentName)).toMutableSet(),
         )
 
-        events.send(SessionEvent.ThreadCreated(thread))
+        events.emit(SessionEvent.ThreadCreated(thread))
 
         threads[thread.id] = thread
         return thread
@@ -214,7 +214,16 @@ class LocalSession(
         agentJobs.forEach { it.cancelAndJoin() }
     }
 
-    override fun onClose(cause: Throwable?) {
-        events.close(cause)
+    /**
+     * Launches the agents, joins them, and after they are finishes, closes the session.
+     */
+    suspend fun fullLifeCycle() {
+        launchAgents()
+        joinAgents()
+        events.close()
+    }
+
+    override fun close() {
+        events.close()
     }
 }

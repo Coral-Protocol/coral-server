@@ -78,7 +78,7 @@ class SessionThread(
             }
         }
 
-        sender.session.events.send(SessionEvent.ThreadMessageSent(msg))
+        sender.session.events.emit(SessionEvent.ThreadMessageSent(msg))
 
         return msg
     }
@@ -106,7 +106,7 @@ class SessionThread(
             messages.forEach { targetAgent.notifyMessage(it) }
         }
 
-        requestingAgent.session.events.send(SessionEvent.ThreadParticipantAdded(id, targetAgent.name))
+        requestingAgent.session.events.emit(SessionEvent.ThreadParticipantAdded(id, targetAgent.name))
     }
 
     /**
@@ -125,7 +125,7 @@ class SessionThread(
             participants.remove(targetAgent.name)
         }
 
-        requestingAgent.session.events.send(SessionEvent.ThreadParticipantRemoved(id, targetAgent.name))
+        requestingAgent.session.events.emit(SessionEvent.ThreadParticipantRemoved(id, targetAgent.name))
     }
 
     /**
@@ -192,7 +192,7 @@ class SessionThread(
         state = SessionThreadState.Closed(summary)
         messagesMutex.withLock { messages.clear() }
 
-        requestingAgent.session.events.send(SessionEvent.ThreadClosed(id, summary))
+        requestingAgent.session.events.emit(SessionEvent.ThreadClosed(id, summary))
     }
 }
 

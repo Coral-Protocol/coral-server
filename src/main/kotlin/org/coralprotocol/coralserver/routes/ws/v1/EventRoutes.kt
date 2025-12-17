@@ -3,14 +3,10 @@ package org.coralprotocol.coralserver.routes.ws.v1
 import io.github.smiley4.ktoropenapi.resources.get
 import io.ktor.http.*
 import io.ktor.resources.*
-import io.ktor.server.response.respond
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.server.sessions.get
-import io.ktor.server.sessions.sessions
+import io.ktor.server.sessions.*
 import io.ktor.server.websocket.*
-import kotlinx.coroutines.flow.consumeAsFlow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.routes.WsV1
 import org.coralprotocol.coralserver.server.AuthSession
@@ -50,9 +46,9 @@ fun Route.eventRoutes(config: Config, localSessionManager: LocalSessionManager) 
         }
 
         call.respond(WebSocketUpgrade(call) {
-            session.events.consumeAsFlow().onEach {
+            session.events.collectUntilCanceled {
                 outgoing.send(it.toWsFrame())
-            }.launchIn(session.sessionScope).join()
+            }
         })
     }
 

@@ -148,14 +148,14 @@ class SessionAgentExecutionContext(
      * Called immediately before the runtime starts.
      */
     private suspend fun handleRuntimeStarted() {
-        session.events.send((SessionEvent.RuntimeStarted(name)))
+        session.events.emit((SessionEvent.RuntimeStarted(name)))
     }
 
     /**
      * Called immediately after the runtime stops, for any reason.
      */
     private suspend fun handleRuntimeStopped() {
-        session.events.send(SessionEvent.RuntimeStopped(name))
+        session.events.emit(SessionEvent.RuntimeStopped(name))
         disposableResources.forEach { it.dispose() }
         disposableResources.clear()
     }

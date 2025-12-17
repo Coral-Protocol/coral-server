@@ -60,8 +60,7 @@ class McpAgentPluginTest : FunSpec({
                     groups = setOf()
                 ))
 
-            session.launchAgents()
-            session.joinAgents()
+            session.fullLifeCycle()
         }
     }
 })

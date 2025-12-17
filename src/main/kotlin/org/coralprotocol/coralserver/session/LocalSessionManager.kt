@@ -241,7 +241,8 @@ class LocalSessionManager(
         if (namespace.sessions.isEmpty())
             sessionNamespaces.remove(namespace.name)
 
-        session.onClose(cause)
+        session.close()
+        logger.info { "session ${session.id} closed" }
     }
 
     /**

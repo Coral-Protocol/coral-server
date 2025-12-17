@@ -7,26 +7,17 @@ import io.kotest.core.test.TestScope
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.ktor.client.*
-import io.ktor.client.plugins.cookies.HttpCookies
+import io.ktor.client.plugins.cookies.*
 import io.ktor.client.plugins.resources.*
 import io.ktor.client.plugins.sse.*
 import io.ktor.client.plugins.websocket.*
-import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.application.*
-import io.ktor.server.plugins.statuspages.*
-import io.ktor.server.request.uri
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
-import io.ktor.server.sessions.SessionStorageMemory
-import io.ktor.server.sessions.Sessions
-import io.ktor.server.sessions.cookie
 import io.ktor.server.testing.*
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import kotlinx.coroutines.*
-import kotlinx.coroutines.channels.ReceiveChannel
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.take
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
@@ -40,14 +31,7 @@ import org.coralprotocol.coralserver.config.*
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.payment.JupiterService
-import org.coralprotocol.coralserver.routes.api.v1.agentRentalApi
-import org.coralprotocol.coralserver.routes.api.v1.authApi
-import org.coralprotocol.coralserver.routes.api.v1.sessionApi
 import org.coralprotocol.coralserver.routes.sse.v1.Mcp
-import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
-import org.coralprotocol.coralserver.routes.ws.v1.eventRoutes
-import org.coralprotocol.coralserver.server.AuthSession
-import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.server.coralServerModule
 import org.coralprotocol.coralserver.util.mcpFunctionRuntime
@@ -55,7 +39,6 @@ import java.nio.file.Path
 import java.util.*
 import kotlin.time.Duration
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
 
 private val logger = KotlinLogging.logger {}
 
@@ -185,8 +168,7 @@ class SessionTestScope(
             )
         )
 
-        session.launchAgents()
-        session.joinAgents()
+        session.fullLifeCycle()
     }
 
     suspend fun graphToSession(graph: AgentGraph) =
@@ -244,14 +226,14 @@ data class ExpectedSessionEvent(
 suspend fun CoroutineScope.shouldPostEvents(
     timeout: Duration,
     expectedEvents: MutableList<ExpectedSessionEvent>,
-    events: ReceiveChannel<SessionEvent>,
+    eventFlow: Flow<SessionEvent>,
     block: suspend () -> Unit,
 ) {
     val listening = CompletableDeferred<Unit>()
     val eventJob = launch {
         listening.complete(Unit)
 
-        events.receiveAsFlow().collect { event ->
+        eventFlow.collect { event ->
             expectedEvents.removeAll { it.predicate(event) }
 
             if (expectedEvents.isEmpty())
@@ -276,7 +258,7 @@ suspend fun LocalSession.shouldPostEvents(
     expectedEvents: MutableList<ExpectedSessionEvent>,
     block: suspend () -> Unit,
 ) {
-    this.sessionScope.shouldPostEvents(timeout, expectedEvents, events, block)
+    this.sessionScope.shouldPostEvents(timeout, expectedEvents, events.flow, block)
 }
 
 fun Iterable<SessionEvent>.shouldHaveEvents(expectedEvents: MutableList<ExpectedSessionEvent>) {

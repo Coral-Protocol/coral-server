@@ -59,7 +59,7 @@ class RemoteSession(
         return lifecycle.await()
     }
 
-    override fun onClose(cause: Throwable?) {
+    override fun close() {
         TODO("Not yet implemented")
     }
 }

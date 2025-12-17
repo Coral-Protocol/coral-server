@@ -82,8 +82,7 @@ class ExecutableRuntimeTest : FunSpec({
 
             // no exceptions should be thrown for agent1, run agent2 until it exits
             collecting.await()
-            session1.launchAgents()
-            session1.joinAgents()
+            session1.fullLifeCycle()
 
             // Test that the script printed both env and fs option values
             messages.shouldContain(optionValue1)
