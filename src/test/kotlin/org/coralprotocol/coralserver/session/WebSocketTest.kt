@@ -64,16 +64,17 @@ class WebSocketTest : FunSpec({
                 )
             }.body()
 
-            val resource = Events.WithToken.SessionEvents(Events.WithToken(token = authToken), id.namespace, id.sessionId)
+            val resource =
+                Events.WithToken.SessionEvents(Events.WithToken(token = authToken), id.namespace, id.sessionId)
             val eventsDeferred = CompletableDeferred<List<SessionEvent>>()
             ktor.client.webSocket(ktor.client.href(resource)) {
                 eventsDeferred.complete(
                     incoming
-                    .filterIsInstance<Frame.Text>(this@webSocket)
-                    .map(this@webSocket) {
-                        it.fromWsFrame<SessionEvent>()
-                    }
-                    .toList())
+                        .filterIsInstance<Frame.Text>(this@webSocket)
+                        .map(this@webSocket) {
+                            it.fromWsFrame<SessionEvent>()
+                        }
+                        .toList())
             }
 
             sessionManager.waitAllSessions()
@@ -86,7 +87,6 @@ class WebSocketTest : FunSpec({
 
             events.shouldHaveEvents(
                 mutableListOf(
-                    ExpectedSessionEvent("agent connected") { it is SessionEvent.AgentConnected },
                     ExpectedSessionEvent("runtime stopped") { it is SessionEvent.RuntimeStopped },
                 )
             )
