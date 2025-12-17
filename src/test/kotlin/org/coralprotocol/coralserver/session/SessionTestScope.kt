@@ -1,11 +1,14 @@
 package org.coralprotocol.coralserver.session
 
 import io.kotest.assertions.asClue
+import io.kotest.assertions.withClue
 import io.kotest.core.test.TestScope
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.ktor.client.*
 import io.ktor.client.plugins.resources.*
 import io.ktor.client.plugins.sse.*
+import io.ktor.client.plugins.websocket.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -15,6 +18,8 @@ import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.ReceiveChannel
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.take
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
@@ -32,10 +37,12 @@ import org.coralprotocol.coralserver.routes.api.v1.agentRentalApi
 import org.coralprotocol.coralserver.routes.api.v1.sessionApi
 import org.coralprotocol.coralserver.routes.sse.v1.Mcp
 import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
+import org.coralprotocol.coralserver.routes.ws.v1.eventRoutes
 import org.coralprotocol.coralserver.server.RouteException
 import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.util.mcpFunctionRuntime
 import java.nio.file.Path
+import java.util.*
 import kotlin.time.Duration
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
@@ -45,6 +52,7 @@ class SessionTestScope(
     val ktor: ApplicationTestBuilder,
     registryBuilder: AgentRegistrySourceBuilder.() -> Unit = {}
 ) {
+    val authToken = UUID.randomUUID().toString()
     val config = Config(
         // port for testing is zero
         networkConfig = NetworkConfig(
@@ -60,6 +68,9 @@ class SessionTestScope(
                 )
             ),
             remoteAgentWalletName = "fake test wallet"
+        ),
+        auth = AuthConfig(
+            keys = setOf(authToken)
         )
     )
     val registry = AgentRegistry(config, registryBuilder)
@@ -173,6 +184,7 @@ suspend fun TestScope.sessionTest(
     runTestApplication(coroutineContext) {
         client = createClient {
             install(Resources)
+            install(WebSockets)
             install(SSE)
             install(ClientContentNegotiation) {
                 json(apiJsonConfig, contentType = ContentType.Application.Json)
@@ -185,6 +197,7 @@ suspend fun TestScope.sessionTest(
 
         application {
             install(io.ktor.server.resources.Resources)
+            install(io.ktor.server.websocket.WebSockets)
             routing {
                 mcpRoutes(sessionTestScope.sessionManager)
                 sessionApi(sessionTestScope.registry, sessionTestScope.sessionManager)
@@ -194,6 +207,7 @@ suspend fun TestScope.sessionTest(
                     null, // todo: mock blockchain service (also remote sessions)
                     null // todo: remote sessions
                 )
+                eventRoutes(sessionTestScope.config, sessionTestScope.sessionManager)
             }
             install(ServerContentNegotiation) {
                 json(apiJsonConfig, contentType = ContentType.Application.Json)
@@ -229,16 +243,17 @@ data class ExpectedSessionEvent(
     val predicate: (event: SessionEvent) -> Boolean
 )
 
-suspend fun LocalSession.shouldPostEvents(
+suspend fun CoroutineScope.shouldPostEvents(
     timeout: Duration,
     expectedEvents: MutableList<ExpectedSessionEvent>,
+    events: ReceiveChannel<SessionEvent>,
     block: suspend () -> Unit,
 ) {
     val listening = CompletableDeferred<Unit>()
-    val eventJob = sessionScope.launch {
+    val eventJob = launch {
         listening.complete(Unit)
 
-        events.collect { event ->
+        events.receiveAsFlow().collect { event ->
             expectedEvents.removeAll { it.predicate(event) }
 
             if (expectedEvents.isEmpty())
@@ -246,7 +261,7 @@ suspend fun LocalSession.shouldPostEvents(
         }
     }
 
-    val blockJob = sessionScope.launch {
+    val blockJob = launch {
         listening.await()
         block()
     };
@@ -255,5 +270,23 @@ suspend fun LocalSession.shouldPostEvents(
         withTimeoutOrNull(timeout) {
             joinAll(eventJob, blockJob)
         }.shouldNotBeNull()
+    }
+}
+
+suspend fun LocalSession.shouldPostEvents(
+    timeout: Duration,
+    expectedEvents: MutableList<ExpectedSessionEvent>,
+    block: suspend () -> Unit,
+) {
+    this.sessionScope.shouldPostEvents(timeout, expectedEvents, events, block)
+}
+
+fun Iterable<SessionEvent>.shouldHaveEvents(expectedEvents: MutableList<ExpectedSessionEvent>) {
+    this.forEach { event ->
+        expectedEvents.removeAll { it.predicate(event) }
+    }
+
+    withClue("missing expected events: ${expectedEvents.joinToString(", ") { it.description }}") {
+        expectedEvents.shouldBeEmpty()
     }
 }
