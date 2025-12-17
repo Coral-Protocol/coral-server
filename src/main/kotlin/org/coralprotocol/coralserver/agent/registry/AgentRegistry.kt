@@ -184,14 +184,15 @@ class AgentRegistry(config: Config, build: AgentRegistrySourceBuilder.() -> Unit
         if (sources.isEmpty())
             throw RegistryException.RegistrySourceNotFoundException("No registry sources for '${id.registrySourceId}' found")
 
-        try {
-            sources.forEach {
+        sources.forEach {
+            try {
                 return it.resolveAgent(id)
             }
-        } catch (_: RegistryException.AgentNotFoundException) {
+            catch (_: RegistryException.AgentNotFoundException) {
 
+            }
         }
-
+        
         throw RegistryException.AgentNotFoundException("Agent '${id.name}' not found in any of the ${sources.size} registry sources matching '${id.registrySourceId}'")
     }
 }
