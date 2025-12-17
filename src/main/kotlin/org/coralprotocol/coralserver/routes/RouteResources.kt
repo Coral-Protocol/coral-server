@@ -11,5 +11,5 @@ class SseV1
 @Resource("ws/v1")
 class WsV1
 
-@Resource("ws/v1")
+@Resource("ui")
 class UiV1
