@@ -78,9 +78,9 @@ class RemoteSessionManager(
             remoteSessionManager = this
         )
 
-        remoteSession.sessionClosedFlow.onEach {
-            cleanupSession(remoteSession, it)
-        }.launchIn(remoteSession.sessionScope)
+//        remoteSession.sessionClosedFlow.onEach {
+//            cleanupSession(remoteSession, it)
+//        }.launchIn(remoteSession.sessionScope)
 
 //        orchestrator.spawnRemote(
 //            session = remoteSession,

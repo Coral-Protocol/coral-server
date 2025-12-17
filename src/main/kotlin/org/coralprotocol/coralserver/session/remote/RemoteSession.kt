@@ -59,8 +59,7 @@ class RemoteSession(
         return lifecycle.await()
     }
 
-    override suspend fun destroy(sessionCloseMode: SessionCloseMode) {
-        super.destroy(sessionCloseMode)
-        lifecycle.complete(sessionCloseMode)
+    override fun onClose(cause: Throwable?) {
+        TODO("Not yet implemented")
     }
 }

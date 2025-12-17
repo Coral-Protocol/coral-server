@@ -22,7 +22,7 @@ data class CreateThreadOutput(
     val thread: SessionThread
 )
 
-fun createThreadExecutor(agent: SessionAgent, arguments: CreateThreadInput): CreateThreadOutput {
+suspend fun createThreadExecutor(agent: SessionAgent, arguments: CreateThreadInput): CreateThreadOutput {
     try {
         return CreateThreadOutput(
             agent.session.createThread(arguments.threadName, agent.name, arguments.participantIds)

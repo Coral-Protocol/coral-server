@@ -34,14 +34,7 @@ abstract class Session(parentScope: CoroutineScope, supervisedSessions: Boolean 
     }
 
     /**
-     * Called by the destroy function.  Should be listened to by managers to clean up any related context
+     * Called by the above session manager when this session is closed
      */
-    val sessionClosedFlow: MutableSharedFlow<SessionCloseMode> = MutableSharedFlow()
-
-    /**
-     * Kill all the agents involved in this session / clean up payment stuff etc.
-     */
-    open suspend fun destroy(sessionCloseMode: SessionCloseMode = SessionCloseMode.CLEAN) {
-        sessionClosedFlow.emit(sessionCloseMode)
-    }
+    abstract fun onClose(cause: Throwable?)
 }

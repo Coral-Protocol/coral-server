@@ -240,6 +240,8 @@ class LocalSessionManager(
         namespace.sessions.remove(session.id)
         if (namespace.sessions.isEmpty())
             sessionNamespaces.remove(namespace.name)
+
+        session.onClose(cause)
     }
 
     /**

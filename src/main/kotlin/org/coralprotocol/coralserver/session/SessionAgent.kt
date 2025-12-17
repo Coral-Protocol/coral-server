@@ -240,7 +240,7 @@ class SessionAgent(
         sseTransports.add(transport)
         if (!firstConnectionEstablished.isCompleted) {
             firstConnectionEstablished.complete(transport)
-            this.session.events.tryEmit(SessionEvent.AgentConnected(name))
+            this.session.events.send(SessionEvent.AgentConnected(name))
         }
 
         handleBlocking()
@@ -289,9 +289,9 @@ class SessionAgent(
             val waiter = SessionAgentWaiter(filters)
             waiters.add(waiter)
 
-            session.events.tryEmit(SessionEvent.AgentWaitStart(name, filters))
+            session.events.send(SessionEvent.AgentWaitStart(name, filters))
             val msg = waiter.deferred.await()
-            session.events.tryEmit(SessionEvent.AgentWaitStop(name, msg))
+            session.events.send(SessionEvent.AgentWaitStop(name, msg))
 
             msg
         }

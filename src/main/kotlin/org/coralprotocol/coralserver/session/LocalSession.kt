@@ -3,7 +3,7 @@ package org.coralprotocol.coralserver.session
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.joinAll
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
@@ -26,10 +26,10 @@ import java.util.concurrent.ConcurrentHashMap
  * agents have access to, including threads and messages.
  *
  * All agent states in this session are represented by [SessionAgent] classes listed in [agents].  A [SessionAgent]
- * instance contains all runtime information for that agent, including its MCP server [CoralAgentIndividualMcp].
+ * instance contains all runtime information for that agent, including its MCP server.
  *
  * @param id This is a unique identifier for this session.  This should be cryptographically secure as it is used to
- * uniquely identify a session in a potentially multi-tenant environment.
+ * uniquely identify a session in a potential multi-tenant environment.
  *
  * @param paymentSessionId This the payment session created by coral-escrow.  This will be null if there are no paid
  * agents in [agentGraph].
@@ -87,8 +87,7 @@ class LocalSession(
      * A shared flow of events that this session may emit.
      * @see SessionEvent
      */
-    val events = MutableSharedFlow<SessionEvent>(
-        extraBufferCapacity = 1024,
+    val events = Channel<SessionEvent>(
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
 
@@ -105,7 +104,7 @@ class LocalSession(
      * @throws SessionException.MissingAgentException if [agentName] does not exist in [agents]
      * @throws SessionException.MissingAgentException if any of the agents listed in [participants] do not exist in [agents]
      */
-    fun createThread(
+    suspend fun createThread(
         threadName: String,
         agentName: UniqueAgentName,
         participants: Set<UniqueAgentName> = setOf()
@@ -125,7 +124,7 @@ class LocalSession(
             participants = (participants + setOf(agentName)).toMutableSet(),
         )
 
-        events.tryEmit(SessionEvent.ThreadCreated(thread))
+        events.send(SessionEvent.ThreadCreated(thread))
 
         threads[thread.id] = thread
         return thread
@@ -213,5 +212,9 @@ class LocalSession(
             throw SessionException.NotLaunchedException("This session's agents have not been launched yet")
 
         agentJobs.forEach { it.cancelAndJoin() }
+    }
+
+    override fun onClose(cause: Throwable?) {
+        events.close(cause)
     }
 }

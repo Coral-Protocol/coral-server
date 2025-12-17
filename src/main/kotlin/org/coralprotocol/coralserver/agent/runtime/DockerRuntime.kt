@@ -84,7 +84,7 @@ data class DockerRuntime(
             containerId = container.id
 
             executionContext.logger.info("container $containerId created")
-            executionContext.session.events.tryEmit(SessionEvent.DockerContainerCreated(containerId))
+            executionContext.session.events.send(SessionEvent.DockerContainerCreated(containerId))
 
             docker.dockerClient.startContainerCmd(containerId).exec()
 
@@ -126,7 +126,7 @@ data class DockerRuntime(
                             .withForce(true)
                             .exec()
 
-                        executionContext.session.events.tryEmit(SessionEvent.DockerContainerRemoved(containerId))
+                        executionContext.session.events.trySend(SessionEvent.DockerContainerRemoved(containerId))
                         executionContext.logger.info("container $containerId removed")
                     }
                 }
