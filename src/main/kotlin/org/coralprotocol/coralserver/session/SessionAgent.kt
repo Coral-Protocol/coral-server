@@ -2,11 +2,7 @@ package org.coralprotocol.coralserver.session
 
 import io.ktor.server.application.*
 import io.ktor.server.sse.*
-import io.modelcontextprotocol.kotlin.sdk.Implementation
-import io.modelcontextprotocol.kotlin.sdk.ReadResourceRequest
-import io.modelcontextprotocol.kotlin.sdk.ReadResourceResult
-import io.modelcontextprotocol.kotlin.sdk.ServerCapabilities
-import io.modelcontextprotocol.kotlin.sdk.TextResourceContents
+import io.modelcontextprotocol.kotlin.sdk.*
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
@@ -26,11 +22,9 @@ import org.coralprotocol.coralserver.mcp.McpInstructionSnippet
 import org.coralprotocol.coralserver.mcp.McpResourceName
 import org.coralprotocol.coralserver.mcp.McpTool
 import org.coralprotocol.coralserver.mcp.McpToolManager
-import org.coralprotocol.coralserver.session.reporting.SessionAgentUsageReport
 import org.coralprotocol.coralserver.session.state.SessionAgentState
 import org.coralprotocol.coralserver.util.ConcurrentMutableList
 import org.coralprotocol.coralserver.x402.X402BudgetedResource
-import kotlin.String
 
 typealias SessionAgentSecret = String
 
@@ -53,7 +47,7 @@ class SessionAgent(
     namespace: LocalSessionNamespace,
     sessionManager: LocalSessionManager,
     val mcpToolManager: McpToolManager
-): Server(
+) : Server(
     Implementation(
         name = "Coral Agent Server",
         version = "1.0.0"
@@ -139,6 +133,17 @@ class SessionAgent(
     val usageReports
         get() = executionContext.usageReports.toList()
 
+    /**
+     * LocalSessionManager's copy of the custom tool secret.  This is used to generate signatures for custom tool requests
+     * made by this agent
+     */
+    val customToolSecret = sessionManager.config.networkConfig.customToolSecret
+
+    /**
+     * LocalSessionManager's http client
+     */
+    val httpClient = sessionManager.httpClient
+
     init {
         addMcpTool(mcpToolManager.createThreadTool)
         addMcpTool(mcpToolManager.closeThreadTool)
@@ -166,8 +171,11 @@ class SessionAgent(
         )
 
         graphAgent.plugins.forEach { it.install(this) }
-
-        // todo: custom tools
+        graphAgent.customTools.forEach { (name, tool) ->
+            addTool(tool.schema) {
+                tool.transport.execute(name, this, it)
+            }
+        }
     }
 
     /**
@@ -280,7 +288,7 @@ class SessionAgent(
             session.getAgent(it)
         }.toSet()
 
-        val message= thread.addMessage(message, this, mentions)
+        val message = thread.addMessage(message, this, mentions)
         return message
     }
 

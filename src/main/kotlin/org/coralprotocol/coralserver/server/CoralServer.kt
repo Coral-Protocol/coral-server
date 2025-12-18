@@ -4,6 +4,9 @@ package org.coralprotocol.coralserver.server
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.http.ContentType
+import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
@@ -49,7 +52,11 @@ class CoralServer(
         applicationRuntimeContext = ApplicationRuntimeContext(config),
         jupiterService = jupiterService,
         config = config,
-        httpClient = HttpClient(),
+        httpClient = HttpClient {
+            install(ContentNegotiation) {
+                json(apiJsonConfig, contentType = ContentType.Application.Json)
+            }
+        },
     )
 
     val aggregatedPaymentClaimManager = if (blockchainService != null) {

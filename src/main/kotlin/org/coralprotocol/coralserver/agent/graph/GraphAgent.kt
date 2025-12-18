@@ -70,8 +70,9 @@ data class GraphAgent(
 
     /**
      * @see GraphAgentRequest.customToolAccess
+     * @see AgentGraphRequest.customTools
      */
-    val customToolAccess: Set<String>,
+    val customTools: Map<String, GraphAgentTool>,
 
     /**
      * @see GraphAgentRequest.plugins

@@ -13,11 +13,12 @@ import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
 const val SIGNATURE_ALGORITHM = "HmacSHA256"
+const val CORAL_SIGNATURE_HEADER = "X-Coral-Signature"
 
 inline fun <reified T> HttpRequestBuilder.addJsonBodyWithSignature(
     secret: String,
     body: T,
-    header: String = "X-Signature",
+    header: String = CORAL_SIGNATURE_HEADER,
 ) {
     val json = apiJsonConfig.encodeToString(body)
 
@@ -34,7 +35,7 @@ inline fun <reified T> HttpRequestBuilder.addJsonBodyWithSignature(
 
 suspend inline fun <reified T> RoutingContext.signatureVerifiedBody(
     secret: String,
-    header: String = "X-Signature"
+    header: String = CORAL_SIGNATURE_HEADER
 ): T {
     val json = call.receiveText()
     val mac = Mac.getInstance(SIGNATURE_ALGORITHM)

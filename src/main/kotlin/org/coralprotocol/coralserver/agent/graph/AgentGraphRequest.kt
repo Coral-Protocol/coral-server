@@ -5,7 +5,6 @@ import io.github.smiley4.schemakenerator.core.annotations.Optional
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
-import org.coralprotocol.coralserver.session.CustomTool
 
 @Serializable
 class AgentGraphRequest(
@@ -18,7 +17,7 @@ class AgentGraphRequest(
 
     @Description("A map of custom tools to provide to the agents in this graph")
     @Optional
-    val customTools: Map<String, CustomTool> = mapOf(),
+    val customTools: Map<String, GraphAgentTool> = mapOf(),
 ) {
     /**
      * Converts this request into an [AgentGraph] using the provided [AgentRegistry].  Most of the work done by this
@@ -53,7 +52,7 @@ class AgentGraphRequest(
 
         return AgentGraph(
             agents = agents.associate {
-                it.name to it.toGraphAgent(registry)
+                it.name to it.toGraphAgent(registry, customTools = customTools)
             },
             customTools = customTools,
             groups = groups

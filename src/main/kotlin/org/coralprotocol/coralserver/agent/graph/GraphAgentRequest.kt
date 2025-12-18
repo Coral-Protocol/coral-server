@@ -58,7 +58,11 @@ data class GraphAgentRequest(
      *
      * @throws IllegalArgumentException if the agent registry cannot be resolved.
      */
-    suspend fun toGraphAgent(registry: AgentRegistry, isRemote: Boolean = false): GraphAgent {
+    suspend fun toGraphAgent(
+        registry: AgentRegistry,
+        isRemote: Boolean = false,
+        customTools: Map<String, GraphAgentTool> = mapOf()
+    ): GraphAgent {
         val restrictedRegistryAgent = registry.resolveAgent(id)
         restrictedRegistryAgent.restrictions.forEach { it.requireNotRestricted(this) }
 
@@ -82,8 +86,7 @@ data class GraphAgentRequest(
         allOptions.forEach { (optionName, optionValue) ->
             try {
                 optionValue.requireValue()
-            }
-            catch (e: AgentOptionValidationException) {
+            } catch (e: AgentOptionValidationException) {
                 throw AgentRequestException("Value given for option \"$optionName\" is invalid: ${e.message}")
             }
         }
@@ -108,8 +111,7 @@ data class GraphAgentRequest(
                     registryAgent.options[it.key]!!.withValue(it.value)
                 }
                 ?: throw AgentRequestException("Runtime $runtime is not exported by agent $id")
-        }
-        else {
+        } else {
             mapOf()
         }
 
@@ -125,7 +127,7 @@ data class GraphAgentRequest(
             options = allOptions,
             systemPrompt = systemPrompt,
             blocking = blocking,
-            customToolAccess = customToolAccess,
+            customTools = customTools.filterKeys { customToolAccess.contains(it) },
             plugins = plugins,
             provider = provider,
             x402Budgets = x402Budgets,

@@ -10,18 +10,21 @@ import io.kotest.matchers.collections.shouldHaveSingleElement
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.client.call.*
 import io.ktor.client.plugins.resources.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
+import io.modelcontextprotocol.kotlin.sdk.Tool
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
+import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.debug.SeedDebugAgent
-import org.coralprotocol.coralserver.agent.graph.AgentGraphRequest
-import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
-import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
+import org.coralprotocol.coralserver.agent.debug.ToolDebugAgent
+import org.coralprotocol.coralserver.agent.graph.*
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
@@ -32,10 +35,12 @@ import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.routes.api.v1.BasicNamespace
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.server.RouteException
+import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.models.*
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
 import org.coralprotocol.coralserver.session.state.SessionState
 import org.coralprotocol.coralserver.util.signatureVerifiedBody
+import java.util.*
 import kotlin.time.Duration.Companion.seconds
 
 class SessionApiTest : FunSpec({
@@ -325,7 +330,7 @@ class SessionApiTest : FunSpec({
         }
     }
 
-    test("testSessionWebhook") {
+    test("testSessionWebhook").config(timeout = 30.seconds) {
         val completableDeferred = CompletableDeferred<SessionEndReport?>()
 
         sessionTest(registryBuilder, applicationBuilder = {
@@ -356,6 +361,95 @@ class SessionApiTest : FunSpec({
             report.agentStats.shouldHaveSingleElement {
                 it.name == agentName
             }
+        }
+    }
+
+    test("testCustomTools") {
+        val toolUrl = "customTool"
+        val toolName = "test"
+
+        @Serializable
+        data class ToolPayload(
+            val a: String = UUID.randomUUID().toString(),
+            val b: String = UUID.randomUUID().toString(),
+            val c: String = UUID.randomUUID().toString(),
+        )
+
+        val toolPayload = ToolPayload()
+        val deferredPayload = CompletableDeferred<Any>()
+
+        sessionTest(
+            registryBuilder = {
+                addLocalAgents(
+                    listOf(
+                        ToolDebugAgent(it.client).generate(),
+                    ), "debug agents"
+                )
+            },
+            applicationBuilder = {
+                routingRoot.post(toolUrl) {
+                    try {
+                        deferredPayload.complete(
+                            signatureVerifiedBody<ToolPayload>(it.config.networkConfig.customToolSecret).shouldBeEqual(
+                                toolPayload
+                            )
+                        )
+                        call.respond(HttpStatusCode.OK, "hello world")
+                    } catch (e: Exception) {
+                        deferredPayload.complete(e)
+                    }
+                }
+            }) {
+
+
+            ktor.client.post(Sessions.WithNamespace(namespace = "test namespace")) {
+                withAuthToken()
+                contentType(ContentType.Application.Json)
+                setBody(
+                    SessionRequest(
+                        agentGraphRequest = AgentGraphRequest(
+                            agents = listOf(
+                                GraphAgentRequest(
+                                    id = ToolDebugAgent.identifier,
+                                    name = "tool",
+                                    description = "",
+                                    provider = GraphAgentProvider.Local(RuntimeId.FUNCTION),
+                                    options = mapOf(
+                                        "TOOL_NAME" to AgentOptionValue.String(toolName),
+                                        "TOOL_INPUT" to AgentOptionValue.String(
+                                            apiJsonConfig.encodeToString(toolPayload)
+                                        ),
+                                    ),
+                                    customToolAccess = setOf(toolName)
+                                )
+                            ),
+                            groups = setOf(setOf("tool")),
+                            customTools = mapOf(
+                                toolName to GraphAgentTool(
+                                    transport = GraphAgentToolTransport.Http(
+                                        url = toolUrl,
+                                    ),
+                                    schema = Tool(
+                                        name = toolName,
+                                        description = "A tool in a unit test",
+                                        inputSchema = Tool.Input(), // no verification is done on this
+                                        outputSchema = null,
+                                        annotations = null,
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            }
+
+            sessionManager.waitAllSessions()
+
+            val response = deferredPayload.await()
+            if (response is Exception)
+                throw response
+
+            response.shouldBeInstanceOf<ToolPayload>().shouldBeEqual(toolPayload)
         }
     }
 })

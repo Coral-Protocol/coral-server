@@ -1,7 +1,6 @@
 package org.coralprotocol.coralserver.agent.graph
 
 import org.coralprotocol.coralserver.agent.payment.AgentGraphPayment
-import org.coralprotocol.coralserver.session.CustomTool
 
 /**
  * UniqueAgentName is the name given for an agent in [GraphAgentRequest.name].  Note that the [GraphAgentRequest]
@@ -21,7 +20,7 @@ data class AgentGraph(
     /**
      * @see AgentGraphRequest.customTools
      */
-    val customTools: Map<UniqueAgentName, CustomTool>,
+    val customTools: Map<UniqueAgentName, GraphAgentTool>,
 
     /**
      * @see AgentGraphRequest.groups

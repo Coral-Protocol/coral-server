@@ -126,7 +126,7 @@ class SessionTestScope(
             options = options,
             systemPrompt = null,
             blocking = blocking,
-            customToolAccess = setOf(),
+            customTools = mapOf(),
             plugins = plugins,
             provider = provider,
             x402Budgets = listOf(),
