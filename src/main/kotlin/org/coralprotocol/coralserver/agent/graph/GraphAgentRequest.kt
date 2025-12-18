@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver.agent.graph
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
+import io.github.smiley4.schemakenerator.core.annotations.Optional
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
 import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
@@ -23,9 +24,10 @@ data class GraphAgentRequest(
     val name: String,
 
     @Description("An optional override for the description of this agent")
-    val description: String?,
+    val description: String? = null,
 
     @Description("The arguments to pass to the agent")
+    @Optional
     val options: Map<String, AgentOptionValue> = mapOf(),
 
     @Description("The system prompt/developer text/preamble passed to the agent")
@@ -35,15 +37,18 @@ data class GraphAgentRequest(
     val blocking: Boolean? = null,
 
     @Description("A list of custom tools that this agent can access.  The custom tools must be defined in the parent AgentGraphRequest object")
+    @Optional
     val customToolAccess: Set<String> = setOf(),
 
     @Description("Plugins that should be installed on this agent.  See GraphAgentPlugin for more information")
+    @Optional
     val plugins: Set<GraphAgentPlugin> = setOf(),
 
     @Description("The server that should provide this agent and the runtime to use")
     val provider: GraphAgentProvider,
 
     @Description("An optional list of resources and an accompanied budget that this agent may spend on services that accept x402 payments")
+    @Optional
     val x402Budgets: List<X402BudgetedResource> = listOf(),
 ) {
     /**

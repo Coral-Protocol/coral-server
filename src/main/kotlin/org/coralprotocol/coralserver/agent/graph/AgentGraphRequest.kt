@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver.agent.graph
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
+import io.github.smiley4.schemakenerator.core.annotations.Optional
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
@@ -12,9 +13,11 @@ class AgentGraphRequest(
     val agents: List<GraphAgentRequest>,
 
     @Description("A set, containing sets that define the agent groups by name")
-    val groups: Set<Set<String>>,
+    @Optional
+    val groups: Set<Set<String>> = setOf(),
 
     @Description("A map of custom tools to provide to the agents in this graph")
+    @Optional
     val customTools: Map<String, CustomTool> = mapOf(),
 ) {
     /**

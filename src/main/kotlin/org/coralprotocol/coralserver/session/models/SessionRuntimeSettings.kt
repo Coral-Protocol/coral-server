@@ -3,6 +3,7 @@
 package org.coralprotocol.coralserver.session.models
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
+import io.github.smiley4.schemakenerator.core.annotations.Optional
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -47,8 +48,10 @@ data class SessionRuntimeSettings(
     val ttl: Long? = null,
 
     @Description("Persistence mode for the session. Default is \"none\" meaning the session will be deleted as soon as it exits")
+    @Optional
     val persistenceMode: SessionPersistenceMode = SessionPersistenceMode.None,
 
     @Description("Webhooks executed for this session")
+    @Optional
     val webhooks: SessionWebhooks = SessionWebhooks()
 )
