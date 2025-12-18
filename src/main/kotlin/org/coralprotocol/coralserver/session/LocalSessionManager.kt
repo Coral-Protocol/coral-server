@@ -15,6 +15,7 @@ import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
+import org.coralprotocol.coralserver.session.models.SessionPersistenceMode
 import org.coralprotocol.coralserver.session.models.SessionRuntimeSettings
 import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.models.SessionInfo
@@ -228,13 +229,15 @@ class LocalSessionManager(
             agentSecretLookup.remove(agent.secret)
         }
 
-        // If the session had a TTL and wanted to stay alive for that long, delay the deletion of the session (and
-        // possibly namespace) until after the TTL would have exited.  Note that it is intentional that the agent
-        // secrets are released before this delay
-        if (settings.ttl != null && settings.holdForTtl) {
-            val remainingTime = ((session.timestamp + settings.ttl) - System.currentTimeMillis()).milliseconds;
-            logger.info { "holding session ${session.id} in memory for $remainingTime milliseconds" }
-            delay(remainingTime)
+        val delay = when (val mode = settings.persistenceMode) {
+            is SessionPersistenceMode.HoldAfterExit -> mode.duration
+            is SessionPersistenceMode.MinimumTime -> (session.timestamp + mode.time) - System.currentTimeMillis()
+            SessionPersistenceMode.None -> 0
+        }.milliseconds
+
+        if (delay > 0.milliseconds) {
+            logger.info { "holding session ${session.id} in memory for $delay" }
+            delay(delay)
         }
 
         namespace.sessions.remove(session.id)

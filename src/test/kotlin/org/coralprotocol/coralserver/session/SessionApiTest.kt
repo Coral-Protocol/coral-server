@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver.session
 
 import io.kotest.assertions.ktor.client.shouldHaveStatus
+import io.kotest.assertions.nondeterministic.continually
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.inspectors.forAll
@@ -26,6 +27,7 @@ import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.routes.api.v1.BasicNamespace
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.session.models.SessionIdentifier
+import org.coralprotocol.coralserver.session.models.SessionPersistenceMode
 import org.coralprotocol.coralserver.session.models.SessionRequest
 import org.coralprotocol.coralserver.session.models.SessionRuntimeSettings
 import org.coralprotocol.coralserver.session.state.SessionState
@@ -64,34 +66,44 @@ class SessionApiTest : FunSpec({
         )
     }
 
+    suspend fun SessionTestScope.sessionWithDelay(
+        delay: Long,
+        settings: SessionRuntimeSettings = SessionRuntimeSettings()
+    ): SessionIdentifier {
+        val testNamespace = Sessions.WithNamespace(namespace = "test namespace")
+        val response = ktor.client.post(testNamespace) {
+            withAuthToken()
+            contentType(ContentType.Application.Json)
+            setBody(
+                SessionRequest(
+                    agentGraphRequest = AgentGraphRequest(
+                        agents = listOf(
+                            GraphAgentRequest(
+                                id = agentIdentifier,
+                                name = "delay",
+                                description = "",
+                                provider = GraphAgentProvider.Local(RuntimeId.FUNCTION),
+                                options = mapOf("DELAY" to AgentOptionValue.Long(delay))
+                            )
+                        ),
+                        groups = setOf(setOf("delay")),
+                    ),
+                    sessionRuntimeSettings = settings
+                )
+            )
+        }
+
+        response.shouldHaveStatus(HttpStatusCode.OK)
+        return response.body<SessionIdentifier>()
+    }
+
     test("testCreateSession") {
         sessionTest(registryBuilder) {
             val sessionsRes = Sessions()
             val testNamespace = Sessions.WithNamespace(namespace = "test namespace")
 
             repeat(10) {
-                val response = ktor.client.post(testNamespace) {
-                    withAuthToken()
-                    contentType(ContentType.Application.Json)
-                    setBody(
-                        SessionRequest(
-                            agentGraphRequest = AgentGraphRequest(
-                                agents = listOf(
-                                    GraphAgentRequest(
-                                        id = agentIdentifier,
-                                        name = "delay",
-                                        description = "",
-                                        provider = GraphAgentProvider.Local(RuntimeId.FUNCTION),
-                                        options = mapOf("DELAY" to AgentOptionValue.Long(100))
-                                    )
-                                ),
-                                groups = setOf(setOf("delay")),
-                            )
-                        )
-                    )
-                }
-
-                response.shouldHaveStatus(HttpStatusCode.OK)
+                sessionWithDelay(100)
             }
 
             var namespaces: List<BasicNamespace> = shouldNotThrowAny {
@@ -191,8 +203,7 @@ class SessionApiTest : FunSpec({
                             groups = setOf(setOf("seed")),
                         ),
                         sessionRuntimeSettings = SessionRuntimeSettings(
-                            ttl = 1000,
-                            holdForTtl = true // required so that SessionState can be retrieved after the session exits
+                            persistenceMode = SessionPersistenceMode.HoldAfterExit(1000)
                         )
                     )
                 )
@@ -258,6 +269,54 @@ class SessionApiTest : FunSpec({
             }
 
             sessionManager.waitAllSessions()
+        }
+    }
+
+    test("testSessionPersistence") {
+        sessionTest(registryBuilder) {
+            var id = sessionWithDelay(
+                550,
+                SessionRuntimeSettings(persistenceMode = SessionPersistenceMode.HoldAfterExit(550))
+            )
+            continually(1.seconds) {
+                ktor.client.get(
+                    Sessions.WithNamespace.Session(
+                        Sessions.WithNamespace(namespace = id.namespace),
+                        id.sessionId
+                    )
+                ) {
+                    withAuthToken()
+                }.shouldHaveStatus(HttpStatusCode.OK)
+            }
+
+            id = sessionWithDelay(
+                100,
+                SessionRuntimeSettings(persistenceMode = SessionPersistenceMode.MinimumTime(1100))
+            )
+            continually(1.seconds) {
+                ktor.client.get(
+                    Sessions.WithNamespace.Session(
+                        Sessions.WithNamespace(namespace = id.namespace),
+                        id.sessionId
+                    )
+                ) {
+                    withAuthToken()
+                }.shouldHaveStatus(HttpStatusCode.OK)
+            }
+
+            id = sessionWithDelay(
+                50,
+                SessionRuntimeSettings(persistenceMode = SessionPersistenceMode.None)
+            )
+            delay(100)
+            ktor.client.get(
+                Sessions.WithNamespace.Session(
+                    Sessions.WithNamespace(namespace = id.namespace),
+                    id.sessionId
+                )
+            ) {
+                withAuthToken()
+            }.shouldHaveStatus(HttpStatusCode.NotFound)
         }
     }
 })
