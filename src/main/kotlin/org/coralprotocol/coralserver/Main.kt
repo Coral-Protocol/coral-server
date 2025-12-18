@@ -11,6 +11,7 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.runBlocking
 import org.coralprotocol.coralserver.agent.debug.EchoDebugAgent
 import org.coralprotocol.coralserver.agent.debug.SeedDebugAgent
+import org.coralprotocol.coralserver.agent.debug.ToolDebugAgent
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.config.BlockchainServiceProvider
 import org.coralprotocol.coralserver.config.Config
@@ -62,7 +63,8 @@ fun main(args: Array<String>) {
                     addLocalAgents(
                         listOf(
                             EchoDebugAgent(client).generate(),
-                            SeedDebugAgent(client).generate()
+                            SeedDebugAgent(client).generate(),
+                            ToolDebugAgent(client).generate(),
                         ),
                         "debug agents"
                     )
