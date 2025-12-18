@@ -3,15 +3,20 @@ package org.coralprotocol.coralserver.session
 import io.kotest.assertions.ktor.client.shouldHaveStatus
 import io.kotest.assertions.nondeterministic.continually
 import io.kotest.assertions.throwables.shouldNotThrowAny
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.inspectors.forAll
+import io.kotest.matchers.collections.shouldHaveSingleElement
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.ktor.client.call.*
 import io.ktor.client.plugins.resources.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import io.ktor.server.routing.*
 import io.ktor.server.testing.*
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
 import org.coralprotocol.coralserver.agent.debug.SeedDebugAgent
 import org.coralprotocol.coralserver.agent.graph.AgentGraphRequest
@@ -26,11 +31,11 @@ import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.routes.api.v1.BasicNamespace
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
-import org.coralprotocol.coralserver.session.models.SessionIdentifier
-import org.coralprotocol.coralserver.session.models.SessionPersistenceMode
-import org.coralprotocol.coralserver.session.models.SessionRequest
-import org.coralprotocol.coralserver.session.models.SessionRuntimeSettings
+import org.coralprotocol.coralserver.server.RouteException
+import org.coralprotocol.coralserver.session.models.*
+import org.coralprotocol.coralserver.session.reporting.SessionEndReport
 import org.coralprotocol.coralserver.session.state.SessionState
+import org.coralprotocol.coralserver.util.signatureVerifiedBody
 import kotlin.time.Duration.Companion.seconds
 
 class SessionApiTest : FunSpec({
@@ -317,6 +322,40 @@ class SessionApiTest : FunSpec({
             ) {
                 withAuthToken()
             }.shouldHaveStatus(HttpStatusCode.NotFound)
+        }
+    }
+
+    test("testSessionWebhook") {
+        val completableDeferred = CompletableDeferred<SessionEndReport?>()
+
+        sessionTest(registryBuilder, applicationBuilder = {
+            routingRoot.post("webhook") {
+                try {
+                    completableDeferred.complete(signatureVerifiedBody(it.config.networkConfig.webhookSecret))
+                    throw RouteException(HttpStatusCode.Unauthorized)
+                } finally {
+                    completableDeferred.complete(null)
+                }
+            }
+        }) {
+            val id = sessionWithDelay(
+                100,
+                SessionRuntimeSettings(
+                    webhooks = SessionWebhooks(
+                        sessionEnd = SessionEndWebhook("webhook")
+                    )
+                )
+            )
+
+            val report = withClue("invalid signature") {
+                completableDeferred.await().shouldNotBeNull()
+            }
+
+            report.sessionId.shouldBeEqual(id.sessionId)
+            report.namespace.shouldBeEqual(id.namespace)
+            report.agentStats.shouldHaveSingleElement {
+                it.name == agentName
+            }
         }
     }
 })

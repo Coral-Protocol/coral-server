@@ -3,6 +3,7 @@
 package org.coralprotocol.coralserver.server
 
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.client.HttpClient
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
@@ -42,7 +43,14 @@ class CoralServer(
     val launchMode: LaunchMode = LaunchMode.DEDICATED
 ) {
     val jupiterService = JupiterService()
-    val localSessionManager = LocalSessionManager(blockchainService, ApplicationRuntimeContext(config), jupiterService)
+
+    val localSessionManager = LocalSessionManager(
+        blockchainService = blockchainService,
+        applicationRuntimeContext = ApplicationRuntimeContext(config),
+        jupiterService = jupiterService,
+        config = config,
+        httpClient = HttpClient(),
+    )
 
     val aggregatedPaymentClaimManager = if (blockchainService != null) {
         AggregatedPaymentClaimManager(blockchainService, jupiterService)

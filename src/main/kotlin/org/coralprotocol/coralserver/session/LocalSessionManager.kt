@@ -1,7 +1,8 @@
 package org.coralprotocol.coralserver.session
 
-//import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import io.github.oshai.kotlinlogging.KotlinLogging
+import io.ktor.client.*
+import io.ktor.client.request.*
 import kotlinx.coroutines.*
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
@@ -12,11 +13,14 @@ import org.coralprotocol.coralserver.agent.payment.toMicroCoral
 import org.coralprotocol.coralserver.agent.payment.toUsd
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
+import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
 import org.coralprotocol.coralserver.session.models.SessionPersistenceMode
 import org.coralprotocol.coralserver.session.models.SessionRuntimeSettings
+import org.coralprotocol.coralserver.session.reporting.SessionEndReport
+import org.coralprotocol.coralserver.util.addJsonBodyWithSignature
 import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.models.SessionInfo
 import java.util.*
@@ -44,9 +48,11 @@ class LocalSessionManager(
     // Default value will not provide a Docker runtime
     val applicationRuntimeContext: ApplicationRuntimeContext = ApplicationRuntimeContext(),
     val jupiterService: JupiterService,
+    val config: Config,
     val mcpToolManager: McpToolManager = McpToolManager(),
+    val httpClient: HttpClient = HttpClient(),
     val managementScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
-    val supervisedSessions: Boolean = true
+    val supervisedSessions: Boolean = true,
 ) {
 
     /**
@@ -227,6 +233,22 @@ class LocalSessionManager(
         // Secrets must be relinquished so that no more references to this session exist
         session.agents.forEach { (name, agent) ->
             agentSecretLookup.remove(agent.secret)
+        }
+
+        // The session end webhook should not block any of the other session ending logic
+        if (settings.webhooks.sessionEnd != null) {
+            managementScope.launch {
+                httpClient.post(settings.webhooks.sessionEnd.url) {
+                    addJsonBodyWithSignature(
+                        config.networkConfig.webhookSecret, SessionEndReport(
+                            session.timestamp, System.currentTimeMillis(),
+                            namespace = session.namespace.name,
+                            sessionId = session.id,
+                            agentStats = session.agents.values.flatMap { it.usageReports },
+                        )
+                    )
+                }
+            }
         }
 
         val delay = when (val mode = settings.persistenceMode) {

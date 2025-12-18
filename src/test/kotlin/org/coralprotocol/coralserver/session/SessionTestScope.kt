@@ -14,6 +14,7 @@ import io.ktor.client.plugins.websocket.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.application.*
 import io.ktor.server.testing.*
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import kotlinx.coroutines.*
@@ -72,16 +73,18 @@ class SessionTestScope(
     val applicationRuntimeContext = ApplicationRuntimeContext(config)
     val mcpToolManager = McpToolManager()
     val jupiterService = JupiterService()
+
     val sessionManager = LocalSessionManager(
         blockchainService = null,
-        applicationRuntimeContext = applicationRuntimeContext,
         jupiterService = jupiterService,
+        config = config,
         mcpToolManager = mcpToolManager,
+        httpClient = ktor.client,
         managementScope = testScope,
 
         // if this is true, exceptions thrown (including assertions) in an agent's runtime will not exit a test
         // it also requires that session's coroutine scopes are canceled
-        supervisedSessions = false
+        supervisedSessions = false,
     )
 
     fun registryAgent(
@@ -177,6 +180,7 @@ class SessionTestScope(
 
 suspend fun TestScope.sessionTest(
     registryBuilder: AgentRegistrySourceBuilder.(env: ApplicationTestBuilder) -> Unit = {},
+    applicationBuilder: Application.(env: SessionTestScope) -> Unit = {},
     test: suspend SessionTestScope.() -> Unit
 ) {
     runTestApplication(coroutineContext) {
@@ -202,6 +206,7 @@ suspend fun TestScope.sessionTest(
                 x402Service = null,
                 blockchainService = null
             )
+            applicationBuilder(sessionTestScope)
         }
 
         sessionTestScope.test()

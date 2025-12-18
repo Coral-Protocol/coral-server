@@ -15,10 +15,11 @@ import org.coralprotocol.coralserver.agent.registry.indexer.RegistryAgentIndexer
 import org.coralprotocol.coralserver.util.isWindows
 import java.io.File
 import java.nio.file.Path
+import java.util.*
 
-private val logger = KotlinLogging.logger {  }
+private val logger = KotlinLogging.logger { }
 
-const val CORAL_MAINNET_MINT =  "CoRAitPvr9seu5F9Hk39vbjqA1o1XuoryHjSk1Z1q2mo"
+const val CORAL_MAINNET_MINT = "CoRAitPvr9seu5F9Hk39vbjqA1o1XuoryHjSk1Z1q2mo"
 const val CORAL_DEV_NET_MINT = "FBrR4v7NSoEdEE9sdRN1aE5yDeop2cseaBbfPVbJmPhf"
 
 private fun defaultDockerSocket(): String {
@@ -35,8 +36,7 @@ private fun defaultDockerSocket(): String {
         // Required if using Docker for Windows.  Note that this also requires a transport client that supports named
         // pipes, e.g., httpclient5
         return "npipe:////./pipe/docker_engine"
-    }
-    else {
+    } else {
         // Check whether colima is installed and use its socket if available
         val homeDir = System.getProperty("user.home")
         val colimaSocket = "$homeDir/.colima/default/docker.sock"
@@ -130,6 +130,19 @@ data class NetworkConfig(
      */
     @SerialName("allow_any_host")
     val allowAnyHost: Boolean = false,
+
+    /**
+     * The secret used to encrypt webhook callouts
+     */
+    @SerialName("webhook_secret")
+    val webhookSecret: String = UUID.randomUUID().toString(),
+
+
+    /**
+     * The secret used to data sent via agent's custom tools
+     */
+    @SerialName("custom_tool_secret")
+    val customToolSecret: String = UUID.randomUUID().toString()
 )
 
 @Serializable
@@ -199,7 +212,8 @@ data class RegistryConfig(
      * Default Coral indexer.  For now this will be the temporary Git indexer.
      */
     @Transient
-    private val coralIndexer = NamedRegistryAgentIndexer("coral", GitRegistryAgentIndexer("https://github.com/Coral-Protocol/marketplace", 0))
+    private val coralIndexer =
+        NamedRegistryAgentIndexer("coral", GitRegistryAgentIndexer("https://github.com/Coral-Protocol/marketplace", 0))
 
     /**
      * A list of indexers including the built-in Coral indexer.
@@ -248,13 +262,18 @@ data class RegistryConfig(
             "coral" -> {
                 coralIndexer
             }
+
             null -> {
                 configIndexers.map { (name, indexer) ->
                     NamedRegistryAgentIndexer(name, indexer)
                 }.maxByOrNull { it.indexer.priority } ?: coralIndexer
             }
+
             else -> {
-                NamedRegistryAgentIndexer(name, configIndexers[name] ?: throw RegistryException("No indexer found with name $name"))
+                NamedRegistryAgentIndexer(
+                    name,
+                    configIndexers[name] ?: throw RegistryException("No indexer found with name $name")
+                )
             }
         }
     }

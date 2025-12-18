@@ -26,6 +26,7 @@ import org.coralprotocol.coralserver.mcp.McpInstructionSnippet
 import org.coralprotocol.coralserver.mcp.McpResourceName
 import org.coralprotocol.coralserver.mcp.McpTool
 import org.coralprotocol.coralserver.mcp.McpToolManager
+import org.coralprotocol.coralserver.session.reporting.SessionAgentUsageReport
 import org.coralprotocol.coralserver.session.state.SessionAgentState
 import org.coralprotocol.coralserver.util.ConcurrentMutableList
 import org.coralprotocol.coralserver.x402.X402BudgetedResource
@@ -131,6 +132,12 @@ class SessionAgent(
      * then presented to the client using the Instruction resource, see [handleInstructionResource]
      */
     private val requiredInstructionSnippets = mutableSetOf<McpInstructionSnippet>()
+
+    /**
+     * Accessor for usage reports managed by the execution context
+     */
+    val usageReports
+        get() = executionContext.usageReports.toList()
 
     init {
         addMcpTool(mcpToolManager.createThreadTool)

@@ -33,10 +33,22 @@ sealed interface SessionPersistenceMode {
 }
 
 @Serializable
+@Description("The webhook that is called when this session ends.  The model sent is a SessionEndState")
+data class SessionEndWebhook(val url: String)
+
+@Serializable
+data class SessionWebhooks(
+    val sessionEnd: SessionEndWebhook? = null
+)
+
+@Serializable
 data class SessionRuntimeSettings(
     @Description("If specified, the session will never live longer than this many milliseconds.")
     val ttl: Long? = null,
 
     @Description("Persistence mode for the session. Default is \"none\" meaning the session will be deleted as soon as it exits")
-    val persistenceMode: SessionPersistenceMode = SessionPersistenceMode.None
+    val persistenceMode: SessionPersistenceMode = SessionPersistenceMode.None,
+
+    @Description("Webhooks executed for this session")
+    val webhooks: SessionWebhooks = SessionWebhooks()
 )

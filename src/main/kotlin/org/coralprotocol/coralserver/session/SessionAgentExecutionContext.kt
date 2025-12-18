@@ -2,11 +2,15 @@ package org.coralprotocol.coralserver.session
 
 import io.ktor.utils.io.*
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
-import org.coralprotocol.coralserver.agent.registry.option.*
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
+import org.coralprotocol.coralserver.agent.registry.option.asEnvVarValue
+import org.coralprotocol.coralserver.agent.registry.option.asFileSystemValue
+import org.coralprotocol.coralserver.agent.registry.option.option
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.events.SessionEvent
+import org.coralprotocol.coralserver.session.reporting.SessionAgentUsageReport
 import java.io.File
 
 class SessionAgentExecutionContext(
@@ -27,6 +31,14 @@ class SessionAgentExecutionContext(
     val path = registryAgent.path
 
     val disposableResources = mutableListOf<SessionAgentDisposableResource>()
+
+    var lastLaunchTime: Long? = null
+
+    /**
+     * A list of usage reports for this agent.  When a session ends, all usage reports for each agent will be sent to
+     * webhooks, if configured.
+     */
+    val usageReports = mutableListOf<SessionAgentUsageReport>()
 
     /**
      * Builds the required environment variables for the execution of this agent.
@@ -50,8 +62,7 @@ class SessionAgentExecutionContext(
 
             val filePathSeparator = if (isContainer) {
                 applicationRuntimeContext.config.dockerConfig.containerPathSeparator
-            }
-            else {
+            } else {
                 File.pathSeparatorChar
             }.toString()
 
@@ -61,6 +72,7 @@ class SessionAgentExecutionContext(
                     AgentOptionTransport.ENVIRONMENT_VARIABLE -> {
                         this[name] = value.asEnvVarValue()
                     }
+
                     AgentOptionTransport.FILE_SYSTEM -> {
                         val resources = value.asFileSystemValue(applicationRuntimeContext.config.dockerConfig)
                         disposableResources.addAll(resources)
@@ -68,8 +80,7 @@ class SessionAgentExecutionContext(
                         this[name] = resources.joinToString(filePathSeparator) {
                             if (isContainer) {
                                 it.mountPath
-                            }
-                            else {
+                            } else {
                                 it.file.toString()
                             }
                         }
@@ -80,7 +91,8 @@ class SessionAgentExecutionContext(
             }
 
             // Coral environment variables
-            this["CORAL_CONNECTION_URL"] = applicationRuntimeContext.getMcpUrl(this@SessionAgentExecutionContext, addressConsumer).toString()
+            this["CORAL_CONNECTION_URL"] =
+                applicationRuntimeContext.getMcpUrl(this@SessionAgentExecutionContext, addressConsumer).toString()
             this["CORAL_AGENT_ID"] = agent.name
             this["CORAL_AGENT_SECRET"] = agent.secret
             this["CORAL_SESSION_ID"] = agent.session.id
@@ -110,14 +122,11 @@ class SessionAgentExecutionContext(
 
             if (provider is GraphAgentProvider.Remote)
                 launchRemote(provider)
-        }
-        catch (_: CancellationException) {
+        } catch (_: CancellationException) {
             agent.logger.info("Agent ${agent.name} cancelled")
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             agent.logger.error("Exception thrown when launching agent ${agent.name}", e)
-        }
-        finally {
+        } finally {
             handleRuntimeStopped()
         }
 
@@ -148,6 +157,7 @@ class SessionAgentExecutionContext(
      * Called immediately before the runtime starts.
      */
     private suspend fun handleRuntimeStarted() {
+        lastLaunchTime = System.currentTimeMillis()
         session.events.emit((SessionEvent.RuntimeStarted(name)))
     }
 
@@ -155,6 +165,18 @@ class SessionAgentExecutionContext(
      * Called immediately after the runtime stops, for any reason.
      */
     private suspend fun handleRuntimeStopped() {
+        val startTime = lastLaunchTime
+        if (startTime != null) {
+            usageReports.add(
+                SessionAgentUsageReport(
+                    name,
+                    registryAgent.identifier,
+                    startTime,
+                    System.currentTimeMillis()
+                )
+            )
+        }
+
         session.events.emit(SessionEvent.RuntimeStopped(name))
         disposableResources.forEach { it.dispose() }
         disposableResources.clear()
