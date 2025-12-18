@@ -10,6 +10,7 @@ class ScopedFlow<T>(val coroutineScope: CoroutineScope = CoroutineScope(Job())) 
     )
 
     val flow = internalFlow.asSharedFlow()
+    val subscriptionCount get() = internalFlow.subscriptionCount
 
     fun emit(event: T) {
         coroutineScope.launch {

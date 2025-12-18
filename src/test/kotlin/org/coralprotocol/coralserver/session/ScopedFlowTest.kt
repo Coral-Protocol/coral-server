@@ -3,10 +3,13 @@ package org.coralprotocol.coralserver.session
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.equals.shouldBeEqual
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.yield
 import org.coralprotocol.coralserver.util.ScopedFlow
 import kotlin.time.Duration.Companion.seconds
 
@@ -16,31 +19,31 @@ class ScopedFlowTest : FunSpec({
         val maxMessages = 100
 
         val scopedFlow = ScopedFlow<Int>()
-        val listenerCount = MutableStateFlow(0)
         val totalCollected = MutableStateFlow(0)
 
         repeat(maxListeners) { _ ->
             launch {
-                listenerCount.update { it + 1 }
+                var collectCount = MutableStateFlow(0)
 
-                var collectCount = 0
                 scopedFlow.collectUntilCanceled { _ ->
-                    collectCount++
+                    collectCount.update { it + 1 }
                     totalCollected.update { it + 1 }
                 }
-                collectCount.shouldBeEqual(maxMessages)
+
+                collectCount.value.shouldBeEqual(maxMessages)
             }
         }
 
-        listenerCount.first { it == maxListeners }
+        scopedFlow.subscriptionCount.first { it == maxListeners }
 
         repeat(maxMessages) {
-            scopedFlow.emit(1)
+            scopedFlow.emit(it)
         }
 
         totalCollected.first {
             it == maxListeners * maxMessages
         }
+
         scopedFlow.close()
     }
 

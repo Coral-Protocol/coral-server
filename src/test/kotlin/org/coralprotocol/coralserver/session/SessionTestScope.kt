@@ -76,6 +76,7 @@ class SessionTestScope(
 
     val sessionManager = LocalSessionManager(
         blockchainService = null,
+        applicationRuntimeContext = applicationRuntimeContext,
         jupiterService = jupiterService,
         config = config,
         mcpToolManager = mcpToolManager,
