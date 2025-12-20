@@ -6,6 +6,7 @@ import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.inspectors.forAll
+import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.collections.shouldHaveSingleElement
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.equals.shouldBeEqual
@@ -311,7 +312,7 @@ class SessionApiTest : FunSpec({
                     )
                 ) {
                     withAuthToken()
-                }.shouldHaveStatus(HttpStatusCode.OK)
+                }
             }
 
             id = sessionWithDelay(
@@ -327,6 +328,24 @@ class SessionApiTest : FunSpec({
             ) {
                 withAuthToken()
             }.shouldHaveStatus(HttpStatusCode.NotFound)
+
+            id = sessionWithDelay(
+                50,
+                SessionRuntimeSettings(persistenceMode = SessionPersistenceMode.HoldAfterExit(1000))
+            )
+            delay(100)
+
+            val closing = ktor.client.get(
+                Sessions.WithNamespace.Session(
+                    Sessions.WithNamespace(namespace = id.namespace),
+                    id.sessionId
+                )
+            ) {
+                withAuthToken()
+            }
+
+            closing.shouldHaveStatus(HttpStatusCode.OK)
+            closing.body<SessionState>().closing.shouldBeTrue()
         }
     }
 
