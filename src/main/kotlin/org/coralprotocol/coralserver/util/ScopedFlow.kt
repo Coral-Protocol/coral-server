@@ -11,6 +11,7 @@ class ScopedFlow<T>(val coroutineScope: CoroutineScope = CoroutineScope(Job())) 
 
     val flow = internalFlow.asSharedFlow()
     val subscriptionCount get() = internalFlow.subscriptionCount
+    private val cancelled: CompletableDeferred<Unit> = CompletableDeferred()
 
     fun emit(event: T) {
         coroutineScope.launch {
@@ -33,5 +34,13 @@ class ScopedFlow<T>(val coroutineScope: CoroutineScope = CoroutineScope(Job())) 
 
     fun close() {
         coroutineScope.cancel()
+        cancelled.complete(Unit)
+    }
+
+    suspend fun waitClosed() {
+        if (cancelled.isCompleted)
+            return
+
+        cancelled.await()
     }
 }

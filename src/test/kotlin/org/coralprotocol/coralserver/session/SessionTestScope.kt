@@ -19,6 +19,8 @@ import io.ktor.server.testing.*
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.take
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
@@ -224,55 +226,72 @@ suspend fun SessionAgent.synchronizedMessageTransaction(sendMessageFn: suspend (
         throw IllegalStateException("$name's active waiter returned message ${returnedMsg.id} instead of expected $msgId")
 }
 
-data class ExpectedSessionEvent(
+data class TestEvent<Event>(
     val description: String,
-    val predicate: (event: SessionEvent) -> Boolean
+    val predicate: (event: Event) -> Boolean,
 )
 
-suspend fun CoroutineScope.shouldPostEvents(
+suspend fun <Event, FlowType, R> CoroutineScope.shouldPostEvents(
     timeout: Duration,
-    expectedEvents: MutableList<ExpectedSessionEvent>,
-    eventFlow: Flow<SessionEvent>,
-    block: suspend () -> Unit,
-) {
+    allowUnexpectedEvents: Boolean = false,
+    events: MutableList<TestEvent<Event>> = mutableListOf(),
+    eventFlow: FlowType,
+    block: suspend (FlowType) -> R,
+): R where FlowType : Flow<Event> {
     val listening = CompletableDeferred<Unit>()
     val eventJob = launch {
         listening.complete(Unit)
 
         eventFlow.collect { event ->
-            expectedEvents.removeAll { it.predicate(event) }
+            if (!events.removeAll { it.predicate(event) } && !allowUnexpectedEvents)
+                throw AssertionError("Unexpected event: $event")
 
-            if (expectedEvents.isEmpty())
+            if (events.isEmpty())
                 cancel()
         }
     }
 
+    val retVal = CompletableDeferred<R>()
     val blockJob = launch {
         listening.await()
-        block()
+        retVal.complete(block(eventFlow))
     };
 
-    { "missing expected events: ${expectedEvents.joinToString(", ") { it.description }}" }.asClue {
+    {
+        "missing expected events: ${events.joinToString(", ") { it.description }}"
+    }.asClue {
         withTimeoutOrNull(timeout) {
             joinAll(eventJob, blockJob)
         }.shouldNotBeNull()
     }
+
+    return retVal.await()
 }
 
-suspend fun LocalSession.shouldPostEvents(
+suspend fun <R> LocalSession.shouldPostEvents(
     timeout: Duration,
-    expectedEvents: MutableList<ExpectedSessionEvent>,
-    block: suspend () -> Unit,
-) {
-    this.sessionScope.shouldPostEvents(timeout, expectedEvents, events.flow, block)
+    allowUnexpectedEvents: Boolean = false,
+    events: MutableList<TestEvent<SessionEvent>>,
+    block: suspend (SharedFlow<SessionEvent>) -> R,
+): R =
+    this.sessionScope.shouldPostEvents(timeout, allowUnexpectedEvents, events, this@shouldPostEvents.events.flow, block)
+
+suspend fun <Event, R> CoroutineScope.shouldPostEventsFromBody(
+    timeout: Duration,
+    allowUnexpectedEvents: Boolean = false,
+    events: MutableList<TestEvent<Event>>,
+    block: suspend (MutableSharedFlow<Event>) -> R,
+): R {
+    val flow = MutableSharedFlow<Event>()
+    return shouldPostEvents(timeout, allowUnexpectedEvents, events, flow, block)
 }
 
-fun Iterable<SessionEvent>.shouldHaveEvents(expectedEvents: MutableList<ExpectedSessionEvent>) {
+fun <Event> Iterable<Event>.shouldHaveEvents(events: MutableList<TestEvent<Event>>) {
     this.forEach { event ->
-        expectedEvents.removeAll { it.predicate(event) }
+        events.removeAll { it.predicate(event) }
     }
 
-    withClue("missing expected events: ${expectedEvents.joinToString(", ") { it.description }}") {
-        expectedEvents.shouldBeEmpty()
+    withClue("missing expected events: ${events.joinToString(", ") { it.description }}") {
+        events.shouldBeEmpty()
     }
 }

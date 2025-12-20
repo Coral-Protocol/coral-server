@@ -189,19 +189,19 @@ class DockerRuntimeTest : FunSpec({
             )
 
             session1.shouldPostEvents(
-                15.seconds,
-                mutableListOf(
-                    ExpectedSessionEvent("agent1 runtime started") { it is SessionEvent.RuntimeStarted },
-                    ExpectedSessionEvent("agent1 container created") { it is SessionEvent.DockerContainerCreated },
+                timeout = 15.seconds,
+                events = mutableListOf(
+                    TestEvent("agent1 runtime started") { it is SessionEvent.RuntimeStarted },
+                    TestEvent("agent1 container created") { it is SessionEvent.DockerContainerCreated },
                 ),
             ) {
                 session1.launchAgents()
             }
 
             session1.shouldPostEvents(
-                15.seconds,
-                mutableListOf(
-                    ExpectedSessionEvent("agent1 container removed") { it is SessionEvent.DockerContainerRemoved },
+                timeout = 15.seconds,
+                events = mutableListOf(
+                    TestEvent("agent1 container removed") { it is SessionEvent.DockerContainerRemoved },
                 ),
             ) {
                 session1.cancelAndJoinAgents()

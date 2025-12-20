@@ -223,7 +223,18 @@ class LocalSession(
         events.close()
     }
 
+    /**
+     * Closes this session.  Agents must be handled separately.
+     */
     override fun close() {
         events.close()
+    }
+
+    /**
+     * Waits for this session to close fully, not related to agents' lifecycles but the [events] stream.  This is called
+     * after [close] has been called.
+     */
+    suspend fun waitClosed() {
+        events.waitClosed()
     }
 }

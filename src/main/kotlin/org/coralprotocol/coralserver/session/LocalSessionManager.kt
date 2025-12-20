@@ -14,12 +14,14 @@ import org.coralprotocol.coralserver.agent.payment.toUsd
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
 import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.events.LocalSessionManagerEvent
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
 import org.coralprotocol.coralserver.session.models.SessionPersistenceMode
 import org.coralprotocol.coralserver.session.models.SessionRuntimeSettings
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
+import org.coralprotocol.coralserver.util.ScopedFlow
 import org.coralprotocol.coralserver.util.addJsonBodyWithSignature
 import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.models.SessionInfo
@@ -54,6 +56,10 @@ class LocalSessionManager(
     val managementScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     val supervisedSessions: Boolean = true,
 ) {
+    /**
+     * Events emitted by this manager.  Related to session or namespace creation or deletion.
+     */
+    val events: ScopedFlow<LocalSessionManagerEvent> = ScopedFlow(managementScope + Job())
 
     /**
      * Main data structure containing all sessions
@@ -143,6 +149,7 @@ class LocalSessionManager(
      */
     suspend fun createSession(namespace: String, agentGraph: AgentGraph): Pair<LocalSession, LocalSessionNamespace> {
         val namespace = sessionNamespaces.getOrPut(namespace) {
+            events.emit(LocalSessionManagerEvent.NamespaceCreated(namespace))
             LocalSessionNamespace(namespace, ConcurrentHashMap())
         }
 
@@ -156,6 +163,7 @@ class LocalSessionManager(
             mcpToolManager = mcpToolManager
         )
         namespace.sessions[sessionId] = session
+        events.emit(LocalSessionManagerEvent.SessionCreated(session.id, namespace.name))
 
         return Pair(session, namespace)
     }
@@ -235,6 +243,8 @@ class LocalSessionManager(
             agentSecretLookup.remove(agent.secret)
         }
 
+        events.emit(LocalSessionManagerEvent.SessionClosed(session.id, namespace.name))
+
         // The session end webhook should not block any of the other session ending logic
         if (settings.webhooks.sessionEnd != null) {
             managementScope.launch {
@@ -263,8 +273,10 @@ class LocalSessionManager(
         }
 
         namespace.sessions.remove(session.id)
-        if (namespace.sessions.isEmpty())
+        if (namespace.sessions.isEmpty()) {
+            events.emit(LocalSessionManagerEvent.NamespaceClosed(namespace.name))
             sessionNamespaces.remove(namespace.name)
+        }
 
         session.close()
         logger.info { "session ${session.id} closed" }
@@ -273,14 +285,11 @@ class LocalSessionManager(
     /**
      * Waits for every agent of every session to exit.  Note this function does not kill anything.
      */
-    suspend fun waitAllSessions(cancel: Boolean = false) {
+    suspend fun waitAllSessions() {
         sessionNamespaces.values.forEach { namespace ->
             namespace.sessions.values.forEach { session ->
-                if (cancel) {
-                    session.cancelAndJoinAgents()
-                } else {
-                    session.joinAgents()
-                }
+                session.joinAgents()
+                session.waitClosed()
             }
         }
     }

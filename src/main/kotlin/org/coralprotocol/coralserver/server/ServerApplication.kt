@@ -37,8 +37,9 @@ import io.ktor.server.websocket.*
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.config.Config
-import org.coralprotocol.coralserver.events.ServerEvent
+import org.coralprotocol.coralserver.events.LocalSessionManagerEvent
 import org.coralprotocol.coralserver.events.SessionEvent
+import org.coralprotocol.coralserver.mcp.McpResourceName
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.routes.api.v1.*
 import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
@@ -47,6 +48,7 @@ import org.coralprotocol.coralserver.routes.ui.documentationInterface
 import org.coralprotocol.coralserver.routes.ws.v1.eventRoutes
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionException
+import org.coralprotocol.coralserver.util.ScopedFlow
 import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.X402Service
 import kotlin.time.Duration.Companion.seconds
@@ -110,9 +112,10 @@ fun Application.coralServerModule(
 
             // Mcp types
             schema<McpToolName>("McpToolName")
+            schema<McpResourceName>("McpResourceName")
 
             // WebSocket types
-            schema<ServerEvent>("ServerEvent")
+            schema<LocalSessionManagerEvent>("LocalSessionManagerEvent")
             schema<SessionEvent>("SessionEvent")
         }
         specAssigner = { url: String, tags: List<String> ->

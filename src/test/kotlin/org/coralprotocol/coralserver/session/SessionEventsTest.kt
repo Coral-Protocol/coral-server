@@ -24,9 +24,10 @@ open class SessionEventsTest : FunSpec({
                                 name = agent1Name,
                                 functionRuntime = FunctionRuntime { executionContext, applicationRuntimeContext ->
                                     executionContext.session.shouldPostEvents(
-                                        10.seconds,
-                                        mutableListOf(
-                                            ExpectedSessionEvent("agent connected") {
+                                        timeout = 10.seconds,
+                                        allowUnexpectedEvents = true,
+                                        events = mutableListOf(
+                                            TestEvent("agent connected") {
                                                 it == SessionEvent.AgentConnected(
                                                     agent1Name
                                                 )
@@ -54,24 +55,25 @@ open class SessionEventsTest : FunSpec({
                 ))
 
             session.shouldPostEvents(
-                10.seconds,
-                mutableListOf(
-                    ExpectedSessionEvent("agent '$agent1Name' runtime started ") {
+                timeout = 10.seconds,
+                allowUnexpectedEvents = true,
+                events = mutableListOf(
+                    TestEvent("agent '$agent1Name' runtime started ") {
                         it == SessionEvent.RuntimeStarted(
                             agent1Name
                         )
                     },
-                    ExpectedSessionEvent("agent '$agent2Name' runtime started") {
+                    TestEvent("agent '$agent2Name' runtime started") {
                         it == SessionEvent.RuntimeStarted(
                             agent2Name
                         )
                     },
-                    ExpectedSessionEvent("agent '$agent1Name' runtime stopped") {
+                    TestEvent("agent '$agent1Name' runtime stopped") {
                         it == SessionEvent.RuntimeStopped(
                             agent1Name
                         )
                     },
-                    ExpectedSessionEvent("agent '$agent2Name' runtime stopped") {
+                    TestEvent("agent '$agent2Name' runtime stopped") {
                         it == SessionEvent.RuntimeStopped(
                             agent2Name
                         )

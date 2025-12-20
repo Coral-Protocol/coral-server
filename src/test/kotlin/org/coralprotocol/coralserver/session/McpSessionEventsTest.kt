@@ -21,10 +21,11 @@ class McpSessionEventsTest : FunSpec({
                 mapOf(
                     agent1Name to { client, session ->
                         session.shouldPostEvents(
-                            15.seconds,
-                            mutableListOf(
-                                ExpectedSessionEvent("agent wait started") { it is SessionEvent.AgentWaitStart },
-                                ExpectedSessionEvent("agent wait stopped") { it is SessionEvent.AgentWaitStop }
+                            timeout = 15.seconds,
+                            allowUnexpectedEvents = true,
+                            events = mutableListOf(
+                                TestEvent("agent wait started") { it is SessionEvent.AgentWaitStart },
+                                TestEvent("agent wait stopped") { it is SessionEvent.AgentWaitStop }
                             )
                         ) {
                             mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput)
@@ -34,21 +35,22 @@ class McpSessionEventsTest : FunSpec({
                         val agent1 = session.getAgent(agent1Name)
 
                         session.shouldPostEvents(
-                            15.seconds,
-                            mutableListOf(
-                                ExpectedSessionEvent("thread '$threadName' created") {
+                            timeout = 15.seconds,
+                            allowUnexpectedEvents = true,
+                            events = mutableListOf(
+                                TestEvent("thread '$threadName' created") {
                                     it is SessionEvent.ThreadCreated && it.thread.name == threadName
                                 },
-                                ExpectedSessionEvent("message '$messageText' posted") {
+                                TestEvent("message '$messageText' posted") {
                                     it is SessionEvent.ThreadMessageSent && it.message.text == messageText
                                 },
-                                ExpectedSessionEvent("participant '$agent3Name' added to any thread") {
+                                TestEvent("participant '$agent3Name' added to any thread") {
                                     it is SessionEvent.ThreadParticipantAdded && it.name == agent3Name
                                 },
-                                ExpectedSessionEvent("participant '$agent1Name' removed from any thread") {
+                                TestEvent("participant '$agent1Name' removed from any thread") {
                                     it is SessionEvent.ThreadParticipantRemoved && it.name == agent1Name
                                 },
-                                ExpectedSessionEvent("any thread closed with summary '$closeSummary'") {
+                                TestEvent("any thread closed with summary '$closeSummary'") {
                                     it is SessionEvent.ThreadClosed && it.summary == closeSummary
                                 }
                             )) {

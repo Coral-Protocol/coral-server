@@ -24,18 +24,21 @@ class Events(val parent: WsV1 = WsV1()) {
         @Resource("session/{namespace}/{sessionId}")
         class SessionEvents(val parent: WithToken, val namespace: String, val sessionId: String)
 
-        @Resource("server")
-        class ServerEvents(val parent: WithToken)
+        @Resource("lsm")
+        class LsmEvents(val parent: WithToken)
     }
 
     @Resource("session/{namespace}/{sessionId}")
     class SessionEvents(val parent: Events = Events(), val namespace: String, val sessionId: String)
 
-    @Resource("server")
-    class ServerEvents(val parent: Events)
+    @Resource("lsm")
+    class LsmEvents(val parent: Events)
 }
 
-fun Route.eventRoutes(config: Config, localSessionManager: LocalSessionManager) {
+fun Route.eventRoutes(
+    config: Config,
+    localSessionManager: LocalSessionManager
+) {
     suspend fun RoutingContext.handleSessionEvents(namespace: String, sessionId: SessionId) {
         val session = try {
             val namespace = localSessionManager.getSessions(namespace)
@@ -48,6 +51,19 @@ fun Route.eventRoutes(config: Config, localSessionManager: LocalSessionManager) 
         call.respond(WebSocketUpgrade(call) {
             session.events.collectUntilCanceled {
                 outgoing.send(it.toWsFrame())
+            }
+        })
+    }
+
+    suspend fun RoutingContext.handleServerEvents(namespaceFilter: String? = null) {
+        call.respond(WebSocketUpgrade(call) {
+            localSessionManager.events.collectUntilCanceled {
+                if (namespaceFilter == null) {
+                    outgoing.send(it.toWsFrame())
+                } else {
+                    if (it.namespace == namespaceFilter)
+                        outgoing.send(it.toWsFrame())
+                }
             }
         })
     }
@@ -68,5 +84,23 @@ fun Route.eventRoutes(config: Config, localSessionManager: LocalSessionManager) 
             throw RouteException(HttpStatusCode.Unauthorized, "Unauthorized")
 
         handleSessionEvents(path.namespace, path.sessionId)
+    }
+
+    get<Events.WithToken.LsmEvents>({
+        hidden = true
+    }) { path ->
+        if (!config.auth.keys.contains(path.parent.token))
+            throw RouteException(HttpStatusCode.Unauthorized, "Invalid token")
+
+        handleServerEvents(call.queryParameters["namespace"])
+    }
+
+    get<Events.LsmEvents>({
+        hidden = true
+    }) {
+        if (call.sessions.get<AuthSession.Token>() == null)
+            throw RouteException(HttpStatusCode.Unauthorized, "Unauthorized")
+
+        handleServerEvents(call.queryParameters["namespace"])
     }
 }
