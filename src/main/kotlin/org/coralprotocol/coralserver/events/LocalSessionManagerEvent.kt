@@ -18,6 +18,10 @@ sealed interface LocalSessionManagerEvent {
     data class SessionCreated(val sessionId: SessionId, override val namespace: String) : LocalSessionManagerEvent
 
     @Serializable
+    @SerialName("session_closing")
+    data class SessionClosing(val sessionId: SessionId, override val namespace: String) : LocalSessionManagerEvent
+
+    @Serializable
     @SerialName("session_closed")
     data class SessionClosed(val sessionId: SessionId, override val namespace: String) : LocalSessionManagerEvent
 

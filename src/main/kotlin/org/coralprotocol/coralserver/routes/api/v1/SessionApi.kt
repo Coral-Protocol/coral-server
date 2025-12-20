@@ -10,7 +10,6 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
-import org.coralprotocol.coralserver.agent.graph.AgentGraphRequest
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.routes.ApiV1
 import org.coralprotocol.coralserver.server.RouteException
@@ -26,7 +25,13 @@ private val logger = KotlinLogging.logger {}
 @Serializable
 data class BasicNamespace(
     val namespace: String,
-    val sessions: List<SessionId>
+    val sessions: List<BasicSession>
+)
+
+@Serializable
+data class BasicSession(
+    val sessionId: SessionId,
+    val closing: Boolean
 )
 
 @Resource("sessions")
@@ -147,7 +152,9 @@ fun Route.sessionApi(
         }
     }) {
         call.respond(localSessionManager.getNamespaces().map { namespace ->
-            BasicNamespace(namespace.name, namespace.sessions.values.map { it.id })
+            BasicNamespace(namespace.name, namespace.sessions.values.map {
+                BasicSession(it.id, it.closing)
+            })
         })
     }
 

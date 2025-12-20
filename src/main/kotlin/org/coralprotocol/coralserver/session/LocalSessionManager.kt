@@ -238,12 +238,14 @@ class LocalSessionManager(
         cause: Throwable?,
         settings: SessionRuntimeSettings
     ) {
+        session.closing = true
+
         // Secrets must be relinquished so that no more references to this session exist
         session.agents.forEach { (name, agent) ->
             agentSecretLookup.remove(agent.secret)
         }
 
-        events.emit(LocalSessionManagerEvent.SessionClosed(session.id, namespace.name))
+        events.emit(LocalSessionManagerEvent.SessionClosing(session.id, namespace.name))
 
         // The session end webhook should not block any of the other session ending logic
         if (settings.webhooks.sessionEnd != null) {
@@ -280,6 +282,8 @@ class LocalSessionManager(
 
         session.close()
         logger.info { "session ${session.id} closed" }
+
+        events.emit(LocalSessionManagerEvent.SessionClosed(session.id, namespace.name))
     }
 
     /**

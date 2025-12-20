@@ -116,7 +116,8 @@ class WebSocketTest : FunSpec({
                     TestEvent("ns1 create") { it is LocalSessionManagerEvent.NamespaceCreated && it.namespace == ns1Name },
                     TestEvent("ns1 session create") { it is LocalSessionManagerEvent.SessionCreated && it.namespace == ns1Name },
                     TestEvent("ns1 destroy") { it is LocalSessionManagerEvent.NamespaceClosed && it.namespace == ns1Name },
-                    TestEvent("ns1 session destroy") { it is LocalSessionManagerEvent.SessionClosed && it.namespace == ns1Name },
+                    TestEvent("ns1 session closing") { it is LocalSessionManagerEvent.SessionClosing && it.namespace == ns1Name },
+                    TestEvent("ns1 session closed") { it is LocalSessionManagerEvent.SessionClosed && it.namespace == ns1Name },
                 )
             ) { flow ->
                 val connection = CompletableDeferred<Unit>()

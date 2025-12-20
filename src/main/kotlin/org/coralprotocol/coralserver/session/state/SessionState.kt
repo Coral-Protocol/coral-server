@@ -21,5 +21,8 @@ data class SessionState(
     val agents: List<SessionAgentState>,
 
     @Description("A list of the states of all threads in this session")
-    val threads: List<SessionThread>
+    val threads: List<SessionThread>,
+
+    @Description("True if the session is closing, closing sessions have no running agents and will only be kept in memory for as long as the persistence settings specify")
+    val closing: Boolean
 )
