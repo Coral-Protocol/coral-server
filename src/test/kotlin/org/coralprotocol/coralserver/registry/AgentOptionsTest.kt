@@ -2,24 +2,17 @@ package org.coralprotocol.coralserver.registry
 
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
-import nl.adaptivity.xmlutil.core.impl.multiplatform.name
-import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
-import org.coralprotocol.coralserver.agent.registry.option.AgentOption
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
-import org.coralprotocol.coralserver.agent.registry.option.asEnvVarValue
-import org.coralprotocol.coralserver.agent.registry.option.compareTypeWithValue
-import org.coralprotocol.coralserver.agent.registry.option.defaultAsValue
-import org.coralprotocol.coralserver.agent.registry.option.requireValue
-import org.coralprotocol.coralserver.agent.registry.option.withValue
-import org.coralprotocol.coralserver.config.toml
-import org.coralprotocol.coralserver.util.ByteUnitSizes
-import org.coralprotocol.coralserver.util.toByteCount
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.nulls.shouldNotBeNull
-import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import nl.adaptivity.xmlutil.core.impl.multiplatform.name
+import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
+import org.coralprotocol.coralserver.agent.registry.option.*
+import org.coralprotocol.coralserver.config.toml
+import org.coralprotocol.coralserver.util.ByteUnitSizes
+import org.coralprotocol.coralserver.util.toByteCount
 
 class AgentOptionsTest : FunSpec({
     test("testString") {
@@ -306,5 +299,22 @@ class AgentOptionsTest : FunSpec({
                 )
             ).requireValue()
         }
+    }
+
+    // bug fix: partial validation table was not deserializable
+    test("testPartialNumericValidation") {
+        val number = toml.decodeFromString(
+            AgentOption.serializer(), """
+            type = "i32"
+            description = "A test number"
+        
+            [validation]
+            max = 100
+        """
+        )
+
+        number.shouldBeInstanceOf<AgentOption.Int>()
+        repeat(100) { shouldNotThrowAny { number.validation!!.require(it) } }
+        shouldThrow<AgentOptionValidationException> { number.validation!!.require(101) } // too high
     }
 })
