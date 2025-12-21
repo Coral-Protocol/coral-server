@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.routes.api.v1
 
+import io.github.smiley4.ktoropenapi.config.RequestConfig
 import io.github.smiley4.ktoropenapi.resources.delete
 import io.github.smiley4.ktoropenapi.resources.post
 import io.ktor.http.*
@@ -49,6 +50,18 @@ fun Route.puppetApi(localSessionManager: LocalSessionManager) {
         }
     }
 
+    fun RequestConfig.agentParams() {
+        pathParameter<String>("namespace") {
+            description = "The session's namespace"
+        }
+        pathParameter<String>("sessionId") {
+            description = "The session's ID"
+        }
+        pathParameter<String>("sessionId") {
+            description = "The session's ID"
+        }
+    }
+
     post<Puppet.Agent.Thread>({
         summary = "Create thread"
         description = "Creates a new thread masquerading as the specified agent"
@@ -58,6 +71,7 @@ fun Route.puppetApi(localSessionManager: LocalSessionManager) {
             body<CreateThreadInput> {
                 description = "Thread creation input"
             }
+            agentParams()
         }
         response {
             HttpStatusCode.OK to {
@@ -97,6 +111,7 @@ fun Route.puppetApi(localSessionManager: LocalSessionManager) {
             body<CloseThreadInput> {
                 description = "Thread close input"
             }
+            agentParams()
         }
         response {
             HttpStatusCode.OK to {
@@ -134,6 +149,7 @@ fun Route.puppetApi(localSessionManager: LocalSessionManager) {
             body<SendMessageInput> {
                 description = "Message input"
             }
+            agentParams()
         }
         response {
             HttpStatusCode.OK to {
@@ -178,6 +194,7 @@ fun Route.puppetApi(localSessionManager: LocalSessionManager) {
             body<AddParticipantInput> {
                 description = "Thread and participant information details"
             }
+            agentParams()
         }
         response {
             HttpStatusCode.OK to {
@@ -219,6 +236,7 @@ fun Route.puppetApi(localSessionManager: LocalSessionManager) {
             body<RemoveParticipantInput> {
                 description = "Thread and participant information details"
             }
+            agentParams()
         }
         response {
             HttpStatusCode.OK to {
@@ -256,6 +274,9 @@ fun Route.puppetApi(localSessionManager: LocalSessionManager) {
         description = "Forcefully cause an agent to exit it's own runtime"
         operationId = "puppetKillAgent"
         securitySchemeNames("token")
+        request {
+            agentParams()
+        }
         response {
             HttpStatusCode.OK to {
                 description = "Success"
