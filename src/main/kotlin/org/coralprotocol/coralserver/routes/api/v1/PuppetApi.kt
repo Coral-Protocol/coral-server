@@ -27,7 +27,7 @@ class Puppet(val parent: ApiV1 = ApiV1()) {
         @Resource("thread")
         class Thread(val parent: Agent) {
             @Resource("message")
-            class Message(val parent: Thread, val threadId: String)
+            class Message(val parent: Thread)
 
             @Resource("participant")
             class Participant(val parent: Thread)
