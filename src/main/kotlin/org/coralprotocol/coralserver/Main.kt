@@ -10,6 +10,7 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.runBlocking
 import org.coralprotocol.coralserver.agent.debug.EchoDebugAgent
+import org.coralprotocol.coralserver.agent.debug.PuppetDebugAgent
 import org.coralprotocol.coralserver.agent.debug.SeedDebugAgent
 import org.coralprotocol.coralserver.agent.debug.ToolDebugAgent
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
@@ -65,6 +66,7 @@ fun main(args: Array<String>) {
                             EchoDebugAgent(client).generate(),
                             SeedDebugAgent(client).generate(),
                             ToolDebugAgent(client).generate(),
+                            PuppetDebugAgent(client).generate()
                         ),
                         "debug agents"
                     )
