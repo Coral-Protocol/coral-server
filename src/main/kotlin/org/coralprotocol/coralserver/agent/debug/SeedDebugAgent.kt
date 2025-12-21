@@ -59,7 +59,7 @@ class SeedDebugAgent(client: HttpClient) : DebugAgent(client) {
         )
 
     override val description: String
-        get() = "For each iteration this agent will wait for a message that matches the specified options and respond to it.  Exits when the iteration count is exhausted."
+        get() = "Seeds a session with a configurable amount of threads and messages.  After all threads and messages were created and sent this agent will exit."
 
     override val exportSettings: UnresolvedAgentExportSettingsMap
         get() = genericExportSettings
