@@ -114,9 +114,15 @@ class DockerRuntimeTest : FunSpec({
                                     image = image,
                                     command = listOf(
                                         "sh", "-c", """
-                                    echo ${'$'}TEST_OPTION
-                                    cat ${'$'}TEST_FS_OPTION
-                                """.trimIndent()
+                                            echo TEST_OPTION:
+                                            echo ${'$'}TEST_OPTION
+                                            
+                                            echo UNIT_TEST_SECRET:
+                                            echo ${'$'}UNIT_TEST_SECRET
+                                            
+                                            echo TEST_FS_OPTION:
+                                            cat ${'$'}TEST_FS_OPTION
+                                        """.trimIndent()
                                     )
                                 )
                             ),
@@ -161,6 +167,8 @@ class DockerRuntimeTest : FunSpec({
             // Test that the script printed both env and fs option values
             messages.shouldContain(optionValue1)
             messages.shouldContain(optionValue2)
+
+            messages.shouldContain(unitTestSecret)
 
             collector.cancelAndJoin()
         }

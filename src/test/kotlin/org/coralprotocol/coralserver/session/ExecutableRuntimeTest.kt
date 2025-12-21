@@ -40,7 +40,13 @@ class ExecutableRuntimeTest : FunSpec({
                                 executableRuntime = ExecutableRuntime(
                                     listOf(
                                         "powershell.exe", "-command", """
+                                            write-output TEST_OPTION:
                                             write-output ${'$'}env:TEST_OPTION
+                                            
+                                            write-output UNIT_TEST_SECRET:
+                                            write-output ${'$'}env:UNIT_TEST_SECRET
+                                            
+                                            write-output TEST_FS_OPTION:
                                             get-content ${'$'}env:TEST_FS_OPTION
                                         """.trimIndent()
                                     )
@@ -87,6 +93,8 @@ class ExecutableRuntimeTest : FunSpec({
             // Test that the script printed both env and fs option values
             messages.shouldContain(optionValue1)
             messages.shouldContain(optionValue2)
+
+            messages.shouldContain(unitTestSecret)
 
             collector.cancelAndJoin()
         }

@@ -316,6 +316,21 @@ data class AuthConfig(
 )
 
 @Serializable
+data class DebugConfig(
+    /**
+     * Additional environment variables to set for all agents run with a Docker runtime
+     */
+    @SerialName("additional_docker_environment")
+    val additionalDockerEnvironment: Map<String, String> = mapOf(),
+
+    /**
+     * Additional environment variables to set for all agents with an executable runtime
+     */
+    @SerialName("additional_executable_environment")
+    val additionalExecutableEnvironment: Map<String, String> = mapOf(),
+)
+
+@Serializable
 data class Config(
     @SerialName("payments")
     val paymentConfig: PaymentConfig = PaymentConfig(),
@@ -337,6 +352,9 @@ data class Config(
 
     @SerialName("auth")
     val auth: AuthConfig = AuthConfig(),
+
+    @SerialName("debug")
+    val debug: DebugConfig = DebugConfig(),
 ) {
     /**
      * Calculates the address required to access the server for a given consumer.

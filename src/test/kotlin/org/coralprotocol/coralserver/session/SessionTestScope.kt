@@ -51,6 +51,7 @@ class SessionTestScope(
     registryBuilder: AgentRegistrySourceBuilder.() -> Unit = {}
 ) {
     val authToken = UUID.randomUUID().toString()
+    val unitTestSecret = UUID.randomUUID().toString()
     val config = Config(
         // port for testing is zero
         networkConfig = NetworkConfig(
@@ -69,6 +70,10 @@ class SessionTestScope(
         ),
         auth = AuthConfig(
             keys = setOf(authToken)
+        ),
+        debug = DebugConfig(
+            additionalDockerEnvironment = mapOf("UNIT_TEST_SECRET" to unitTestSecret),
+            additionalExecutableEnvironment = mapOf("UNIT_TEST_SECRET" to unitTestSecret)
         )
     )
     val registry = AgentRegistry(config, registryBuilder)

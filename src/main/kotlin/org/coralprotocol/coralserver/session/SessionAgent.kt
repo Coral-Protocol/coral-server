@@ -73,6 +73,22 @@ class SessionAgent(
     val secret: SessionAgentSecret = sessionManager.issueAgentSecret(session, namespace, this)
 
     /**
+     * LocalSessionManager's copy of the custom tool secret.  This is used to generate signatures for custom tool requests
+     * made by this agent
+     */
+    val customToolSecret = sessionManager.config.networkConfig.customToolSecret
+
+    /**
+     * LocalSessionManager's http client
+     */
+    val httpClient = sessionManager.httpClient
+
+    /**
+     * LocalSessionManager's config
+     */
+    val config = sessionManager.config
+
+    /**
      * Default description, this description may be changed when the agent connects to the MCP server and specifies a
      * description as a path parameter
      */
@@ -132,17 +148,6 @@ class SessionAgent(
      */
     val usageReports
         get() = executionContext.usageReports.toList()
-
-    /**
-     * LocalSessionManager's copy of the custom tool secret.  This is used to generate signatures for custom tool requests
-     * made by this agent
-     */
-    val customToolSecret = sessionManager.config.networkConfig.customToolSecret
-
-    /**
-     * LocalSessionManager's http client
-     */
-    val httpClient = sessionManager.httpClient
 
     init {
         addMcpTool(mcpToolManager.createThreadTool)

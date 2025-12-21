@@ -21,6 +21,7 @@ class SessionAgentExecutionContext(
     val logger = agent.logger
     val name = agent.name
     val session = agent.session
+    val config = agent.config
 
     val graphAgent = agent.graphAgent
     val options = graphAgent.options
@@ -65,6 +66,13 @@ class SessionAgentExecutionContext(
             } else {
                 File.pathSeparatorChar
             }.toString()
+
+            if (provider.runtime == RuntimeId.EXECUTABLE) {
+                putAll(config.debug.additionalExecutableEnvironment)
+            }
+            else if (provider.runtime == RuntimeId.DOCKER) {
+                putAll(config.debug.additionalDockerEnvironment)
+            }
 
             // User options
             options.forEach { (name, value) ->
