@@ -149,7 +149,7 @@ class SessionAgentExecutionContext(
      */
     suspend fun launchLocal(provider: GraphAgentProvider.Local) {
         val runtime = runtimes.getById(provider.runtime)
-            ?: throw java.lang.IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported}")
+            ?: throw java.lang.IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported")
 
         runtime.execute(this@SessionAgentExecutionContext, applicationRuntimeContext)
     }
