@@ -78,7 +78,7 @@ class LocalSession(
     /**
      * Agent jobs associated with this session.  Populated by [launchAgents].
      */
-    private val agentJobs = mutableListOf<Job>()
+    private val agentJobs = mutableMapOf<UniqueAgentName, Job>()
 
     /**
      * @see SessionEvent
@@ -172,7 +172,9 @@ class LocalSession(
         if (agentJobs.isNotEmpty())
             throw SessionException.AlreadyLaunchedException("This session's agents have already been launched")
 
-        agentJobs.addAll(agents.values.map { it.launch() })
+        agentJobs.putAll(agents.map { (name, agent) ->
+            name to agent.launch()
+        })
     }
 
     /**
@@ -185,7 +187,7 @@ class LocalSession(
         if (agentJobs.isEmpty())
             throw SessionException.NotLaunchedException("This session's agents have not been launched yet")
 
-        agentJobs.joinAll()
+        agentJobs.values.joinAll()
     }
 
 
@@ -199,7 +201,7 @@ class LocalSession(
         if (agentJobs.isEmpty())
             throw SessionException.NotLaunchedException("This session's agents have not been launched yet")
 
-        agentJobs.forEach { it.cancel() }
+        agentJobs.values.forEach { it.cancel() }
     }
 
     /**
@@ -212,7 +214,23 @@ class LocalSession(
         if (agentJobs.isEmpty())
             throw SessionException.NotLaunchedException("This session's agents have not been launched yet")
 
-        agentJobs.forEach { it.cancelAndJoin() }
+        agentJobs.values.forEach { it.cancelAndJoin() }
+    }
+
+    /**
+     * Cancels and joins a specific agent
+     *
+     * @throws SessionException.MissingAgentException if the agent does not exist in this session
+     * @throws SessionException.NotLaunchedException if [launchAgents] has not been called yet.
+     */
+    suspend fun cancelAndJoinAgent(agentName: UniqueAgentName) {
+        if (!agents.containsKey(agentName))
+            throw SessionException.MissingAgentException("No agent named $agentName")
+
+        val job = agentJobs[agentName]
+            ?: throw SessionException.NotLaunchedException("Agent $agentName has not been launched yet")
+
+        job.cancelAndJoin()
     }
 
     /**
