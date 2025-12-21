@@ -82,7 +82,7 @@ class PuppetApiTest : FunSpec({
                     setBody(
                         CreateThreadInput(
                             threadName = "test thread",
-                            participantIds = setOf()
+                            participantNames = setOf()
                         )
                     )
                 }.shouldBeOK().body()
@@ -100,7 +100,7 @@ class PuppetApiTest : FunSpec({
                     setBody(
                         AddParticipantInput(
                             threadId = threadId,
-                            participantId = agent2Name
+                            participantName = agent2Name
                         )
                     )
                 }.shouldBeOK()
@@ -134,7 +134,7 @@ class PuppetApiTest : FunSpec({
                     setBody(
                         RemoveParticipantInput(
                             threadId = threadId,
-                            participantId = agent2Name
+                            participantName = agent2Name
                         )
                     )
                 }.shouldBeOK()

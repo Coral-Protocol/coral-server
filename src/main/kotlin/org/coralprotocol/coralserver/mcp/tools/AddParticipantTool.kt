@@ -15,15 +15,15 @@ data class AddParticipantInput(
     val threadId: ThreadId,
 
     @Description("The name of the agent to add as a participant to the thread")
-    val participantId: UniqueAgentName
+    val participantName: UniqueAgentName
 )
 
 suspend fun addParticipantExecutor(agent: SessionAgent, arguments: AddParticipantInput): GenericSuccessOutput {
     try {
         val thread = agent.session.getThreadById(arguments.threadId)
-        thread.addParticipant(agent, agent.session.getAgent(arguments.participantId))
+        thread.addParticipant(agent, agent.session.getAgent(arguments.participantName))
 
-        return GenericSuccessOutput("Successfully added participant ${arguments.participantId} to thread ${arguments.threadId}")
+        return GenericSuccessOutput("Successfully added participant ${arguments.participantName} to thread ${arguments.threadId}")
     }
     catch (e: SessionException) {
         throw e.toMcpToolException()

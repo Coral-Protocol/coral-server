@@ -15,15 +15,15 @@ data class RemoveParticipantInput(
     val threadId: ThreadId,
 
     @Description("The name of the agent to remove as a participant of the thread")
-    val participantId: UniqueAgentName
+    val participantName: UniqueAgentName
 )
 
 suspend fun removeParticipantExecutor(agent: SessionAgent, arguments: RemoveParticipantInput): GenericSuccessOutput {
     try {
         val thread = agent.session.getThreadById(arguments.threadId)
-        thread.removeParticipant(agent, agent.session.getAgent(arguments.participantId))
+        thread.removeParticipant(agent, agent.session.getAgent(arguments.participantName))
 
-        return GenericSuccessOutput("Successfully removed participant ${arguments.participantId} from thread ${arguments.threadId}")
+        return GenericSuccessOutput("Successfully removed participant ${arguments.participantName} from thread ${arguments.threadId}")
     }
     catch (e: SessionException) {
         throw e.toMcpToolException()

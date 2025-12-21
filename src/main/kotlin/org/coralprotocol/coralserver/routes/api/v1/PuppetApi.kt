@@ -94,7 +94,7 @@ fun Route.puppetApi(localSessionManager: LocalSessionManager) {
         try {
             call.respond(
                 CreateThreadOutput(
-                    agent.session.createThread(input.threadName, agent.name, input.participantIds)
+                    agent.session.createThread(input.threadName, agent.name, input.participantNames)
                 )
             )
         } catch (e: SessionException.MissingAgentException) {
@@ -213,7 +213,7 @@ fun Route.puppetApi(localSessionManager: LocalSessionManager) {
 
         try {
             val thread = agent.session.getThreadById(input.threadId)
-            thread.addParticipant(agent, agent.session.getAgent(input.participantId))
+            thread.addParticipant(agent, agent.session.getAgent(input.participantName))
 
             call.respond(HttpStatusCode.OK)
         } catch (e: SessionException.MissingThreadException) {
@@ -255,7 +255,7 @@ fun Route.puppetApi(localSessionManager: LocalSessionManager) {
 
         try {
             val thread = agent.session.getThreadById(input.threadId)
-            thread.removeParticipant(agent, agent.session.getAgent(input.participantId))
+            thread.removeParticipant(agent, agent.session.getAgent(input.participantName))
 
             call.respond(HttpStatusCode.OK)
         } catch (e: SessionException.MissingThreadException) {

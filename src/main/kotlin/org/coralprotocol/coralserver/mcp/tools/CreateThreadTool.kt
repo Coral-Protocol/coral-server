@@ -14,7 +14,7 @@ data class CreateThreadInput(
     val threadName: String,
 
     @Description("The list of participants to include in the thread, this should include any agent that is expected to be involved in the thread's topic.  You do not need to include yourself in this list.")
-    val participantIds: Set<UniqueAgentName>
+    val participantNames: Set<UniqueAgentName>
 )
 
 @Serializable
@@ -25,7 +25,7 @@ data class CreateThreadOutput(
 suspend fun createThreadExecutor(agent: SessionAgent, arguments: CreateThreadInput): CreateThreadOutput {
     try {
         return CreateThreadOutput(
-            agent.session.createThread(arguments.threadName, agent.name, arguments.participantIds)
+            agent.session.createThread(arguments.threadName, agent.name, arguments.participantNames)
         )
     }
     catch (e: SessionException) {
