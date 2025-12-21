@@ -29,7 +29,6 @@ class LocalAgentRuntimes(
     val dockerRuntime: DockerRuntime? = null,
 
     @SerialName("function")
-    @Transient
     val functionRuntime: FunctionRuntime? = null
 ) {
     fun getById(runtimeId: RuntimeId): AgentRuntime? =
@@ -43,6 +42,7 @@ class LocalAgentRuntimes(
         return buildList {
             executableRuntime?.let { add(RuntimeId.EXECUTABLE) }
             dockerRuntime?.let { add(RuntimeId.DOCKER) }
+            functionRuntime?.let { add(RuntimeId.FUNCTION) }
         }
     }
 }
