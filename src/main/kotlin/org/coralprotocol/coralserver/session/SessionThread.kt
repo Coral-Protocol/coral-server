@@ -184,6 +184,8 @@ class SessionThread(
      * on this thread will be the [summary].
      *
      * @param summary A summary of the thread content previous to its closing.
+     *
+     * @throws SessionException.ThreadClosedException if the thread is already closed
      */
     suspend fun close(requestingAgent: SessionAgent, summary: String) {
         if (state is SessionThreadState.Closed)
