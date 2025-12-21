@@ -203,6 +203,7 @@ fun Application.coralServerModule(
         authenticate("token", "authSessionToken") {
             sessionApi(registry, localSessionManager)
             registryApi(registry)
+            puppetApi(localSessionManager)
         }
 
         authenticate("agentSecret") {
