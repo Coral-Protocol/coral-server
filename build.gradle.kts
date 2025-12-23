@@ -64,6 +64,7 @@ dependencies {
     implementation(enforcedPlatform("io.ktor:ktor-bom:$ktorVersion"))
     implementation("io.ktor:ktor-server-status-pages:${ktorVersion}")
     implementation("io.ktor:ktor-server-auth:${ktorVersion}")
+    implementation("io.ktor:ktor-server-call-logging:${ktorVersion}")
 
     val uriVersion = "0.5.0"
     implementation("com.chrynan.uri.core:uri-core:$uriVersion")

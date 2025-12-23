@@ -10,6 +10,9 @@
         </encoder>
     </appender>
 
+    <!-- cors is super noisy and useless -->
+    <logger name="io.ktor.server.plugins.cors.CORS" level="OFF"/>
+
     <root level="INFO">
         <appender-ref ref="STDOUT" />
     </root>

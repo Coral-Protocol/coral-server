@@ -331,6 +331,17 @@ data class DebugConfig(
 )
 
 @Serializable
+data class LocalSessionConfig(
+    /**
+     * The default number of milliseconds that wait tooling should take before timing out.  Note that some clients
+     * e.g (the Kotlin MCP client) force network timeouts and often cause undesirable errors if those timeouts occur
+     * instead of this timeout that will tool responses back
+     */
+    @SerialName("default_wait_timeout")
+    val defaultWaitTimeout: Long = 60000
+)
+
+@Serializable
 data class Config(
     @SerialName("payments")
     val paymentConfig: PaymentConfig = PaymentConfig(),
@@ -355,6 +366,9 @@ data class Config(
 
     @SerialName("debug")
     val debug: DebugConfig = DebugConfig(),
+
+    @SerialName("session")
+    val localSession: LocalSessionConfig = LocalSessionConfig(),
 ) {
     /**
      * Calculates the address required to access the server for a given consumer.

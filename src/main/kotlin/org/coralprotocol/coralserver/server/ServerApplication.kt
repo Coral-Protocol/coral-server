@@ -24,6 +24,7 @@ import io.ktor.serialization.kotlinx.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.statuspages.*
@@ -51,6 +52,7 @@ import org.coralprotocol.coralserver.session.SessionException
 import org.coralprotocol.coralserver.util.ScopedFlow
 import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.X402Service
+import org.slf4j.event.Level
 import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
@@ -167,6 +169,18 @@ fun Application.coralServerModule(
             }
 
             call.respond(routeException.status, routeException)
+        }
+    }
+    install(CallLogging) {
+        level = Level.INFO
+        format { call ->
+            val response = call.response.status()
+            if (response != null) {
+                "${call.request.httpMethod} ${call.request.uri} - $response"
+            }
+            else {
+                "${call.request.httpMethod} ${call.request.uri}"
+            }
         }
     }
     install(Authentication) {

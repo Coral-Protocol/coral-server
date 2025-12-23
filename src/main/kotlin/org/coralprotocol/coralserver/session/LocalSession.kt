@@ -114,7 +114,7 @@ class LocalSession(
 
         val missing = participants.filter { !agents.containsKey(it) }
         if (missing.isNotEmpty())
-            throw SessionException.MissingAgentException("No agents named ${missing.joinToString(", ")}}")
+            throw SessionException.MissingAgentException("No agents named ${missing.joinToString(", ")}")
 
         // The creator of a thread should be a participant of a thread always.  This function is called by MCP tools,
         // and the result is given to agents. Agents tend to assume that they have access to threads they create.

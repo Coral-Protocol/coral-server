@@ -303,7 +303,7 @@ class SessionAgent(
      */
     suspend fun waitForMessage(
         filters: Set<SessionThreadMessageFilter> = setOf(),
-        timeoutMs: Long = 60_000L
+        timeoutMs: Long = config.localSession.defaultWaitTimeout
     ): SessionThreadMessage? {
         return withTimeoutOrNull(timeoutMs) {
             val waiter = SessionAgentWaiter(filters)
