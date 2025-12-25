@@ -16,16 +16,17 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.agent.payment.AgentPaymentClaimRequest
 import org.coralprotocol.coralserver.agent.payment.AgentRemainingBudget
+import org.coralprotocol.coralserver.payment.BlankX402Service
 import org.coralprotocol.coralserver.routes.ApiV1
-import org.coralprotocol.coralserver.server.RouteException
+import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.server.apiJsonConfig
-import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionAgent
 import org.coralprotocol.coralserver.x402.X402PaymentRequired
 import org.coralprotocol.coralserver.x402.X402ProxiedResponse
 import org.coralprotocol.coralserver.x402.X402ProxyRequest
 import org.coralprotocol.coralserver.x402.withinBudget
 import org.coralprotocol.payment.blockchain.X402Service
+import org.koin.ktor.ext.inject
 
 @Resource("agent-rpc")
 class Rpc(val parent: ApiV1 = ApiV1()) {
@@ -36,10 +37,9 @@ class Rpc(val parent: ApiV1 = ApiV1()) {
     class X402(val parent: Rpc = Rpc())
 }
 
-fun Route.agentRpcApi(
-    localSessionManager: LocalSessionManager,
-    x402Service: X402Service?
-) {
+fun Route.agentRpcApi() {
+    val x402Service by inject<X402Service>()
+
     post<Rpc.RentalClaim>({
         summary = "Submit rental agent claim"
         description = "Requests a certain amount of money to be paid for a work done by a rental agent"
@@ -119,8 +119,8 @@ fun Route.agentRpcApi(
                 }
             }
         }
-    }) {post ->
-        if (x402Service == null)
+    }) { post ->
+        if (x402Service is BlankX402Service)
             throw RouteException(HttpStatusCode.InternalServerError, "x402 proxying is not configured on this server")
 
         val request = call.receive<X402ProxyRequest>()
@@ -147,7 +147,10 @@ fun Route.agentRpcApi(
                 return@firstNotNullOfOrNull if (accepted == null) {
                     null
                 } else Pair(budgetedResource, accepted)
-            } ?: throw RouteException(HttpStatusCode.BadRequest, "This agent does not have funds budgeted for this request")
+            } ?: throw RouteException(
+                HttpStatusCode.BadRequest,
+                "This agent does not have funds budgeted for this request"
+            )
 
             // todo: unpack this function to not send the first request twice
             // todo: in the case of multiple valid budgets, use the prioritised budget from above (also requires unpacking)
@@ -161,16 +164,23 @@ fun Route.agentRpcApi(
             budgetedResource.remainingBudget -= paymentRequirement.maxAmountRequired.toULong()
             //logger.info { "agent ${agent.name} consumed ${paymentRequirement.maxAmountRequired.toULong()} from their x402 budgeted resource ${budgetedResource.resource}.  ${budgetedResource.remainingBudget} remains." }
 
-            call.respondText(apiJsonConfig.encodeToString(X402ProxiedResponse(
-                code = 200, // todo: use the service's actual response code
-                body = result.responseBody
-            )), ContentType.Application.Json)
-        }
-        else {
-            call.respondText(apiJsonConfig.encodeToString(X402ProxiedResponse(
-                code = response.status.value,
-                body = response.body()
-            )), ContentType.Application.Json)
+            call.respondText(
+                apiJsonConfig.encodeToString(
+                    X402ProxiedResponse(
+                        code = 200, // todo: use the service's actual response code
+                        body = result.responseBody
+                    )
+                ), ContentType.Application.Json
+            )
+        } else {
+            call.respondText(
+                apiJsonConfig.encodeToString(
+                    X402ProxiedResponse(
+                        code = response.status.value,
+                        body = response.body()
+                    )
+                ), ContentType.Application.Json
+            )
         }
     }
 }

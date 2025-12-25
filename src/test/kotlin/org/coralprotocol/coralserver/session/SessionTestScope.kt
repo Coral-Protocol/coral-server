@@ -36,7 +36,7 @@ import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.routes.sse.v1.Mcp
 import org.coralprotocol.coralserver.server.apiJsonConfig
-import org.coralprotocol.coralserver.server.coralServerModule
+import org.coralprotocol.coralserver.modules.ktor.coralServerModule
 import org.coralprotocol.coralserver.util.mcpFunctionRuntime
 import java.nio.file.Path
 import java.util.*
@@ -52,7 +52,7 @@ class SessionTestScope(
 ) {
     val authToken = UUID.randomUUID().toString()
     val unitTestSecret = UUID.randomUUID().toString()
-    val config = Config(
+    val config = RootConfig(
         // port for testing is zero
         networkConfig = NetworkConfig(
             bindPort = 0u
@@ -68,10 +68,10 @@ class SessionTestScope(
             ),
             remoteAgentWalletName = "fake test wallet"
         ),
-        auth = AuthConfig(
+        authConfig = AuthConfig(
             keys = setOf(authToken)
         ),
-        debug = DebugConfig(
+        debugConfig = DebugConfig(
             additionalDockerEnvironment = mapOf("UNIT_TEST_SECRET" to unitTestSecret),
             additionalExecutableEnvironment = mapOf("UNIT_TEST_SECRET" to unitTestSecret)
         )

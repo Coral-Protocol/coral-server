@@ -12,10 +12,11 @@ import org.coralprotocol.coralserver.agent.registry.option.defaultAsValue
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.SecurityConfig
+import org.coralprotocol.coralserver.config.toml
 import java.io.File
 import java.nio.file.Path
 
-private val logger = KotlinLogging.logger {  }
+private val logger = KotlinLogging.logger { }
 
 const val FIRST_AGENT_EDITION = 1
 const val CURRENT_AGENT_EDITION = 2
@@ -89,20 +90,22 @@ fun resolveRegistryAgentFromStream(
     context: RegistryResolutionContext,
     exportSettings: UnresolvedAgentExportSettingsMap
 ): RegistryAgent {
-    val unresolved = context.serializer.decodeFromNativeReader<UnresolvedInlineRegistryAgent>(file.reader())
-    if (!context.config.security.enableReferencedExporting) {
-        if (unresolved.unresolvedExportSettings.isNotEmpty()) {
-            logger.warn { "Referenced agent file $file contains export settings, but [security.enableReferencedExporting] is false. Export settings in this file will be ignored" }
-        }
+    val unresolved = toml.decodeFromNativeReader<UnresolvedInlineRegistryAgent>(file.reader())
+//    if (!context.config.securityConfig.enableReferencedExporting) {
+//        if (unresolved.unresolvedExportSettings.isNotEmpty()) {
+//            logger.warn { "Referenced agent file $file contains export settings, but [security.enableReferencedExporting] is false. Export settings in this file will be ignored" }
+//        }
+//
+//        unresolved.unresolvedExportSettings = exportSettings
+//    }
+//    else {
+//        unresolved.unresolvedExportSettings += exportSettings
+//    }
 
-        unresolved.unresolvedExportSettings = exportSettings
-    }
-    else {
-        unresolved.unresolvedExportSettings += exportSettings
-    }
-
-    return unresolved.resolve(AgentResolutionContext(
-        registryResolutionContext = context,
-        path = file.toPath().parent
-    )).first()
+    return unresolved.resolve(
+        AgentResolutionContext(
+            registryResolutionContext = context,
+            path = file.toPath().parent
+        )
+    ).first()
 }

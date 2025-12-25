@@ -6,7 +6,7 @@ import io.ktor.http.*
 import io.ktor.resources.*
 import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.models.Telemetry
-import org.coralprotocol.coralserver.server.RouteException
+import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionThreadMessage
 import org.coralprotocol.coralserver.models.TelemetryPost as TelemetryPostModel

@@ -1,13 +1,13 @@
-package org.coralprotocol.coralserver.server
+package org.coralprotocol.coralserver.routes
 
-import io.ktor.http.*
+import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
 @Serializable
 data class RouteException(
     @Transient
-    val status: HttpStatusCode = HttpStatusCode.InternalServerError,
+    val status: HttpStatusCode = HttpStatusCode.Companion.InternalServerError,
 
     @Transient
     val parentException: Throwable? = null,

@@ -4,9 +4,11 @@ import com.github.syari.kgit.KGit
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.*
-import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.config.CacheConfig
+import org.coralprotocol.coralserver.config.RootConfig
 import org.eclipse.jgit.api.ResetCommand
 import org.eclipse.jgit.lib.SubmoduleConfig
+import org.koin.core.component.inject
 import java.nio.file.Path
 import kotlin.io.path.isDirectory
 
@@ -17,6 +19,8 @@ data class GitRegistryAgentIndexer(
     val url: String,
     override val priority: Int
 ) : RegistryAgentIndexer {
+    private val cacheConfig: CacheConfig by inject()
+
     private fun indexerPath(cachePath: Path, indexerName: String) =
         cachePath.resolve(Path.of(indexerName))
 
@@ -27,7 +31,7 @@ data class GitRegistryAgentIndexer(
         agentName: String,
         version: String
     ): RegistryAgent {
-        val path = indexerPath(context.config.cache.index, indexerName)
+        val path = indexerPath(cacheConfig.index, indexerName)
 
         val agentTomlFile = path.resolve(Path.of(version, agentName, AGENT_FILE))
         if (!agentTomlFile.toFile().exists()) {
@@ -47,8 +51,8 @@ data class GitRegistryAgentIndexer(
         }
     }
 
-    override fun update(config: Config, indexerName: String) {
-        val path = indexerPath(config.cache.index, indexerName)
+    override fun update(config: RootConfig, indexerName: String) {
+        val path = indexerPath(config.cacheConfig.index, indexerName)
 
         try {
             val repo = if (!path.resolve(".git").isDirectory()) {

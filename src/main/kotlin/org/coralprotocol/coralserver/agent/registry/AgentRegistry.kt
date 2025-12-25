@@ -3,14 +3,13 @@ package org.coralprotocol.coralserver.agent.registry
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.SerializationException
 import net.peanuuutz.tomlkt.decodeFromNativeReader
-import org.coralprotocol.coralserver.config.Config
 import org.coralprotocol.coralserver.config.toml
 import java.io.InputStream
 import java.nio.file.Path
 
 private val logger = KotlinLogging.logger { }
 
-class AgentRegistrySourceBuilder(val config: Config) {
+class AgentRegistrySourceBuilder {
     val sources = mutableListOf<AgentRegistrySource>()
 
     fun addSource(source: AgentRegistrySource) {
@@ -68,8 +67,6 @@ class AgentRegistrySourceBuilder(val config: Config) {
         try {
             val unresolved = toml.decodeFromNativeReader<UnresolvedLocalAgentRegistry>(stream.reader())
             val context = RegistryResolutionContext(
-                serializer = toml,
-                config = config,
                 path = path,
                 registrySourceIdentifier = AgentRegistrySourceIdentifier.Local
             )
@@ -105,13 +102,13 @@ class AgentRegistrySourceBuilder(val config: Config) {
  * Coral Cloud users are able to run development agents in their cloud sessions.  Registry sources of this type also
  * involve network queries during resolution.
  */
-class AgentRegistry(config: Config, build: AgentRegistrySourceBuilder.() -> Unit) {
+class AgentRegistry(build: AgentRegistrySourceBuilder.() -> Unit) {
     /**
      * A list of all agent registry sources.  Note this is mutable and can be modified at runtime.  Modification, for
      * example, can occur when new linked servers connect.
      */
     val sources = run {
-        val builder = AgentRegistrySourceBuilder(config)
+        val builder = AgentRegistrySourceBuilder()
         builder.build()
 
         builder.sources
@@ -187,12 +184,11 @@ class AgentRegistry(config: Config, build: AgentRegistrySourceBuilder.() -> Unit
         sources.forEach {
             try {
                 return it.resolveAgent(id)
-            }
-            catch (_: RegistryException.AgentNotFoundException) {
+            } catch (_: RegistryException.AgentNotFoundException) {
 
             }
         }
-        
+
         throw RegistryException.AgentNotFoundException("Agent '${id.name}' not found in any of the ${sources.size} registry sources matching '${id.registrySourceId}'")
     }
 }

@@ -4,17 +4,16 @@ import io.github.smiley4.ktoropenapi.resources.get
 import io.github.smiley4.ktoropenapi.resources.post
 import io.ktor.http.*
 import io.ktor.resources.*
-import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.PublicRestrictedRegistryAgent
-import org.coralprotocol.coralserver.config.Wallet
+import org.coralprotocol.coralserver.config.PaymentConfig
 import org.coralprotocol.coralserver.routes.ApiV1
-import org.coralprotocol.coralserver.server.RouteException
-import org.coralprotocol.coralserver.session.remote.RemoteSessionManager
+import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.payment.blockchain.BlockchainService
+import org.koin.ktor.ext.inject
 
 @Resource("agent-rental")
 class AgentRental(val parent: ApiV1 = ApiV1()) {
@@ -34,12 +33,12 @@ class AgentRental(val parent: ApiV1 = ApiV1()) {
  * These routes are public.  Before extending these routes or modifying them, make sure that the modifications or new
  * routes do not users to gain any unnecessary access to system resources or information.
  */
-fun Route.agentRentalApi(
-    wallet: Wallet?,
-    registry: AgentRegistry,
-    blockchainService: BlockchainService?,
-    remoteSessionManager: RemoteSessionManager?,
-) {
+fun Route.agentRentalApi() {
+    val config by inject<PaymentConfig>()
+    val registry by inject<AgentRegistry>()
+    val blockchain by inject<BlockchainService>()
+    //val remoteSessionManager by inject<RemoteSessionManager>()
+
     post<AgentRental.Reserve>({
         summary = "Reserve a list of rental agents"
         description = "Reserves a list of rental agents"
@@ -64,10 +63,10 @@ fun Route.agentRentalApi(
             }
         }
     }) {
-        if (remoteSessionManager == null || blockchainService == null)
-            throw RouteException(HttpStatusCode.InternalServerError, "Remote agents are disabled")
-
-        val paidGraphAgentRequest = call.receive<PaidGraphAgentRequest>()
+//        if (remoteSessionManager == null || blockchainService == null)
+//            throw RouteException(HttpStatusCode.InternalServerError, "Remote agents are disabled")
+//
+//        val paidGraphAgentRequest = call.receive<PaidGraphAgentRequest>()
 
 //        try {
 //            val claimId =
@@ -142,7 +141,7 @@ fun Route.agentRentalApi(
         }
     }) {
         call.respond(
-            HttpStatusCode.OK, wallet?.walletAddress
+            HttpStatusCode.OK, config.remoteAgentWallet?.walletAddress
                 ?: throw RouteException(HttpStatusCode.Forbidden)
         )
     }

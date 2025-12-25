@@ -6,30 +6,14 @@ import io.github.smiley4.schemakenerator.jsonschema.JsonSchemaSteps.generateJson
 import io.github.smiley4.schemakenerator.jsonschema.JsonSchemaSteps.merge
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.analyzeTypeUsingKotlinxSerialization
 import io.modelcontextprotocol.kotlin.sdk.Tool
-import kotlinx.serialization.json.*
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.serializer
 import org.coralprotocol.coralserver.logging.LoggerWithFlow
-import org.coralprotocol.coralserver.mcp.tools.AddParticipantInput
-import org.coralprotocol.coralserver.mcp.tools.CloseThreadInput
-import org.coralprotocol.coralserver.mcp.tools.CreateThreadInput
-import org.coralprotocol.coralserver.mcp.tools.CreateThreadOutput
-import org.coralprotocol.coralserver.mcp.tools.RemoveParticipantInput
-import org.coralprotocol.coralserver.mcp.tools.SendMessageInput
-import org.coralprotocol.coralserver.mcp.tools.SendMessageOutput
-import org.coralprotocol.coralserver.mcp.tools.WaitForAgentMessageInput
-import org.coralprotocol.coralserver.mcp.tools.WaitForMentioningMessageInput
-import org.coralprotocol.coralserver.mcp.tools.WaitForMessageOutput
-import org.coralprotocol.coralserver.mcp.tools.WaitForSingleMessageInput
-import org.coralprotocol.coralserver.mcp.tools.addParticipantExecutor
-import org.coralprotocol.coralserver.mcp.tools.closeThreadExecutor
-import org.coralprotocol.coralserver.mcp.tools.createThreadExecutor
+import org.coralprotocol.coralserver.mcp.tools.*
 import org.coralprotocol.coralserver.mcp.tools.optional.CloseSessionInput
 import org.coralprotocol.coralserver.mcp.tools.optional.closeSessionExecutor
-import org.coralprotocol.coralserver.mcp.tools.removeParticipantExecutor
-import org.coralprotocol.coralserver.mcp.tools.sendMessageExecutor
-import org.coralprotocol.coralserver.mcp.tools.waitForAgentMessageExecutor
-import org.coralprotocol.coralserver.mcp.tools.waitForMentioningMessageExecutor
-import org.coralprotocol.coralserver.mcp.tools.waitForSingleMessageExecutor
 import org.coralprotocol.coralserver.session.SessionAgent
 import org.coralprotocol.coralserver.util.convert
 
@@ -44,7 +28,7 @@ import org.coralprotocol.coralserver.util.convert
  * When this class is constructed, all tools are built.  Exceptions thrown by the construction of this class have a
  * little bit more control this way.
  */
-class McpToolManager(val logger: LoggerWithFlow = LoggerWithFlow("McpToolManager")) {
+class McpToolManager {
     val createThreadTool = buildTool<CreateThreadInput, CreateThreadOutput>(
         name = McpToolName.CREATE_THREAD,
         description = "Creates a new Coral thread",
@@ -90,7 +74,11 @@ class McpToolManager(val logger: LoggerWithFlow = LoggerWithFlow("McpToolManager
     val waitForMentionTool = buildTool<WaitForMentioningMessageInput, WaitForMessageOutput>(
         name = McpToolName.WAIT_FOR_MENTION,
         description = "Waits for and returns a single message that mentions you from any agent in any Coral thread",
-        requiredSnippets = setOf(McpInstructionSnippet.MESSAGING, McpInstructionSnippet.MENTIONS, McpInstructionSnippet.WAITING),
+        requiredSnippets = setOf(
+            McpInstructionSnippet.MESSAGING,
+            McpInstructionSnippet.MENTIONS,
+            McpInstructionSnippet.WAITING
+        ),
         executor = ::waitForMentioningMessageExecutor
     )
 
@@ -139,8 +127,8 @@ class McpToolManager(val logger: LoggerWithFlow = LoggerWithFlow("McpToolManager
         val properties = generatedJsonSchema.getValue("properties") as? JsonObject
             ?: throw IllegalArgumentException("Generated json schema is missing the 'properties' object")
 
-        if (required.size != properties.size)
-            logger.warn("Generated input schema for mcp tool $name contains optional properties, this will cause problems with OpenAI's structured output and potentially other models")
+//        if (required.size != properties.size)
+//            logger.warn("Generated input schema for mcp tool $name contains optional properties, this will cause problems with OpenAI's structured output and potentially other models")
 
         val inputSchema = Tool.Input(
             required = required.map { it.jsonPrimitive.content },

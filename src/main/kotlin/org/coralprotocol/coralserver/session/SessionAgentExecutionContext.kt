@@ -9,19 +9,21 @@ import org.coralprotocol.coralserver.agent.registry.option.option
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.AddressConsumer
+import org.coralprotocol.coralserver.config.DebugConfig
+import org.coralprotocol.coralserver.config.DockerConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.session.reporting.SessionAgentUsageReport
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.io.File
 
 class SessionAgentExecutionContext(
     val agent: SessionAgent,
     val applicationRuntimeContext: ApplicationRuntimeContext
-) {
-
+) : KoinComponent {
     val logger = agent.logger
     val name = agent.name
     val session = agent.session
-    val config = agent.config
 
     val graphAgent = agent.graphAgent
     val options = graphAgent.options
@@ -30,6 +32,9 @@ class SessionAgentExecutionContext(
     val registryAgent = graphAgent.registryAgent
     val runtimes = registryAgent.runtimes
     val path = registryAgent.path
+
+    val debugConfig by inject<DebugConfig>()
+    val dockerConfig by inject<DockerConfig>()
 
     val disposableResources = mutableListOf<SessionAgentDisposableResource>()
 
@@ -62,16 +67,15 @@ class SessionAgentExecutionContext(
             val isContainer = provider.runtime == RuntimeId.DOCKER
 
             val filePathSeparator = if (isContainer) {
-                applicationRuntimeContext.config.dockerConfig.containerPathSeparator
+                dockerConfig.containerPathSeparator
             } else {
                 File.pathSeparatorChar
             }.toString()
 
             if (provider.runtime == RuntimeId.EXECUTABLE) {
-                putAll(config.debug.additionalExecutableEnvironment)
-            }
-            else if (provider.runtime == RuntimeId.DOCKER) {
-                putAll(config.debug.additionalDockerEnvironment)
+                putAll(debugConfig.additionalExecutableEnvironment)
+            } else if (provider.runtime == RuntimeId.DOCKER) {
+                putAll(debugConfig.additionalDockerEnvironment)
             }
 
             // User options
@@ -82,7 +86,7 @@ class SessionAgentExecutionContext(
                     }
 
                     AgentOptionTransport.FILE_SYSTEM -> {
-                        val resources = value.asFileSystemValue(applicationRuntimeContext.config.dockerConfig)
+                        val resources = value.asFileSystemValue(dockerConfig)
                         disposableResources.addAll(resources)
 
                         this[name] = resources.joinToString(filePathSeparator) {

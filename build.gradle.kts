@@ -132,7 +132,17 @@ dependencies {
     testImplementation("ai.koog:agents-mcp:$koogVersion") {
         exclude("io.modelcontextprotocol")
     }
-}
+
+    // koin
+    val koinVersion = "4.2.0-beta2"
+    implementation(platform("io.insert-koin:koin-bom:$koinVersion"))
+    implementation("io.insert-koin:koin-core")
+    implementation("io.insert-koin:koin-ktor")
+
+    // hoplite
+    val hopliteVersion = "3.0.0.RC1"
+    implementation("com.sksamuel.hoplite:hoplite-core:${hopliteVersion}")
+    implementation("com.sksamuel.hoplite:hoplite-toml:${hopliteVersion}")}
 
 tasks.test {
     useJUnitPlatform()

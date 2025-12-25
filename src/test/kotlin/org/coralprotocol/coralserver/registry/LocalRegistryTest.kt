@@ -12,10 +12,10 @@ import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
-import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.config.RootConfig
 
 class LocalRegistryTest : FunSpec({
-    val config = Config()
+    val config = RootConfig()
 
     val testAgentName = "test"
     val testAgentVersion = "1.0.0"

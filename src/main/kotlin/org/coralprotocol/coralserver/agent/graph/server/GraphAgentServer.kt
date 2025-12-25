@@ -18,7 +18,7 @@ import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
 import org.coralprotocol.coralserver.agent.registry.PublicAgentExportSettingsMap
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.routes.api.v1.AgentRental
-import org.coralprotocol.coralserver.server.RouteException
+import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.server.apiJsonConfig
 
 /**

@@ -11,11 +11,10 @@ import org.coralprotocol.coralserver.agent.payment.AgentClaimAmount
 import org.coralprotocol.coralserver.agent.payment.PaidAgent
 import org.coralprotocol.coralserver.agent.payment.toMicroCoral
 import org.coralprotocol.coralserver.agent.payment.toUsd
-import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
-import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.events.LocalSessionManagerEvent
-import org.coralprotocol.coralserver.mcp.McpToolManager
+import org.coralprotocol.coralserver.payment.BlankBlockchainService
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
 import org.coralprotocol.coralserver.session.models.SessionPersistenceMode
@@ -45,14 +44,10 @@ data class AgentLocator(
 private val logger = KotlinLogging.logger { }
 
 class LocalSessionManager(
-    val blockchainService: BlockchainService? = null,
-
-    // Default value will not provide a Docker runtime
-    val applicationRuntimeContext: ApplicationRuntimeContext = ApplicationRuntimeContext(),
-    val jupiterService: JupiterService,
-    val config: Config,
-    val mcpToolManager: McpToolManager = McpToolManager(),
-    val httpClient: HttpClient = HttpClient(),
+    private val blockchainService: BlockchainService,
+    private val jupiterService: JupiterService,
+    private val httpClient: HttpClient,
+    private val config: NetworkConfig,
     val managementScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     val supervisedSessions: Boolean = true,
 ) {
@@ -102,7 +97,7 @@ class LocalSessionManager(
         if (paymentGraph.paidAgents.isEmpty())
             return null
 
-        if (blockchainService == null)
+        if (blockchainService is BlankBlockchainService)
             throw IllegalStateException("Payment services are disabled")
 
         val paymentSessionId = UUID.randomUUID().toString()
@@ -159,8 +154,7 @@ class LocalSessionManager(
             namespace = namespace,
             paymentSessionId = createPaymentSession(agentGraph)?.sessionId,
             agentGraph = agentGraph,
-            sessionManager = this,
-            mcpToolManager = mcpToolManager
+            sessionManager = this
         )
         namespace.sessions[sessionId] = session
         events.emit(LocalSessionManagerEvent.SessionCreated(session.id, namespace.name))
@@ -252,7 +246,7 @@ class LocalSessionManager(
             managementScope.launch {
                 httpClient.post(settings.webhooks.sessionEnd.url) {
                     addJsonBodyWithSignature(
-                        config.networkConfig.webhookSecret, SessionEndReport(
+                        config.webhookSecret, SessionEndReport(
                             session.timestamp, System.currentTimeMillis(),
                             namespace = session.namespace.name,
                             sessionId = session.id,

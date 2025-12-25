@@ -12,13 +12,14 @@ import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.routes.ApiV1
-import org.coralprotocol.coralserver.server.RouteException
+import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionException
 import org.coralprotocol.coralserver.session.SessionId
 import org.coralprotocol.coralserver.session.models.SessionIdentifier
 import org.coralprotocol.coralserver.session.models.SessionRequest
 import org.coralprotocol.coralserver.session.state.SessionState
+import org.koin.ktor.ext.inject
 
 private val logger = KotlinLogging.logger {}
 
@@ -47,10 +48,10 @@ class Sessions(val parent: ApiV1 = ApiV1()) {
 /**
  * Configures session-related routes.
  */
-fun Route.sessionApi(
-    registry: AgentRegistry,
-    localSessionManager: LocalSessionManager
-) {
+fun Route.sessionApi() {
+    val registry by inject<AgentRegistry>()
+    val localSessionManager by inject<LocalSessionManager>()
+
     post<Sessions.WithNamespace>({
         summary = "Create session"
         description = "Creates a new session in a given namespace"

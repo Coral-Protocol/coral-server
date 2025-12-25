@@ -10,10 +10,12 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.UIntAgentOptionValidation
 import org.coralprotocol.coralserver.agent.registry.option.buildFullOption
+import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.mcp.tools.CreateThreadInput
 import org.coralprotocol.coralserver.mcp.tools.SendMessageInput
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.SessionAgent
+import org.koin.core.component.inject
 
 class SeedDebugAgent(client: HttpClient) : DebugAgent(client) {
     override val companion: DebugAgentIdHolder
@@ -64,6 +66,8 @@ class SeedDebugAgent(client: HttpClient) : DebugAgent(client) {
     override val exportSettings: UnresolvedAgentExportSettingsMap
         get() = genericExportSettings
 
+    private val mcpToolManager by inject<McpToolManager>()
+
     override suspend fun execute(
         client: Client,
         session: LocalSession,
@@ -82,7 +86,7 @@ class SeedDebugAgent(client: HttpClient) : DebugAgent(client) {
 
         repeat(seedThreadCount.toInt()) { threadNumber ->
 
-            val thread = agent.mcpToolManager.createThreadTool.executeOn(
+            val thread = mcpToolManager.createThreadTool.executeOn(
                 client,
                 CreateThreadInput("thread $threadNumber", participants.toSet())
             ).thread
@@ -91,7 +95,7 @@ class SeedDebugAgent(client: HttpClient) : DebugAgent(client) {
                 delay(operationDelay.toLong())
 
             repeat(seedMessageCount.toInt()) { messageNumber ->
-                agent.mcpToolManager.sendMessageTool.executeOn(
+                mcpToolManager.sendMessageTool.executeOn(
                     client,
                     SendMessageInput(thread.id, "message $messageNumber", mentions.toSet())
                 )

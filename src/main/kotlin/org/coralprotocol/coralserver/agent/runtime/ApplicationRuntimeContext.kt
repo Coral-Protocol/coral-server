@@ -10,14 +10,16 @@ import io.ktor.http.*
 import io.ktor.resources.*
 import io.ktor.resources.serialization.*
 import org.coralprotocol.coralserver.config.AddressConsumer
-import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.config.RootConfig
 import org.coralprotocol.coralserver.routes.sse.v1.Mcp
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 import java.time.Duration
 
 private val logger = KotlinLogging.logger {}
 
-class ApplicationRuntimeContext(val config: Config = Config()) {
+class ApplicationRuntimeContext(
+    private val config: RootConfig,
+) {
     val dockerClient = run {
         try {
             val dockerClientConfig: DockerClientConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()

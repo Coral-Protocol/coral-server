@@ -8,7 +8,7 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
-import org.coralprotocol.coralserver.server.RouteException
+import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.server.apiJsonConfig
 
 @Serializable

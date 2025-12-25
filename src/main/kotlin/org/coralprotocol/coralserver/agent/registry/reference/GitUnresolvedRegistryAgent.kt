@@ -6,6 +6,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.coralprotocol.coralserver.agent.registry.*
+import org.coralprotocol.coralserver.config.CacheConfig
+import org.koin.core.component.inject
 import java.nio.file.Path
 import java.util.*
 import kotlin.io.path.isDirectory
@@ -17,12 +19,14 @@ private val logger = KotlinLogging.logger {}
  */
 @Serializable
 @SerialName("git")
-data class GitUnresolvedRegistryAgent (
+data class GitUnresolvedRegistryAgent(
     val repo: String,
     val branch: String? = null,
     val tag: String? = null,
     val rev: String? = null,
 ) : UnresolvedRegistryAgent() {
+    private val cacheConfig: CacheConfig by inject()
+
     @Transient
     private val encoder = Base64.getUrlEncoder()
 
@@ -45,7 +49,7 @@ data class GitUnresolvedRegistryAgent (
             ?: throw RegistryException("git-agent (repo $repo) must specify one of branch, tag, or rev")
 
         val safeRepoPath = Path.of(safeRepoName, idType, encoder.encodeToString(idValue.toByteArray()))
-        val fullRepoPath = context.registryResolutionContext.config.cache.agent.resolve(safeRepoPath)
+        val fullRepoPath = cacheConfig.agent.resolve(safeRepoPath)
         val fullAgentTomlPath = fullRepoPath.resolve(AGENT_FILE)
 
         if (!fullAgentTomlPath.toFile().exists()) {
@@ -69,19 +73,19 @@ data class GitUnresolvedRegistryAgent (
                 setURI(repo)
                 setTimeout(60)
             }
-        }
-        else {
+        } else {
             logger.info { "Using previously checked out repo $fullRepoPath for agent repo $repo" }
         }
 
         try {
-            return listOf(resolveRegistryAgentFromStream(
-                file = fullAgentTomlPath.toFile(),
-                context = context.registryResolutionContext,
-                exportSettings = unresolvedExportSettings
-            ))
-        }
-        catch (e: Exception) {
+            return listOf(
+                resolveRegistryAgentFromStream(
+                    file = fullAgentTomlPath.toFile(),
+                    context = context.registryResolutionContext,
+                    exportSettings = unresolvedExportSettings
+                )
+            )
+        } catch (e: Exception) {
             logger.error { "Could not parse $fullAgentTomlPath provided by git repo $repo ($idType=$idValue)" }
             throw e
         }

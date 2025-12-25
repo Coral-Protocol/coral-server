@@ -11,10 +11,11 @@ import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.mcp.tools.*
 import org.coralprotocol.coralserver.routes.ApiV1
-import org.coralprotocol.coralserver.server.RouteException
+import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionAgent
 import org.coralprotocol.coralserver.session.SessionException
+import org.koin.ktor.ext.inject
 
 @Resource("puppet")
 class Puppet(val parent: ApiV1 = ApiV1()) {
@@ -36,7 +37,9 @@ class Puppet(val parent: ApiV1 = ApiV1()) {
     }
 }
 
-fun Route.puppetApi(localSessionManager: LocalSessionManager) {
+fun Route.puppetApi() {
+    val localSessionManager by inject<LocalSessionManager>()
+
     fun getAgent(path: Puppet.Agent): SessionAgent {
         try {
             val session = localSessionManager.getSessions(path.namespace).firstOrNull { it.id == path.sessionId }

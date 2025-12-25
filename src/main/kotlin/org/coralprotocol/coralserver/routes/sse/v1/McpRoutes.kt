@@ -13,10 +13,11 @@ import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import kotlinx.serialization.serializer
 import org.coralprotocol.coralserver.routes.SseV1
-import org.coralprotocol.coralserver.server.RouteException
+import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionAgentSecret
 import org.coralprotocol.coralserver.session.SessionException
+import org.koin.ktor.ext.inject
 
 /**
  * Some agent frameworks identify that a connection is SSE by the presence of the trailing /sse.  This is obviously bad,
@@ -34,7 +35,9 @@ class Mcp(val parent: SseV1 = SseV1()) {
     class Sse(val parent: Mcp = Mcp(), val agentSecret: SessionAgentSecret)
 }
 
-fun Route.mcpRoutes(sessionManager: LocalSessionManager) {
+fun Route.mcpRoutes() {
+    val localSessionManager by inject<LocalSessionManager>()
+
     val resources = plugin(Resources)
     val extractedDocumentation = extractTypesafeDocumentation(serializer<Mcp>(), resources.resourcesFormat)
     documentation(extractedDocumentation) {
@@ -46,7 +49,7 @@ fun Route.mcpRoutes(sessionManager: LocalSessionManager) {
                     val serializer = serializer<Mcp.Sse>()
                     handle(serializer) {
                         try {
-                            val agentLocator = sessionManager.locateAgent(it.agentSecret)
+                            val agentLocator = localSessionManager.locateAgent(it.agentSecret)
 
                             call.response.header(HttpHeaders.ContentType, ContentType.Text.EventStream.toString())
                             call.response.header(HttpHeaders.CacheControl, "no-store")
@@ -55,8 +58,7 @@ fun Route.mcpRoutes(sessionManager: LocalSessionManager) {
                             call.respond(SSEServerContent(call) {
                                 agentLocator.agent.connectSseSession(this)
                             })
-                        }
-                        catch (_: SessionException.InvalidAgentSecret) {
+                        } catch (_: SessionException.InvalidAgentSecret) {
                             call.respond(HttpStatusCode.Unauthorized)
                         }
                     }
@@ -69,10 +71,9 @@ fun Route.mcpRoutes(sessionManager: LocalSessionManager) {
         hidden = true
     }) {
         try {
-            val agentLocator = sessionManager.locateAgent(it.agentSecret)
+            val agentLocator = localSessionManager.locateAgent(it.agentSecret)
             agentLocator.agent.handlePostMessage(call)
-        }
-        catch (_: SessionException.InvalidAgentSecret) {
+        } catch (_: SessionException.InvalidAgentSecret) {
             throw RouteException(HttpStatusCode.Unauthorized, "Invalid agent secret")
         }
     }

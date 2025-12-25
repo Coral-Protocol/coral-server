@@ -40,8 +40,7 @@ class LocalSession(
     override val paymentSessionId: PaymentSessionId? = null,
     val namespace: LocalSessionNamespace,
     agentGraph: AgentGraph,
-    sessionManager: LocalSessionManager,
-    mcpToolManager: McpToolManager
+    sessionManager: LocalSessionManager
 ) : Session(sessionManager.managementScope, sessionManager.supervisedSessions) {
     val timestamp = System.currentTimeMillis()
 
@@ -51,7 +50,7 @@ class LocalSession(
      * delay between orchestration and an MCP connection between the agent and the agent state.
      */
     val agents: Map<UniqueAgentName, SessionAgent> = agentGraph.agents.map { (_, graphAgent) ->
-        graphAgent.name to SessionAgent(this, graphAgent, namespace, sessionManager, mcpToolManager)
+        graphAgent.name to SessionAgent(this, graphAgent, namespace, sessionManager)
     }.toMap()
 
     /**

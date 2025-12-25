@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.server
+package org.coralprotocol.coralserver.modules.ktor
 
 import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.OpenApi
@@ -24,7 +24,7 @@ import io.ktor.serialization.kotlinx.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
-import io.ktor.server.plugins.calllogging.CallLogging
+import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
 import io.ktor.server.plugins.statuspages.*
@@ -36,8 +36,8 @@ import io.ktor.server.sessions.*
 import io.ktor.server.sse.*
 import io.ktor.server.websocket.*
 import kotlinx.serialization.json.Json
-import org.coralprotocol.coralserver.agent.registry.AgentRegistry
-import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.config.AuthConfig
+import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.events.LocalSessionManagerEvent
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.mcp.McpResourceName
@@ -47,23 +47,22 @@ import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
 import org.coralprotocol.coralserver.routes.ui.consoleUi
 import org.coralprotocol.coralserver.routes.ui.documentationInterface
 import org.coralprotocol.coralserver.routes.ws.v1.eventRoutes
+import org.coralprotocol.coralserver.server.AuthSession
+import org.coralprotocol.coralserver.routes.RouteException
+import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionException
-import org.coralprotocol.coralserver.util.ScopedFlow
-import org.coralprotocol.payment.blockchain.BlockchainService
-import org.coralprotocol.payment.blockchain.X402Service
+import org.koin.ktor.ext.inject
 import org.slf4j.event.Level
 import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 
-fun Application.coralServerModule(
-    config: Config,
-    localSessionManager: LocalSessionManager,
-    registry: AgentRegistry,
-    x402Service: X402Service? = null,
-    blockchainService: BlockchainService? = null
-) {
+fun Application.coralServerModule() {
+    val networkConfig by inject<NetworkConfig>()
+    val authConfig by inject<AuthConfig>()
+    val localSessionManager by inject<LocalSessionManager>()
+
     install(OpenApi) {
         info {
             title = "Coral Server API"
@@ -142,8 +141,6 @@ fun Application.coralServerModule(
         maxFrameSize = Long.MAX_VALUE
         masking = false
     }
-
-    // TODO: probably restrict this down the line
     install(CORS) {
         allowMethod(HttpMethod.Options)
         allowMethod(HttpMethod.Post)
@@ -154,7 +151,7 @@ fun Application.coralServerModule(
         allowHeader(HttpHeaders.Authorization)
         allowCredentials = true
 
-        if (config.networkConfig.allowAnyHost)
+        if (networkConfig.allowAnyHost)
             anyHost()
     }
     install(StatusPages) {
@@ -177,8 +174,7 @@ fun Application.coralServerModule(
             val response = call.response.status()
             if (response != null) {
                 "${call.request.httpMethod} ${call.request.uri} - $response"
-            }
-            else {
+            } else {
                 "${call.request.httpMethod} ${call.request.uri}"
             }
         }
@@ -186,7 +182,7 @@ fun Application.coralServerModule(
     install(Authentication) {
         bearer("token") {
             authenticate { credential ->
-                if (!config.auth.keys.contains(credential.token))
+                if (!authConfig.keys.contains(credential.token))
                     return@authenticate null
             }
         }
@@ -204,7 +200,7 @@ fun Application.coralServerModule(
 
         session<AuthSession.Token>("authSessionToken") {
             validate {
-                config.auth.keys.contains(it.token)
+                authConfig.keys.contains(it.token)
             }
         }
     }
@@ -216,30 +212,25 @@ fun Application.coralServerModule(
     }
     routing {
         authenticate("token", "authSessionToken") {
-            sessionApi(registry, localSessionManager)
-            registryApi(registry)
-            puppetApi(localSessionManager)
+            sessionApi()
+            registryApi()
+            puppetApi()
         }
 
         authenticate("agentSecret") {
-            agentRpcApi(localSessionManager, x402Service)
+            agentRpcApi()
         }
 
         // safe interfaces, not subject to auth
-        agentRentalApi(
-            config.paymentConfig.remoteAgentWallet,
-            registry,
-            blockchainService,
-            null
-        )
+        agentRentalApi()
         documentationInterface()
 
         // custom auth
-        authApi(config)
+        authApi()
 
         // url-based auth
-        mcpRoutes(localSessionManager)
-        eventRoutes(config, localSessionManager)
+        mcpRoutes()
+        eventRoutes()
 
         // source of truth for OpenAPI docs/codegen
         route("api_v1.json") { openApi("v1") }

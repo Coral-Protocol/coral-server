@@ -16,6 +16,8 @@ import kotlinx.serialization.json.put
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
+import org.coralprotocol.coralserver.config.NetworkConfig
+import org.coralprotocol.coralserver.config.SessionConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.LoggerWithFlow
 import org.coralprotocol.coralserver.mcp.McpInstructionSnippet
@@ -25,6 +27,9 @@ import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.session.state.SessionAgentState
 import org.coralprotocol.coralserver.util.ConcurrentMutableList
 import org.coralprotocol.coralserver.x402.X402BudgetedResource
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
+import org.koin.core.component.inject
 
 typealias SessionAgentSecret = String
 
@@ -45,8 +50,7 @@ class SessionAgent(
     val session: LocalSession,
     val graphAgent: GraphAgent,
     namespace: LocalSessionNamespace,
-    sessionManager: LocalSessionManager,
-    val mcpToolManager: McpToolManager
+    sessionManager: LocalSessionManager
 ) : Server(
     Implementation(
         name = "Coral Agent Server",
@@ -59,7 +63,10 @@ class SessionAgent(
             tools = ServerCapabilities.Tools(listChanged = true),
         )
     ),
-) {
+), KoinComponent {
+    private val networkConfig by inject<NetworkConfig>()
+    private val sessionConfig by inject<SessionConfig>()
+
     val coroutineScope: CoroutineScope = session.sessionScope
 
     /**
@@ -71,22 +78,6 @@ class SessionAgent(
      * A unique secret for this agent, this is used to authenticate agent -> server communication
      */
     val secret: SessionAgentSecret = sessionManager.issueAgentSecret(session, namespace, this)
-
-    /**
-     * LocalSessionManager's copy of the custom tool secret.  This is used to generate signatures for custom tool requests
-     * made by this agent
-     */
-    val customToolSecret = sessionManager.config.networkConfig.customToolSecret
-
-    /**
-     * LocalSessionManager's http client
-     */
-    val httpClient = sessionManager.httpClient
-
-    /**
-     * LocalSessionManager's config
-     */
-    val config = sessionManager.config
 
     /**
      * Default description, this description may be changed when the agent connects to the MCP server and specifies a
@@ -135,7 +126,7 @@ class SessionAgent(
      * Everything to do with running this agent is done in this class.
      * @see SessionAgentExecutionContext
      */
-    private val executionContext = SessionAgentExecutionContext(this, sessionManager.applicationRuntimeContext)
+    private val executionContext = SessionAgentExecutionContext(this, get())
 
     /**
      * A list of all required instruction snippets.  This list is populated by calls to [addMcpTool].  The snippets are
@@ -150,6 +141,7 @@ class SessionAgent(
         get() = executionContext.usageReports.toList()
 
     init {
+        val mcpToolManager: McpToolManager = get()
         addMcpTool(mcpToolManager.createThreadTool)
         addMcpTool(mcpToolManager.closeThreadTool)
         addMcpTool(mcpToolManager.addParticipantTool)
@@ -303,7 +295,7 @@ class SessionAgent(
      */
     suspend fun waitForMessage(
         filters: Set<SessionThreadMessageFilter> = setOf(),
-        timeoutMs: Long = config.localSession.defaultWaitTimeout
+        timeoutMs: Long = sessionConfig.defaultWaitTimeout
     ): SessionThreadMessage? {
         return withTimeoutOrNull(timeoutMs) {
             val waiter = SessionAgentWaiter(filters)

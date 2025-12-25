@@ -9,10 +9,12 @@ import org.coralprotocol.coralserver.agent.registry.UnresolvedAgentExportSetting
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.buildFullOption
+import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.mcp.tools.SendMessageInput
 import org.coralprotocol.coralserver.mcp.tools.WaitForSingleMessageInput
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.SessionAgent
+import org.koin.core.component.inject
 
 class EchoDebugAgent(client: HttpClient) : DebugAgent(client) {
     override val companion: DebugAgentIdHolder
@@ -53,6 +55,8 @@ class EchoDebugAgent(client: HttpClient) : DebugAgent(client) {
     override val exportSettings: UnresolvedAgentExportSettingsMap
         get() = genericExportSettings
 
+    private val mcpToolManager by inject<McpToolManager>()
+
     override suspend fun execute(
         client: Client,
         session: LocalSession,
@@ -68,11 +72,11 @@ class EchoDebugAgent(client: HttpClient) : DebugAgent(client) {
 
         repeat(iterationCount.toInt()) {
             while (true) {
-                val msg = agent.mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput)
+                val msg = mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput)
                     .message
 
                 if (msg != null && (!mentions || msg.mentionNames.contains(agent.name)) && (fromAgent == null || msg.senderName == fromAgent)) {
-                    agent.mcpToolManager.sendMessageTool.executeOn(
+                    mcpToolManager.sendMessageTool.executeOn(
                         client,
                         SendMessageInput(msg.threadId, "nice message!", setOf(msg.senderName))
                     )

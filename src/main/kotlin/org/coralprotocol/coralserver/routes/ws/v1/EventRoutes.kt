@@ -7,14 +7,15 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import io.ktor.server.websocket.*
-import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.config.AuthConfig
 import org.coralprotocol.coralserver.routes.WsV1
 import org.coralprotocol.coralserver.server.AuthSession
-import org.coralprotocol.coralserver.server.RouteException
+import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionException
 import org.coralprotocol.coralserver.session.SessionId
 import org.coralprotocol.coralserver.util.toWsFrame
+import org.koin.ktor.ext.inject
 
 @Resource("events")
 class Events(val parent: WsV1 = WsV1()) {
@@ -35,10 +36,10 @@ class Events(val parent: WsV1 = WsV1()) {
     class LsmEvents(val parent: Events)
 }
 
-fun Route.eventRoutes(
-    config: Config,
-    localSessionManager: LocalSessionManager
-) {
+fun Route.eventRoutes() {
+    val localSessionManager by inject<LocalSessionManager>()
+    val config by inject<AuthConfig>()
+
     suspend fun RoutingContext.handleSessionEvents(namespace: String, sessionId: SessionId) {
         val session = try {
             val namespace = localSessionManager.getSessions(namespace)
@@ -71,7 +72,7 @@ fun Route.eventRoutes(
     get<Events.WithToken.SessionEvents>({
         hidden = true
     }) { path ->
-        if (!config.auth.keys.contains(path.parent.token))
+        if (!config.keys.contains(path.parent.token))
             throw RouteException(HttpStatusCode.Unauthorized, "Invalid token")
 
         handleSessionEvents(path.namespace, path.sessionId)
@@ -89,7 +90,7 @@ fun Route.eventRoutes(
     get<Events.WithToken.LsmEvents>({
         hidden = true
     }) { path ->
-        if (!config.auth.keys.contains(path.parent.token))
+        if (!config.keys.contains(path.parent.token))
             throw RouteException(HttpStatusCode.Unauthorized, "Invalid token")
 
         handleServerEvents(call.queryParameters["namespace"])

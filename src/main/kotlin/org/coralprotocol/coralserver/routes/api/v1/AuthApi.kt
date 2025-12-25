@@ -7,10 +7,12 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
-import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.config.AuthConfig
+import org.coralprotocol.coralserver.config.RootConfig
 import org.coralprotocol.coralserver.routes.ApiV1
 import org.coralprotocol.coralserver.server.AuthSession
-import org.coralprotocol.coralserver.server.RouteException
+import org.coralprotocol.coralserver.routes.RouteException
+import org.koin.ktor.ext.inject
 
 @Resource("auth")
 class Auth(val parent: ApiV1 = ApiV1()) {
@@ -19,12 +21,14 @@ class Auth(val parent: ApiV1 = ApiV1()) {
     class Token(val parent: Auth = Auth())
 }
 
-fun Route.authApi(config: Config) {
+fun Route.authApi() {
+    val config by inject<AuthConfig>()
+
     post<Auth.Token>({
         hidden = true
     }) { path ->
         val token = call.receiveParameters()["token"]
-        if (token == null || !config.auth.keys.contains(token))
+        if (token == null || !config.keys.contains(token))
             throw RouteException(HttpStatusCode.Unauthorized, "Invalid token")
 
         call.sessions.set(AuthSession.Token(token))

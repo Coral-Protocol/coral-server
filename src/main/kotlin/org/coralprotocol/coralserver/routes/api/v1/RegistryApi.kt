@@ -7,7 +7,8 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.routes.ApiV1
-import org.coralprotocol.coralserver.server.RouteException
+import org.coralprotocol.coralserver.routes.RouteException
+import org.koin.ktor.ext.inject
 
 @Resource("registry")
 class Registry(val parent: ApiV1 = ApiV1()) {
@@ -26,7 +27,9 @@ class Registry(val parent: ApiV1 = ApiV1()) {
     )
 }
 
-fun Route.registryApi(registry: AgentRegistry) {
+fun Route.registryApi() {
+    val registry by inject<AgentRegistry>()
+    
     get<Registry>({
         summary = "Get registry agents"
         description = "Returns a list of all agents available in this servers registry"

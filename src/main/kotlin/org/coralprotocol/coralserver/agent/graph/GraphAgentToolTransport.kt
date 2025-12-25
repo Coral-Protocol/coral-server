@@ -3,6 +3,7 @@
 package org.coralprotocol.coralserver.agent.graph
 
 import io.github.smiley4.schemakenerator.core.annotations.Optional
+import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -13,13 +14,17 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
+import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.session.SessionAgent
 import org.coralprotocol.coralserver.util.CORAL_SIGNATURE_HEADER
 import org.coralprotocol.coralserver.util.addJsonBodyWithSignature
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+
 
 @Serializable
 @JsonClassDiscriminator("type")
-sealed interface GraphAgentToolTransport {
+sealed interface GraphAgentToolTransport : KoinComponent {
     suspend fun execute(
         name: String,
         agent: SessionAgent,
@@ -34,15 +39,18 @@ sealed interface GraphAgentToolTransport {
         @Optional
         val signatureHeader: String = CORAL_SIGNATURE_HEADER,
     ) : GraphAgentToolTransport {
+        private val client by inject<HttpClient>()
+        private val config by inject<NetworkConfig>()
+
         override suspend fun execute(
             name: String,
             agent: SessionAgent,
             request: CallToolRequest,
         ): CallToolResult {
             try {
-                val response = agent.httpClient.post(url) {
+                val response = client.post(url) {
                     contentType(ContentType.Application.Json)
-                    addJsonBodyWithSignature(agent.customToolSecret, request.arguments, signatureHeader)
+                    addJsonBodyWithSignature(config.customToolSecret, request.arguments, signatureHeader)
 
                     header("X-Coral-Namespace", agent.session.namespace.name)
                     header("X-Coral-SessionId", agent.session.id)

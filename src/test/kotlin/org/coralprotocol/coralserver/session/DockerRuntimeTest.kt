@@ -21,7 +21,7 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.runtime.DockerRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
-import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.config.RootConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.LogMessage
 import java.time.Duration
@@ -43,7 +43,7 @@ class DockerRuntimeTest : FunSpec({
     fun isDockerAvailable(testCase: TestCase): Boolean {
         try {
             // sessionTest will not configure Docker past the defaults
-            val config = Config()
+            val config = RootConfig()
 
             val dockerClientConfig: DockerClientConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
                 .withDockerHost(config.dockerConfig.socket)

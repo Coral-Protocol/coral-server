@@ -13,12 +13,13 @@ import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.SessionAgent
 import org.coralprotocol.coralserver.util.mcpFunctionRuntime
+import org.koin.core.component.KoinComponent
 
 interface DebugAgentIdHolder {
     val identifier: RegistryAgentIdentifier
 }
 
-abstract class DebugAgent(val client: HttpClient) {
+abstract class DebugAgent(protected val client: HttpClient) : KoinComponent {
     abstract val companion: DebugAgentIdHolder
     abstract val options: Map<String, AgentOption>
     abstract val description: String

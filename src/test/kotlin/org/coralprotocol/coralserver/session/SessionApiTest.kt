@@ -35,7 +35,7 @@ import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.routes.api.v1.BasicNamespace
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
-import org.coralprotocol.coralserver.server.RouteException
+import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.models.*
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
