@@ -1,14 +1,10 @@
 package org.coralprotocol.coralserver.util
 
 import io.ktor.websocket.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.channels.ReceiveChannel
-import kotlinx.coroutines.channels.produce
-import org.coralprotocol.coralserver.server.apiJsonConfig
+import kotlinx.serialization.json.Json
 
-inline fun <reified T> T.toWsFrame(): Frame.Text =
-    Frame.Text(apiJsonConfig.encodeToString(this))
+inline fun <reified T> T.toWsFrame(json: Json): Frame.Text =
+    Frame.Text(json.encodeToString(this))
 
-inline fun <reified T> Frame.Text.fromWsFrame(): T =
-    apiJsonConfig.decodeFromString(this.data.decodeToString())
+inline fun <reified T> Frame.Text.fromWsFrame(json: Json): T =
+    json.decodeFromString(this.data.decodeToString())

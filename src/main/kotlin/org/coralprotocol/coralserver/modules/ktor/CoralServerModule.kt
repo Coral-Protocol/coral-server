@@ -42,14 +42,13 @@ import org.coralprotocol.coralserver.events.LocalSessionManagerEvent
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.mcp.McpResourceName
 import org.coralprotocol.coralserver.mcp.McpToolName
+import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.routes.api.v1.*
 import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
 import org.coralprotocol.coralserver.routes.ui.consoleUi
 import org.coralprotocol.coralserver.routes.ui.documentationInterface
 import org.coralprotocol.coralserver.routes.ws.v1.eventRoutes
 import org.coralprotocol.coralserver.server.AuthSession
-import org.coralprotocol.coralserver.routes.RouteException
-import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionException
 import org.koin.ktor.ext.inject
@@ -62,6 +61,7 @@ fun Application.coralServerModule() {
     val networkConfig by inject<NetworkConfig>()
     val authConfig by inject<AuthConfig>()
     val localSessionManager by inject<LocalSessionManager>()
+    val json by inject<Json>()
 
     install(OpenApi) {
         info {
@@ -132,7 +132,7 @@ fun Application.coralServerModule() {
     install(Resources)
     install(SSE)
     install(ContentNegotiation) {
-        json(apiJsonConfig, contentType = ContentType.Application.Json)
+        json(json, contentType = ContentType.Application.Json)
     }
     install(WebSockets) {
         contentConverter = KotlinxWebsocketSerializationConverter(Json)

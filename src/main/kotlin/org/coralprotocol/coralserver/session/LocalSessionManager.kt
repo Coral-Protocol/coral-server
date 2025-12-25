@@ -4,6 +4,7 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.*
+import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.toRemote
@@ -48,6 +49,7 @@ class LocalSessionManager(
     private val jupiterService: JupiterService,
     private val httpClient: HttpClient,
     private val config: NetworkConfig,
+    private val json: Json,
     val managementScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     val supervisedSessions: Boolean = true,
 ) {
@@ -246,6 +248,7 @@ class LocalSessionManager(
             managementScope.launch {
                 httpClient.post(settings.webhooks.sessionEnd.url) {
                     addJsonBodyWithSignature(
+                        json,
                         config.webhookSecret, SessionEndReport(
                             session.timestamp, System.currentTimeMillis(),
                             namespace = session.namespace.name,

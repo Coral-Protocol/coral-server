@@ -14,12 +14,12 @@ import io.ktor.server.auth.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.payment.AgentPaymentClaimRequest
 import org.coralprotocol.coralserver.agent.payment.AgentRemainingBudget
 import org.coralprotocol.coralserver.payment.BlankX402Service
 import org.coralprotocol.coralserver.routes.ApiV1
 import org.coralprotocol.coralserver.routes.RouteException
-import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.SessionAgent
 import org.coralprotocol.coralserver.x402.X402PaymentRequired
 import org.coralprotocol.coralserver.x402.X402ProxiedResponse
@@ -39,6 +39,7 @@ class Rpc(val parent: ApiV1 = ApiV1()) {
 
 fun Route.agentRpcApi() {
     val x402Service by inject<X402Service>()
+    val json by inject<Json>()
 
     post<Rpc.RentalClaim>({
         summary = "Submit rental agent claim"
@@ -139,7 +140,7 @@ fun Route.agentRpcApi() {
         }
 
         if (response.status == HttpStatusCode.PaymentRequired) {
-            val response = apiJsonConfig.decodeFromString<X402PaymentRequired>(response.bodyAsText())
+            val response = json.decodeFromString<X402PaymentRequired>(response.bodyAsText())
             val orderedBudgetResources = agent.x402BudgetedResources.sortedBy { it.priority }
 
             val (budgetedResource, paymentRequirement) = orderedBudgetResources.firstNotNullOfOrNull { budgetedResource ->
@@ -165,7 +166,7 @@ fun Route.agentRpcApi() {
             //logger.info { "agent ${agent.name} consumed ${paymentRequirement.maxAmountRequired.toULong()} from their x402 budgeted resource ${budgetedResource.resource}.  ${budgetedResource.remainingBudget} remains." }
 
             call.respondText(
-                apiJsonConfig.encodeToString(
+                json.encodeToString(
                     X402ProxiedResponse(
                         code = 200, // todo: use the service's actual response code
                         body = result.responseBody
@@ -174,7 +175,7 @@ fun Route.agentRpcApi() {
             )
         } else {
             call.respondText(
-                apiJsonConfig.encodeToString(
+                json.encodeToString(
                     X402ProxiedResponse(
                         code = response.status.value,
                         body = response.body()

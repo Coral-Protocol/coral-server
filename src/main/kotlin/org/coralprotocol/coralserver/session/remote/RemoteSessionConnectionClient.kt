@@ -4,28 +4,31 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.websocket.*
 import io.modelcontextprotocol.kotlin.sdk.JSONRPCMessage
 import io.modelcontextprotocol.kotlin.sdk.shared.AbstractTransport
+import kotlinx.serialization.json.Json
 
 private val logger = KotlinLogging.logger { }
 
 class RemoteSessionConnectionClient(
-    val session: WebSocketSession
-): AbstractTransport() {
+    private val session: WebSocketSession
+) : AbstractTransport() {
     override suspend fun start() {
-        logger.debug { "Starting RemoteSessionClient" }
-
-        for (frame in session.incoming) {
-            if (frame !is Frame.Text)
-                continue
-
-            when (val rsf = frame.toSessionFrame()) {
-                is RemoteSessionFrame.Sse -> _onMessage(rsf.message)
-            }
-        }
+        TODO()
+//        logger.debug { "Starting RemoteSessionClient" }
+//
+//        for (frame in session.incoming) {
+//            if (frame !is Frame.Text)
+//                continue
+//
+//            when (val rsf = frame.toSessionFrame(json)) {
+//                is RemoteSessionFrame.Sse -> _onMessage(rsf.message)
+//            }
+//        }
     }
 
     override suspend fun send(message: JSONRPCMessage) {
-        val frame = message.toWsFrame()
-        session.outgoing.send(frame)
+        TODO()
+//        val frame = message.toWsFrame(json)
+//        session.outgoing.send(frame)
     }
 
     override suspend fun close() {

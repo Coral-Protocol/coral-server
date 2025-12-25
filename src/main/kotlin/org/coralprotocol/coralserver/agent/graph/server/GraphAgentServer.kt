@@ -14,12 +14,14 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
 import org.coralprotocol.coralserver.agent.registry.PublicAgentExportSettingsMap
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
-import org.coralprotocol.coralserver.routes.api.v1.AgentRental
 import org.coralprotocol.coralserver.routes.RouteException
-import org.coralprotocol.coralserver.server.apiJsonConfig
+import org.coralprotocol.coralserver.routes.api.v1.AgentRental
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * This class represents another Coral server, or any server capable of providing remote agents... which is for right
@@ -31,12 +33,14 @@ class GraphAgentServer (
     val port: UShort,
     val secure: Boolean, // true = https, false = http
     val attributes: List<GraphAgentServerAttribute>
-)  {
+) : KoinComponent {
+    private val json by inject<Json>()
+
     @Transient
     private val client = HttpClient(CIO) {
         install(Resources)
         install(ContentNegotiation) {
-            json(apiJsonConfig)
+            json(json)
         }
         install(HttpTimeout) {
             requestTimeoutMillis = 30_000
@@ -64,7 +68,7 @@ class GraphAgentServer (
             return body
         }
         else {
-            throw apiJsonConfig.decodeFromString<RouteException>(body)
+            throw json.decodeFromString<RouteException>(body)
         }
     }
 
@@ -111,7 +115,7 @@ class GraphAgentServer (
             return body // claim ID
         }
         else {
-            throw apiJsonConfig.decodeFromString<RouteException>(body)
+            throw json.decodeFromString<RouteException>(body)
         }
     }
 }

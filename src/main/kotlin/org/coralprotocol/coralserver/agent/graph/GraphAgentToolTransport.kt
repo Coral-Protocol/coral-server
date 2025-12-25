@@ -13,6 +13,7 @@ import io.modelcontextprotocol.kotlin.sdk.TextContent
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.session.SessionAgent
@@ -41,6 +42,7 @@ sealed interface GraphAgentToolTransport : KoinComponent {
     ) : GraphAgentToolTransport {
         private val client by inject<HttpClient>()
         private val config by inject<NetworkConfig>()
+        private val json by inject<Json>()
 
         override suspend fun execute(
             name: String,
@@ -50,7 +52,7 @@ sealed interface GraphAgentToolTransport : KoinComponent {
             try {
                 val response = client.post(url) {
                     contentType(ContentType.Application.Json)
-                    addJsonBodyWithSignature(config.customToolSecret, request.arguments, signatureHeader)
+                    addJsonBodyWithSignature(json, config.customToolSecret, request.arguments, signatureHeader)
 
                     header("X-Coral-Namespace", agent.session.namespace.name)
                     header("X-Coral-SessionId", agent.session.id)

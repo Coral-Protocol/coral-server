@@ -5,15 +5,16 @@ import io.modelcontextprotocol.kotlin.sdk.*
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import kotlinx.coroutines.delay
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.agent.registry.UnresolvedAgentExportSettingsMap
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.buildFullOption
-import org.coralprotocol.coralserver.server.apiJsonConfig
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.SessionAgent
+import org.koin.core.component.inject
 
 class ToolDebugAgent(client: HttpClient) : DebugAgent(client) {
     override val companion: DebugAgentIdHolder
@@ -48,6 +49,8 @@ class ToolDebugAgent(client: HttpClient) : DebugAgent(client) {
 
     override val exportSettings: UnresolvedAgentExportSettingsMap
         get() = genericExportSettings
+
+    private val json by inject<Json>()
     
     override suspend fun execute(
         client: Client,
@@ -63,7 +66,7 @@ class ToolDebugAgent(client: HttpClient) : DebugAgent(client) {
 
         try {
             val response =
-                client.callTool(CallToolRequest(toolName, apiJsonConfig.decodeFromString(toolInput)))
+                client.callTool(CallToolRequest(toolName, json.decodeFromString(toolInput)))
 
             if (response == null) {
                 agent.logger.warn("Failed to call tool $toolName: no response")

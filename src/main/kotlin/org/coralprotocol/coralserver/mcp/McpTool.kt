@@ -8,12 +8,10 @@ import io.modelcontextprotocol.kotlin.sdk.client.Client
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.put
-import org.coralprotocol.coralserver.server.apiJsonConfig
+import kotlinx.serialization.json.*
 import org.coralprotocol.coralserver.session.SessionAgent
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 @Serializable
 data class GenericSuccessOutput(val message: String)
@@ -26,12 +24,13 @@ class McpTool<In, Out>(
     private val executor: suspend (agent: SessionAgent, arguments: In) -> Out,
     private val inputSerializer: KSerializer<In>,
     private val outputSerializer: KSerializer<Out>,
-) {
+) : KoinComponent {
+    private val json by inject<Json>()
+
     suspend fun execute(agent: SessionAgent, encodedArguments: JsonObject): CallToolResult {
         val arguments = try {
-            apiJsonConfig.decodeFromJsonElement(inputSerializer, encodedArguments)
-        }
-        catch (e: SerializationException) {
+            json.decodeFromJsonElement(inputSerializer, encodedArguments)
+        } catch (e: SerializationException) {
             agent.logger.error("Couldn't deserialize input given to $name", e)
 
             return CallToolResult(
@@ -45,15 +44,14 @@ class McpTool<In, Out>(
 
         val out = executor(agent, arguments)
         return try {
-            val json = apiJsonConfig.encodeToJsonElement(outputSerializer, out)
+            val jsonObj = json.encodeToJsonElement(outputSerializer, out)
 
             CallToolResult(
-                content = listOf(TextContent(json.toString())),
-                structuredContent = json as? JsonObject,
+                content = listOf(TextContent(jsonObj.toString())),
+                structuredContent = jsonObj as? JsonObject,
                 isError = false
             )
-        }
-        catch (e: McpToolException) {
+        } catch (e: McpToolException) {
             CallToolResult(
                 content = listOf(TextContent(e.message)),
                 structuredContent = buildJsonObject {
@@ -61,8 +59,7 @@ class McpTool<In, Out>(
                 },
                 isError = true,
             )
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             agent.logger.error("Unexpected error occurred while executing tool $name", e)
 
             CallToolResult(
@@ -76,20 +73,20 @@ class McpTool<In, Out>(
     }
 
     suspend fun executeOn(client: Client, arguments: In): Out {
-        val json = apiJsonConfig.encodeToJsonElement(inputSerializer, arguments) as JsonObject
+        val jsonObj = json.encodeToJsonElement(inputSerializer, arguments) as JsonObject
 
         val response =
-            client.callTool(CallToolRequest(name.toString(), json)) ?: throw McpToolException("No response from server")
+            client.callTool(CallToolRequest(name.toString(), jsonObj))
+                ?: throw McpToolException("No response from server")
 
         if (response.isError == true) {
             val errorMsg = response.structuredContent?.get("error")?.jsonPrimitive?.content ?: "Unknown error"
             throw McpToolException(errorMsg)
-        }
-        else {
+        } else {
             val structured = response.structuredContent
                 ?: throw McpToolException("Response missing expected structured content")
 
-            return apiJsonConfig.decodeFromJsonElement(outputSerializer, structured)
+            return json.decodeFromJsonElement(outputSerializer, structured)
                 ?: throw McpToolException("Response did not match expected output type")
         }
     }

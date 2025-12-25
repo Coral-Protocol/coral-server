@@ -7,10 +7,11 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import io.ktor.server.websocket.*
+import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.config.AuthConfig
+import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.routes.WsV1
 import org.coralprotocol.coralserver.server.AuthSession
-import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionException
 import org.coralprotocol.coralserver.session.SessionId
@@ -39,6 +40,7 @@ class Events(val parent: WsV1 = WsV1()) {
 fun Route.eventRoutes() {
     val localSessionManager by inject<LocalSessionManager>()
     val config by inject<AuthConfig>()
+    val json by inject<Json>()
 
     suspend fun RoutingContext.handleSessionEvents(namespace: String, sessionId: SessionId) {
         val session = try {
@@ -51,7 +53,7 @@ fun Route.eventRoutes() {
 
         call.respond(WebSocketUpgrade(call) {
             session.events.collectUntilCanceled {
-                outgoing.send(it.toWsFrame())
+                outgoing.send(it.toWsFrame(json))
             }
         })
     }
@@ -60,10 +62,10 @@ fun Route.eventRoutes() {
         call.respond(WebSocketUpgrade(call) {
             localSessionManager.events.collectUntilCanceled {
                 if (namespaceFilter == null) {
-                    outgoing.send(it.toWsFrame())
+                    outgoing.send(it.toWsFrame(json))
                 } else {
                     if (it.namespace == namespaceFilter)
-                        outgoing.send(it.toWsFrame())
+                        outgoing.send(it.toWsFrame(json))
                 }
             }
         })
