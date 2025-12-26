@@ -12,7 +12,8 @@ val sessionModule = module {
             blockchainService = get(),
             jupiterService = get(),
             httpClient = get(),
-            config = get()
+            config = get(),
+            json = get()
         )
     }
 }
