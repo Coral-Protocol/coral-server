@@ -20,12 +20,12 @@ data class AgentGraph(
     /**
      * @see AgentGraphRequest.customTools
      */
-    val customTools: Map<UniqueAgentName, GraphAgentTool>,
+    val customTools: Map<UniqueAgentName, GraphAgentTool> = mapOf(),
 
     /**
      * @see AgentGraphRequest.groups
      */
-    val groups: Set<Set<UniqueAgentName>>,
+    val groups: Set<Set<UniqueAgentName>> = setOf(),
 ) {
     fun toPayment(): AgentGraphPayment {
         return AgentGraphPayment(
