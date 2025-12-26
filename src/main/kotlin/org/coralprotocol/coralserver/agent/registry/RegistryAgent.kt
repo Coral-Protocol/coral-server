@@ -31,7 +31,7 @@ data class RegistryAgent(
     val path: Path? = null,
 
     @Transient
-    private val unresolvedExportSettings: UnresolvedAgentExportSettingsMap = mapOf(),
+    private val unresolvedExportSettings: Map<RuntimeId, UnresolvedAgentExportSettings> = mapOf(),
 ) {
     @Transient
     val description = info.description
@@ -88,7 +88,7 @@ fun RegistryAgent.toPublic(): PublicRegistryAgent = PublicRegistryAgent(
 fun resolveRegistryAgentFromStream(
     file: File,
     context: RegistryResolutionContext,
-    exportSettings: UnresolvedAgentExportSettingsMap
+    exportSettings: Map<RuntimeId, UnresolvedAgentExportSettings>
 ): RegistryAgent {
     val unresolved = toml.decodeFromNativeReader<UnresolvedInlineRegistryAgent>(file.reader())
 //    if (!context.config.securityConfig.enableReferencedExporting) {

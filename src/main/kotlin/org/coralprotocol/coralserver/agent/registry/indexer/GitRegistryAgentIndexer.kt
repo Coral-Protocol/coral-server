@@ -4,6 +4,7 @@ import com.github.syari.kgit.KGit
 import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.*
+import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.CacheConfig
 import org.coralprotocol.coralserver.config.RootConfig
 import org.eclipse.jgit.api.ResetCommand
@@ -26,7 +27,7 @@ data class GitRegistryAgentIndexer(
 
     override fun resolveAgent(
         context: RegistryResolutionContext,
-        exportSettings: UnresolvedAgentExportSettingsMap,
+        exportSettings: Map<RuntimeId, UnresolvedAgentExportSettings>,
         indexerName: String,
         agentName: String,
         version: String
@@ -44,8 +45,7 @@ data class GitRegistryAgentIndexer(
                 context = context,
                 exportSettings = exportSettings
             )
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             logger.error { "Could not parse agent $agentName provided by indexer $indexerName ($agentTomlFile)" }
             throw e
         }
@@ -62,8 +62,7 @@ data class GitRegistryAgentIndexer(
                     setURI(url)
                     setTimeout(60)
                 }
-            }
-            else {
+            } else {
                 KGit.open(path.toFile())
             }
 
@@ -79,8 +78,7 @@ data class GitRegistryAgentIndexer(
             repo.submoduleUpdate {
                 setFetch(true)
             }
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             throw RegistryException("Error while updating indexer $indexerName: $e")
         }
     }

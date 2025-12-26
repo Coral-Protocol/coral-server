@@ -2,7 +2,8 @@ package org.coralprotocol.coralserver.agent.registry.indexer
 
 import org.coralprotocol.coralserver.agent.registry.RegistryAgent
 import org.coralprotocol.coralserver.agent.registry.RegistryResolutionContext
-import org.coralprotocol.coralserver.agent.registry.UnresolvedAgentExportSettingsMap
+import org.coralprotocol.coralserver.agent.registry.UnresolvedAgentExportSettings
+import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.RootConfig
 
 data class NamedRegistryAgentIndexer(
@@ -11,7 +12,7 @@ data class NamedRegistryAgentIndexer(
 ) {
     fun resolveAgent(
         context: RegistryResolutionContext,
-        exportSettings: UnresolvedAgentExportSettingsMap,
+        exportSettings: Map<RuntimeId, UnresolvedAgentExportSettings>,
         agentName: String,
         version: String
     ): RegistryAgent {

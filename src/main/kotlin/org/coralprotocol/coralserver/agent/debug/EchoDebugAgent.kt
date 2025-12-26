@@ -5,10 +5,11 @@ import io.modelcontextprotocol.kotlin.sdk.client.Client
 import kotlinx.coroutines.delay
 import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
-import org.coralprotocol.coralserver.agent.registry.UnresolvedAgentExportSettingsMap
+import org.coralprotocol.coralserver.agent.registry.UnresolvedAgentExportSettings
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.buildFullOption
+import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.mcp.tools.SendMessageInput
 import org.coralprotocol.coralserver.mcp.tools.WaitForSingleMessageInput
@@ -52,7 +53,7 @@ class EchoDebugAgent(client: HttpClient) : DebugAgent(client) {
     override val description: String
         get() = "For each iteration this agent will wait for a message that matches the specified options and respond to it.  Exits when the iteration count is exhausted."
 
-    override val exportSettings: UnresolvedAgentExportSettingsMap
+    override val exportSettings: Map<RuntimeId, UnresolvedAgentExportSettings>
         get() = genericExportSettings
 
     private val mcpToolManager by inject<McpToolManager>()

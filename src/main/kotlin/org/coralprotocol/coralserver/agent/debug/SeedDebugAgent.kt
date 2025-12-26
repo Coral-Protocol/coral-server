@@ -5,11 +5,12 @@ import io.modelcontextprotocol.kotlin.sdk.client.Client
 import kotlinx.coroutines.delay
 import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
-import org.coralprotocol.coralserver.agent.registry.UnresolvedAgentExportSettingsMap
+import org.coralprotocol.coralserver.agent.registry.UnresolvedAgentExportSettings
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.UIntAgentOptionValidation
 import org.coralprotocol.coralserver.agent.registry.option.buildFullOption
+import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.mcp.tools.CreateThreadInput
 import org.coralprotocol.coralserver.mcp.tools.SendMessageInput
@@ -63,7 +64,7 @@ class SeedDebugAgent(client: HttpClient) : DebugAgent(client) {
     override val description: String
         get() = "Seeds a session with a configurable amount of threads and messages.  After all threads and messages were created and sent this agent will exit."
 
-    override val exportSettings: UnresolvedAgentExportSettingsMap
+    override val exportSettings: Map<RuntimeId, UnresolvedAgentExportSettings>
         get() = genericExportSettings
 
     private val mcpToolManager by inject<McpToolManager>()

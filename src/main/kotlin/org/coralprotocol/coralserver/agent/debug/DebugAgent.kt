@@ -23,7 +23,7 @@ abstract class DebugAgent(protected val client: HttpClient) : KoinComponent {
     abstract val companion: DebugAgentIdHolder
     abstract val options: Map<String, AgentOption>
     abstract val description: String
-    abstract val exportSettings: UnresolvedAgentExportSettingsMap
+    abstract val exportSettings: Map<RuntimeId, UnresolvedAgentExportSettings>
     val genericExportSettings = mapOf(
         RuntimeId.FUNCTION to UnresolvedAgentExportSettings(
             quantity = 1u,

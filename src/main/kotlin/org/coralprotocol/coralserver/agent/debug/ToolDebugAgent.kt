@@ -8,10 +8,11 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
-import org.coralprotocol.coralserver.agent.registry.UnresolvedAgentExportSettingsMap
+import org.coralprotocol.coralserver.agent.registry.UnresolvedAgentExportSettings
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.buildFullOption
+import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.SessionAgent
 import org.koin.core.component.inject
@@ -47,11 +48,11 @@ class ToolDebugAgent(client: HttpClient) : DebugAgent(client) {
     override val description: String
         get() = "After an optional delay, this agent will execute a single tool and then exit"
 
-    override val exportSettings: UnresolvedAgentExportSettingsMap
+    override val exportSettings: Map<RuntimeId, UnresolvedAgentExportSettings>
         get() = genericExportSettings
 
     private val json by inject<Json>()
-    
+
     override suspend fun execute(
         client: Client,
         session: LocalSession,

@@ -8,8 +8,6 @@ import org.coralprotocol.coralserver.agent.registry.option.requireValue
 import org.coralprotocol.coralserver.agent.registry.option.withValue
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 
-typealias UnresolvedAgentExportSettingsMap = Map<RuntimeId, UnresolvedAgentExportSettings>
-
 @Serializable
 data class UnresolvedAgentExportSettings(
     val quantity: UInt,
@@ -37,8 +35,7 @@ data class UnresolvedAgentExportSettings(
 
             try {
                 option.withValue(optionValue).requireValue()
-            }
-            catch (e: AgentOptionValidationException) {
+            } catch (e: AgentOptionValidationException) {
                 throw RegistryException("Value given for option \"$optionName\" in \"${agent.identifier}\" is invalid: ${e.message}")
             }
         }
