@@ -18,6 +18,7 @@ fun main(args: Array<String>) {
         logger(PrintLogger())
         modules(
             configModule,
+            configModuleParts,
             blockchainModule,
             networkModule,
             agentModule,

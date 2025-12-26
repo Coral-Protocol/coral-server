@@ -19,7 +19,9 @@ val configModule = module {
         val config = loader.build().loadConfigOrThrow<RootConfig>()
         config
     }
+}
 
+val configModuleParts = module {
     single<AuthConfig> { get<RootConfig>().authConfig }
     single<CacheConfig> { get<RootConfig>().cacheConfig }
     single<DebugConfig> { get<RootConfig>().debugConfig }
