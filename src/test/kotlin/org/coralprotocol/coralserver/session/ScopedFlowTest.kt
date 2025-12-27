@@ -1,19 +1,16 @@
 package org.coralprotocol.coralserver.session
 
-import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.equals.shouldBeEqual
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withTimeoutOrNull
-import kotlinx.coroutines.yield
+import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.util.ScopedFlow
 import kotlin.time.Duration.Companion.seconds
 
-class ScopedFlowTest : FunSpec({
+class ScopedFlowTest : CoralTest({
     test("testMultipleListeners").config(timeout = 30.seconds) {
         val maxListeners = 10
         val maxMessages = 100

@@ -1,22 +1,19 @@
 package org.coralprotocol.coralserver.registry
 
 import io.kotest.assertions.throwables.shouldNotThrowAny
-import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldHaveSingleElement
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.maps.shouldBeEmpty
 import io.kotest.matchers.maps.shouldNotBeEmpty
+import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.payment.AgentClaimAmount
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
-import org.coralprotocol.coralserver.config.RootConfig
 
-class LocalRegistryTest : FunSpec({
-    val config = RootConfig()
-
+class LocalRegistryTest : CoralTest({
     val testAgentName = "test"
     val testAgentVersion = "1.0.0"
 
@@ -70,7 +67,7 @@ class LocalRegistryTest : FunSpec({
     }
 
     test("testDuplicates") {
-        val registry = AgentRegistry(config) {
+        val registry = AgentRegistry {
             // should not contribute to resolution, should contribute to count
             addSource(MockMarketplaceSource())
 
@@ -99,7 +96,7 @@ class LocalRegistryTest : FunSpec({
     }
 
     test("testExport") {
-        val registry = AgentRegistry(config) {
+        val registry = AgentRegistry {
             addLocalAgents(listOf(testAgent, testExportedAgent), "test agent batch 1")
         }
 

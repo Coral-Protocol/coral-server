@@ -1,66 +1,67 @@
 package org.coralprotocol.coralserver.session
 
 import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.core.spec.style.FunSpec
+import io.ktor.client.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
+import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.mcp.tools.optional.CloseSessionInput
 import org.coralprotocol.coralserver.util.mcpFunctionRuntime
+import org.coralprotocol.coralserver.utils.dsl.graphAgentPair
+import org.koin.test.inject
 
-class McpAgentPluginTest : FunSpec({
+class McpAgentPluginTest : CoralTest({
     test("testCloseSessionTool") {
-        sessionTest {
-            val agent1Name = "agent1"
-            val agent2Name = "agent2"
+        val localSessionManager by inject<LocalSessionManager>()
+        val client by inject<HttpClient>()
+        val mcpToolManager by inject<McpToolManager>()
 
-            val agent2Ready = CompletableDeferred<Unit>()
+        val agent1Name = "agent1"
+        val agent2Name = "agent2"
 
-            val (session, _) = sessionManager.createSession(
-                "test", AgentGraph(
-                    agents = mapOf(
-                        graphAgent(
-                            registryAgent = registryAgent(
-                                name = agent1Name,
-                                functionRuntime = ktor.client.mcpFunctionRuntime(agent1Name, "1.0.0") { client, _ ->
-                                    agent2Ready.await()
-                                    mcpToolManager.closeSessionTool.executeOn(client, CloseSessionInput("Test closure"))
+        val agent2Ready = CompletableDeferred<Unit>()
+
+        val (session, _) = localSessionManager.createSession(
+            "test", AgentGraph(
+                agents = mapOf(
+                    graphAgentPair(agent1Name) {
+                        registryAgent {
+                            runtime(client.mcpFunctionRuntime(name, version) { client, _ ->
+                                agent2Ready.await()
+                                mcpToolManager.closeSessionTool.executeOn(client, CloseSessionInput("Test closure"))
+                            })
+                        }
+                        provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
+                        plugin(GraphAgentPlugin.CloseSessionTool)
+                    },
+                    graphAgentPair(agent2Name) {
+                        registryAgent {
+                            runtime(client.mcpFunctionRuntime(name, version) { client, _ ->
+                                // agent2 does not have the close session plugin installed
+                                shouldThrow<IllegalStateException> {
+                                    mcpToolManager.closeSessionTool.executeOn(
+                                        client,
+                                        CloseSessionInput("Test closure")
+                                    )
                                 }
-                            ),
-                            provider = GraphAgentProvider.Local(RuntimeId.FUNCTION),
-                            plugins = setOf(GraphAgentPlugin.CloseSessionTool)
-                        ),
-                        graphAgent(
-                            registryAgent = registryAgent(
-                                name = agent2Name,
-                                functionRuntime = ktor.client.mcpFunctionRuntime(agent2Name, "1.0.0") { client, _ ->
 
-                                    // agent2 does not have the close session plugin installed
-                                    shouldThrow<IllegalStateException> {
-                                        mcpToolManager.closeSessionTool.executeOn(
-                                            client,
-                                            CloseSessionInput("Test closure")
-                                        )
-                                    }
+                                agent2Ready.complete(Unit)
 
-                                    agent2Ready.complete(Unit)
+                                // agent1 should close the session, cancelling this coroutine
+                                delay(1000)
+                                throw AssertionError("session should close before this exception is thrown")
+                            })
+                        }
+                        provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
+                    }
+                )
+            ))
 
-                                    // agent1 should close the session, cancelling this coroutine
-                                    delay(1000)
-                                    throw AssertionError("session should close before this exception is thrown")
-                                }
-                            ),
-                            provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
-                        ),
-                    ),
-                    customTools = mapOf(),
-                    groups = setOf()
-                ))
-
-            session.fullLifeCycle()
-        }
+        session.fullLifeCycle()
     }
 })
