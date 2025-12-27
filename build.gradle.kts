@@ -138,6 +138,7 @@ dependencies {
     implementation(platform("io.insert-koin:koin-bom:$koinVersion"))
     implementation("io.insert-koin:koin-core")
     implementation("io.insert-koin:koin-ktor")
+    implementation("io.insert-koin:koin-test")
 
     // hoplite
     val hopliteVersion = "3.0.0.RC1"
