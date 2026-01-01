@@ -1,0 +1,61 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
+package org.coralprotocol.coralserver.logging
+
+import io.github.oshai.kotlinlogging.KLogger
+import io.github.oshai.kotlinlogging.KotlinLogging
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.serialization.ExperimentalSerializationApi
+import org.koin.core.component.KoinComponent
+import org.slf4j.MDC
+
+class Logger(
+    bufferSize: Int = 1024,
+    val nativeLogger: KLogger = KotlinLogging.logger { },
+) : KoinComponent, LoggingInterface {
+    val flow = MutableSharedFlow<LoggingEvent>(
+        replay = bufferSize,
+        extraBufferCapacity = 0,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+
+    internal fun log(event: LoggingEvent) {
+        flow.tryEmit(event)
+
+        val mdcKeys = event.tags
+            .flatMap { it.mdcMap.entries }
+            .associate { it.toPair() }
+
+        mdcKeys.forEach { MDC.put(it.key, it.value) }
+        event.log(nativeLogger)
+        mdcKeys.forEach { MDC.remove(it.key) }
+    }
+
+    fun withTags(tags: Set<LoggingTag>) = LoggerWithTags(this, tags)
+
+    override fun info(message: () -> String) {
+        log(LoggingEvent.Info(message()))
+    }
+
+    override fun warn(message: () -> String) {
+        log(LoggingEvent.Warning(message()))
+    }
+
+    override fun error(throwable: Throwable?, message: () -> String) {
+        log(LoggingEvent.Error(error = throwable, text = message()))
+    }
+
+    override fun info(message: () -> String, tags: Set<LoggingTag>) {
+        log(LoggingEvent.Info(message(), tags))
+    }
+
+    override fun warn(message: () -> String, tags: Set<LoggingTag>) {
+        log(LoggingEvent.Warning(message(), tags))
+    }
+
+    override fun error(throwable: Throwable?, message: () -> String, tags: Set<LoggingTag>) {
+        log(LoggingEvent.Error(message(), tags, throwable))
+    }
+}
+
