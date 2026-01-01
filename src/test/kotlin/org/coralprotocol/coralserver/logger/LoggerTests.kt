@@ -133,7 +133,7 @@ class LoggerTests : CoralTest({
 
     test("testFilterSensitive") {
         val logger by inject<Logger>()
-        val sensitiveLogger = logger.withTags(setOf(LoggingTag.Sensitive))
+        val sensitiveLogger = logger.withTags(LoggingTag.Sensitive)
         sensitiveLogger.info { "info" }
         sensitiveLogger.error { "error" }
 
@@ -152,7 +152,7 @@ class LoggerTests : CoralTest({
 
     test("testIncludeSensitive") {
         val logger by inject<Logger>()
-        val sensitiveLogger = logger.withTags(setOf(LoggingTag.Sensitive))
+        val sensitiveLogger = logger.withTags(LoggingTag.Sensitive)
         sensitiveLogger.info { "info" }
         sensitiveLogger.error { "error" }
 
@@ -190,21 +190,11 @@ class LoggerTests : CoralTest({
                 TestEvent("error") { it is LoggingEvent.Error },
             ),
         ) {
-            val agentLogger = withTags(
-                setOf(
-                    LoggingTag.Namespace(namespace),
-                    LoggingTag.Session(sessionId),
-                    LoggingTag.Agent(agentName1),
-                )
-            )
+            val agentLogger =
+                withTags(LoggingTag.Namespace(namespace), LoggingTag.Session(sessionId), LoggingTag.Agent(agentName1))
 
-            val agentLogger2 = withTags(
-                setOf(
-                    LoggingTag.Namespace(namespace),
-                    LoggingTag.Session(sessionId),
-                    LoggingTag.Agent(agentName2),
-                )
-            )
+            val agentLogger2 =
+                withTags(LoggingTag.Namespace(namespace), LoggingTag.Session(sessionId), LoggingTag.Agent(agentName2))
 
             // neither of these should be caught because of the filters applied
             warn { "test" }

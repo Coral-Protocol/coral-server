@@ -1,9 +1,5 @@
 package org.coralprotocol.coralserver.session
 
-import io.kotest.matchers.collections.shouldContain
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.launch
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
@@ -13,15 +9,20 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.runtime.ExecutableRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
-import org.coralprotocol.coralserver.logging.LogMessage
+import org.coralprotocol.coralserver.logging.Logger
+import org.coralprotocol.coralserver.logging.LoggingEvent
 import org.coralprotocol.coralserver.util.isWindows
+import org.coralprotocol.coralserver.utils.TestEvent
 import org.coralprotocol.coralserver.utils.dsl.graphAgentPair
+import org.coralprotocol.coralserver.utils.shouldPostEvents
 import org.koin.core.component.inject
 import java.util.*
+import kotlin.time.Duration.Companion.seconds
 
 class ExecutableRuntimeTest : CoralTest({
     test("testOptions").config(enabled = isWindows()) {
         val localSessionManager by inject<LocalSessionManager>()
+        val logger by inject<Logger>()
 
         val agent1Name = "agent1"
         val agent2Name = "agent2"
@@ -79,28 +80,17 @@ class ExecutableRuntimeTest : CoralTest({
             )
         )
 
-        // collect messages written to stdout by agent2
-        val collecting = CompletableDeferred<Unit>()
-        val messages = mutableListOf<String>()
-        val agent2 = session1.getAgent(agent2Name)
-        val collector = session1.sessionScope.launch {
-            collecting.complete(Unit)
-            agent2.logger.getSharedFlow().collect {
-                if (it is LogMessage.Info)
-                    messages.add(it.message)
-            }
+        shouldPostEvents(
+            timeout = 3.seconds,
+            allowUnexpectedEvents = true,
+            events = mutableListOf(
+                TestEvent("value 1") { it is LoggingEvent.Info && it.text == optionValue1 },
+                TestEvent("value 2") { it is LoggingEvent.Info && it.text == optionValue2 },
+                TestEvent("secret") { it is LoggingEvent.Info && it.text == unitTestSecret }
+            ),
+            logger.flow
+        ) {
+            session1.fullLifeCycle()
         }
-
-        // no exceptions should be thrown for agent1, run agent2 until it exits
-        collecting.await()
-        session1.fullLifeCycle()
-
-        // Test that the script printed both env and fs option values
-        messages.shouldContain(optionValue1)
-        messages.shouldContain(optionValue2)
-
-        messages.shouldContain(unitTestSecret)
-
-        collector.cancelAndJoin()
     }
 })
