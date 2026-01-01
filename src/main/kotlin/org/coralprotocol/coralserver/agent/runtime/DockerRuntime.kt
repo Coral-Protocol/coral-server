@@ -14,6 +14,8 @@ import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.LoggingInterface
+import org.coralprotocol.coralserver.logging.LoggingTag
+import org.coralprotocol.coralserver.logging.LoggingTagIo
 import org.coralprotocol.coralserver.session.SessionAgentDisposableResource
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 import java.time.Instant
@@ -94,10 +96,10 @@ data class DockerRuntime(
                 override fun onNext(frame: Frame) {
                     val message = String(frame.payload).trimEnd('\n')
                     if (frame.streamType == StreamType.STDOUT)
-                        executionContext.logger.info { message }
+                        executionContext.logger.info(LoggingTag.Io(LoggingTagIo.OUT)) { message }
 
                     if (frame.streamType == StreamType.STDERR)
-                        executionContext.logger.warn { message }
+                        executionContext.logger.warn(LoggingTag.Io(LoggingTagIo.ERROR)) { message }
                 }
             })
 

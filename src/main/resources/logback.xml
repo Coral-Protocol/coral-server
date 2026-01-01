@@ -11,7 +11,7 @@
         <withJansi>false</withJansi>
         <encoder>
             <charset>UTF-8</charset>
-            <pattern>%highlight(%-5level) %mdc{namespace, sessionId, agentName} %green(%d{yyyy-MM-dd HH:mm:ss.SSS}) - %msgHighlight(%msg%n)</pattern>
+            <pattern>%highlight(%-5level) %green(%d{yyyy-MM-dd HH:mm:ss.SSS}) %mdc{ns, sid, agent, io} - %msgHighlight(%msg%n)</pattern>
         </encoder>
     </appender>
 

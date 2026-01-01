@@ -9,6 +9,15 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 
 @Serializable
+enum class LoggingTagIo {
+    @SerialName("out")
+    OUT,
+
+    @SerialName("error")
+    ERROR
+}
+
+@Serializable
 @JsonClassDiscriminator("type")
 sealed interface LoggingTag {
     val mdcMap: Map<String, String>
@@ -16,19 +25,28 @@ sealed interface LoggingTag {
     @Serializable
     @SerialName("namespace")
     data class Namespace(val namespace: String) : LoggingTag {
-        override val mdcMap: Map<String, String> = mapOf("namespace" to namespace)
+        override val mdcMap: Map<String, String> = mapOf("ns" to namespace)
     }
 
     @Serializable
     @SerialName("session")
     data class Session(val sessionId: String) : LoggingTag {
-        override val mdcMap: Map<String, String> = mapOf("sessionId" to sessionId)
+        override val mdcMap: Map<String, String> = mapOf("sid" to sessionId)
     }
 
     @Serializable
     @SerialName("agent")
     data class Agent(val name: UniqueAgentName) : LoggingTag {
-        override val mdcMap: Map<String, String> = mapOf("agentName" to name)
+        override val mdcMap: Map<String, String> = mapOf("agent" to name)
+    }
+
+    @Serializable
+    @SerialName("stdout")
+    data class Io(val io: LoggingTagIo) : LoggingTag {
+        override val mdcMap: Map<String, String> = when (io) {
+            LoggingTagIo.OUT -> mapOf("io" to "stdout")
+            LoggingTagIo.ERROR -> mapOf("io" to "stderr")
+        }
     }
 
     @Serializable

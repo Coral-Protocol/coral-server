@@ -4,6 +4,8 @@ import com.github.pgreze.process.Redirect
 import com.github.pgreze.process.process
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.logging.LoggingTag
+import org.coralprotocol.coralserver.logging.LoggingTagIo
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 
 @Serializable
@@ -21,10 +23,10 @@ data class ExecutableRuntime(
             command = command.toTypedArray(),
             directory = executionContext.path?.toFile(),
             stdout = Redirect.Consume {
-                it.collect { line -> executionContext.logger.info { line } }
+                it.collect { line -> executionContext.logger.info(LoggingTag.Io(LoggingTagIo.OUT)) { line } }
             },
             stderr = Redirect.Consume {
-                it.collect { line -> executionContext.logger.warn { line } }
+                it.collect { line -> executionContext.logger.warn(LoggingTag.Io(LoggingTagIo.ERROR)) { line } }
             },
             env = executionContext.buildEnvironment()
         )
