@@ -49,7 +49,6 @@ private fun defaultDockerSocket(): String {
     }
 }
 
-@ConfigAlias("docker")
 data class DockerConfig(
     /**
      * Optional docker socket path
