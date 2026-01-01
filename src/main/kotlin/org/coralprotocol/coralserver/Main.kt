@@ -17,6 +17,7 @@ fun main(args: Array<String>) {
         environmentProperties()
         logger(PrintLogger())
         modules(
+            loggingModule,
             configModule,
             configModuleParts,
             blockchainModule,

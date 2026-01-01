@@ -4,6 +4,8 @@ import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
@@ -21,7 +23,6 @@ import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
 import org.coralprotocol.coralserver.session.models.SessionPersistenceMode
 import org.coralprotocol.coralserver.session.models.SessionRuntimeSettings
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
-import org.coralprotocol.coralserver.util.ScopedFlow
 import org.coralprotocol.coralserver.util.addJsonBodyWithSignature
 import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.models.SessionInfo
@@ -56,7 +57,10 @@ class LocalSessionManager(
     /**
      * Events emitted by this manager.  Related to session or namespace creation or deletion.
      */
-    val events: ScopedFlow<LocalSessionManagerEvent> = ScopedFlow(managementScope + Job())
+    val events = MutableSharedFlow<LocalSessionManagerEvent>(
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+        extraBufferCapacity = 4096,
+    )
 
     /**
      * Main data structure containing all sessions
@@ -277,10 +281,10 @@ class LocalSessionManager(
             sessionNamespaces.remove(namespace.name)
         }
 
-        session.close()
         logger.info { "session ${session.id} closed" }
 
         events.emit(LocalSessionManagerEvent.SessionClosed(session.id, namespace.name))
+        session.sessionScope.cancel()
     }
 
     /**
@@ -290,7 +294,7 @@ class LocalSessionManager(
         sessionNamespaces.values.forEach { namespace ->
             namespace.sessions.values.forEach { session ->
                 session.joinAgents()
-                session.waitClosed()
+                session.sessionScope.coroutineContext[Job]?.join()
             }
         }
     }

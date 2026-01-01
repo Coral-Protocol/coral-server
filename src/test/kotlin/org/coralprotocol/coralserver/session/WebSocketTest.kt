@@ -9,6 +9,7 @@ import io.ktor.client.request.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.channels.toList
 import kotlinx.coroutines.launch
@@ -30,6 +31,7 @@ import org.coralprotocol.coralserver.utils.TestEvent
 import org.coralprotocol.coralserver.utils.dsl.sessionRequest
 import org.coralprotocol.coralserver.utils.shouldHaveEvents
 import org.coralprotocol.coralserver.utils.shouldPostEventsFromBody
+import org.koin.core.qualifier.named
 import org.koin.test.inject
 import kotlin.time.Duration.Companion.seconds
 
@@ -38,6 +40,7 @@ class WebSocketTest : CoralTest({
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
         val json by inject<Json>()
+        val websocketCoroutineScope by inject<CoroutineScope>(named("websocketCoroutineScope"))
 
         val namespace = Sessions.WithNamespace(namespace = "debug agent namespace")
         val threadCount = 10u
@@ -75,6 +78,7 @@ class WebSocketTest : CoralTest({
         )
 
         localSessionManager.waitAllSessions()
+        websocketCoroutineScope.cancel()
 
         val events = eventsDeferred.await()
         val threadEvents = events.filterIsInstance<SessionEvent.ThreadCreated>()
@@ -93,6 +97,7 @@ class WebSocketTest : CoralTest({
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
         val json by inject<Json>()
+        val websocketCoroutineScope by inject<CoroutineScope>(named("websocketCoroutineScope"))
 
         val ns1Name = "ns1"
         val ns1 = Sessions.WithNamespace(namespace = ns1Name)
@@ -153,7 +158,7 @@ class WebSocketTest : CoralTest({
         }
 
         localSessionManager.waitAllSessions()
-        localSessionManager.events.close()
+        websocketCoroutineScope.cancel()
         webSocketJob.join()
     }
 })

@@ -58,8 +58,4 @@ class RemoteSession(
         deferredMcpTransport.complete(transport)
         return lifecycle.await()
     }
-
-    override fun close() {
-        TODO("Not yet implemented")
-    }
 }

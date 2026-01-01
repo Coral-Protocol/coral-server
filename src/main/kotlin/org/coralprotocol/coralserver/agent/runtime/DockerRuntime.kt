@@ -126,7 +126,7 @@ data class DockerRuntime(
                             .withForce(true)
                             .exec()
 
-                        executionContext.session.events.emit(SessionEvent.DockerContainerRemoved(containerId))
+                        executionContext.session.events.tryEmit(SessionEvent.DockerContainerRemoved(containerId))
                         executionContext.logger.info("container $containerId removed")
                     }
                 }

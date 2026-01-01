@@ -1,15 +1,17 @@
 package org.coralprotocol.coralserver.session
 
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.joinAll
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.events.SessionEvent
-import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.session.remote.RemoteSession
 import org.coralprotocol.coralserver.session.state.SessionState
-import org.coralprotocol.coralserver.util.ScopedFlow
 import org.jetbrains.annotations.TestOnly
 import java.util.concurrent.ConcurrentHashMap
 
@@ -82,12 +84,9 @@ class LocalSession(
     /**
      * @see SessionEvent
      */
-    val events = ScopedFlow<SessionEvent>(
-        if (sessionManager.supervisedSessions) {
-            CoroutineScope(sessionScope.coroutineContext + SupervisorJob(sessionScope.coroutineContext[Job]))
-        } else {
-            CoroutineScope(sessionScope.coroutineContext + Job())
-        }
+    val events = MutableSharedFlow<SessionEvent>(
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+        extraBufferCapacity = 4096,
     )
 
     /**
@@ -123,7 +122,7 @@ class LocalSession(
             participants = (participants + setOf(agentName)).toMutableSet(),
         )
 
-        events.emit(SessionEvent.ThreadCreated(thread))
+        events.tryEmit(SessionEvent.ThreadCreated(thread))
 
         threads[thread.id] = thread
         return thread
@@ -238,21 +237,5 @@ class LocalSession(
     suspend fun fullLifeCycle() {
         launchAgents()
         joinAgents()
-        events.close()
-    }
-
-    /**
-     * Closes this session.  Agents must be handled separately.
-     */
-    override fun close() {
-        events.close()
-    }
-
-    /**
-     * Waits for this session to close fully, not related to agents' lifecycles but the [events] stream.  This is called
-     * after [close] has been called.
-     */
-    suspend fun waitClosed() {
-        events.waitClosed()
     }
 }

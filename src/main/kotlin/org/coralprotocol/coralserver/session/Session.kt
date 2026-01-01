@@ -25,7 +25,7 @@ abstract class Session(parentScope: CoroutineScope, supervisedSessions: Boolean 
         CoroutineScope(parentScope.coroutineContext + SupervisorJob(parentScope.coroutineContext[Job]))
     }
     else {
-        CoroutineScope(parentScope.coroutineContext)
+        CoroutineScope(parentScope.coroutineContext + Job())
     }
 
     /**
@@ -34,9 +34,4 @@ abstract class Session(parentScope: CoroutineScope, supervisedSessions: Boolean 
      * the session in memory.
      */
     var closing: Boolean = false
-
-    /**
-     * Called by the above session manager when this session is closed
-     */
-    abstract fun close()
 }

@@ -60,7 +60,7 @@ suspend fun <R> LocalSession.shouldPostEvents(
     events: MutableList<TestEvent<SessionEvent>>,
     block: suspend (SharedFlow<SessionEvent>) -> R,
 ): R =
-    this.sessionScope.shouldPostEvents(timeout, allowUnexpectedEvents, events, this@shouldPostEvents.events.flow, block)
+    this.sessionScope.shouldPostEvents(timeout, allowUnexpectedEvents, events, this@shouldPostEvents.events, block)
 
 suspend fun <Event, R> CoroutineScope.shouldPostEventsFromBody(
     timeout: Duration,

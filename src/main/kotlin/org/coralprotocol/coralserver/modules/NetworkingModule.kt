@@ -7,10 +7,13 @@ import io.ktor.client.plugins.resources.*
 import io.ktor.client.plugins.sse.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.cio.CIO
-import io.ktor.server.engine.embeddedServer
+import io.ktor.server.cio.*
+import io.ktor.server.engine.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.modules.ktor.coralServerModule
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 val networkModule = module {
@@ -40,5 +43,9 @@ val networkModule = module {
         ) {
             coralServerModule()
         }
+    }
+
+    single(named("websocketCoroutineScope")) {
+        CoroutineScope(Job())
     }
 }
