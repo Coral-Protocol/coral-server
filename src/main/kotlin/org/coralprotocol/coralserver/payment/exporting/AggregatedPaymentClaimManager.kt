@@ -4,6 +4,7 @@ import org.coralprotocol.coralserver.agent.payment.AgentClaimAmount
 import org.coralprotocol.coralserver.agent.payment.AgentPaymentClaimRequest
 import org.coralprotocol.coralserver.agent.payment.toMicroCoral
 import org.coralprotocol.coralserver.agent.payment.toUsd
+import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.logging.LoggingInterface
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.PaymentSessionId
@@ -15,7 +16,7 @@ import java.text.NumberFormat
 import java.util.*
 
 private class PaymentClaimAggregation(val remoteSession: RemoteSession) : KoinComponent {
-    private val logger by inject<LoggingInterface>()
+    private val logger by inject<Logger>()
     private val totalClaimed: MutableMap<String, Long> = mutableMapOf()
 
     fun sumOfAllAgentsClaims(): Long = totalClaimed.values.sum()

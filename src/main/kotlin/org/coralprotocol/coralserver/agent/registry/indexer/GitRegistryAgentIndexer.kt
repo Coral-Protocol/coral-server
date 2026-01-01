@@ -6,7 +6,7 @@ import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.CacheConfig
 import org.coralprotocol.coralserver.config.RootConfig
-import org.coralprotocol.coralserver.logging.LoggingInterface
+import org.coralprotocol.coralserver.logging.Logger
 import org.eclipse.jgit.api.ResetCommand
 import org.eclipse.jgit.lib.SubmoduleConfig
 import org.koin.core.component.inject
@@ -18,7 +18,7 @@ data class GitRegistryAgentIndexer(
     val url: String,
     override val priority: Int
 ) : RegistryAgentIndexer {
-    private val logger by inject<LoggingInterface>()
+    private val logger by inject<Logger>()
     private val cacheConfig: CacheConfig by inject()
 
     private fun indexerPath(cachePath: Path, indexerName: String) =

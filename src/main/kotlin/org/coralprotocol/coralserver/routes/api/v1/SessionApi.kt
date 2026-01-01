@@ -10,7 +10,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
-import org.coralprotocol.coralserver.logging.LoggingInterface
+import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.routes.ApiV1
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.LocalSessionManager
@@ -49,7 +49,7 @@ class Sessions(val parent: ApiV1 = ApiV1()) {
 fun Route.sessionApi() {
     val registry by inject<AgentRegistry>()
     val localSessionManager by inject<LocalSessionManager>()
-    val logger by inject<LoggingInterface>()
+    val logger by inject<Logger>()
 
     post<Sessions.WithNamespace>({
         summary = "Create session"

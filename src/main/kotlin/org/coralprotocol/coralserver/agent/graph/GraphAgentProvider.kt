@@ -16,7 +16,7 @@ import org.coralprotocol.coralserver.agent.payment.AgentClaimAmount
 import org.coralprotocol.coralserver.agent.registry.PublicAgentExportSettings
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
-import org.coralprotocol.coralserver.logging.LoggingInterface
+import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -85,7 +85,7 @@ suspend fun RemoteRequest.toRemote(
     paymentSessionId: String,
 ): GraphAgentProvider.Remote {
     val jupiterService by inject<JupiterService>()
-    val logger by inject<LoggingInterface>()
+    val logger by inject<Logger>()
 
     val rankedServers = when (serverSource) {
         is GraphAgentServerSource.Servers -> {

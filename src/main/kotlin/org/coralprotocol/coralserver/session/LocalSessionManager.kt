@@ -16,7 +16,7 @@ import org.coralprotocol.coralserver.agent.payment.toUsd
 import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
 import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.events.LocalSessionManagerEvent
-import org.coralprotocol.coralserver.logging.LoggingInterface
+import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.payment.BlankBlockchainService
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
@@ -49,7 +49,7 @@ class LocalSessionManager(
     private val httpClient: HttpClient,
     private val config: NetworkConfig,
     private val json: Json,
-    private val logger: LoggingInterface,
+    private val logger: Logger,
     val managementScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     val supervisedSessions: Boolean = true,
 ) {

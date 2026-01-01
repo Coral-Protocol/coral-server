@@ -3,14 +3,14 @@ package org.coralprotocol.coralserver.agent.registry
 import kotlinx.serialization.SerializationException
 import net.peanuuutz.tomlkt.decodeFromNativeReader
 import org.coralprotocol.coralserver.config.toml
-import org.coralprotocol.coralserver.logging.LoggingInterface
+import org.coralprotocol.coralserver.logging.Logger
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.InputStream
 import java.nio.file.Path
 
 class AgentRegistrySourceBuilder : KoinComponent {
-    val logger by inject<LoggingInterface>()
+    val logger by inject<Logger>()
     val sources = mutableListOf<AgentRegistrySource>()
 
     fun addSource(source: AgentRegistrySource) {

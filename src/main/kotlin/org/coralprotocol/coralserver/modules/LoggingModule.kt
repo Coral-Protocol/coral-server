@@ -6,7 +6,7 @@ import org.coralprotocol.coralserver.logging.LoggingInterface
 import org.koin.dsl.module
 
 val loggingModule = module {
-    single<LoggingInterface> {
+    single {
         val config by inject<LoggingConfig>()
         Logger(config.logBufferSize.toInt())
     }

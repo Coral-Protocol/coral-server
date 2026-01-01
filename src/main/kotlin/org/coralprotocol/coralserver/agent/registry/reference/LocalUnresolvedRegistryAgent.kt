@@ -3,7 +3,7 @@ package org.coralprotocol.coralserver.agent.registry.reference
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.*
-import org.coralprotocol.coralserver.logging.LoggingInterface
+import org.coralprotocol.coralserver.logging.Logger
 import org.koin.core.component.inject
 import java.nio.file.Path
 
@@ -15,7 +15,7 @@ import java.nio.file.Path
 data class LocalUnresolvedRegistryAgent(
     val path: String
 ) : UnresolvedRegistryAgent() {
-    private val logger by inject<LoggingInterface>()
+    private val logger by inject<Logger>()
 
     override fun resolve(context: AgentResolutionContext): List<RegistryAgent> {
         val agentTomlFile = context.tryRelative(Path.of(AGENT_FILE))

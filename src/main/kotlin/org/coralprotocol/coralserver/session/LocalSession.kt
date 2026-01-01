@@ -8,6 +8,7 @@ import kotlinx.coroutines.joinAll
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.events.SessionEvent
+import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.logging.LoggingInterface
 import org.coralprotocol.coralserver.logging.LoggingTag
 import org.coralprotocol.coralserver.payment.PaymentSessionId
@@ -47,7 +48,7 @@ class LocalSession(
     agentGraph: AgentGraph,
     sessionManager: LocalSessionManager
 ) : Session(sessionManager.managementScope, sessionManager.supervisedSessions) {
-    val logger = get<LoggingInterface>().withTags(LoggingTag.Namespace(namespace.name), LoggingTag.Session(id))
+    val logger = get<Logger>().withTags(LoggingTag.Namespace(namespace.name), LoggingTag.Session(id))
     val timestamp = System.currentTimeMillis()
 
     /**

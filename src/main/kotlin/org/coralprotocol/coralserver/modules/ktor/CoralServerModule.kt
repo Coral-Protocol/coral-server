@@ -39,7 +39,7 @@ import org.coralprotocol.coralserver.config.AuthConfig
 import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.events.LocalSessionManagerEvent
 import org.coralprotocol.coralserver.events.SessionEvent
-import org.coralprotocol.coralserver.logging.LoggingInterface
+import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.mcp.McpResourceName
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.routes.RouteException
@@ -61,7 +61,7 @@ fun Application.coralServerModule() {
     val authConfig by inject<AuthConfig>()
     val localSessionManager by inject<LocalSessionManager>()
     val json by inject<Json>()
-    val logger by inject<LoggingInterface>()
+    val logger by inject<Logger>()
 
     install(OpenApi) {
         info {

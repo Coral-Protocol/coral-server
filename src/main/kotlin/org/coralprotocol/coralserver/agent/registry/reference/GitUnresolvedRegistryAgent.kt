@@ -6,9 +6,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.config.CacheConfig
-import org.coralprotocol.coralserver.logging.LoggingInterface
+import org.coralprotocol.coralserver.logging.Logger
 import org.koin.core.component.inject
-import org.koin.ktor.ext.inject
 import java.nio.file.Path
 import java.util.*
 import kotlin.io.path.isDirectory
@@ -25,7 +24,7 @@ data class GitUnresolvedRegistryAgent(
     val rev: String? = null,
 ) : UnresolvedRegistryAgent() {
     private val cacheConfig: CacheConfig by inject()
-    private val logger by inject<LoggingInterface>()
+    private val logger by inject<Logger>()
 
     @Transient
     private val encoder = Base64.getUrlEncoder()
