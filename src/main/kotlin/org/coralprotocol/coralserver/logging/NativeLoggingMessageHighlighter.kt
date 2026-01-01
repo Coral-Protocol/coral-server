@@ -5,7 +5,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.pattern.color.ANSIConstants
 import ch.qos.logback.core.pattern.color.ForegroundCompositeConverterBase
 
-class MessageHighlighter : ForegroundCompositeConverterBase<ILoggingEvent?>() {
+class NativeLoggingMessageHighlighter : ForegroundCompositeConverterBase<ILoggingEvent?>() {
     override fun getForegroundColorCode(event: ILoggingEvent?): String {
         if (event != null) {
             return when (event.level.toInt()) {
