@@ -46,15 +46,15 @@ class Logger(
         log(LoggingEvent.Error(error = throwable, text = message()))
     }
 
-    override fun info(message: () -> String, vararg tags: LoggingTag) {
+    override fun info(vararg tags: LoggingTag, message: () -> String) {
         log(LoggingEvent.Info(message(), tags.toSet()))
     }
 
-    override fun warn(message: () -> String, vararg tags: LoggingTag) {
+    override fun warn(vararg tags: LoggingTag, message: () -> String) {
         log(LoggingEvent.Warning(message(), tags.toSet()))
     }
 
-    override fun error(throwable: Throwable?, message: () -> String, vararg tags: LoggingTag) {
+    override fun error(vararg tags: LoggingTag, throwable: Throwable?, message: () -> String) {
         log(LoggingEvent.Error(message(), tags.toSet(), throwable))
     }
 }

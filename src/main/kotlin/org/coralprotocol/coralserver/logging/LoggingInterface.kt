@@ -6,7 +6,7 @@ interface LoggingInterface {
     fun info(message: () -> String)
     fun warn(message: () -> String)
     fun error(throwable: Throwable? = null, message: () -> String)
-    fun info(message: () -> String, vararg tags: LoggingTag)
-    fun warn(message: () -> String, vararg tags: LoggingTag)
-    fun error(throwable: Throwable?, message: () -> String, vararg tags: LoggingTag)
+    fun info(vararg tags: LoggingTag, message: () -> String)
+    fun warn(vararg tags: LoggingTag, message: () -> String)
+    fun error(vararg tags: LoggingTag, throwable: Throwable?, message: () -> String)
 }

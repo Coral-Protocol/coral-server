@@ -12,26 +12,36 @@ class LoggerWithTags(
         logger.withTags(*(this.tags + tags.toSet()).toTypedArray())
 
     override fun info(message: () -> String) {
-        logger.info(message, *tags.toTypedArray())
+        logger.info(
+            tags = tags.toTypedArray(),
+            message = message,
+        )
     }
 
     override fun warn(message: () -> String) {
-        logger.warn(message, *tags.toTypedArray())
+        logger.warn(
+            tags = tags.toTypedArray(),
+            message = message,
+        )
     }
 
     override fun error(throwable: Throwable?, message: () -> String) {
-        logger.error(throwable, message, *tags.toTypedArray())
+        logger.error(
+            tags = tags.toTypedArray(),
+            throwable = throwable,
+            message = message,
+        )
     }
 
-    override fun info(message: () -> String, vararg tags: LoggingTag) {
+    override fun info(vararg tags: LoggingTag, message: () -> String) {
         logger.log(LoggingEvent.Info(message(), this.tags + tags))
     }
 
-    override fun warn(message: () -> String, vararg tags: LoggingTag) {
+    override fun warn(vararg tags: LoggingTag, message: () -> String) {
         logger.log(LoggingEvent.Warning(message(), this.tags + tags))
     }
 
-    override fun error(throwable: Throwable?, message: () -> String, vararg tags: LoggingTag) {
+    override fun error(vararg tags: LoggingTag, throwable: Throwable?, message: () -> String) {
         logger.log(LoggingEvent.Error(message(), this.tags + tags, throwable))
     }
 }
