@@ -13,7 +13,8 @@ val sessionModule = module {
             jupiterService = get(),
             httpClient = get(),
             config = get(),
-            json = get()
+            json = get(),
+            logger = get(),
         )
     }
 }

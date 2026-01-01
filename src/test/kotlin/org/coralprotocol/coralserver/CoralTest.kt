@@ -145,6 +145,8 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                         // if this is true, exceptions thrown (including assertions) in an agent's runtime will not exit a test
                                         // it also requires that session's coroutine scopes are canceled
                                         supervisedSessions = false,
+
+                                        logger = get()
                                     )
                                 }
                                 single(named("websocketCoroutineScope")) {
