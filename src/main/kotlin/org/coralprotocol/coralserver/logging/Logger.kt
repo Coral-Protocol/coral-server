@@ -20,7 +20,7 @@ class Logger(
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
 
-    internal fun log(event: LoggingEvent) {
+    override fun log(event: LoggingEvent) {
         flow.tryEmit(event)
 
         val mdcKeys = event.tags
@@ -32,7 +32,7 @@ class Logger(
         mdcKeys.forEach { MDC.remove(it.key) }
     }
 
-    fun withTags(tags: Set<LoggingTag>) = LoggerWithTags(this, tags)
+    override fun withTags(vararg tags: LoggingTag) = LoggerWithTags(this, tags.toSet())
 
     override fun info(message: () -> String) {
         log(LoggingEvent.Info(message()))
@@ -46,16 +46,16 @@ class Logger(
         log(LoggingEvent.Error(error = throwable, text = message()))
     }
 
-    override fun info(message: () -> String, tags: Set<LoggingTag>) {
-        log(LoggingEvent.Info(message(), tags))
+    override fun info(message: () -> String, vararg tags: LoggingTag) {
+        log(LoggingEvent.Info(message(), tags.toSet()))
     }
 
-    override fun warn(message: () -> String, tags: Set<LoggingTag>) {
-        log(LoggingEvent.Warning(message(), tags))
+    override fun warn(message: () -> String, vararg tags: LoggingTag) {
+        log(LoggingEvent.Warning(message(), tags.toSet()))
     }
 
-    override fun error(throwable: Throwable?, message: () -> String, tags: Set<LoggingTag>) {
-        log(LoggingEvent.Error(message(), tags, throwable))
+    override fun error(throwable: Throwable?, message: () -> String, vararg tags: LoggingTag) {
+        log(LoggingEvent.Error(message(), tags.toSet(), throwable))
     }
 }
 
