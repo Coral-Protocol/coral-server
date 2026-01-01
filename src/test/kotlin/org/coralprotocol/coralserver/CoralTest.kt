@@ -12,6 +12,8 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.testing.*
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.plus
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.config.*
@@ -19,12 +21,14 @@ import org.coralprotocol.coralserver.modules.agentModule
 import org.coralprotocol.coralserver.modules.blockchainModule
 import org.coralprotocol.coralserver.modules.configModuleParts
 import org.coralprotocol.coralserver.modules.ktor.coralServerModule
+import org.coralprotocol.coralserver.modules.loggingModule
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.koin.core.context.loadKoinModules
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.logger.PrintLogger
 import org.koin.core.module.dsl.singleOf
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.koin.environmentProperties
 import org.koin.test.KoinTest
@@ -35,6 +39,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientCon
 abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as FunSpec.() -> Unit) {
     val authToken = UUID.randomUUID().toString()
     val unitTestSecret = UUID.randomUUID().toString()
+    val logBufferSize = 1024
     val config = RootConfig(
         // port for testing is zero
         networkConfig = NetworkConfig(
@@ -60,6 +65,9 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
         debugConfig = DebugConfig(
             additionalDockerEnvironment = mapOf("UNIT_TEST_SECRET" to unitTestSecret),
             additionalExecutableEnvironment = mapOf("UNIT_TEST_SECRET" to unitTestSecret)
+        ),
+        loggingConfig = LoggingConfig(
+            logBufferSize = logBufferSize.toUInt(),
         )
     )
 
@@ -109,6 +117,7 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                         environmentProperties()
                         logger(PrintLogger())
                         modules(
+                            loggingModule,
                             configModuleParts,
                             blockchainModule,
                             agentModule,
@@ -137,6 +146,9 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                         // it also requires that session's coroutine scopes are canceled
                                         supervisedSessions = false,
                                     )
+                                }
+                                single(named("websocketCoroutineScope")) {
+                                    this@RootTest + Job()
                                 }
                             }
                         )
