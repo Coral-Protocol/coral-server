@@ -31,4 +31,5 @@ val configModuleParts = module {
     single<RegistryConfig> { get<RootConfig>().registryConfig }
     single<SecurityConfig> { get<RootConfig>().securityConfig }
     single<SessionConfig> { get<RootConfig>().sessionConfig }
+    single<LoggingConfig> { get<RootConfig>().loggingConfig }
 }
