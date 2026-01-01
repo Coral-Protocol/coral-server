@@ -48,6 +48,7 @@ import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
 import org.coralprotocol.coralserver.routes.ui.consoleUi
 import org.coralprotocol.coralserver.routes.ui.documentationInterface
 import org.coralprotocol.coralserver.routes.ws.v1.eventRoutes
+import org.coralprotocol.coralserver.routes.ws.v1.logRoutes
 import org.coralprotocol.coralserver.server.AuthSession
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionException
@@ -225,12 +226,11 @@ fun Application.coralServerModule() {
         agentRentalApi()
         documentationInterface()
 
-        // custom auth
+        // url / custom auth
         authApi()
-
-        // url-based auth
         mcpRoutes()
         eventRoutes()
+        logRoutes()
 
         // source of truth for OpenAPI docs/codegen
         route("api_v1.json") { openApi("v1") }
