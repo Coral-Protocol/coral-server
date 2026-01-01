@@ -16,10 +16,9 @@ import kotlinx.serialization.json.put
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
-import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.config.SessionConfig
 import org.coralprotocol.coralserver.events.SessionEvent
-import org.coralprotocol.coralserver.logging.LoggerWithFlow
+import org.coralprotocol.coralserver.logging.LoggingTag
 import org.coralprotocol.coralserver.mcp.McpInstructionSnippet
 import org.coralprotocol.coralserver.mcp.McpResourceName
 import org.coralprotocol.coralserver.mcp.McpTool
@@ -64,8 +63,8 @@ class SessionAgent(
         )
     ),
 ), KoinComponent {
-    private val networkConfig by inject<NetworkConfig>()
     private val sessionConfig by inject<SessionConfig>()
+    val logger = session.logger.withTags(LoggingTag.Agent(graphAgent.name))
 
     val coroutineScope: CoroutineScope = session.sessionScope
 
@@ -115,12 +114,6 @@ class SessionAgent(
      * @see X402BudgetedResource
      */
     val x402BudgetedResources: List<X402BudgetedResource> = listOf()
-
-    /**
-     * The logger for this agent.  This will send logging messages both to logback and to a shared flow that clients can
-     * subscribe to.
-     */
-    val logger = LoggerWithFlow("AgentLogger:$name")
 
     /**
      * Everything to do with running this agent is done in this class.
@@ -212,19 +205,19 @@ class SessionAgent(
         }
 
         if (graphAgent.blocking != true || connectedBlockingAgents.isEmpty()) {
-            logger.info("sse connection established")
+            logger.info { "sse connection established" }
             return
         }
 
-        logger.info("waiting for blocking agents: ${connectedBlockingAgents.joinToString(", ") { it.name }}")
+        logger.info { "waiting for blocking agents: ${connectedBlockingAgents.joinToString(", ") { it.name }}" }
         val timeout = withTimeoutOrNull(timeoutMs) {
             connectedBlockingAgents.forEach { it.waitForSseConnection(timeoutMs / connectedBlockingAgents.size) }
         } == null
 
         if (timeout)
-            logger.warn("timeout occurred waiting for blocking agents to connect")
+            logger.warn { "timeout occurred waiting for blocking agents to connect" }
         else
-            logger.info("sse connection established")
+            logger.info { "sse connection established" }
     }
 
     /**

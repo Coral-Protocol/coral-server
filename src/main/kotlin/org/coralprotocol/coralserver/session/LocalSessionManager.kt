@@ -1,6 +1,5 @@
 package org.coralprotocol.coralserver.session
 
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.client.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.*
@@ -17,6 +16,7 @@ import org.coralprotocol.coralserver.agent.payment.toUsd
 import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
 import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.events.LocalSessionManagerEvent
+import org.coralprotocol.coralserver.logging.LoggingInterface
 import org.coralprotocol.coralserver.payment.BlankBlockchainService
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
@@ -43,14 +43,13 @@ data class AgentLocator(
     val agent: SessionAgent
 )
 
-private val logger = KotlinLogging.logger { }
-
 class LocalSessionManager(
     private val blockchainService: BlockchainService,
     private val jupiterService: JupiterService,
     private val httpClient: HttpClient,
     private val config: NetworkConfig,
     private val json: Json,
+    private val logger: LoggingInterface,
     val managementScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     val supervisedSessions: Boolean = true,
 ) {
@@ -119,7 +118,7 @@ class LocalSessionManager(
             val maxCostMicro = provider.maxCost.toMicroCoral(jupiterService)
             fundAmount += maxCostMicro
 
-            val resolvedRemote = provider.toRemote(id, paymentSessionId, jupiterService)
+            val resolvedRemote = provider.toRemote(id, paymentSessionId)
 
             agents.add(
                 PaidAgent(

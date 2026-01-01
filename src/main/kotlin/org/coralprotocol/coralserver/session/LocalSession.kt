@@ -8,11 +8,14 @@ import kotlinx.coroutines.joinAll
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.events.SessionEvent
+import org.coralprotocol.coralserver.logging.LoggingInterface
+import org.coralprotocol.coralserver.logging.LoggingTag
 import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.session.remote.RemoteSession
 import org.coralprotocol.coralserver.session.state.SessionState
 import org.jetbrains.annotations.TestOnly
+import org.koin.core.component.get
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -44,6 +47,7 @@ class LocalSession(
     agentGraph: AgentGraph,
     sessionManager: LocalSessionManager
 ) : Session(sessionManager.managementScope, sessionManager.supervisedSessions) {
+    val logger = get<LoggingInterface>().withTags(LoggingTag.Namespace(namespace.name), LoggingTag.Session(id))
     val timestamp = System.currentTimeMillis()
 
     /**

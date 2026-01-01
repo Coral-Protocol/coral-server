@@ -4,10 +4,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import org.coralprotocol.coralserver.payment.PaymentSessionId
+import org.koin.core.component.KoinComponent
 
 typealias SessionId = String
 
-abstract class Session(parentScope: CoroutineScope, supervisedSessions: Boolean = true) {
+abstract class Session(parentScope: CoroutineScope, supervisedSessions: Boolean = true) : KoinComponent {
     /**
      * Unique ID for this session, passed to agents
      */
@@ -23,8 +24,7 @@ abstract class Session(parentScope: CoroutineScope, supervisedSessions: Boolean 
      */
     val sessionScope = if (supervisedSessions) {
         CoroutineScope(parentScope.coroutineContext + SupervisorJob(parentScope.coroutineContext[Job]))
-    }
-    else {
+    } else {
         CoroutineScope(parentScope.coroutineContext + Job())
     }
 
