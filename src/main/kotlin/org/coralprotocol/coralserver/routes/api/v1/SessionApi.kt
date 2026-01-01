@@ -1,6 +1,5 @@
 package org.coralprotocol.coralserver.routes.api.v1
 
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.resources.delete
 import io.github.smiley4.ktoropenapi.resources.get
 import io.github.smiley4.ktoropenapi.resources.post
@@ -11,6 +10,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
+import org.coralprotocol.coralserver.logging.LoggingInterface
 import org.coralprotocol.coralserver.routes.ApiV1
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.LocalSessionManager
@@ -20,8 +20,6 @@ import org.coralprotocol.coralserver.session.models.SessionIdentifier
 import org.coralprotocol.coralserver.session.models.SessionRequest
 import org.coralprotocol.coralserver.session.state.SessionState
 import org.koin.ktor.ext.inject
-
-private val logger = KotlinLogging.logger {}
 
 @Serializable
 data class BasicNamespace(
@@ -51,6 +49,7 @@ class Sessions(val parent: ApiV1 = ApiV1()) {
 fun Route.sessionApi() {
     val registry by inject<AgentRegistry>()
     val localSessionManager by inject<LocalSessionManager>()
+    val logger by inject<LoggingInterface>()
 
     post<Sessions.WithNamespace>({
         summary = "Create session"

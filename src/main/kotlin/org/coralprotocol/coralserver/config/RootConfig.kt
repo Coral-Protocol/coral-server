@@ -5,9 +5,6 @@ package org.coralprotocol.coralserver.config
 import com.sksamuel.hoplite.ConfigAlias
 import io.ktor.http.*
 import kotlinx.serialization.ExperimentalSerializationApi
-import mu.KotlinLogging
-
-private val logger = KotlinLogging.logger { }
 
 data class RootConfig(
     @param:ConfigAlias("payment")

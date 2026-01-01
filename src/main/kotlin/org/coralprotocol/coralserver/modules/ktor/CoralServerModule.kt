@@ -1,6 +1,5 @@
 package org.coralprotocol.coralserver.modules.ktor
 
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.OpenApi
 import io.github.smiley4.ktoropenapi.config.AuthScheme
 import io.github.smiley4.ktoropenapi.config.AuthType
@@ -40,6 +39,7 @@ import org.coralprotocol.coralserver.config.AuthConfig
 import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.events.LocalSessionManagerEvent
 import org.coralprotocol.coralserver.events.SessionEvent
+import org.coralprotocol.coralserver.logging.LoggingInterface
 import org.coralprotocol.coralserver.mcp.McpResourceName
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.routes.RouteException
@@ -56,13 +56,12 @@ import org.koin.ktor.ext.inject
 import org.slf4j.event.Level
 import kotlin.time.Duration.Companion.seconds
 
-private val logger = KotlinLogging.logger {}
-
 fun Application.coralServerModule() {
     val networkConfig by inject<NetworkConfig>()
     val authConfig by inject<AuthConfig>()
     val localSessionManager by inject<LocalSessionManager>()
     val json by inject<Json>()
+    val logger by inject<LoggingInterface>()
 
     install(OpenApi) {
         info {

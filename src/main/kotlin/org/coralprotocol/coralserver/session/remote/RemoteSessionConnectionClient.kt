@@ -1,12 +1,8 @@
 package org.coralprotocol.coralserver.session.remote
 
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.websocket.*
 import io.modelcontextprotocol.kotlin.sdk.JSONRPCMessage
 import io.modelcontextprotocol.kotlin.sdk.shared.AbstractTransport
-import kotlinx.serialization.json.Json
-
-private val logger = KotlinLogging.logger { }
 
 class RemoteSessionConnectionClient(
     private val session: WebSocketSession
@@ -32,7 +28,7 @@ class RemoteSessionConnectionClient(
     }
 
     override suspend fun close() {
-        logger.debug { "Closing RemoteSessionClient" }
+        //logger.debug { "Closing RemoteSessionClient" }
 
         session.close()
     }

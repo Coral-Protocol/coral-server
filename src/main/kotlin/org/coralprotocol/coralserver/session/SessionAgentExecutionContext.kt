@@ -99,7 +99,7 @@ class SessionAgentExecutionContext(
                     }
                 }
 
-                logger.info("Setting option \"$name\" = \"${this[name]}\" for agent $name")
+                logger.info { "Setting option \"$name\" = \"${this[name]}\" for agent $name" }
             }
 
             // Coral environment variables
@@ -135,16 +135,15 @@ class SessionAgentExecutionContext(
             if (provider is GraphAgentProvider.Remote)
                 launchRemote(provider)
         } catch (_: CancellationException) {
-            agent.logger.info("Agent ${agent.name} cancelled")
+            logger.info { "Agent ${agent.name} cancelled" }
         } catch (e: Exception) {
-            agent.logger.error("Exception thrown when launching agent ${agent.name}", e)
+            logger.error(e) { "Exception thrown when launching agent ${agent.name}" }
         } finally {
             handleRuntimeStopped()
         }
 
         // todo: restart logic
-
-        agent.logger.info("Agent ${agent.name} runtime exited")
+        logger.info { "Agent ${agent.name} runtime exited" }
     }
 
 

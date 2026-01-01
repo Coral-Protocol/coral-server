@@ -2,7 +2,6 @@
 
 package org.coralprotocol.coralserver.agent.graph
 
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
@@ -17,14 +16,15 @@ import org.coralprotocol.coralserver.agent.payment.AgentClaimAmount
 import org.coralprotocol.coralserver.agent.registry.PublicAgentExportSettings
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.logging.LoggingInterface
 import org.coralprotocol.coralserver.payment.JupiterService
-
-private val logger = KotlinLogging.logger {}
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 @Serializable
 @JsonClassDiscriminator("type")
 @Description("A local or remote provider for an agent")
-sealed class GraphAgentProvider {
+sealed class GraphAgentProvider : KoinComponent {
     abstract val runtime: RuntimeId
 
     @Serializable
@@ -83,8 +83,10 @@ sealed class GraphAgentProvider {
 suspend fun RemoteRequest.toRemote(
     agentId: RegistryAgentIdentifier,
     paymentSessionId: String,
-    jupiterService: JupiterService
 ): GraphAgentProvider.Remote {
+    val jupiterService by inject<JupiterService>()
+    val logger by inject<LoggingInterface>()
+
     val rankedServers = when (serverSource) {
         is GraphAgentServerSource.Servers -> {
             serverSource.servers.sortedBy {
@@ -111,9 +113,8 @@ suspend fun RemoteRequest.toRemote(
                 selectedServer = server
                 break
             }
-        }
-        catch (e: Exception) {
-            logger.warn(e) { "Exception throw when trying to get export settings for agent $agentId on server $server" }
+        } catch (e: Exception) {
+            logger.error(e) { "Exception throw when trying to get export settings for agent $agentId on server $server" }
         }
     }
 

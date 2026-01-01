@@ -13,18 +13,13 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.events.SessionEvent
-import org.coralprotocol.coralserver.logging.LoggerWithFlow
+import org.coralprotocol.coralserver.logging.LoggingInterface
 import org.coralprotocol.coralserver.session.SessionAgentDisposableResource
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.time.measureTime
-
-private data class DockerWithLogging(
-    val dockerClient: DockerClient,
-    val logger: LoggerWithFlow
-)
 
 @Serializable
 @SerialName("docker")
@@ -37,12 +32,13 @@ data class DockerRuntime(
         applicationRuntimeContext: ApplicationRuntimeContext
     ) = withContext(Dispatchers.IO) {
         if (applicationRuntimeContext.dockerClient == null) {
-            executionContext.logger.warn("Docker client not available, skipping execution")
+            executionContext.logger.warn { "Docker client not available, skipping execution" }
             return@withContext
         }
 
-        val docker = DockerWithLogging(applicationRuntimeContext.dockerClient, executionContext.logger)
-        val sanitisedImageName = docker.sanitizeDockerImageName(image, executionContext.registryAgent.identifier)
+        val docker = applicationRuntimeContext.dockerClient
+        val sanitisedImageName =
+            docker.sanitizeDockerImageName(image, executionContext.registryAgent.identifier, executionContext.logger)
         var containerId: String? = null
 
         try {
@@ -50,11 +46,11 @@ data class DockerRuntime(
                 var image = docker.findImage(sanitisedImageName)
 
                 if (image == null) {
-                    image = docker.pullImage(sanitisedImageName)
+                    image = docker.pullImage(sanitisedImageName, executionContext.logger)
                         ?: throw IllegalStateException("Docker image $sanitisedImageName not found after pulling")
                 }
 
-                docker.printImageInfo(image)
+                docker.printImageInfo(image, executionContext.logger)
             }
 
             // This call populates executionContext.disposableResources and must be called before the Docker volumes are
@@ -64,11 +60,11 @@ data class DockerRuntime(
             val volumes = executionContext.disposableResources
                 .filterIsInstance<SessionAgentDisposableResource.TemporaryFile>()
                 .map {
-                    executionContext.logger.info("Binding host file ${it.file} to container path ${it.mountPath}")
+                    executionContext.logger.info { "Binding host file ${it.file} to container path ${it.mountPath}" }
                     Bind(it.file.toString(), Volume(it.mountPath))
                 }
 
-            val containerCreationCmd = docker.dockerClient.createContainerCmd(sanitisedImageName)
+            val containerCreationCmd = docker.createContainerCmd(sanitisedImageName)
                 .withName(executionContext.agent.secret)
                 .withEnv(environment.map { (key, value) -> "$key=$value" })
                 .withHostConfig(HostConfig().withBinds(volumes))
@@ -83,12 +79,12 @@ data class DockerRuntime(
             val container = containerCreationCmd.exec()
             containerId = container.id
 
-            executionContext.logger.info("container $containerId created")
+            executionContext.logger.info { "container $containerId created" }
             executionContext.session.events.emit(SessionEvent.DockerContainerCreated(containerId))
 
-            docker.dockerClient.startContainerCmd(containerId).exec()
+            docker.startContainerCmd(containerId).exec()
 
-            val attachCmd = docker.dockerClient.attachContainerCmd(containerId)
+            val attachCmd = docker.attachContainerCmd(containerId)
                 .withStdOut(true)
                 .withStdErr(true)
                 .withFollowStream(true)
@@ -98,19 +94,19 @@ data class DockerRuntime(
                 override fun onNext(frame: Frame) {
                     val message = String(frame.payload).trimEnd('\n')
                     if (frame.streamType == StreamType.STDOUT)
-                        executionContext.logger.info(message)
+                        executionContext.logger.info { message }
 
                     if (frame.streamType == StreamType.STDERR)
-                        executionContext.logger.warn(message)
+                        executionContext.logger.warn { message }
                 }
             })
 
             runInterruptible {
-                val status = docker.dockerClient.waitContainerCmd(containerId)
+                val status = docker.waitContainerCmd(containerId)
                     .exec(WaitContainerResultCallback())
                     .awaitStatusCode()
 
-                executionContext.logger.info("container $containerId exited with code $status")
+                executionContext.logger.info { "container $containerId exited with code $status" }
             }
         } catch (e: DockerClientException) {
             @OptIn(InternalAPI::class)
@@ -121,13 +117,13 @@ data class DockerRuntime(
                 when (val containerId = containerId) {
                     null -> {}
                     else -> runInterruptible {
-                        docker.dockerClient.removeContainerCmd(containerId)
+                        docker.removeContainerCmd(containerId)
                             .withRemoveVolumes(true)
                             .withForce(true)
                             .exec()
 
                         executionContext.session.events.tryEmit(SessionEvent.DockerContainerRemoved(containerId))
-                        executionContext.logger.info("container $containerId removed")
+                        executionContext.logger.info { "container $containerId removed" }
                     }
                 }
             }
@@ -135,10 +131,14 @@ data class DockerRuntime(
     }
 }
 
-private fun DockerWithLogging.sanitizeDockerImageName(imageName: String, id: RegistryAgentIdentifier): String {
+private fun DockerClient.sanitizeDockerImageName(
+    imageName: String,
+    id: RegistryAgentIdentifier,
+    logger: LoggingInterface
+): String {
     if (imageName.contains(":")) {
         if (!imageName.endsWith(":${id.version}")) {
-            logger.warn("Image $imageName does not match the agent version: ${id.version}")
+            logger.warn { "Image $imageName does not match the agent version: ${id.version}" }
         }
 
         return imageName
@@ -147,28 +147,28 @@ private fun DockerWithLogging.sanitizeDockerImageName(imageName: String, id: Reg
     }
 }
 
-private fun DockerWithLogging.findImage(imageName: String): Image? =
-    dockerClient.listImagesCmd()
+private fun DockerClient.findImage(imageName: String): Image? =
+    listImagesCmd()
         .exec()
         .firstOrNull { it.repoTags.contains(imageName) }
 
-private fun DockerWithLogging.pullImage(imageName: String): Image? {
-    logger.info("Docker image $imageName not found locally, pulling...")
+private fun DockerClient.pullImage(imageName: String, logger: LoggingInterface): Image? {
+    logger.info { "Docker image $imageName not found locally, pulling..." }
 
     val time = measureTime {
-        dockerClient.pullImageCmd(imageName)
+        pullImageCmd(imageName)
             .exec(object : ResultCallback.Adapter<PullResponseItem>() {
 
             })
             .awaitCompletion()
     }
 
-    logger.info("Docker image $imageName pulled in $time")
+    logger.info { "Docker image $imageName pulled in $time" }
     return findImage(imageName)
 }
 
-private fun DockerWithLogging.printImageInfo(image: Image) {
-    val imageInfo = dockerClient.inspectImageCmd(image.id).exec()
+private fun DockerClient.printImageInfo(image: Image, logger: LoggingInterface) {
+    val imageInfo = inspectImageCmd(image.id).exec()
     val createdAt = imageInfo.created
 
     if (createdAt != null) {
@@ -176,8 +176,8 @@ private fun DockerWithLogging.printImageInfo(image: Image) {
             .withZone(ZoneId.systemDefault())
         val formattedDate = formatter.format(Instant.parse(createdAt))
 
-        logger.info("Image tags: ${image.repoTags?.joinToString(", ")}")
-        logger.info("Image ID: ${image.id}")
-        logger.info("Image creation date: $formattedDate")
+        logger.info { "Image tags: ${image.repoTags?.joinToString(", ")}" }
+        logger.info { "Image ID: ${image.id}" }
+        logger.info { "Image creation date: $formattedDate" }
     }
 }

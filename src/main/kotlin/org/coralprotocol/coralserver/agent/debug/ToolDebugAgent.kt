@@ -70,7 +70,7 @@ class ToolDebugAgent(client: HttpClient) : DebugAgent(client) {
                 client.callTool(CallToolRequest(toolName, json.decodeFromString(toolInput)))
 
             if (response == null) {
-                agent.logger.warn("Failed to call tool $toolName: no response")
+                agent.logger.warn { "Failed to call tool $toolName: no response" }
                 return
             }
 
@@ -85,12 +85,12 @@ class ToolDebugAgent(client: HttpClient) : DebugAgent(client) {
             }
 
             if (response.isError == true) {
-                agent.logger.warn("Failed to call tool $toolName: $text")
+                agent.logger.warn { "Failed to call tool $toolName: $text" }
             } else {
-                agent.logger.info("Tool $toolName returned: $text")
+                agent.logger.info { "Tool $toolName returned: $text" }
             }
         } catch (e: SerializationException) {
-            agent.logger.error("Failed to call tool $toolName: bad input", e)
+            agent.logger.error(e) { "Failed to call tool $toolName: bad input" }
         }
     }
 }

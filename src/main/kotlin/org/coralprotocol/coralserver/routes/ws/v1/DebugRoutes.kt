@@ -11,8 +11,6 @@
 //import org.coralprotocol.coralserver.models.sendSocketEvent
 //import org.coralprotocol.coralserver.session.LocalSessionManager
 //
-//private val logger = KotlinLogging.logger {}
-//
 //fun Route.debugWsRoutes(localSessionManager: LocalSessionManager, orchestrator: Orchestrator) {
 //    webSocket("debug/{applicationId}/{privacyKey}/{coralSessionId}/") {
 //        val applicationId = call.parameters["applicationId"]

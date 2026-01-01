@@ -15,24 +15,23 @@ data class ExecutableRuntime(
         executionContext: SessionAgentExecutionContext,
         applicationRuntimeContext: ApplicationRuntimeContext
     ) {
-        executionContext.agent.logger.info("Executing command: ${command.joinToString(" ")}")
+        executionContext.logger.info { "Executing command: ${command.joinToString(" ")}" }
 
         val result = process(
             command = command.toTypedArray(),
             directory = executionContext.path?.toFile(),
             stdout = Redirect.Consume {
-                it.collect { line -> executionContext.agent.logger.info(line) }
+                it.collect { line -> executionContext.logger.info { line } }
             },
             stderr = Redirect.Consume {
-                it.collect { line -> executionContext.agent.logger.warn(line) }
+                it.collect { line -> executionContext.logger.warn { line } }
             },
             env = executionContext.buildEnvironment()
         )
 
         if (result.resultCode != 0) {
-            executionContext.agent.logger.warn("exited with code ${result.resultCode}")
-        }
-        else
-            executionContext.agent.logger.info("exited with code 0")
+            executionContext.logger.warn { "exited with code ${result.resultCode}" }
+        } else
+            executionContext.logger.info { "exited with code 0" }
     }
 }

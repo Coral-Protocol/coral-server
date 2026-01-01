@@ -10,7 +10,6 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.serializer
-import org.coralprotocol.coralserver.logging.LoggerWithFlow
 import org.coralprotocol.coralserver.mcp.tools.*
 import org.coralprotocol.coralserver.mcp.tools.optional.CloseSessionInput
 import org.coralprotocol.coralserver.mcp.tools.optional.closeSessionExecutor

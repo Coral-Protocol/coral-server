@@ -2,7 +2,6 @@
 
 package org.coralprotocol.coralserver.agent.registry
 
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -15,8 +14,6 @@ import org.coralprotocol.coralserver.config.SecurityConfig
 import org.coralprotocol.coralserver.config.toml
 import java.io.File
 import java.nio.file.Path
-
-private val logger = KotlinLogging.logger { }
 
 const val FIRST_AGENT_EDITION = 1
 const val CURRENT_AGENT_EDITION = 2

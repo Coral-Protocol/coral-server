@@ -71,7 +71,7 @@ sealed interface GraphAgentToolTransport : KoinComponent {
                     content = listOf(TextContent(body))
                 )
             } catch (e: Exception) {
-                agent.logger.error("Error executing custom tool $name", e)
+                agent.logger.error(e) { "Error executing custom tool $name" }
 
                 return CallToolResult(
                     isError = true,

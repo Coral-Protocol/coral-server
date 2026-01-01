@@ -31,7 +31,7 @@ class McpTool<In, Out>(
         val arguments = try {
             json.decodeFromJsonElement(inputSerializer, encodedArguments)
         } catch (e: SerializationException) {
-            agent.logger.error("Couldn't deserialize input given to $name", e)
+            agent.logger.error(e) { "Couldn't deserialize input given to $name" }
 
             return CallToolResult(
                 content = listOf(TextContent(e.message)),
@@ -60,7 +60,7 @@ class McpTool<In, Out>(
                 isError = true,
             )
         } catch (e: Exception) {
-            agent.logger.error("Unexpected error occurred while executing tool $name", e)
+            agent.logger.error(e) { "Unexpected error occurred while executing tool $name" }
 
             CallToolResult(
                 content = listOf(TextContent(e.message)),

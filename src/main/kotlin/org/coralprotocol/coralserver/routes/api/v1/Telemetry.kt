@@ -11,8 +11,6 @@ import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionThreadMessage
 import org.coralprotocol.coralserver.models.TelemetryPost as TelemetryPostModel
 
-//private val logger = KotlinLogging.logger {}
-
 @Resource("telemetry/{sessionId}/{threadId}/{messageId}")
 class TelemetryGet(val sessionId: String, val threadId: String, val messageId: String) {
     fun intoMessage(localSessionManager: LocalSessionManager): SessionThreadMessage {

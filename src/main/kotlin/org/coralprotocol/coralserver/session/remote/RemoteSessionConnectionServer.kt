@@ -1,12 +1,9 @@
 package org.coralprotocol.coralserver.session.remote
 
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.ktor.websocket.*
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-
-private val logger = KotlinLogging.logger { }
 
 class RemoteSessionConnectionServer(
     val session: WebSocketSession,

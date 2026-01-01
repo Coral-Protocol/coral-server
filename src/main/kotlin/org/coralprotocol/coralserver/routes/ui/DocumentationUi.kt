@@ -1,6 +1,5 @@
 package org.coralprotocol.coralserver.routes.ui
 
-import io.github.oshai.kotlinlogging.KotlinLogging
 import io.github.smiley4.ktoropenapi.resources.get
 import io.ktor.http.*
 import io.ktor.resources.*
@@ -8,8 +7,6 @@ import io.ktor.server.html.*
 import io.ktor.server.routing.*
 import kotlinx.html.*
 import org.coralprotocol.coralserver.routes.UiV1
-
-private val logger = KotlinLogging.logger {}
 
 @Resource("docs")
 class Documentation(val parent: UiV1 = UiV1())
@@ -36,11 +33,13 @@ fun Route.documentationInterface() {
                 // this can accept multiple versions of the spec if we need it in the future
                 script {
                     unsafe {
-                        raw("""
-                                Scalar.createApiReference('#app', {
-                                  url: '/api_v1.json',
-                                })
-                                """.trimIndent())
+                        raw(
+                            """
+                            Scalar.createApiReference('#app', {
+                              url: '/api_v1.json',
+                            })
+                            """.trimIndent()
+                        )
                     }
                 }
             }

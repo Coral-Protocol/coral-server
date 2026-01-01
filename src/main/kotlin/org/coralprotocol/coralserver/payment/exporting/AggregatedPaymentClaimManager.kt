@@ -1,20 +1,21 @@
 package org.coralprotocol.coralserver.payment.exporting
 
-import io.github.oshai.kotlinlogging.KotlinLogging
 import org.coralprotocol.coralserver.agent.payment.AgentClaimAmount
 import org.coralprotocol.coralserver.agent.payment.AgentPaymentClaimRequest
 import org.coralprotocol.coralserver.agent.payment.toMicroCoral
 import org.coralprotocol.coralserver.agent.payment.toUsd
+import org.coralprotocol.coralserver.logging.LoggingInterface
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.session.remote.RemoteSession
 import org.coralprotocol.payment.blockchain.BlockchainService
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.text.NumberFormat
 import java.util.*
 
-private val logger = KotlinLogging.logger { }
-
-private class PaymentClaimAggregation(val remoteSession: RemoteSession) {
+private class PaymentClaimAggregation(val remoteSession: RemoteSession) : KoinComponent {
+    private val logger by inject<LoggingInterface>()
     private val totalClaimed: MutableMap<String, Long> = mutableMapOf()
 
     fun sumOfAllAgentsClaims(): Long = totalClaimed.values.sum()
@@ -32,8 +33,7 @@ private class PaymentClaimAggregation(val remoteSession: RemoteSession) {
             logger.warn { "maxCost for ${remoteSession.agent.name} reached!" }
             logger.warn { "clipping excess of ${requestNewAmount - remoteSession.maxCost}" }
             remoteSession.maxCost
-        }
-        else {
+        } else {
             requestNewAmount
         }
     }
@@ -45,7 +45,8 @@ private class PaymentClaimAggregation(val remoteSession: RemoteSession) {
 
 class AggregatedPaymentClaimManager(
     val blockchainService: BlockchainService,
-    val jupiterService: JupiterService
+    val jupiterService: JupiterService,
+    private val logger: LoggingInterface,
 ) {
     private val claimMap = mutableMapOf<PaymentSessionId, PaymentClaimAggregation>()
     private val usdFormat = NumberFormat.getCurrencyInstance(Locale.US)
@@ -65,7 +66,13 @@ class AggregatedPaymentClaimManager(
         val claimUsd = claim.amount.toUsd(jupiterService)
         val remainingUsd = AgentClaimAmount.MicroCoral(aggregation.getRemainingBudget()).toUsd(jupiterService)
 
-        logger.info { "${session.agent.name} claimed ${usdFormat.format(claimUsd)} for session $paymentSessionId, amount remaining: ${usdFormat.format(remainingUsd)}" }
+        logger.info {
+            "${session.agent.name} claimed ${usdFormat.format(claimUsd)} for session $paymentSessionId, amount remaining: ${
+                usdFormat.format(
+                    remainingUsd
+                )
+            }"
+        }
 
         return aggregation.getRemainingBudget()
     }
@@ -84,10 +91,17 @@ class AggregatedPaymentClaimManager(
         ).fold(
             onSuccess = {
                 val claimUsd = AgentClaimAmount.MicroCoral(it.totalAmountClaimed).toUsd(jupiterService)
-                logger.info { "Claim submitted for session $paymentSessionId, amount claimed: ${usdFormat.format(claimUsd)}" }
+                logger.info {
+                    "Claim submitted for session $paymentSessionId, amount claimed: ${
+                        usdFormat.format(
+                            claimUsd
+                        )
+                    }"
+                }
             },
             onFailure = {
-                val claimUsd = AgentClaimAmount.MicroCoral(claimAggregation.sumOfAllAgentsClaims()).toUsd(jupiterService)
+                val claimUsd =
+                    AgentClaimAmount.MicroCoral(claimAggregation.sumOfAllAgentsClaims()).toUsd(jupiterService)
                 logger.error(it) { "Escrow claim failed for $paymentSessionId, amount: ${usdFormat.format(claimUsd)}" }
             }
         )
