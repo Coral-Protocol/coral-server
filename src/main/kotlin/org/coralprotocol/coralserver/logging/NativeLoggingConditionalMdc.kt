@@ -19,7 +19,7 @@ class NativeLoggingConditionalMdc : ClassicConverter() {
         return if (data.isEmpty()) {
             ""
         } else {
-            "[$data]"
+            " [$data]"
         }
     }
 }

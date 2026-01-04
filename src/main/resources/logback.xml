@@ -11,14 +11,37 @@
         <withJansi>false</withJansi>
         <encoder>
             <charset>UTF-8</charset>
-            <pattern>%highlight(%-5level) %green(%d{yyyy-MM-dd HH:mm:ss.SSS}) %mdc{ns, sid, agent, io} - %msgHighlight(%msg%n)</pattern>
+            <pattern>%highlight(%5level) {%green(%d{yyyy-MM-dd HH:mm:ss.SSS})}%mdc{ns, sid, agent, io} %msgHighlight(%msg%n)</pattern>
         </encoder>
+    </appender>
+
+    <property name="FILE_NAME_PATTERN" />
+    <property name="MAX_FILE_SIZE" />
+    <property name="MAX_HISTORY" />
+    <property name="TOTAL_SIZE_CAP"  />
+    <property name="CLEAR_HISTORY_ON_START" />
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <append>true</append>
+
+        <encoder>
+            <pattern>%5level %d{yyyy-MM-dd HH:mm:ss.SSS} -%mdc{ns, sid, agent, io} %msg%n</pattern>
+        </encoder>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${FILE_NAME_PATTERN}</fileNamePattern>
+            <maxFileSize>${MAX_FILE_SIZE}</maxFileSize>
+            <maxHistory>${MAX_HISTORY}</maxHistory>
+            <totalSizeCap>${TOTAL_SIZE_CAP}</totalSizeCap>
+            <clearHistoryOnStart>{CLEAR_HISTORY_ON_START}</clearHistoryOnStart>
+        </rollingPolicy>
     </appender>
 
     <!-- cors is super noisy and useless -->
     <logger name="io.ktor.server.plugins.cors.CORS" level="OFF"/>
 
     <root level="INFO">
-        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="STDOUT" />
+        <appender-ref ref="FILE" />
     </root>
 </configuration>
