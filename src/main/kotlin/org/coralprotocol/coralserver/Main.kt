@@ -15,11 +15,10 @@ import org.koin.environmentProperties
 fun main(args: Array<String>) {
     val app = startKoin {
         environmentProperties()
-        logger(PrintLogger())
         modules(
-            loggingModule,
             configModule,
             configModuleParts,
+            loggingModule,
             blockchainModule,
             networkModule,
             agentModule,

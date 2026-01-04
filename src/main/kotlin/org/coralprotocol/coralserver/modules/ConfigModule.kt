@@ -6,7 +6,7 @@ import org.koin.dsl.module
 
 @OptIn(ExperimentalHoplite::class)
 val configModule = module {
-    single {
+    single(createdAtStart = true) {
         val loader = ConfigLoaderBuilder.default()
             .addResourceSource("/config.toml")
             .withExplicitSealedTypes("type")
@@ -22,14 +22,14 @@ val configModule = module {
 }
 
 val configModuleParts = module {
-    single<AuthConfig> { get<RootConfig>().authConfig }
-    single<CacheConfig> { get<RootConfig>().cacheConfig }
-    single<DebugConfig> { get<RootConfig>().debugConfig }
-    single<DockerConfig> { get<RootConfig>().dockerConfig }
-    single<NetworkConfig> { get<RootConfig>().networkConfig }
-    single<PaymentConfig> { get<RootConfig>().paymentConfig }
-    single<RegistryConfig> { get<RootConfig>().registryConfig }
-    single<SecurityConfig> { get<RootConfig>().securityConfig }
-    single<SessionConfig> { get<RootConfig>().sessionConfig }
-    single<LoggingConfig> { get<RootConfig>().loggingConfig }
+    single<AuthConfig>(createdAtStart = true) { get<RootConfig>().authConfig }
+    single<CacheConfig>(createdAtStart = true) { get<RootConfig>().cacheConfig }
+    single<DebugConfig>(createdAtStart = true) { get<RootConfig>().debugConfig }
+    single<DockerConfig>(createdAtStart = true) { get<RootConfig>().dockerConfig }
+    single<NetworkConfig>(createdAtStart = true) { get<RootConfig>().networkConfig }
+    single<PaymentConfig>(createdAtStart = true) { get<RootConfig>().paymentConfig }
+    single<RegistryConfig>(createdAtStart = true) { get<RootConfig>().registryConfig }
+    single<SecurityConfig>(createdAtStart = true) { get<RootConfig>().securityConfig }
+    single<SessionConfig>(createdAtStart = true) { get<RootConfig>().sessionConfig }
+    single<LoggingConfig>(createdAtStart = true) { get<RootConfig>().loggingConfig }
 }
