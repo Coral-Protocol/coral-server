@@ -6,6 +6,7 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
 import org.coralprotocol.coralserver.agent.registry.option.asEnvVarValue
 import org.coralprotocol.coralserver.agent.registry.option.asFileSystemValue
 import org.coralprotocol.coralserver.agent.registry.option.option
+import org.coralprotocol.coralserver.agent.registry.option.toDisplayString
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.AddressConsumer
@@ -99,7 +100,7 @@ class SessionAgentExecutionContext(
                     }
                 }
 
-                logger.info { "Setting option \"$name\" = \"${this[name]}\" for agent $name" }
+                logger.info { "Setting option \"$name\" = \"${value.toDisplayString()}\" for agent $name" }
             }
 
             // Coral environment variables

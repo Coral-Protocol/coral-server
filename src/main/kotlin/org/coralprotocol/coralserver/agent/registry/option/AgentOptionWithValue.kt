@@ -228,8 +228,8 @@ fun AgentOptionWithValue.asFileSystemValue(dockerConfig: DockerConfig): List<Ses
  * logging, this will the incorrect value for environment variables.
  */
 fun AgentOptionWithValue.toDisplayString(): String = when (this) {
-    is AgentOptionWithValue.Blob -> value.value.encodeBase64()
-    is AgentOptionWithValue.BlobList -> value.value.joinToString(",") { it.encodeBase64() }
+    is AgentOptionWithValue.Blob -> "${value.value.size}b blob"
+    is AgentOptionWithValue.BlobList -> value.value.joinToString(",") { "${it.size}b blob" }
     is AgentOptionWithValue.Boolean -> if (value.value) { "1" } else { "0" }
     is AgentOptionWithValue.Byte -> value.value.toString()
     is AgentOptionWithValue.ByteList -> value.value.joinToString(",")
