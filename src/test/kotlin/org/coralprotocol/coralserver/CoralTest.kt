@@ -17,6 +17,8 @@ import kotlinx.coroutines.plus
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.config.*
+import org.coralprotocol.coralserver.logging.Logger
+import org.coralprotocol.coralserver.modules.WEBSOCKET_COROUTINE_SCOPE_NAME
 import org.coralprotocol.coralserver.modules.agentModule
 import org.coralprotocol.coralserver.modules.blockchainModule
 import org.coralprotocol.coralserver.modules.configModuleParts
@@ -149,7 +151,7 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                         logger = get()
                                     )
                                 }
-                                single(named("websocketCoroutineScope")) {
+                                single(named(WEBSOCKET_COROUTINE_SCOPE_NAME)) {
                                     this@RootTest + Job()
                                 }
                             }

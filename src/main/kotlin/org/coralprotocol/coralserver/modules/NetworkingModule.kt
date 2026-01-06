@@ -16,6 +16,8 @@ import org.coralprotocol.coralserver.modules.ktor.coralServerModule
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
+const val WEBSOCKET_COROUTINE_SCOPE_NAME = "websocketCoroutineScope"
+
 val networkModule = module {
     single {
         val config = get<NetworkConfig>()
@@ -45,7 +47,7 @@ val networkModule = module {
         }
     }
 
-    single(named("websocketCoroutineScope")) {
+    single(named(WEBSOCKET_COROUTINE_SCOPE_NAME)) {
         CoroutineScope(Job())
     }
 }

@@ -17,6 +17,7 @@ import org.coralprotocol.coralserver.config.AuthConfig
 import org.coralprotocol.coralserver.config.LoggingConfig
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.logging.LoggingTagFilter
+import org.coralprotocol.coralserver.modules.WEBSOCKET_COROUTINE_SCOPE_NAME
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.routes.WsV1
 import org.coralprotocol.coralserver.server.AuthSession
@@ -44,8 +45,8 @@ fun Route.logRoutes() {
     val logger by inject<Logger>()
     val authConfig by inject<AuthConfig>()
     val loggingConfig by inject<LoggingConfig>()
-    val json by inject<Json>()
-    val websocketCoroutineScope by inject<CoroutineScope>(named("websocketCoroutineScope"))
+    val websocketCoroutineScope by inject<CoroutineScope>(named(WEBSOCKET_COROUTINE_SCOPE_NAME))
+    val json by inject<Json>(named("api"))
 
     suspend fun RoutingContext.handleLogs(loggingTagFilter: LoggingTagFilter, limit: Int) {
         val limit = limit.coerceAtMost(loggingConfig.maxReplay.toInt())

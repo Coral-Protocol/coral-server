@@ -14,6 +14,7 @@ import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.logging.LoggingEvent
 import org.coralprotocol.coralserver.logging.LoggingTag
+import org.coralprotocol.coralserver.modules.WEBSOCKET_COROUTINE_SCOPE_NAME
 import org.coralprotocol.coralserver.routes.ws.v1.Logs
 import org.coralprotocol.coralserver.util.filterIsInstance
 import org.coralprotocol.coralserver.util.fromWsFrame
@@ -35,7 +36,7 @@ class LoggerTests : CoralTest({
         val logger by inject<Logger>()
         val client by inject<HttpClient>()
         val json by inject<Json>()
-        val websocketCoroutineScope by inject<CoroutineScope>(named("websocketCoroutineScope"))
+        val websocketCoroutineScope by inject<CoroutineScope>(named(WEBSOCKET_COROUTINE_SCOPE_NAME))
 
         val wsJob = shouldPostEventsFromBody(
             timeout = 3.seconds,

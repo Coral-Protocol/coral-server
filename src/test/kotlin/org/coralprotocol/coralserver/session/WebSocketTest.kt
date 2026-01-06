@@ -21,6 +21,7 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.events.LocalSessionManagerEvent
 import org.coralprotocol.coralserver.events.SessionEvent
+import org.coralprotocol.coralserver.modules.WEBSOCKET_COROUTINE_SCOPE_NAME
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.routes.ws.v1.Events
 import org.coralprotocol.coralserver.session.models.SessionIdentifier
@@ -40,7 +41,7 @@ class WebSocketTest : CoralTest({
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
         val json by inject<Json>()
-        val websocketCoroutineScope by inject<CoroutineScope>(named("websocketCoroutineScope"))
+        val websocketCoroutineScope by inject<CoroutineScope>(named(WEBSOCKET_COROUTINE_SCOPE_NAME))
 
         val namespace = Sessions.WithNamespace(namespace = "debug agent namespace")
         val threadCount = 10u
@@ -97,7 +98,7 @@ class WebSocketTest : CoralTest({
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
         val json by inject<Json>()
-        val websocketCoroutineScope by inject<CoroutineScope>(named("websocketCoroutineScope"))
+        val websocketCoroutineScope by inject<CoroutineScope>(named(WEBSOCKET_COROUTINE_SCOPE_NAME))
 
         val ns1Name = "ns1"
         val ns1 = Sessions.WithNamespace(namespace = ns1Name)

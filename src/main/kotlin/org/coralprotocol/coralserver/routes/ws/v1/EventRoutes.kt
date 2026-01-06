@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.config.AuthConfig
+import org.coralprotocol.coralserver.modules.WEBSOCKET_COROUTINE_SCOPE_NAME
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.routes.WsV1
 import org.coralprotocol.coralserver.server.AuthSession
@@ -46,7 +47,7 @@ fun Route.eventRoutes() {
     val localSessionManager by inject<LocalSessionManager>()
     val config by inject<AuthConfig>()
     val json by inject<Json>()
-    val websocketCoroutineScope by inject<CoroutineScope>(named("websocketCoroutineScope"))
+    val websocketCoroutineScope by inject<CoroutineScope>(named(WEBSOCKET_COROUTINE_SCOPE_NAME))
 
     suspend fun RoutingContext.handleSessionEvents(namespace: String, sessionId: SessionId) {
         val session = try {
