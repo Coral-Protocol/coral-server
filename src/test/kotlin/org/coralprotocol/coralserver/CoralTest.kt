@@ -114,73 +114,72 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                     val testLogger = Logger(logBufferSize)
                     val prodLogger = Logger(logBufferSize)
 
-                    startKoin {
-                        environmentProperties()
-                        logger(PrintLogger())
-                        modules(
-                            configModuleParts,
-                            blockchainModule,
-                            agentModule,
-                            module {
-                                singleOf(::ApplicationRuntimeContext)
-                                single { config }
-                                single {
-                                    Json {
-                                        encodeDefaults = true
-                                        prettyPrint = true
-                                        explicitNulls = false
-                                    }
-                                }
-                            },
-                            module {
-                                single<Logger>(named(LOGGER_ROUTES)) { prodLogger }
-                                single<Logger>(named(LOGGER_CONFIG)) { prodLogger }
-                                single<Logger>(named(LOGGER_LOCAL_SESSION)) { prodLogger }
-
-                                single<Logger>(named(LOGGER_LOG_API)) { testLogger }
-                                single<Logger>(named(LOGGER_TEST)) { testLogger }
-                            },
-                            module {
-                                single {
-                                    LocalSessionManager(
-                                        blockchainService = get(),
-                                        jupiterService = get(),
-                                        httpClient = get(),
-                                        config = get(),
-                                        json = get(),
-                                        managementScope = this@RootTest,
-
-                                        // if this is true, exceptions thrown (including assertions) in an agent's runtime will not exit a test
-                                        // it also requires that session's coroutine scopes are canceled
-                                        supervisedSessions = false,
-
-                                        logger = get(named(LOGGER_LOCAL_SESSION))
-                                    )
-                                }
-                                single(named(WEBSOCKET_COROUTINE_SCOPE_NAME)) {
-                                    this@RootTest + Job()
-                                }
-                            }
-                        )
-                        createEagerInstances()
-                    }
-
                     try {
-
                         runTestApplication {
-                            loadKoinModules(module {
-                                single<HttpClient> {
-                                    createClient {
-                                        install(Resources)
-                                        install(WebSockets)
-                                        install(SSE)
-                                        install(HttpCookies)
-                                        install(ClientContentNegotiation) {
-                                            json(get(), contentType = ContentType.Application.Json)
+                            startKoin {
+                                environmentProperties()
+                                logger(PrintLogger())
+                                modules(
+                                    configModuleParts,
+                                    blockchainModule,
+                                    agentModule,
+                                    module {
+                                        single {
+                                            createClient {
+                                                install(Resources)
+                                                install(WebSockets)
+                                                install(SSE)
+                                                install(HttpCookies)
+                                                install(ClientContentNegotiation) {
+                                                    json(get(), contentType = ContentType.Application.Json)
+                                                }
+                                            }
+                                        }
+                                    },
+                                    module {
+                                        singleOf(::ApplicationRuntimeContext)
+                                        single { config }
+                                        single {
+                                            Json {
+                                                encodeDefaults = true
+                                                prettyPrint = true
+                                                explicitNulls = false
+                                            }
+                                        }
+                                    },
+                                    module {
+                                        single<Logger>(named(LOGGER_ROUTES)) { prodLogger }
+                                        single<Logger>(named(LOGGER_CONFIG)) { prodLogger }
+                                        single<Logger>(named(LOGGER_LOCAL_SESSION)) { prodLogger }
+
+                                        single<Logger>(named(LOGGER_LOG_API)) { testLogger }
+                                        single<Logger>(named(LOGGER_TEST)) { testLogger }
+                                    },
+                                    module {
+                                        single {
+                                            LocalSessionManager(
+                                                blockchainService = get(),
+                                                jupiterService = get(),
+                                                httpClient = get(),
+                                                config = get(),
+                                                json = get(),
+                                                managementScope = this@RootTest,
+
+                                                // if this is true, exceptions thrown (including assertions) in an agent's runtime will not exit a test
+                                                // it also requires that session's coroutine scopes are canceled
+                                                supervisedSessions = false,
+
+                                                logger = get(named(LOGGER_LOCAL_SESSION))
+                                            )
+                                        }
+                                        single(named(WEBSOCKET_COROUTINE_SCOPE_NAME)) {
+                                            this@RootTest + Job()
                                         }
                                     }
-                                }
-                            })
+                                )
+                                createEagerInstances()
+                            }
+
 
                             application {
                                 coralServerModule()
