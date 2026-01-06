@@ -3,11 +3,13 @@ package org.coralprotocol.coralserver.routes.ui
 import io.ktor.server.http.content.*
 import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.logging.Logger
+import org.coralprotocol.coralserver.modules.LOGGER_ROUTES
+import org.koin.core.qualifier.named
 import org.koin.ktor.ext.inject
 import java.io.File
 
 fun Route.consoleUi() {
-    val logger by inject<Logger>()
+    val logger by inject<Logger>(named(LOGGER_ROUTES))
     val path = System.getenv("CONSOLE_UI_PATH")
 
     if (path == null) {

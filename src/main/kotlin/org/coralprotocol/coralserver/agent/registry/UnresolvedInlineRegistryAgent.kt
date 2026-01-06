@@ -6,7 +6,9 @@ import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.logging.Logger
+import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
 import org.koin.core.component.inject
+import org.koin.core.qualifier.named
 
 @Serializable
 data class UnresolvedInlineRegistryAgent(
@@ -22,7 +24,7 @@ data class UnresolvedInlineRegistryAgent(
     @Description("The options that this agent supports, for example the API keys required for the agent to function")
     val options: Map<String, AgentOption>,
 ) : UnresolvedRegistryAgent() {
-    private val logger by inject<Logger>()
+    private val logger by inject<Logger>(named(LOGGER_CONFIG))
 
     override fun resolve(context: AgentResolutionContext): List<RegistryAgent> {
         if (edition < FIRST_AGENT_EDITION) {

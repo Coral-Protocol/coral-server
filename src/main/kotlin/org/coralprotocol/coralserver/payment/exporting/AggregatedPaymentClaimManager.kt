@@ -6,17 +6,19 @@ import org.coralprotocol.coralserver.agent.payment.toMicroCoral
 import org.coralprotocol.coralserver.agent.payment.toUsd
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.logging.LoggingInterface
+import org.coralprotocol.coralserver.modules.LOGGER_ROUTES
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.session.remote.RemoteSession
 import org.coralprotocol.payment.blockchain.BlockchainService
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import org.koin.core.qualifier.named
 import java.text.NumberFormat
 import java.util.*
 
 private class PaymentClaimAggregation(val remoteSession: RemoteSession) : KoinComponent {
-    private val logger by inject<Logger>()
+    private val logger by inject<Logger>(named(LOGGER_ROUTES))
     private val totalClaimed: MutableMap<String, Long> = mutableMapOf()
 
     fun sumOfAllAgentsClaims(): Long = totalClaimed.values.sum()

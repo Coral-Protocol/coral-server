@@ -17,6 +17,7 @@ import org.coralprotocol.coralserver.config.AuthConfig
 import org.coralprotocol.coralserver.config.LoggingConfig
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.logging.LoggingTagFilter
+import org.coralprotocol.coralserver.modules.LOGGER_LOG_API
 import org.coralprotocol.coralserver.modules.WEBSOCKET_COROUTINE_SCOPE_NAME
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.routes.WsV1
@@ -42,7 +43,7 @@ class Logs(
 }
 
 fun Route.logRoutes() {
-    val logger by inject<Logger>()
+    val logger by inject<Logger>(named(LOGGER_LOG_API))
     val authConfig by inject<AuthConfig>()
     val loggingConfig by inject<LoggingConfig>()
     val websocketCoroutineScope by inject<CoroutineScope>(named(WEBSOCKET_COROUTINE_SCOPE_NAME))

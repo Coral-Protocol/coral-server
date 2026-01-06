@@ -2,7 +2,12 @@ package org.coralprotocol.coralserver.modules
 
 import org.coralprotocol.coralserver.config.LoggingConfig
 import org.coralprotocol.coralserver.logging.Logger
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
+
+const val LOGGER_ROUTES = "routeLogger"
+const val LOGGER_CONFIG = "configLogger"
+const val LOGGER_LOG_API = "apiLogger"
 
 val loggingModule = module {
     single(createdAtStart = true) {
@@ -17,4 +22,8 @@ val loggingModule = module {
 
         Logger(config.logBufferSize.toInt())
     }
+
+    single<Logger>(named(LOGGER_ROUTES)) { get() }
+    single<Logger>(named(LOGGER_CONFIG)) { get() }
+    single<Logger>(named(LOGGER_LOG_API)) { get() }
 }

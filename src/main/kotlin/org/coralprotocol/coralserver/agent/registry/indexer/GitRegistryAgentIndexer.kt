@@ -7,9 +7,11 @@ import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.CacheConfig
 import org.coralprotocol.coralserver.config.RootConfig
 import org.coralprotocol.coralserver.logging.Logger
+import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
 import org.eclipse.jgit.api.ResetCommand
 import org.eclipse.jgit.lib.SubmoduleConfig
 import org.koin.core.component.inject
+import org.koin.core.qualifier.named
 import java.nio.file.Path
 import kotlin.io.path.isDirectory
 
@@ -18,7 +20,7 @@ data class GitRegistryAgentIndexer(
     val url: String,
     override val priority: Int
 ) : RegistryAgentIndexer {
-    private val logger by inject<Logger>()
+    private val logger by inject<Logger>(named(LOGGER_CONFIG))
     private val cacheConfig: CacheConfig by inject()
 
     private fun indexerPath(cachePath: Path, indexerName: String) =

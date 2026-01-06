@@ -10,13 +10,15 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.agent.registry.AgentResolutionContext
 import org.coralprotocol.coralserver.agent.registry.CURRENT_AGENT_EDITION
 import org.coralprotocol.coralserver.logging.Logger
+import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import org.koin.core.qualifier.named
 
 @Serializable
 @JsonClassDiscriminator("type")
 sealed class AgentOption : KoinComponent {
-    private val logger by inject<Logger>()
+    private val logger by inject<Logger>(named(LOGGER_CONFIG))
 
     @Optional
     var required: kotlin.Boolean = false

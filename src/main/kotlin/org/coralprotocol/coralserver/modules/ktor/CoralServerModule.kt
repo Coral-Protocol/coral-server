@@ -42,6 +42,7 @@ import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.mcp.McpResourceName
 import org.coralprotocol.coralserver.mcp.McpToolName
+import org.coralprotocol.coralserver.modules.LOGGER_ROUTES
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.routes.api.v1.*
 import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
@@ -52,6 +53,7 @@ import org.coralprotocol.coralserver.routes.ws.v1.logRoutes
 import org.coralprotocol.coralserver.server.AuthSession
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionException
+import org.koin.core.qualifier.named
 import org.koin.ktor.ext.inject
 import org.slf4j.event.Level
 import kotlin.time.Duration.Companion.seconds
@@ -61,7 +63,7 @@ fun Application.coralServerModule() {
     val authConfig by inject<AuthConfig>()
     val localSessionManager by inject<LocalSessionManager>()
     val json by inject<Json>()
-    val logger by inject<Logger>()
+    val logger by inject<Logger>(named(LOGGER_ROUTES))
 
     install(OpenApi) {
         info {

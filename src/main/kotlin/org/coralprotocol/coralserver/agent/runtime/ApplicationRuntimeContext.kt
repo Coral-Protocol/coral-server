@@ -11,16 +11,18 @@ import io.ktor.resources.serialization.*
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.RootConfig
 import org.coralprotocol.coralserver.logging.Logger
+import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
 import org.coralprotocol.coralserver.routes.sse.v1.Mcp
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import org.koin.core.qualifier.named
 import java.time.Duration
 
 class ApplicationRuntimeContext(
     private val config: RootConfig,
 ) : KoinComponent {
-    private val logger by inject<Logger>()
+    private val logger by inject<Logger>(named(LOGGER_CONFIG))
 
     val dockerClient = run {
         try {
