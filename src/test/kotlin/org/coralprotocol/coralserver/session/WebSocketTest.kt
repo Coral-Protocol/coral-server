@@ -86,7 +86,7 @@ class WebSocketTest : CoralTest({
                         .toList())
             }
         }
-        
+
         localSessionManager.waitAllSessions()
         websocketCoroutineScope.cancel()
 

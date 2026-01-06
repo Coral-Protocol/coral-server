@@ -133,6 +133,14 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                 }
                             },
                             module {
+                                single<Logger>(named(LOGGER_ROUTES)) { prodLogger }
+                                single<Logger>(named(LOGGER_CONFIG)) { prodLogger }
+                                single<Logger>(named(LOGGER_LOCAL_SESSION)) { prodLogger }
+
+                                single<Logger>(named(LOGGER_LOG_API)) { testLogger }
+                                single<Logger>(named(LOGGER_TEST)) { testLogger }
+                            },
+                            module {
                                 single {
                                     LocalSessionManager(
                                         blockchainService = get(),
@@ -146,18 +154,12 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                         // it also requires that session's coroutine scopes are canceled
                                         supervisedSessions = false,
 
-                                        logger = get()
+                                        logger = get(named(LOGGER_LOCAL_SESSION))
                                     )
                                 }
                                 single(named(WEBSOCKET_COROUTINE_SCOPE_NAME)) {
                                     this@RootTest + Job()
                                 }
-                            },
-                            module {
-                                single<Logger>(named(LOGGER_ROUTES)) { prodLogger }
-                                single<Logger>(named(LOGGER_CONFIG)) { prodLogger }
-                                single<Logger>(named(LOGGER_LOG_API)) { testLogger }
-                                single<Logger>(named(LOGGER_TEST)) { testLogger }
                             }
                         )
                         createEagerInstances()

@@ -8,6 +8,7 @@ import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.config.RegistryConfig
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.koin.core.module.dsl.singleOf
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import java.nio.file.Path
 
@@ -39,5 +40,7 @@ val agentModule = module {
         }
     }
 
-    singleOf(::McpToolManager)
+    single {
+        McpToolManager(get(named(LOGGER_CONFIG)))
+    }
 }

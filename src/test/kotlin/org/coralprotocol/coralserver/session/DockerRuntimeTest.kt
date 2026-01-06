@@ -26,9 +26,11 @@ import org.coralprotocol.coralserver.config.RootConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.logging.LoggingEvent
+import org.coralprotocol.coralserver.modules.LOGGER_TEST
 import org.coralprotocol.coralserver.utils.TestEvent
 import org.coralprotocol.coralserver.utils.dsl.graphAgentPair
 import org.coralprotocol.coralserver.utils.shouldPostEvents
+import org.koin.core.qualifier.named
 import org.koin.test.inject
 import java.time.Duration
 import java.util.*
@@ -106,7 +108,7 @@ class DockerRuntimeTest : CoralTest({
 
     test("testDockerRuntime").config(timeout = 180.seconds, enabledIf = ::isDockerAvailable) {
         val localSessionManager by inject<LocalSessionManager>()
-        val logger by inject<Logger>()
+        val logger by inject<Logger>(named(LOGGER_TEST))
 
         val agent1Name = "agent1"
         val optionValue1 = UUID.randomUUID().toString()

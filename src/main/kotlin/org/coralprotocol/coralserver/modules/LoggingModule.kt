@@ -8,6 +8,7 @@ import org.koin.dsl.module
 const val LOGGER_ROUTES = "routeLogger"
 const val LOGGER_CONFIG = "configLogger"
 const val LOGGER_LOG_API = "apiLogger"
+const val LOGGER_LOCAL_SESSION = "localSessionLogger"
 const val LOGGER_TEST = "testLogger"
 
 val loggingModule = module {
