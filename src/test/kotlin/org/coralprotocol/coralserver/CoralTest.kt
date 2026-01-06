@@ -18,12 +18,8 @@ import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.config.*
 import org.coralprotocol.coralserver.logging.Logger
-import org.coralprotocol.coralserver.modules.WEBSOCKET_COROUTINE_SCOPE_NAME
-import org.coralprotocol.coralserver.modules.agentModule
-import org.coralprotocol.coralserver.modules.blockchainModule
-import org.coralprotocol.coralserver.modules.configModuleParts
+import org.coralprotocol.coralserver.modules.*
 import org.coralprotocol.coralserver.modules.ktor.coralServerModule
-import org.coralprotocol.coralserver.modules.loggingModule
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.koin.core.context.loadKoinModules
 import org.koin.core.context.startKoin
@@ -115,11 +111,13 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
             RootTest(
                 name = test.name,
                 test = {
+                    val testLogger = Logger(logBufferSize)
+                    val prodLogger = Logger(logBufferSize)
+
                     startKoin {
                         environmentProperties()
                         logger(PrintLogger())
                         modules(
-                            loggingModule,
                             configModuleParts,
                             blockchainModule,
                             agentModule,
@@ -154,6 +152,12 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                 single(named(WEBSOCKET_COROUTINE_SCOPE_NAME)) {
                                     this@RootTest + Job()
                                 }
+                            },
+                            module {
+                                single<Logger>(named(LOGGER_ROUTES)) { prodLogger }
+                                single<Logger>(named(LOGGER_CONFIG)) { prodLogger }
+                                single<Logger>(named(LOGGER_LOG_API)) { testLogger }
+                                single<Logger>(named(LOGGER_TEST)) { testLogger }
                             }
                         )
                         createEagerInstances()

@@ -47,7 +47,7 @@ fun Route.logRoutes() {
     val authConfig by inject<AuthConfig>()
     val loggingConfig by inject<LoggingConfig>()
     val websocketCoroutineScope by inject<CoroutineScope>(named(WEBSOCKET_COROUTINE_SCOPE_NAME))
-    val json by inject<Json>(named("api"))
+    val json by inject<Json>()
 
     suspend fun RoutingContext.handleLogs(loggingTagFilter: LoggingTagFilter, limit: Int) {
         val limit = limit.coerceAtMost(loggingConfig.maxReplay.toInt())

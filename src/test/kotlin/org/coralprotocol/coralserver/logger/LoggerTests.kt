@@ -4,16 +4,14 @@ import io.ktor.client.*
 import io.ktor.client.plugins.resources.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.websocket.*
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.consumeEach
-import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.logging.LoggingEvent
 import org.coralprotocol.coralserver.logging.LoggingTag
+import org.coralprotocol.coralserver.modules.LOGGER_TEST
 import org.coralprotocol.coralserver.modules.WEBSOCKET_COROUTINE_SCOPE_NAME
 import org.coralprotocol.coralserver.routes.ws.v1.Logs
 import org.coralprotocol.coralserver.util.filterIsInstance
@@ -33,7 +31,7 @@ class LoggerTests : CoralTest({
         events: MutableList<TestEvent<LoggingEvent>>,
         block: suspend Logger.() -> Unit
     ) {
-        val logger by inject<Logger>()
+        val testLogger by inject<Logger>(named(LOGGER_TEST))
         val client by inject<HttpClient>()
         val json by inject<Json>()
         val websocketCoroutineScope by inject<CoroutineScope>(named(WEBSOCKET_COROUTINE_SCOPE_NAME))
@@ -58,7 +56,7 @@ class LoggerTests : CoralTest({
             }
 
             connection.await()
-            logger.block()
+            testLogger.block()
 
             wsJob
         }
@@ -86,19 +84,19 @@ class LoggerTests : CoralTest({
     }
 
     test("testLoggingReplay") {
-        val logger by inject<Logger>()
+        val testLogger by inject<Logger>(named(LOGGER_TEST))
         val events = mutableListOf<TestEvent<LoggingEvent>>()
 
         // first 10 messages should be dropped
         repeat(10) {
-            logger.error { "this should not be included! $it" }
+            testLogger.error { "this should not be included! $it" }
         }
 
         val limit = 50
         repeat(limit) {
             val randomId = UUID.randomUUID().toString()
             events.add(TestEvent("info message: $randomId") { it is LoggingEvent.Info && it.text == randomId })
-            logger.info { randomId }
+            testLogger.info { randomId }
         }
 
         // this should include both prints that occurred before the description because of the limit 100 replay
@@ -115,9 +113,9 @@ class LoggerTests : CoralTest({
     }
 
     test("testLoggingNoReplay") {
-        val logger by inject<Logger>()
-        logger.info { "info" }
-        logger.error { "error" }
+        val testLogger by inject<Logger>(named(LOGGER_TEST))
+        testLogger.info { "info" }
+        testLogger.error { "error" }
 
         // limit zero should filter previous buffer
         genericLoggingTest(
@@ -133,8 +131,8 @@ class LoggerTests : CoralTest({
     }
 
     test("testFilterSensitive") {
-        val logger by inject<Logger>()
-        val sensitiveLogger = logger.withTags(LoggingTag.Sensitive)
+        val testLogger by inject<Logger>(named(LOGGER_TEST))
+        val sensitiveLogger = testLogger.withTags(LoggingTag.Sensitive)
         sensitiveLogger.info { "info" }
         sensitiveLogger.error { "error" }
 
@@ -148,12 +146,13 @@ class LoggerTests : CoralTest({
             ),
         ) {
             warn { "test" }
+            delay(1000)
         }
     }
 
     test("testIncludeSensitive") {
-        val logger by inject<Logger>()
-        val sensitiveLogger = logger.withTags(LoggingTag.Sensitive)
+        val testLogger by inject<Logger>(named(LOGGER_TEST))
+        val sensitiveLogger = testLogger.withTags(LoggingTag.Sensitive)
         sensitiveLogger.info { "info" }
         sensitiveLogger.error { "error" }
 
@@ -207,14 +206,14 @@ class LoggerTests : CoralTest({
     }
 
     test("testBufferSize") {
-        val logger by inject<Logger>()
-        logger.info { "should be dropped" }
+        val testLogger by inject<Logger>(named(LOGGER_TEST))
+        testLogger.info { "should be dropped" }
 
         val events = mutableListOf<TestEvent<LoggingEvent>>()
         repeat(logBufferSize) {
             val randomId = UUID.randomUUID().toString()
             events.add(TestEvent("within buffer size $randomId") { it is LoggingEvent.Warning && it.text == randomId })
-            logger.warn { randomId }
+            testLogger.warn { randomId }
         }
 
         // limit zero should filter previous buffer
@@ -227,8 +226,8 @@ class LoggerTests : CoralTest({
                 TestEvent("second error") { it is LoggingEvent.Error && it.text == "error2" },
             )).toMutableList(),
         ) {
-            logger.error { "error1" }
-            logger.error { "error2" }
+            testLogger.error { "error1" }
+            testLogger.error { "error2" }
         }
     }
 })
