@@ -25,7 +25,10 @@ import org.koin.core.qualifier.named
 import org.koin.ktor.ext.inject
 
 @Resource("events")
-class Events(val parent: WsV1 = WsV1()) {
+class Events(
+    val parent: WsV1 = WsV1(),
+    val namespaceFilter: String? = null,
+) {
 
     @Resource("{token}")
     class WithToken(val parent: Events = Events(), val token: String) {
@@ -102,15 +105,15 @@ fun Route.eventRoutes() {
         if (!config.keys.contains(path.parent.token))
             throw RouteException(HttpStatusCode.Unauthorized, "Invalid token")
 
-        handleServerEvents(call.queryParameters["namespace"])
+        handleServerEvents(path.parent.parent.namespaceFilter)
     }
 
     get<Events.LsmEvents>({
         hidden = true
-    }) {
+    }) { path ->
         if (call.sessions.get<AuthSession.Token>() == null)
             throw RouteException(HttpStatusCode.Unauthorized, "Unauthorized")
 
-        handleServerEvents(call.queryParameters["namespace"])
+        handleServerEvents(path.parent.namespaceFilter)
     }
 }
