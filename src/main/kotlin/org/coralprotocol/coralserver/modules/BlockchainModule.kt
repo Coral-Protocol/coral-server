@@ -15,7 +15,7 @@ import org.koin.dsl.module
 val blockchainModule = module {
     singleOf(::JupiterService)
 
-    single<BlockchainService> {
+    single<BlockchainService>(createdAtStart = true) {
         val config = get<PaymentConfig>()
         when (val wallet = config.remoteAgentWallet) {
             null -> {
@@ -31,7 +31,7 @@ val blockchainModule = module {
         }
     }
 
-    single<X402Service> {
+    single<X402Service>(createdAtStart = true) {
         val config = get<PaymentConfig>()
         when (val wallet = config.x402Wallet) {
             null -> {

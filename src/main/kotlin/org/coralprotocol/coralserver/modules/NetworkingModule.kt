@@ -35,7 +35,7 @@ val networkModule = module {
         }
     }
 
-    single {
+    single(createdAtStart = true) {
         val config = get<NetworkConfig>()
         embeddedServer(
             CIO,

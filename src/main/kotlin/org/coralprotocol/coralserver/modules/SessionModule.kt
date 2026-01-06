@@ -8,7 +8,7 @@ import org.koin.dsl.module
 
 val sessionModule = module {
     singleOf(::ApplicationRuntimeContext)
-    single {
+    single(createdAtStart = true) {
         LocalSessionManager(
             blockchainService = get(),
             jupiterService = get(),

@@ -18,7 +18,7 @@ val agentModule = module {
     singleOf(::ToolDebugAgent)
     singleOf(::PuppetDebugAgent)
 
-    single {
+    single(createdAtStart = true) {
         val config: RegistryConfig = get()
         AgentRegistry {
             if (config.enableMarketplaceAgentRegistrySource)
@@ -40,7 +40,7 @@ val agentModule = module {
         }
     }
 
-    single {
+    single(createdAtStart = true) {
         McpToolManager(get(named(LOGGER_CONFIG)))
     }
 }
