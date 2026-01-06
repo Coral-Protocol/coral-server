@@ -56,6 +56,10 @@ sealed class SessionThreadMessageFilter {
         override fun matches(message: SessionThreadMessage): Boolean {
             return message.mentionNames.contains(name)
         }
+
+        override fun toString(): String {
+            return "mentions: $name"
+        }
     }
 
     @Serializable
@@ -64,6 +68,10 @@ sealed class SessionThreadMessageFilter {
         override fun matches(message: SessionThreadMessage): Boolean {
             return message.threadId == threadId
         }
+
+        override fun toString(): String {
+            return "in_thread: $threadId"
+        }
     }
 
     @Serializable
@@ -71,6 +79,10 @@ sealed class SessionThreadMessageFilter {
     data class From(val name: UniqueAgentName) : SessionThreadMessageFilter() {
         override fun matches(message: SessionThreadMessage): Boolean {
             return message.senderName == name
+        }
+
+        override fun toString(): String {
+            return "from: $name"
         }
     }
 }

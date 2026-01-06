@@ -68,7 +68,7 @@ class SessionThread(
                     }"
                 }
 
-                throw SessionException.MissingAgentException("Cannot mention agents (${missing.joinToString(", ")}}) as they are not participants of thread ${this.id}")
+                throw SessionException.MissingAgentException("Cannot mention agents (${missing.joinToString(", "){ it.name }}) as they are not participants of thread ${this.id}")
             }
         }
 
@@ -92,7 +92,7 @@ class SessionThread(
         val mentionLogStr = if (mentions.isEmpty()) {
             " with no mentions"
         } else {
-            ", mentioning: ${mentions.joinToString(", ")}"
+            ", mentioning: ${mentions.joinToString(", ") { it.name }}"
         }
 
         sender.logger.info { "sent message \"${message}\" (id=${msg.id}) into thread $name$mentionLogStr" }
