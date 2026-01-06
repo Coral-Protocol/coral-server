@@ -51,11 +51,16 @@ fun Route.logRoutes() {
         val limit = limit.coerceAtMost(loggingConfig.maxReplay.toInt())
 
         call.respond(WebSocketUpgrade(call) {
+            // count the number of elements that will be replayed that much the filter, if this is more than the
+            // requested limit then some must be replayed events must be dropped
+            val numFiltered = logger.flow.replayCache.count { loggingTagFilter.filter(it) }
+
             logger.flow
-                .drop((logger.flow.replayCache.size - limit).coerceAtLeast(0))
                 .filter {
                     loggingTagFilter.filter(it)
-                }.onEach {
+                }
+                .drop((numFiltered - limit).coerceAtLeast(0)) // drop must occur after filtration
+                .onEach {
                     outgoing.send(it.toWsFrame(json))
                 }
                 .launchIn(websocketCoroutineScope)
