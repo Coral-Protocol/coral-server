@@ -12,6 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.channels.toList
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.CoralTest
@@ -65,19 +66,27 @@ class WebSocketTest : CoralTest({
             )
         }.body()
 
-        val eventsDeferred = collectWsEvents<SessionEvent>(
-            client,
-            json,
-            client.href(
+        val eventsDeferred = CompletableDeferred<List<SessionEvent>>()
+        launch {
+            val url = client.href(
                 Events.WithToken.SessionEvents(
                     Events.WithToken(token = authToken),
                     id.namespace,
                     id.sessionId
                 )
-            ),
-            this@test
-        )
+            )
 
+            client.webSocket(url) {
+                eventsDeferred.complete(
+                    incoming
+                        .filterIsInstance<Frame.Text>(this@webSocket)
+                        .map(this@webSocket) {
+                            it.fromWsFrame<SessionEvent>(json)
+                        }
+                        .toList())
+            }
+        }
+        
         localSessionManager.waitAllSessions()
         websocketCoroutineScope.cancel()
 
@@ -116,25 +125,30 @@ class WebSocketTest : CoralTest({
                 TestEvent("ns1 session closed") { it is LocalSessionManagerEvent.SessionClosed && it.namespace == ns1Name },
             )
         ) { flow ->
-            val connection = CompletableDeferred<Unit>()
             val wsJob = launch {
-                val url = client.href(Events.WithToken.LsmEvents(Events.WithToken(token = authToken)))
-                client.webSocket("$url?namespace=$ns1Name") {
-                    connection.complete(Unit)
+                val url = client.href(
+                    Events.WithToken.LsmEvents(
+                        Events.WithToken(
+                            parent = Events(namespaceFilter = ns1Name),
+                            token = authToken
+                        )
+                    )
+                )
+
+                client.webSocket(url) {
                     incoming
                         .filterIsInstance<Frame.Text>(this@webSocket)
                         .map(this@webSocket) {
                             it.fromWsFrame<LocalSessionManagerEvent>(json)
                         }
                         .consumeEach {
-                            println("morn $it")
                             flow.emit(it)
                         }
                 }
             }
 
             // post sessions after WS connection established
-            connection.await()
+            localSessionManager.events.subscriptionCount.first { it == 1 }
 
             for (ns in listOf(ns1, ns2)) {
                 client.authenticatedPost(ns) {
@@ -171,21 +185,8 @@ suspend inline fun <reified T> collectWsEvents(
     scope: CoroutineScope
 ): CompletableDeferred<List<T>> {
     val eventsDeferred = CompletableDeferred<List<T>>()
-    val connection = CompletableDeferred<Unit>()
 
-    scope.launch {
-        client.webSocket(url) {
-            connection.complete(Unit)
-            eventsDeferred.complete(
-                incoming
-                    .filterIsInstance<Frame.Text>(this@webSocket)
-                    .map(this@webSocket) {
-                        it.fromWsFrame<T>(json)
-                    }
-                    .toList())
-        }
-    }
-    connection.await()
+
 
     return eventsDeferred
 }
