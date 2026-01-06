@@ -1,0 +1,24 @@
+<configuration>
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener"/>
+    <conversionRule conversionWord="msgHighlight"
+                    converterClass="org.coralprotocol.coralserver.logging.NativeLoggingMessageHighlighter"/>
+
+    <conversionRule conversionWord="mdc"
+                    converterClass="org.coralprotocol.coralserver.logging.NativeLoggingConditionalMdc"/>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- does not work with intellij... -->
+        <withJansi>false</withJansi>
+        <encoder>
+            <charset>UTF-8</charset>
+            <pattern>TEST> %highlight(%level) {%green(%d{HH:mm:ss.SSS})}%mdc{agent, io} %msgHighlight(%msg%n)</pattern>
+        </encoder>
+    </appender>
+
+    <!-- cors is super noisy and useless -->
+    <logger name="io.ktor.server.plugins.cors.CORS" level="OFF"/>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>
