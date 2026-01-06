@@ -116,8 +116,17 @@ class LocalSession(
             throw SessionException.MissingAgentException("No agent named $agentName")
 
         val missing = participants.filter { !agents.containsKey(it) }
-        if (missing.isNotEmpty())
+        if (missing.isNotEmpty()) {
+            logger.warn {
+                "agent $agentName tried to create thread \"$threadName\" with non-existent participants: ${
+                    missing.joinToString(
+                        ", "
+                    )
+                }"
+            }
+
             throw SessionException.MissingAgentException("No agents named ${missing.joinToString(", ")}")
+        }
 
         // The creator of a thread should be a participant of a thread always.  This function is called by MCP tools,
         // and the result is given to agents. Agents tend to assume that they have access to threads they create.
@@ -126,6 +135,15 @@ class LocalSession(
             creatorName = agentName,
             participants = (participants + setOf(agentName)).toMutableSet(),
         )
+
+        val participantLogStr = if (participants.isEmpty()) {
+            ".  No other participants were added to the this thread"
+        }
+        else {
+            ", and participants: ${participants.joinToString(", ")}"
+        }
+
+        logger.info { "Agent $agentName created thread \"${thread.name}\" with ID ${thread.id}$participantLogStr" }
 
         events.tryEmit(SessionEvent.ThreadCreated(thread))
 

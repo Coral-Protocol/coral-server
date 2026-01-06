@@ -29,6 +29,8 @@ import org.coralprotocol.coralserver.x402.X402BudgetedResource
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.component.inject
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.measureTimedValue
 
 typealias SessionAgentSecret = String
 
@@ -238,7 +240,7 @@ class SessionAgent(
      */
     suspend fun connectSseSession(session: ServerSSESession) {
         val transport = SseServerTransport(
-            endpoint = "", // href(ResourcesFormat(), Mcp.Msg(secret)),
+            endpoint = "",
             session = session
         )
 
@@ -290,16 +292,34 @@ class SessionAgent(
         filters: Set<SessionThreadMessageFilter> = setOf(),
         timeoutMs: Long = sessionConfig.defaultWaitTimeout
     ): SessionThreadMessage? {
-        return withTimeoutOrNull(timeoutMs) {
+        val msg = withTimeoutOrNull(timeoutMs) {
             val waiter = SessionAgentWaiter(filters)
             waiters.add(waiter)
 
+            logger.info { "waiting for message that matches: ${filters.joinToString(", ")}" }
             session.events.emit(SessionEvent.AgentWaitStart(name, filters))
-            val msg = waiter.deferred.await()
-            session.events.emit(SessionEvent.AgentWaitStop(name, msg))
 
-            msg
+            val wait = measureTimedValue {
+                waiter.deferred.await()
+            }
+
+            session.events.emit(SessionEvent.AgentWaitStop(name, wait.value))
+            logger.info { "found matching message: ${wait.value.id} in ${wait.duration}" }
+
+            wait.value
         }
+
+        if (msg == null) {
+            logger.info {
+                "timeout of ${timeoutMs.milliseconds} occurred waiting for message that matches ${
+                    filters.joinToString(
+                        ", "
+                    )
+                }"
+            }
+        }
+
+        return msg
     }
 
     /**

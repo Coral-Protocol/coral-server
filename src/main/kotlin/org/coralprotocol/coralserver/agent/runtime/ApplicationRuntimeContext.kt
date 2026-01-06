@@ -38,7 +38,7 @@ class ApplicationRuntimeContext(
 
             DockerClientImpl.getInstance(dockerClientConfig, httpClient)
         } catch (e: Exception) {
-            logger.warn { "Failed to create Docker client: ${e.message}" }
+            logger.error(e) { "Failed to create Docker client" }
             logger.warn { "Docker runtime will not be available" }
             null
         }

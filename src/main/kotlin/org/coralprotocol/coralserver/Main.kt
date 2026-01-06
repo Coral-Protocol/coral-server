@@ -8,7 +8,6 @@ import io.ktor.server.engine.*
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.modules.*
 import org.koin.core.context.startKoin
-import org.koin.core.logger.PrintLogger
 import org.koin.dsl.module
 import org.koin.environmentProperties
 

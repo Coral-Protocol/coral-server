@@ -15,7 +15,6 @@ data class CloseSessionInput(
 
 fun closeSessionExecutor(agent: SessionAgent, arguments: CloseSessionInput): GenericSuccessOutput {
     try {
-        agent.logger.info { "Closing session with reason: ${arguments.reason}" }
         agent.session.cancelAgents()
 
         return GenericSuccessOutput("Successfully closed session")

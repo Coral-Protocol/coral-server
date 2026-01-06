@@ -5,6 +5,7 @@ import io.github.smiley4.schemakenerator.jsonschema.JsonSchemaSteps.compileInlin
 import io.github.smiley4.schemakenerator.jsonschema.JsonSchemaSteps.generateJsonSchema
 import io.github.smiley4.schemakenerator.jsonschema.JsonSchemaSteps.merge
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.analyzeTypeUsingKotlinxSerialization
+import org.coralprotocol.coralserver.logging.Logger
 import io.modelcontextprotocol.kotlin.sdk.Tool
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -27,7 +28,7 @@ import org.coralprotocol.coralserver.util.convert
  * When this class is constructed, all tools are built.  Exceptions thrown by the construction of this class have a
  * little bit more control this way.
  */
-class McpToolManager {
+class McpToolManager(private val logger: Logger) {
     val createThreadTool = buildTool<CreateThreadInput, CreateThreadOutput>(
         name = McpToolName.CREATE_THREAD,
         description = "Creates a new Coral thread",
@@ -126,8 +127,8 @@ class McpToolManager {
         val properties = generatedJsonSchema.getValue("properties") as? JsonObject
             ?: throw IllegalArgumentException("Generated json schema is missing the 'properties' object")
 
-//        if (required.size != properties.size)
-//            logger.warn("Generated input schema for mcp tool $name contains optional properties, this will cause problems with OpenAI's structured output and potentially other models")
+        if (required.size != properties.size)
+            logger.warn { "Generated input schema for mcp tool $name contains optional properties, this will cause problems with OpenAI's structured output and potentially other models" }
 
         val inputSchema = Tool.Input(
             required = required.map { it.jsonPrimitive.content },
