@@ -40,6 +40,7 @@ dependencies {
     implementation("io.modelcontextprotocol:kotlin-sdk:0.6.0") {}
     implementation("io.github.oshai:kotlin-logging-jvm:7.0.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
     implementation("com.charleskorn.kaml:kaml:0.78.0") // YAML serialization
@@ -58,7 +59,7 @@ dependencies {
 
     // Hoplite for configuration
     implementation("com.sksamuel.hoplite:hoplite-core:2.9.0")
-    implementation("com.sksamuel.hoplite:hoplite-yaml:2.9.0")
+    implementation("com.sksamuel.hoplite:hoplite-toml:2.9.0")
 
     val ktorVersion = "3.3.3"
     implementation(enforcedPlatform("io.ktor:ktor-bom:$ktorVersion"))
