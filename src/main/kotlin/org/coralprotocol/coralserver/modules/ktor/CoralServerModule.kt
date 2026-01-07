@@ -40,6 +40,8 @@ import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.events.LocalSessionManagerEvent
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.Logger
+import org.coralprotocol.coralserver.logging.LoggingEvent
+import org.coralprotocol.coralserver.logging.LoggingTag
 import org.coralprotocol.coralserver.mcp.McpResourceName
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.modules.LOGGER_ROUTES
@@ -120,6 +122,10 @@ fun Application.coralServerModule() {
             // WebSocket types
             schema<LocalSessionManagerEvent>("LocalSessionManagerEvent")
             schema<SessionEvent>("SessionEvent")
+
+            // Logging
+            schema<LoggingEvent>("LoggingEvent")
+            schema<LoggingTag>("LoggingTag")
         }
         specAssigner = { url: String, tags: List<String> ->
             // when another spec version is added, determine the version based on the url here or use
