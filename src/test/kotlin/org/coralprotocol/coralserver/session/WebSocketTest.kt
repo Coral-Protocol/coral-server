@@ -9,9 +9,11 @@ import io.ktor.client.request.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.channels.toList
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -177,16 +179,3 @@ class WebSocketTest : CoralTest({
         webSocketJob.join()
     }
 })
-
-suspend inline fun <reified T> collectWsEvents(
-    client: HttpClient,
-    json: Json,
-    url: String,
-    scope: CoroutineScope
-): CompletableDeferred<List<T>> {
-    val eventsDeferred = CompletableDeferred<List<T>>()
-
-
-
-    return eventsDeferred
-}
