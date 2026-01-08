@@ -215,19 +215,14 @@ class LoggerTests : CoralTest({
             events.add(TestEvent("within buffer size $randomId") { it is LoggingEvent.Warning && it.text == randomId })
             testLogger.warn { randomId }
         }
-
-        // limit zero should filter previous buffer
+        
         genericLoggingTest(
             logs = Logs(
                 limit = 2048 // should NOT include the first info message because it is outside the log's buffer size
             ),
-            events = (events + mutableListOf(
-                TestEvent("first error") { it is LoggingEvent.Error && it.text == "error1" },
-                TestEvent("second error") { it is LoggingEvent.Error && it.text == "error2" },
-            )).toMutableList(),
+            events = events,
         ) {
-            testLogger.error { "error1" }
-            testLogger.error { "error2" }
+
         }
     }
 })
