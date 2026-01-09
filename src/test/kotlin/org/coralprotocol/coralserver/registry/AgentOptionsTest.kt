@@ -6,13 +6,14 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
-import nl.adaptivity.xmlutil.core.impl.multiplatform.name
 import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
 import org.coralprotocol.coralserver.agent.registry.option.*
 import org.coralprotocol.coralserver.config.toml
 import org.coralprotocol.coralserver.util.ByteUnitSizes
 import org.coralprotocol.coralserver.util.toByteCount
+import kotlin.reflect.KClass
 
 class AgentOptionsTest : FunSpec({
     test("testString") {
@@ -47,43 +48,43 @@ class AgentOptionsTest : FunSpec({
     test("testNumeric") {
         data class TestCase(
             val typeName: String,
-            val className: String,
+            val `class`: KClass<*>,
             val defaultValue: AgentOptionValue,
         )
 
         val tests = listOf(
-            TestCase("i8", AgentOption.Byte::class.name, AgentOptionValue.Byte(Byte.MIN_VALUE)),
-            TestCase("i16", AgentOption.Short::class.name, AgentOptionValue.Short(Short.MIN_VALUE)),
-            TestCase("i32", AgentOption.Int::class.name, AgentOptionValue.Int(Int.MIN_VALUE)),
+            TestCase("i8", AgentOption.Byte::class, AgentOptionValue.Byte(Byte.MIN_VALUE)),
+            TestCase("i16", AgentOption.Short::class, AgentOptionValue.Short(Short.MIN_VALUE)),
+            TestCase("i32", AgentOption.Int::class, AgentOptionValue.Int(Int.MIN_VALUE)),
             TestCase(
                 "i64",
-                AgentOption.Long::class.name,
+                AgentOption.Long::class,
                 AgentOptionValue.Long(-1)
             ), // Bug with Long.MIN_VALUE, see https://github.com/Peanuuutz/tomlkt/issues/81
-            TestCase("u8", AgentOption.UByte::class.name, AgentOptionValue.UByte(UByte.MAX_VALUE)),
-            TestCase("u16", AgentOption.UShort::class.name, AgentOptionValue.UShort(UShort.MAX_VALUE)),
-            TestCase("u32", AgentOption.UInt::class.name, AgentOptionValue.UInt(UInt.MAX_VALUE)),
-            TestCase("u64", AgentOption.ULong::class.name, AgentOptionValue.ULong(ULong.MAX_VALUE.toString())),
-            TestCase("f32", AgentOption.Float::class.name, AgentOptionValue.Float(1.0f)),
-            TestCase("f64", AgentOption.Double::class.name, AgentOptionValue.Double(1.0)),
+            TestCase("u8", AgentOption.UByte::class, AgentOptionValue.UByte(UByte.MAX_VALUE)),
+            TestCase("u16", AgentOption.UShort::class, AgentOptionValue.UShort(UShort.MAX_VALUE)),
+            TestCase("u32", AgentOption.UInt::class, AgentOptionValue.UInt(UInt.MAX_VALUE)),
+            TestCase("u64", AgentOption.ULong::class, AgentOptionValue.ULong(ULong.MAX_VALUE.toString())),
+            TestCase("f32", AgentOption.Float::class, AgentOptionValue.Float(1.0f)),
+            TestCase("f64", AgentOption.Double::class, AgentOptionValue.Double(1.0)),
 
             TestCase(
-                "list[i8]", AgentOption.ByteList::class.name, AgentOptionValue.ByteList(
+                "list[i8]", AgentOption.ByteList::class, AgentOptionValue.ByteList(
                     listOf(Byte.MIN_VALUE, Byte.MAX_VALUE)
                 )
             ),
             TestCase(
-                "list[i16]", AgentOption.ShortList::class.name, AgentOptionValue.ShortList(
+                "list[i16]", AgentOption.ShortList::class, AgentOptionValue.ShortList(
                     listOf(Short.MIN_VALUE, Short.MAX_VALUE)
                 )
             ),
             TestCase(
-                "list[i32]", AgentOption.IntList::class.name, AgentOptionValue.IntList(
+                "list[i32]", AgentOption.IntList::class, AgentOptionValue.IntList(
                     listOf(Int.MIN_VALUE, Int.MAX_VALUE)
                 )
             ),
             TestCase(
-                "list[i64]", AgentOption.LongList::class.name, AgentOptionValue.LongList(
+                "list[i64]", AgentOption.LongList::class, AgentOptionValue.LongList(
                     listOf(
                         -1,
                         Long.MAX_VALUE
@@ -91,32 +92,32 @@ class AgentOptionsTest : FunSpec({
                 )
             ),
             TestCase(
-                "list[u8]", AgentOption.UByteList::class.name, AgentOptionValue.UByteList(
+                "list[u8]", AgentOption.UByteList::class, AgentOptionValue.UByteList(
                     listOf(UByte.MIN_VALUE, UByte.MAX_VALUE)
                 )
             ),
             TestCase(
-                "list[u16]", AgentOption.UShortList::class.name, AgentOptionValue.UShortList(
+                "list[u16]", AgentOption.UShortList::class, AgentOptionValue.UShortList(
                     listOf(UShort.MIN_VALUE, UShort.MAX_VALUE)
                 )
             ),
             TestCase(
-                "list[u32]", AgentOption.UIntList::class.name, AgentOptionValue.UIntList(
+                "list[u32]", AgentOption.UIntList::class, AgentOptionValue.UIntList(
                     listOf(UInt.MIN_VALUE, UInt.MAX_VALUE)
                 )
             ),
             TestCase(
-                "list[u64]", AgentOption.ULongList::class.name, AgentOptionValue.ULongList(
+                "list[u64]", AgentOption.ULongList::class, AgentOptionValue.ULongList(
                     listOf(ULong.MIN_VALUE.toString(), ULong.MAX_VALUE.toString())
                 )
             ),
             TestCase(
-                "list[f32]", AgentOption.FloatList::class.name, AgentOptionValue.FloatList(
+                "list[f32]", AgentOption.FloatList::class, AgentOptionValue.FloatList(
                     listOf(-1.0f, 1.0f)
                 )
             ),
             TestCase(
-                "list[f64]", AgentOption.DoubleList::class.name, AgentOptionValue.DoubleList(
+                "list[f64]", AgentOption.DoubleList::class, AgentOptionValue.DoubleList(
                     listOf(-1.0, 1.0)
                 )
             )
@@ -135,7 +136,7 @@ class AgentOptionsTest : FunSpec({
                 default = $defaultStr
             """
             )
-            option.javaClass.name.shouldBeEqual(test.className)
+            test.`class`.isInstance(option).shouldBeTrue()
             option.compareTypeWithValue(test.defaultValue).shouldBeTrue()
             option.defaultAsValue().shouldNotBeNull().shouldBeEqual(test.defaultValue)
         }

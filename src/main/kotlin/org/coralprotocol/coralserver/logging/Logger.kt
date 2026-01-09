@@ -2,8 +2,6 @@
 
 package org.coralprotocol.coralserver.logging
 
-import io.github.oshai.kotlinlogging.KLogger
-import io.github.oshai.kotlinlogging.KotlinLogging
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.serialization.ExperimentalSerializationApi
