@@ -30,6 +30,7 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.koin.environmentProperties
 import org.koin.test.KoinTest
+import org.slf4j.LoggerFactory
 import java.util.*
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 
@@ -111,8 +112,8 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
             RootTest(
                 name = test.name,
                 test = {
-                    val testLogger = Logger(logBufferSize)
-                    val prodLogger = Logger(logBufferSize)
+                    val testLogger = Logger(logBufferSize, LoggerFactory.getLogger("CoralTest"))
+                    val prodLogger = Logger(logBufferSize, LoggerFactory.getLogger("CoralProd"))
 
                     try {
                         runTestApplication {

@@ -12,7 +12,7 @@ import org.slf4j.MDC
 
 class Logger(
     bufferSize: Int = 1024,
-    val nativeLogger: KLogger = KotlinLogging.logger { },
+    val nativeLogger: org.slf4j.Logger
 ) : KoinComponent, LoggingInterface {
     val flow = MutableSharedFlow<LoggingEvent>(
         replay = bufferSize,
