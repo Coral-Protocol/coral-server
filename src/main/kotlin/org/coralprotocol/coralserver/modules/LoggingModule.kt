@@ -1,9 +1,23 @@
 package org.coralprotocol.coralserver.modules
 
+import ch.qos.logback.classic.Level
+import ch.qos.logback.classic.LoggerContext
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.ConsoleAppender
+import ch.qos.logback.core.CoreConstants
+import ch.qos.logback.core.rolling.RollingFileAppender
+import ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy
+import ch.qos.logback.core.util.FileSize
 import org.coralprotocol.coralserver.config.LoggingConfig
 import org.coralprotocol.coralserver.logging.Logger
+import org.coralprotocol.coralserver.logging.NativeLoggingConditionalMdc
+import org.coralprotocol.coralserver.logging.NativeLoggingMessageHighlighter
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import org.slf4j.LoggerFactory
+import java.nio.charset.StandardCharsets
+
 
 const val LOGGER_ROUTES = "routeLogger"
 const val LOGGER_CONFIG = "configLogger"
@@ -12,17 +26,66 @@ const val LOGGER_LOCAL_SESSION = "localSessionLogger"
 const val LOGGER_TEST = "testLogger"
 
 val loggingModule = module {
+    single<org.slf4j.Logger> {
+        val loggingConfig = get<LoggingConfig>()
+        val logCtx = LoggerFactory.getILoggerFactory() as LoggerContext
+        logCtx.reset()
+        logCtx.getLogger("io.ktor.server.plugins.cors.CORS").level = Level.OFF
+        logCtx.getLogger("io.modelcontextprotocol.kotlin.sdk.server.Server").level = Level.OFF
+
+        logCtx.putObject(
+            CoreConstants.PATTERN_RULE_REGISTRY, mapOf(
+                "msgHighlight" to NativeLoggingMessageHighlighter::class.java.name,
+                "mdc" to NativeLoggingConditionalMdc::class.java.name
+            )
+        )
+
+        val consoleEncoder = PatternLayoutEncoder()
+        consoleEncoder.setContext(logCtx)
+        consoleEncoder.setPattern("%highlight(%5level) {%green(%d{yyyy-MM-dd HH:mm:ss.SSS})}%mdc{ns, sid, agent, io} %msgHighlight(%msg%n)")
+        consoleEncoder.charset = StandardCharsets.UTF_8
+        consoleEncoder.start()
+
+        val logConsoleAppender = ConsoleAppender<ILoggingEvent>()
+        logConsoleAppender.setContext(logCtx)
+        logConsoleAppender.name = "STDOUT"
+        logConsoleAppender.isWithJansi = false
+        logConsoleAppender.setEncoder(consoleEncoder)
+        logConsoleAppender.start()
+
+        val fileEncoder = PatternLayoutEncoder()
+        fileEncoder.setContext(logCtx)
+        fileEncoder.setPattern("%5level %d{yyyy-MM-dd HH:mm:ss.SSS} -%mdc{ns, sid, agent, io} %msg%n")
+        fileEncoder.charset = StandardCharsets.UTF_8
+        fileEncoder.start()
+
+        val logFileAppender = RollingFileAppender<ILoggingEvent>()
+        logFileAppender.setContext(logCtx)
+        logFileAppender.setName("FILE")
+        logFileAppender.setEncoder(fileEncoder)
+        logFileAppender.isAppend = true
+
+        val logFilePolicy = SizeAndTimeBasedRollingPolicy<ILoggingEvent>()
+        logFilePolicy.setContext(logCtx)
+        logFilePolicy.setParent(logFileAppender)
+        logFilePolicy.setFileNamePattern(loggingConfig.logFileNamePattern)
+        logFilePolicy.maxHistory = loggingConfig.maxHistory
+        logFilePolicy.setTotalSizeCap(FileSize.valueOf(loggingConfig.logTotalSizeCap))
+        logFilePolicy.setMaxFileSize(FileSize.valueOf(loggingConfig.maxFileSize))
+        logFilePolicy.isCleanHistoryOnStart = false
+        logFilePolicy.start()
+
+        val log = logCtx.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME)
+        log.isAdditive = false
+        log.level = Level.INFO
+        log.addAppender(logConsoleAppender)
+        log.addAppender(logFileAppender)
+        log
+    }
+
     single(createdAtStart = true) {
-
         val config by inject<LoggingConfig>()
-
-        System.setProperty("FILE_NAME_PATTERN", config.logFileNamePattern)
-        System.setProperty("MAX_HISTORY", config.maxHistory.toString())
-        System.setProperty("TOTAL_SIZE_CAP", config.logTotalSizeCap)
-        System.setProperty("CLEAR_HISTORY_ON_START", config.logClearHistoryOnStart.toString())
-        System.setProperty("MAX_FILE_SIZE", config.maxFileSize)
-
-        Logger(config.logBufferSize.toInt())
+        Logger(config.logBufferSize.toInt(), get())
     }
 
     single<Logger>(named(LOGGER_ROUTES)) { get() }
