@@ -354,8 +354,17 @@ class SessionApiTest : CoralTest({
         val deferredPayload = CompletableDeferred<Any>()
 
         application.routing {
-            post(toolUrl) {
+            post("$toolUrl/{sessionId}/{agentId}") {
                 try {
+                    val sessionId = call.parameters["sessionId"]
+                    val agentId = call.parameters["agentId"]
+
+                    if (sessionId == null || agentId == null) {
+                        deferredPayload.complete(IllegalArgumentException("Missing path parameters"))
+                        call.respond(HttpStatusCode.BadRequest)
+                        return@post
+                    }
+
                     deferredPayload.complete(
                         signatureVerifiedBody<ToolPayload>(json, config.customToolSecret).shouldBeEqual(toolPayload)
                     )
