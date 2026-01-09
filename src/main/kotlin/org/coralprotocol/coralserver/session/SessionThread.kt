@@ -95,7 +95,7 @@ class SessionThread(
             ", mentioning: ${mentions.joinToString(", ") { it.name }}"
         }
 
-        sender.logger.info { "sent message \"${message}\" (id=${msg.id}) into thread $name$mentionLogStr" }
+        sender.logger.info { "sent message \"${message}\" (id=${msg.id}) into thread $id$mentionLogStr" }
         return msg
     }
 
