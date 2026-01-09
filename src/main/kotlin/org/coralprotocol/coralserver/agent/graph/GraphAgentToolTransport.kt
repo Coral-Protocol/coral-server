@@ -16,11 +16,16 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.config.NetworkConfig
+import org.coralprotocol.coralserver.logging.Logger
+import org.coralprotocol.coralserver.logging.LoggingTag
+import org.coralprotocol.coralserver.modules.LOGGER_LOCAL_SESSION
 import org.coralprotocol.coralserver.session.SessionAgent
 import org.coralprotocol.coralserver.util.CORAL_SIGNATURE_HEADER
 import org.coralprotocol.coralserver.util.addJsonBodyWithSignature
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
 import org.koin.core.component.inject
+import org.koin.core.qualifier.named
 
 
 @Serializable
@@ -50,16 +55,29 @@ sealed interface GraphAgentToolTransport : KoinComponent {
             request: CallToolRequest,
         ): CallToolResult {
             try {
-                val response = client.post(url) {
+                val namespace = agent.session.namespace.name
+                val sessionId = agent.session.id
+                val agentName = agent.name
+                val logger = get<Logger>(named(LOGGER_LOCAL_SESSION)).withTags(
+                    LoggingTag.Namespace(namespace),
+                    LoggingTag.Session(sessionId),
+                    LoggingTag.Agent(agentName),
+                )
+
+                val urlWithSessionAndAgentPathes = URLBuilder(urlString = url)
+                    .appendPathSegments(sessionId, agent.name).buildString()
+                logger.info { "Making custom tool call POST to $urlWithSessionAndAgentPathes" }
+                val response = client.post(urlWithSessionAndAgentPathes) {
                     contentType(ContentType.Application.Json)
                     addJsonBodyWithSignature(json, config.customToolSecret, request.arguments, signatureHeader)
 
-                    header("X-Coral-Namespace", agent.session.namespace.name)
-                    header("X-Coral-SessionId", agent.session.id)
-                    header("X-Coral-AgentName", agent.name)
+                    header("X-Coral-Namespace", namespace)
+                    header("X-Coral-SessionId", sessionId)
+                    header("X-Coral-AgentName", agentName)
                 }
 
                 if (response.status != HttpStatusCode.OK) {
+                    logger.error { "Failed to send custom tool call to $urlWithSessionAndAgentPathes" }
                     return CallToolResult(
                         isError = true,
                         content = listOf(TextContent("Error code ${response.status.value} returned"))
