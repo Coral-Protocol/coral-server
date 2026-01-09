@@ -215,7 +215,7 @@ class LoggerTests : CoralTest({
             events.add(TestEvent("within buffer size $randomId") { it is LoggingEvent.Warning && it.text == randomId })
             testLogger.warn { randomId }
         }
-        
+
         genericLoggingTest(
             logs = Logs(
                 limit = 2048 // should NOT include the first info message because it is outside the log's buffer size
