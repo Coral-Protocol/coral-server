@@ -55,29 +55,23 @@ sealed interface GraphAgentToolTransport : KoinComponent {
             request: CallToolRequest,
         ): CallToolResult {
             try {
-                val namespace = agent.session.namespace.name
                 val sessionId = agent.session.id
                 val agentName = agent.name
-                val logger = get<Logger>(named(LOGGER_LOCAL_SESSION)).withTags(
-                    LoggingTag.Namespace(namespace),
-                    LoggingTag.Session(sessionId),
-                    LoggingTag.Agent(agentName),
-                )
 
-                val urlWithSessionAndAgentPathes = URLBuilder(urlString = url)
+                val urlWithSessionAndAgentPaths = URLBuilder(urlString = url)
                     .appendPathSegments(sessionId, agent.name).buildString()
-                logger.info { "Making custom tool call POST to $urlWithSessionAndAgentPathes" }
-                val response = client.post(urlWithSessionAndAgentPathes) {
+                agent.logger.info { "Making custom tool call POST to $urlWithSessionAndAgentPaths" }
+                val response = client.post(urlWithSessionAndAgentPaths) {
                     contentType(ContentType.Application.Json)
                     addJsonBodyWithSignature(json, config.customToolSecret, request.arguments, signatureHeader)
 
-                    header("X-Coral-Namespace", namespace)
+                    header("X-Coral-Namespace", agent.session.namespace.name)
                     header("X-Coral-SessionId", sessionId)
                     header("X-Coral-AgentName", agentName)
                 }
 
                 if (response.status != HttpStatusCode.OK) {
-                    logger.error { "Failed to send custom tool call to $urlWithSessionAndAgentPathes" }
+                    agent.logger.warn { "Failed to send custom tool call to $urlWithSessionAndAgentPaths" }
                     return CallToolResult(
                         isError = true,
                         content = listOf(TextContent("Error code ${response.status.value} returned"))
