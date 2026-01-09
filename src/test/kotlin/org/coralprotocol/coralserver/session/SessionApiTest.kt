@@ -19,7 +19,6 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.resources.*
 import io.ktor.server.application.*
-import io.ktor.server.resources.Resources
 import io.ktor.server.resources.post
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -358,8 +357,6 @@ class SessionApiTest : CoralTest({
         @Serializable
         @Resource("customTool/{sessionId}/{agentId}")
         class CustomToolPath(val sessionId: String, val agentId: String)
-
-        application.install(Resources)
         application.routing {
             post<CustomToolPath> { _ ->
                 try {
