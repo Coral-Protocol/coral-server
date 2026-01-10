@@ -50,16 +50,23 @@ sealed interface GraphAgentToolTransport : KoinComponent {
             request: CallToolRequest,
         ): CallToolResult {
             try {
-                val response = client.post(url) {
+                val sessionId = agent.session.id
+                val agentName = agent.name
+
+                val urlWithSessionAndAgentPaths = URLBuilder(urlString = url)
+                    .appendPathSegments(sessionId, agent.name).buildString()
+                agent.logger.info { "Making custom tool call POST to $urlWithSessionAndAgentPaths" }
+                val response = client.post(urlWithSessionAndAgentPaths) {
                     contentType(ContentType.Application.Json)
                     addJsonBodyWithSignature(json, config.customToolSecret, request.arguments, signatureHeader)
 
                     header("X-Coral-Namespace", agent.session.namespace.name)
-                    header("X-Coral-SessionId", agent.session.id)
-                    header("X-Coral-AgentName", agent.name)
+                    header("X-Coral-SessionId", sessionId)
+                    header("X-Coral-AgentName", agentName)
                 }
 
                 if (response.status != HttpStatusCode.OK) {
+                    agent.logger.warn { "Failed to send custom tool call to $urlWithSessionAndAgentPaths" }
                     return CallToolResult(
                         isError = true,
                         content = listOf(TextContent("Error code ${response.status.value} returned"))

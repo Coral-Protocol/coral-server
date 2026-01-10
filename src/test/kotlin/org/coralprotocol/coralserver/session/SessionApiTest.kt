@@ -1,6 +1,5 @@
 package org.coralprotocol.coralserver.session
 
-import io.github.smiley4.ktoropenapi.post
 import io.kotest.assertions.ktor.client.shouldBeOK
 import io.kotest.assertions.ktor.client.shouldHaveStatus
 import io.kotest.assertions.nondeterministic.continually
@@ -18,7 +17,9 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import io.ktor.resources.*
 import io.ktor.server.application.*
+import io.ktor.server.resources.post
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.modelcontextprotocol.kotlin.sdk.Tool
@@ -353,8 +354,11 @@ class SessionApiTest : CoralTest({
         val toolPayload = ToolPayload()
         val deferredPayload = CompletableDeferred<Any>()
 
+        @Serializable
+        @Resource("customTool/{sessionId}/{agentId}")
+        class CustomToolPath(val sessionId: String, val agentId: String)
         application.routing {
-            post(toolUrl) {
+            post<CustomToolPath> { _ ->
                 try {
                     deferredPayload.complete(
                         signatureVerifiedBody<ToolPayload>(json, config.customToolSecret).shouldBeEqual(toolPayload)
