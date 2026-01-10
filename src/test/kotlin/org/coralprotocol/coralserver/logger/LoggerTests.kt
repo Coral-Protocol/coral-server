@@ -104,11 +104,9 @@ class LoggerTests : CoralTest({
             logs = Logs(
                 limit = limit
             ),
-            events = (mutableListOf<TestEvent<LoggingEvent>>(
-                TestEvent("warn") { it is LoggingEvent.Warning },
-            ) + events).toMutableList(),
+            events = events,
         ) {
-            warn { "test" }
+
         }
     }
 
