@@ -16,16 +16,11 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.config.NetworkConfig
-import org.coralprotocol.coralserver.logging.Logger
-import org.coralprotocol.coralserver.logging.LoggingTag
-import org.coralprotocol.coralserver.modules.LOGGER_LOCAL_SESSION
 import org.coralprotocol.coralserver.session.SessionAgent
 import org.coralprotocol.coralserver.util.CORAL_SIGNATURE_HEADER
 import org.coralprotocol.coralserver.util.addJsonBodyWithSignature
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.get
 import org.koin.core.component.inject
-import org.koin.core.qualifier.named
 
 
 @Serializable
