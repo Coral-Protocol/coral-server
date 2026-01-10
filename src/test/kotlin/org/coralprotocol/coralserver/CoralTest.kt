@@ -124,6 +124,7 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                     configModuleParts,
                                     blockchainModule,
                                     agentModule,
+                                    llmModule,
                                     module {
                                         single {
                                             createClient {

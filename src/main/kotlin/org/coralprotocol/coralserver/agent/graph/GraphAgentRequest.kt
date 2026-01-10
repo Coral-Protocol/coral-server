@@ -50,6 +50,9 @@ data class GraphAgentRequest(
     @Description("An optional list of resources and an accompanied budget that this agent may spend on services that accept x402 payments")
     @Optional
     val x402Budgets: List<X402BudgetedResource> = listOf(),
+
+    @Description("An optional engine ID to use for the LLM proxy")
+    val engineId: String? = null,
 ) {
     /**
      * Given a reference to the agent registry [AgentRegistry], this function will attempt to convert this request into
@@ -131,6 +134,7 @@ data class GraphAgentRequest(
             plugins = plugins,
             provider = provider,
             x402Budgets = x402Budgets,
+            engineId = engineId,
         )
     }
 }

@@ -39,6 +39,7 @@ import org.coralprotocol.coralserver.config.AuthConfig
 import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.events.LocalSessionManagerEvent
 import org.coralprotocol.coralserver.events.SessionEvent
+import org.coralprotocol.coralserver.llm.LlmProxyService
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.logging.LoggingEvent
 import org.coralprotocol.coralserver.logging.LoggingTag
@@ -64,6 +65,7 @@ fun Application.coralServerModule() {
     val networkConfig by inject<NetworkConfig>()
     val authConfig by inject<AuthConfig>()
     val localSessionManager by inject<LocalSessionManager>()
+    val llmProxyService by inject<LlmProxyService>()
     val json by inject<Json>()
     val logger by inject<Logger>(named(LOGGER_ROUTES))
 
@@ -227,6 +229,7 @@ fun Application.coralServerModule() {
 
         authenticate("agentSecret") {
             agentRpcApi()
+            llmProxyApiRoutes(llmProxyService)
         }
 
         // safe interfaces, not subject to auth

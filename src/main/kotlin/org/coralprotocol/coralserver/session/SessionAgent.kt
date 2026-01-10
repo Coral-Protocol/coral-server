@@ -19,6 +19,7 @@ import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.config.SessionConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.LoggingTag
+import org.coralprotocol.coralserver.models.Telemetry
 import org.coralprotocol.coralserver.mcp.McpInstructionSnippet
 import org.coralprotocol.coralserver.mcp.McpResourceName
 import org.coralprotocol.coralserver.mcp.McpTool
@@ -134,6 +135,19 @@ class SessionAgent(
      */
     val usageReports
         get() = executionContext.usageReports.toList()
+
+    /**
+     * Records a telemetry report for this agent.
+     */
+    fun recordTelemetry(telemetry: Telemetry) {
+        executionContext.telemetry.add(telemetry)
+    }
+
+    /**
+     * Accessor for current telemetry reports managed by the execution context
+     */
+    val telemetry
+        get() = executionContext.telemetry.toList()
 
     init {
         val mcpToolManager: McpToolManager = get()

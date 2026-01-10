@@ -22,6 +22,7 @@ fun main(args: Array<String>) {
             networkModule,
             agentModule,
             sessionModule,
+            llmModule,
             module {
                 single {
                     Json {

@@ -37,6 +37,9 @@ data class RootConfig(
     @param:ConfigAlias("logging")
     val loggingConfig: LoggingConfig = LoggingConfig(),
 
+    @param:ConfigAlias("llmProxy")
+    val llmProxyConfig: LlmProxyConfig = LlmProxyConfig(),
+
     @param:ConfigAlias("console")
     val consoleConfig: ConsoleConfig = ConsoleConfig()
 ) {

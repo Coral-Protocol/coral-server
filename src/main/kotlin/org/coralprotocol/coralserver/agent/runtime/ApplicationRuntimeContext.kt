@@ -12,6 +12,8 @@ import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.RootConfig
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
+import org.coralprotocol.coralserver.routes.api.v1.LlmProxyChatCompletions
+import org.coralprotocol.coralserver.routes.api.v1.LlmProxyEngineChatCompletions
 import org.coralprotocol.coralserver.routes.sse.v1.Mcp
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 import org.koin.core.component.KoinComponent
@@ -54,6 +56,18 @@ class ApplicationRuntimeContext(
         val builder = URLBuilder(getApiUrl(addressConsumer))
         href(ResourcesFormat(), Mcp.Sse(agentSecret = executionContext.agent.secret), builder)
 
+        return builder.build()
+    }
+
+    fun getLlmProxyUrl(addressConsumer: AddressConsumer): Url {
+        val builder = URLBuilder(getApiUrl(addressConsumer))
+        href(ResourcesFormat(), LlmProxyChatCompletions(), builder)
+        return builder.build()
+    }
+
+    fun getLlmProxyEngineUrl(engineId: String, addressConsumer: AddressConsumer): Url {
+        val builder = URLBuilder(getApiUrl(addressConsumer))
+        href(ResourcesFormat(), LlmProxyEngineChatCompletions(engineId), builder)
         return builder.build()
     }
 }

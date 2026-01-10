@@ -13,6 +13,7 @@ import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.DebugConfig
 import org.coralprotocol.coralserver.config.DockerConfig
 import org.coralprotocol.coralserver.events.SessionEvent
+import org.coralprotocol.coralserver.models.Telemetry
 import org.coralprotocol.coralserver.session.reporting.SessionAgentUsageReport
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -46,6 +47,12 @@ class SessionAgentExecutionContext(
      * webhooks, if configured.
      */
     val usageReports = mutableListOf<SessionAgentUsageReport>()
+
+    /**
+     * A list of telemetry reports for this agent. When a session ends, all telemetry reports for each agent will be
+     * sent to webhooks, if configured.
+     */
+    val telemetry = mutableListOf<Telemetry>()
 
     /**
      * Builds the required environment variables for the execution of this agent.
@@ -110,6 +117,10 @@ class SessionAgentExecutionContext(
             this["CORAL_AGENT_SECRET"] = agent.secret
             this["CORAL_SESSION_ID"] = agent.session.id
             this["CORAL_API_URL"] = applicationRuntimeContext.getApiUrl(addressConsumer).toString()
+            this["CORAL_LLM_URL"] = applicationRuntimeContext.getLlmProxyUrl(addressConsumer).toString()
+            agent.graphAgent.engineId?.let {
+                this["CORAL_LLM_URL_WITH_ENGINE"] = applicationRuntimeContext.getLlmProxyEngineUrl(it, addressConsumer).toString()
+            }
             this["CORAL_SEND_CLAIMS"] = "0"
             this["CORAL_RUNTIME_ID"] = provider.runtime.toString().lowercase()
 
@@ -184,9 +195,11 @@ class SessionAgentExecutionContext(
                     name,
                     registryAgent.identifier,
                     startTime,
-                    System.currentTimeMillis()
+                    System.currentTimeMillis(),
+                    telemetry.toList()
                 )
             )
+            telemetry.clear()
         }
 
         session.events.emit(SessionEvent.RuntimeStopped(name))
