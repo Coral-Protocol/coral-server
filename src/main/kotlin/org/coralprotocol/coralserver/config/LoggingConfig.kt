@@ -14,10 +14,24 @@ data class LoggingConfig(
     val maxReplay: UInt = 2048u,
 
     /**
+     * Root directory for all log files
+     */
+    val logFilesDirectory: String = Path.of(System.getProperty("user.home"), ".coral", "logs").toString(),
+
+    /**
+     * https://logback.qos.ch/manual/appenders.html#file
+     */
+    val logFileName: String = Path.of(logFilesDirectory, "server.log").toString(),
+
+    /**
      * https://logback.qos.ch/manual/appenders.html#tbrpFileNamePattern
      */
-    val logFileNamePattern: String = Path.of(System.getProperty("user.home"), ".coral", "logs")
-        .toString() + "/%d{yyyy/MM, aux}/%d{yyyy-MM-dd}.%i.log.gz",
+    val logFileNamePattern: String = Path.of(
+        logFilesDirectory,
+        "archive",
+        "%d{yyyy/MM, aux}",
+        "%d{yyyy-MM-dd}.%i.log.gz"
+    ).toString(),
 
     /**
      * https://logback.qos.ch/manual/appenders.html#tbrpMaxHistory
