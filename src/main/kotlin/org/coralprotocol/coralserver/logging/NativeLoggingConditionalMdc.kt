@@ -5,7 +5,9 @@ import ch.qos.logback.classic.spi.ILoggingEvent
 import org.fusesource.jansi.Ansi.ansi
 import org.slf4j.MDC
 
-class NativeLoggingConditionalMdc : ClassicConverter() {
+open class NativeLoggingConditionalMdc : ClassicConverter() {
+    open val useColor: Boolean = true
+
     override fun convert(event: ILoggingEvent): String {
         val data = optionList.toList()
             .associateWith { (event.mdcPropertyMap[it] ?: MDC.get(it)) }
@@ -13,7 +15,11 @@ class NativeLoggingConditionalMdc : ClassicConverter() {
                 value?.let { key.toString() to value }
             }
             .joinToString(", ") {
-                ansi().fgBrightMagenta().a(it.first).reset().a("=").fgBrightBlue().a(it.second).reset().toString()
+                if (useColor) {
+                    ansi().fgBrightMagenta().a(it.first).reset().a("=").fgBrightBlue().a(it.second).reset().toString()
+                } else {
+                    "${it.first}=${it.second}"
+                }
             }
 
         return if (data.isEmpty()) {

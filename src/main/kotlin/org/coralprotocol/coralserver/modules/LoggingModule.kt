@@ -12,6 +12,7 @@ import ch.qos.logback.core.util.FileSize
 import org.coralprotocol.coralserver.config.LoggingConfig
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.logging.NativeLoggingConditionalMdc
+import org.coralprotocol.coralserver.logging.NativeLoggingConditionalMdcPlain
 import org.coralprotocol.coralserver.logging.NativeLoggingMessageHighlighter
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
@@ -30,13 +31,15 @@ val loggingModule = module {
         val loggingConfig = get<LoggingConfig>()
         val logCtx = LoggerFactory.getILoggerFactory() as LoggerContext
         logCtx.reset()
+
         logCtx.getLogger("io.ktor.server.plugins.cors.CORS").level = Level.OFF
         logCtx.getLogger("io.modelcontextprotocol.kotlin.sdk.server.Server").level = Level.OFF
 
         logCtx.putObject(
             CoreConstants.PATTERN_RULE_REGISTRY, mapOf(
                 "msgHighlight" to NativeLoggingMessageHighlighter::class.java.name,
-                "mdc" to NativeLoggingConditionalMdc::class.java.name
+                "mdc" to NativeLoggingConditionalMdc::class.java.name,
+                "mdcPlain" to NativeLoggingConditionalMdcPlain::class.java.name
             )
         )
 
@@ -55,26 +58,29 @@ val loggingModule = module {
 
         val fileEncoder = PatternLayoutEncoder()
         fileEncoder.setContext(logCtx)
-        fileEncoder.setPattern("%5level %d{yyyy-MM-dd HH:mm:ss.SSS} -%mdc{ns, sid, agent, io} %msg%n")
-        fileEncoder.charset = StandardCharsets.UTF_8
+        fileEncoder.setPattern("%level %d{yyyy-MM-dd HH:mm:ss.SSS} -%mdcPlain{ns, sid, agent, io} %msg%n")
         fileEncoder.start()
-
-        val logFileAppender = RollingFileAppender<ILoggingEvent>()
-        logFileAppender.setContext(logCtx)
-        logFileAppender.setName("FILE")
-        logFileAppender.setEncoder(fileEncoder)
-        logFileAppender.isAppend = true
 
         val logFilePolicy = SizeAndTimeBasedRollingPolicy<ILoggingEvent>()
         logFilePolicy.setContext(logCtx)
-        logFilePolicy.setParent(logFileAppender)
         logFilePolicy.setFileNamePattern(loggingConfig.logFileNamePattern)
         logFilePolicy.maxHistory = loggingConfig.maxHistory
         logFilePolicy.setTotalSizeCap(FileSize.valueOf(loggingConfig.logTotalSizeCap))
         logFilePolicy.setMaxFileSize(FileSize.valueOf(loggingConfig.maxFileSize))
-        logFilePolicy.isCleanHistoryOnStart = false
-        logFilePolicy.start()
+        logFilePolicy.isCleanHistoryOnStart = loggingConfig.logClearHistoryOnStart
 
+        val logFileAppender = RollingFileAppender<ILoggingEvent>()
+        logFileAppender.setContext(logCtx)
+        logFileAppender.setName("FILE")
+        logFileAppender.isAppend = true
+        logFileAppender.file = loggingConfig.logFileName
+        logFileAppender.setEncoder(fileEncoder)
+        logFileAppender.rollingPolicy = logFilePolicy
+        logFileAppender.triggeringPolicy = logFilePolicy
+        logFilePolicy.setParent(logFileAppender)
+        logFilePolicy.start()
+        logFileAppender.start()
+        
         val log = logCtx.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME)
         log.isAdditive = false
         log.level = Level.INFO
