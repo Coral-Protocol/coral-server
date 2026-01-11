@@ -4,6 +4,11 @@ import java.nio.file.Path
 
 data class ConsoleConfig(
     /**
+     * If this is false the /ui/console route will be disabled completely
+     */
+    val enabled: Boolean = true,
+
+    /**
      * The path that console related files will be downloaded into and served from
      */
     val cachePath: String = Path.of(System.getProperty("user.home"), ".coral", "console").toString(),

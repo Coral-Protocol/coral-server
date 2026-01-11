@@ -12,6 +12,7 @@ import java.io.FileOutputStream
 import java.net.URI
 import java.nio.file.Path
 import java.util.zip.ZipInputStream
+import kotlin.io.path.createDirectories
 import kotlin.io.path.createDirectory
 import kotlin.io.path.exists
 import kotlin.time.measureTime
@@ -20,10 +21,15 @@ fun Route.consoleUi() {
     val logger by inject<Logger>(named(LOGGER_ROUTES))
     val config by inject<ConsoleConfig>()
 
+    if (!config.enabled) {
+        logger.info { "/ui/console disabled by config" }
+        return
+    }
+
     val bundlePath = try {
         val cachePath = Path.of(config.cachePath)
         if (!cachePath.exists())
-            cachePath.createDirectory()
+            cachePath.createDirectories()
 
         val bundlePath = cachePath.resolve(config.consoleReleaseVersion)
 
