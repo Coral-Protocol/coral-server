@@ -11,8 +11,12 @@ import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import java.nio.file.Path
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 val agentModule = module {
+    single(named("agentCoroutineScope")) { CoroutineScope(SupervisorJob() + Dispatchers.Default) }
     singleOf(::EchoDebugAgent)
     singleOf(::SeedDebugAgent)
     singleOf(::ToolDebugAgent)
@@ -20,11 +24,13 @@ val agentModule = module {
 
     single(createdAtStart = true) {
         val config: RegistryConfig = get()
+        val scope: CoroutineScope = get(named("agentCoroutineScope"))
         AgentRegistry {
             if (config.enableMarketplaceAgentRegistrySource)
                 addMarketplace()
 
             config.localRegistries.forEach { addLocal(Path.of(it)) }
+            config.monitoredDirectories.forEach { addMonitoredDirectory(Path.of(it), scope) }
 
             if (config.includeDebugAgents) {
                 addLocalAgents(

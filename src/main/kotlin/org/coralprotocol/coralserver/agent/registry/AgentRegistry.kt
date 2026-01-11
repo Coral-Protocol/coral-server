@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.agent.registry
 
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.serialization.SerializationException
 import net.peanuuutz.tomlkt.decodeFromNativeReader
 import org.coralprotocol.coralserver.config.toml
@@ -25,6 +26,10 @@ class AgentRegistrySourceBuilder : KoinComponent {
 
     fun addLocal(path: Path) {
         addFromStream(path.toFile().inputStream(), path)
+    }
+
+    fun addMonitoredDirectory(path: Path, scope: CoroutineScope) {
+        sources.add(DirectoryWatcherAgentRegistrySource(path, scope))
     }
 
     fun addLocalAgents(agents: List<RegistryAgent>, identifier: String) {
@@ -122,17 +127,20 @@ class AgentRegistry(build: AgentRegistrySourceBuilder.() -> Unit) {
      * on local registries, so, for example, duplicates can exist between local and marketplace registries, or between
      * linked server registries and local/marketplace registries.
      */
-    val agents = sources.flatMap { it.agents }
+    val agents get() = sources.flatMap { it.agents }
 
     /**
      * A list of all sources where all local sources of type [ListAgentRegistrySource] are merged into a single source.
      */
-    val mergedSources = buildList {
+    val mergedSources get() = buildList {
         val localAgents = mutableListOf<RegistryAgent>()
 
         sources.forEach { source ->
-            if (source.identifier == AgentRegistrySourceIdentifier.Local && source is ListAgentRegistrySource) {
-                localAgents.addAll(source.registryAgents)
+            if (source.identifier == AgentRegistrySourceIdentifier.Local) {
+                when (source) {
+                    is ListAgentRegistrySource -> localAgents.addAll(source.registryAgents)
+                    is DirectoryWatcherAgentRegistrySource -> localAgents.addAll(source.registryAgents)
+                }
             } else {
                 add(source)
             }

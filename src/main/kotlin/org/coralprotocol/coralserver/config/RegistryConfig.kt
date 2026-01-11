@@ -7,6 +7,13 @@ data class RegistryConfig(
     val localRegistries: List<String> = listOf(),
 
     /**
+     * A list of directories to monitor for agents (coral-agent.toml)
+     */
+    val monitoredDirectories: List<String> = listOf(
+        "${System.getProperty("user.home")}/.coral/agents"
+    ),
+
+    /**
      * If this is true, all debug agents will be included in the registry
      */
     val includeDebugAgents: Boolean = false,
