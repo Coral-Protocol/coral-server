@@ -36,6 +36,9 @@ data class RootConfig(
 
     @param:ConfigAlias("logging")
     val loggingConfig: LoggingConfig = LoggingConfig(),
+
+    @param:ConfigAlias("console")
+    val consoleConfig: ConsoleConfig = ConsoleConfig()
 ) {
     /**
      * Calculates the address required to access the server for a given consumer.

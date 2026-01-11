@@ -32,4 +32,5 @@ val configModuleParts = module {
     single<SecurityConfig>(createdAtStart = true) { get<RootConfig>().securityConfig }
     single<SessionConfig>(createdAtStart = true) { get<RootConfig>().sessionConfig }
     single<LoggingConfig>(createdAtStart = true) { get<RootConfig>().loggingConfig }
+    single<ConsoleConfig>(createdAtStart = true) { get<RootConfig>().consoleConfig }
 }
