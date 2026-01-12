@@ -29,7 +29,7 @@ data class SessionThreadMessage(
     val mentionNames: Set<UniqueAgentName>,
 
     @Transient
-    val telemetry: Telemetry? = null
+    var telemetry: Telemetry? = null
 ) {
     /**
      * Creates a version of this message that is designed to be placed in an agent's state resource.  This contains only

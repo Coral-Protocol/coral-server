@@ -19,7 +19,7 @@ open class CommonGraphAgentBuilder(
     var description: String? = null
     var systemPrompt: String? = null
     var blocking: Boolean = true
-    var engineId: String? = null
+    var modelId: String? = null
     var provider: GraphAgentProvider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
 
     protected val plugins = mutableSetOf<GraphAgentPlugin>()
@@ -65,7 +65,7 @@ class GraphAgentBuilder(name: String) : CommonGraphAgentBuilder(name) {
             plugins = plugins.toSet(),
             provider = provider,
             x402Budgets = x402Budgets.toList(),
-            engineId = engineId,
+            modelId = modelId,
         )
     }
 }
@@ -98,7 +98,7 @@ class GraphAgentRequestBuilder(
             plugins = plugins,
             provider = provider,
             x402Budgets = x402Budgets,
-            engineId = engineId,
+            modelId = modelId,
         )
     }
 }

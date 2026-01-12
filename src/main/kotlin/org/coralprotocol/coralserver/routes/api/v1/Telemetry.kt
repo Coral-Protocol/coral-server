@@ -4,45 +4,54 @@ import io.github.smiley4.ktoropenapi.resources.get
 import io.github.smiley4.ktoropenapi.resources.post
 import io.ktor.http.*
 import io.ktor.resources.*
+import io.ktor.server.request.receive
+import io.ktor.server.response.respond
 import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.models.Telemetry
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionThreadMessage
+import org.koin.ktor.ext.inject
+import kotlin.getValue
 import org.coralprotocol.coralserver.models.TelemetryPost as TelemetryPostModel
 
-@Resource("telemetry/{sessionId}/{threadId}/{messageId}")
-class TelemetryGet(val sessionId: String, val threadId: String, val messageId: String) {
+@Resource("api/v1/telemetry/{namespace}/{sessionId}/{threadId}/{messageId}")
+class TelemetryGet(val namespace: String, val sessionId: String, val threadId: String, val messageId: String) {
     fun intoMessage(localSessionManager: LocalSessionManager): SessionThreadMessage {
-        TODO()
-//        val session = localSessionManager.getSession(sessionId) ?: throw RouteException(
-//            HttpStatusCode.NotFound,
-//            "Session not found"
-//        )
+//        TODO()
+        val session = localSessionManager.getSessions(namespace).find { it.id == sessionId } ?: throw RouteException(
+            HttpStatusCode.NotFound,
+            "Session not found"
+        )
 //
-//        val thread = session.getThread(threadId) ?: throw RouteException(
-//            HttpStatusCode.NotFound,
-//            "Thread not found"
-//        )
+        val thread = session.getThreadById(threadId) ?: throw RouteException(
+            HttpStatusCode.NotFound,
+            "Thread not found"
+        )
 //
 //        // TODO: messages should be a map (@Caelum told me to do this (the bad code not the comment))
 //        // (Caelum: for the record, I told @Seafra to make it a map, that is the part he is referring to as bad code...)
-//        return thread.messages.find { it.id == messageId } ?: throw RouteException(
-//            HttpStatusCode.NotFound,
-//            "Message not found"
-//        )
+        return thread.messages.find { it.id == messageId } ?: throw RouteException(
+            HttpStatusCode.NotFound,
+            "Message not found"
+        )
     }
 }
 
-@Resource("telemetry/{sessionId}")
-class TelemetryPost(val sessionId: String)
+//@Resource("telemetry/{sessionId}")
+//class TelemetryPost(val sessionId: String)
 
-fun Route.telemetryApiRoutes(localSessionManager: LocalSessionManager) {
+fun Route.telemetryApiRoutes() {
+    val localSessionManager by inject<LocalSessionManager>()
+
     get<TelemetryGet>({
         summary = "Get telemetry"
         description = "Fetches telemetry information for a given message"
         operationId = "getTelemetry"
         request {
+            pathParameter<String>("namespace") {
+                description = "The namespace"
+            }
             pathParameter<String>("sessionId") {
                 description = "The session ID"
             }
@@ -68,48 +77,50 @@ fun Route.telemetryApiRoutes(localSessionManager: LocalSessionManager) {
             }
         }
     }) { telemetry ->
-        TODO()
-//        call.respond(telemetry.intoMessage(localSessionManager).telemetry ?: throw RouteException(
-//            HttpStatusCode.NotFound,
-//            "Telemetry not found"
-//        ))
+//        TODO()
+        call.respond(
+            telemetry.intoMessage(localSessionManager).telemetry ?: throw RouteException(
+                HttpStatusCode.NotFound,
+                "Telemetry not found"
+            )
+        )
     }
 
-    post<TelemetryPost>({
-        summary = "Add telemetry"
-        description = "Attaches telemetry information a list of messages"
-        operationId = "addTelemetry"
-        request {
-            pathParameter<String>("sessionId") {
-                description = "The session ID"
-            }
-            body<TelemetryPostModel> {
-                description = "Telemetry data"
-            }
-        }
-        response {
-            HttpStatusCode.OK to {
-                description = "Success"
-            }
-            HttpStatusCode.NotFound to {
-                description = "Specified messages were not found"
-                body<RouteException> {
-                    description = "Exact error message and stack trace"
-                }
-            }
-        }
-    }) { post ->
-        TODO()
+//    post<TelemetryPost>({
+//        summary = "Add telemetry"
+//        description = "Attaches telemetry information a list of messages"
+//        operationId = "addTelemetry"
+//        request {
+//            pathParameter<String>("sessionId") {
+//                description = "The session ID"
+//            }
+//            body<TelemetryPostModel> {
+//                description = "Telemetry data"
+//            }
+//        }
+//        response {
+//            HttpStatusCode.OK to {
+//                description = "Success"
+//            }
+//            HttpStatusCode.NotFound to {
+//                description = "Specified messages were not found"
+//                body<RouteException> {
+//                    description = "Exact error message and stack trace"
+//                }
+//            }
+//        }
+//    }) { post ->
+//    TODO: This comes in through LLM proxy
 //        val model = call.receive<TelemetryPostModel>()
 //        for (target in model.targets) {
 //            val message = TelemetryGet(post.sessionId, target.threadId, target.messageId)
 //                .intoMessage(localSessionManager)
-//
-//            // maybe error if there is telemetry on this message already?
+
+    // maybe error if there is telemetry on this message already?
 //            message.telemetry = model.data
 //            logger.info { "Adding telemetry to ${target.threadId}/${message.id} in session \"${post.sessionId}\"" }
 //        }
-//
+
 //        call.respond(status = HttpStatusCode.OK, "")
-    }
+//}
 }

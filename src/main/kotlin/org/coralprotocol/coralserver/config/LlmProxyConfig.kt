@@ -4,18 +4,20 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class LlmProxyConfig(
-    val engines: Map<String, LlmEngineConfig> = emptyMap(),
-    val providers: Map<String, LlmProviderConfig> = emptyMap()
+    val models: Map<String, LlmModelConfig> = emptyMap(),
+    val providers: Map<String, LlmProviderConfig> = emptyMap(),
+    val requestTimeoutSeconds: Long = 300
 )
 
 @Serializable
-data class LlmEngineConfig(
+data class LlmModelConfig(
     val provider: String,
-    val engine: String
+    val model: String
 )
 
 @Serializable
 data class LlmProviderConfig(
     val baseUrl: String? = null,
-    val apiKey: String? = null
+    val apiKey: String? = null,
+    val timeoutSeconds: Long? = null
 )

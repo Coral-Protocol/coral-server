@@ -1,11 +1,14 @@
 package org.coralprotocol.coralserver.llm
 
 import io.ktor.client.*
+import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.json.*
 import org.coralprotocol.coralserver.config.RootConfig
+import org.coralprotocol.coralserver.models.OpenAiModel
+import org.coralprotocol.coralserver.models.OpenAiModelList
 import org.coralprotocol.coralserver.models.Telemetry
 import org.coralprotocol.coralserver.models.TelemetryMessages
 import org.coralprotocol.coralserver.models.telemetry.openai.*
@@ -18,29 +21,41 @@ class LlmProxyService(
 ) {
     private val config by lazy { org.koin.core.context.GlobalContext.get().get<RootConfig>() }
 
+    fun listModels(): OpenAiModelList {
+        return OpenAiModelList(
+            data = config.llmProxyConfig.models.keys.map { OpenAiModel(it) }
+        )
+    }
+
     suspend fun proxyChatCompletion(
         agent: SessionAgent,
         requestBody: JsonObject,
-        engineIdOverride: String? = null
+        modelIdOverride: String? = null
     ): HttpResponse {
-        val model = engineIdOverride ?: requestBody["model"]?.jsonPrimitive?.content
+        val model = modelIdOverride ?: requestBody["model"]?.jsonPrimitive?.content
             ?: throw IllegalArgumentException("Missing model in request")
 
-        val engineConfig = config.llmProxyConfig.engines[model]
-            ?: throw IllegalArgumentException("Unknown engine: $model")
+        val modelConfig = config.llmProxyConfig.models[model]
+            ?: throw IllegalArgumentException("Unknown model: $model")
 
-        val providerConfig = config.llmProxyConfig.providers[engineConfig.provider]
-            ?: throw IllegalArgumentException("Unknown provider: ${engineConfig.provider}")
+        val providerConfig = config.llmProxyConfig.providers[modelConfig.provider]
+            ?: throw IllegalArgumentException("Unknown provider: ${modelConfig.provider}")
 
         val targetUrl = "${providerConfig.baseUrl ?: "https://api.openai.com/v1"}/chat/completions"
 
+        val timeoutSeconds = providerConfig.timeoutSeconds ?: config.llmProxyConfig.requestTimeoutSeconds
+
         val response = httpClient.post(targetUrl) {
+            timeout {
+                requestTimeoutMillis = timeoutSeconds * 1000
+                socketTimeoutMillis = timeoutSeconds * 1000
+            }
             header(HttpHeaders.Authorization, "Bearer ${providerConfig.apiKey}")
             contentType(ContentType.Application.Json)
             setBody(buildJsonObject {
                 requestBody.forEach { (key, value) ->
                     if (key == "model") {
-                        put("model", engineConfig.engine)
+                        put("model", modelConfig.model)
                     } else {
                         put(key, value)
                     }
@@ -52,7 +67,7 @@ class LlmProxyService(
             val responseBody = response.bodyAsText()
             try {
                 val responseJson = json.parseToJsonElement(responseBody).jsonObject
-                val telemetry = buildTelemetry(requestBody, responseJson, engineConfig.engine)
+                val telemetry = buildTelemetry(requestBody, responseJson, modelConfig.model)
                 agent.recordTelemetry(telemetry)
             } catch (e: Exception) {
                 agent.logger.error(e) { "Failed to record telemetry for LLM proxy call" }
@@ -65,7 +80,7 @@ class LlmProxyService(
     private fun buildTelemetry(
         request: JsonObject,
         response: JsonObject,
-        actualEngine: String
+        actualModel: String
     ): Telemetry {
         val messages = mutableListOf<OpenAIMessage>()
 
@@ -117,7 +132,7 @@ class LlmProxyService(
         }
 
         return Telemetry(
-            modelDescription = actualEngine,
+            modelDescription = actualModel,
             temperature = request["temperature"]?.jsonPrimitive?.doubleOrNull,
             maxTokens = request["max_tokens"]?.jsonPrimitive?.longOrNull,
             messages = TelemetryMessages.OpenAI(messages),

@@ -225,6 +225,7 @@ fun Application.coralServerModule() {
             sessionApi()
             registryApi()
             puppetApi()
+            telemetryApiRoutes()
         }
 
         authenticate("agentSecret") {

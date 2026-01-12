@@ -6,7 +6,6 @@ import io.kotest.matchers.shouldBe
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -19,9 +18,10 @@ import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifie
 import org.coralprotocol.coralserver.agent.registry.ListAgentRegistrySource
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
-import org.coralprotocol.coralserver.config.LlmEngineConfig
+import org.coralprotocol.coralserver.config.LlmModelConfig
 import org.coralprotocol.coralserver.config.LlmProxyConfig
 import org.coralprotocol.coralserver.config.LlmProviderConfig
+import org.coralprotocol.coralserver.models.OpenAiModelList
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.models.SessionIdentifier
@@ -134,7 +134,7 @@ class LlmProxyApiTest : CoralTest({
         localSessionManager.waitAllSessions()
     }
 
-    test("testLlmProxyEnvAndEngineRoute").config(timeout = 30.seconds) {
+    test("testLlmProxyEnvAndModelRoute").config(timeout = 30.seconds) {
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
         val application by inject<Application>()
@@ -147,14 +147,14 @@ class LlmProxyApiTest : CoralTest({
                 addJsonObject {
                     putJsonObject("message") {
                         put("role", "assistant")
-                        put("content", "Hello from engine mock!")
+                        put("content", "Hello from model mock!")
                     }
                 }
             }
         }
 
         application.routing {
-            post("/mock-llm-engine/chat/completions") {
+            post("/mock-llm-model/chat/completions") {
                 call.respond(HttpStatusCode.OK, mockResponse)
             }
         }
@@ -162,16 +162,16 @@ class LlmProxyApiTest : CoralTest({
         // 2. Configure LLM Proxy
         val testConfig = config.copy(
             llmProxyConfig = LlmProxyConfig(
-                engines = mapOf("custom-engine" to LlmEngineConfig("test-provider", "gpt-custom")),
+                models = mapOf("custom-model" to LlmModelConfig("test-provider", "gpt-custom")),
                 providers = mapOf("test-provider" to LlmProviderConfig(
-                    baseUrl = "http://localhost/mock-llm-engine",
+                    baseUrl = "http://localhost/mock-llm-model",
                     apiKey = mockApiKey
                 ))
             )
         )
         loadKoinModules(module { single { testConfig } })
 
-        // 3. Setup Agent with prescribed engineId
+        // 3. Setup Agent with prescribed modelId
         val agentName = "env-agent"
         val agentIdentifier = RegistryAgentIdentifier(agentName, "1.0.0", AgentRegistrySourceIdentifier.Local)
         val envDeferred = CompletableDeferred<Map<String, String>>()
@@ -191,8 +191,8 @@ class LlmProxyApiTest : CoralTest({
             setBody(sessionRequest {
                 agentGraphRequest {
                     agent(agentIdentifier) {
-                        // Prescribe engineId
-                        engineId = "custom-engine"
+                        // Prescribe modelId
+                        modelId = "custom-model"
                     }
                 }
             })
@@ -201,32 +201,141 @@ class LlmProxyApiTest : CoralTest({
         val env = envDeferred.await()
 
         // 4. Verify Environment Variables
-        env["CORAL_LLM_URL"] shouldBe "http://localhost/llm-proxy/v1/chat/completions"
-        env["CORAL_LLM_URL_WITH_ENGINE"] shouldBe "http://localhost/llm-proxy/v1/engines/custom-engine/chat/completions"
+        env["CORAL_LLM_URL"] shouldBe "http://localhost/v1/chat/completions"
+        env["CORAL_LLM_MODELS_URL"] shouldBe "http://localhost/v1/models"
+        env["CORAL_LLM_URL_WITH_MODEL"] shouldBe "http://localhost/llm-proxy/v1/models/custom-model/chat/completions"
 
         val session = localSessionManager.getSessions("test-env").find { it.id == sessionId.sessionId }!!
         val agent = session.getAgent(agentName)
         val agentSecret = agent.secret
 
-        // 5. Call LLM Proxy via engine-specific URL
+        // 5. Call LLM Proxy via model-specific URL
         val proxyRequest = buildJsonObject {
             // Note: 'model' is not provided in body, should be picked up from URL
             putJsonArray("messages") {
                 addJsonObject {
                     put("role", "user")
-                    put("content", "Hello engine!")
+                    put("content", "Hello model!")
                 }
             }
         }
 
-        val response = client.post("/llm-proxy/v1/engines/custom-engine/chat/completions") {
+        val response = client.post("/llm-proxy/v1/models/custom-model/chat/completions") {
             header(HttpHeaders.Authorization, "Bearer $agentSecret")
             contentType(ContentType.Application.Json)
             setBody(proxyRequest)
         }
 
         val responseBody = response.shouldBeOK().body<JsonObject>()
-        responseBody["choices"]?.jsonArray?.get(0)?.jsonObject?.get("message")?.jsonObject?.get("content")?.jsonPrimitive?.content shouldBe "Hello from engine mock!"
+        responseBody["choices"]?.jsonArray?.get(0)?.jsonObject?.get("message")?.jsonObject?.get("content")?.jsonPrimitive?.content shouldBe "Hello from model mock!"
+
+        testFinished.complete(Unit)
+        localSessionManager.waitAllSessions()
+    }
+
+    test("testStandardOpenAiEndpoints").config(timeout = 30.seconds) {
+        val client by inject<HttpClient>()
+        val localSessionManager by inject<LocalSessionManager>()
+        val application by inject<Application>()
+
+        // 1. Setup Mock LLM Provider
+        val mockApiKey = "mock-api-key"
+        val mockResponse = buildJsonObject {
+            put("id", "chatcmpl-789")
+            putJsonArray("choices") {
+                addJsonObject {
+                    putJsonObject("message") {
+                        put("role", "assistant")
+                        put("content", "Hello from standard mock!")
+                    }
+                }
+            }
+        }
+
+        application.routing {
+            post("/standard-mock/chat/completions") {
+                call.respond(HttpStatusCode.OK, mockResponse)
+            }
+        }
+
+        // 2. Configure LLM Proxy
+        val testConfig = config.copy(
+            llmProxyConfig = LlmProxyConfig(
+                models = mapOf(
+                    "model-1" to LlmModelConfig("p1", "m1"),
+                    "model-2" to LlmModelConfig("p1", "m2")
+                ),
+                providers = mapOf("p1" to LlmProviderConfig(
+                    baseUrl = "http://localhost/standard-mock",
+                    apiKey = mockApiKey
+                ))
+            )
+        )
+        loadKoinModules(module { single { testConfig } })
+
+        // 3. Setup Agent
+        val agentName = "std-agent"
+        val agentIdentifier = RegistryAgentIdentifier(agentName, "1.0.0", AgentRegistrySourceIdentifier.Local)
+        val agentReady = CompletableDeferred<Unit>()
+        val testFinished = CompletableDeferred<Unit>()
+
+        val registry by inject<AgentRegistry>()
+        registry.sources.add(ListAgentRegistrySource(listOf(
+            registryAgent(agentName) {
+                runtime(FunctionRuntime { _, _ ->
+                    agentReady.complete(Unit)
+                    testFinished.await()
+                })
+            }
+        )))
+
+        val sessionId = client.authenticatedPost(Sessions.WithNamespace(namespace = "test-std")) {
+            setBody(sessionRequest {
+                agentGraphRequest {
+                    agent(agentIdentifier) {}
+                }
+            })
+        }.shouldBeOK().body<SessionIdentifier>()
+
+        agentReady.await()
+
+        val session = localSessionManager.getSessions("test-std").find { it.id == sessionId.sessionId }!!
+        val agent = session.getAgent(agentName)
+        val agentSecret = agent.secret
+
+        // 4. Test GET /v1/models
+        val modelsResponse = client.get("/v1/models") {
+            header(HttpHeaders.Authorization, "Bearer $agentSecret")
+        }.shouldBeOK().body<OpenAiModelList>()
+
+        modelsResponse.data.map { it.id }.toSet() shouldBe setOf("model-1", "model-2")
+
+        // 5. Test GET /llm-proxy/v1/models
+        val proxyModelsResponse = client.get("/llm-proxy/v1/models") {
+            header(HttpHeaders.Authorization, "Bearer $agentSecret")
+        }.shouldBeOK().body<OpenAiModelList>()
+
+        proxyModelsResponse.data.map { it.id }.toSet() shouldBe setOf("model-1", "model-2")
+
+        // 6. Test POST /v1/chat/completions
+        val proxyRequest = buildJsonObject {
+            put("model", "model-1")
+            putJsonArray("messages") {
+                addJsonObject {
+                    put("role", "user")
+                    put("content", "Hello standard!")
+                }
+            }
+        }
+
+        val response = client.post("/v1/chat/completions") {
+            header(HttpHeaders.Authorization, "Bearer $agentSecret")
+            contentType(ContentType.Application.Json)
+            setBody(proxyRequest)
+        }
+
+        val responseBody = response.shouldBeOK().body<JsonObject>()
+        responseBody["choices"]?.jsonArray?.get(0)?.jsonObject?.get("message")?.jsonObject?.get("content")?.jsonPrimitive?.content shouldBe "Hello from standard mock!"
 
         testFinished.complete(Unit)
         localSessionManager.waitAllSessions()

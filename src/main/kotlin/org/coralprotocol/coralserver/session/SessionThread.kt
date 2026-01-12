@@ -21,7 +21,7 @@ class SessionThread(
     val name: String,
     val creatorName: UniqueAgentName,
     private val participants: MutableSet<UniqueAgentName> = mutableSetOf(),
-    private val messages: MutableList<SessionThreadMessage> = mutableListOf(),
+    val messages: MutableList<SessionThreadMessage> = mutableListOf(),
     var state: SessionThreadState = SessionThreadState.Open
 ) {
     @Transient

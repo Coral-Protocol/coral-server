@@ -118,8 +118,9 @@ class SessionAgentExecutionContext(
             this["CORAL_SESSION_ID"] = agent.session.id
             this["CORAL_API_URL"] = applicationRuntimeContext.getApiUrl(addressConsumer).toString()
             this["CORAL_LLM_URL"] = applicationRuntimeContext.getLlmProxyUrl(addressConsumer).toString()
-            agent.graphAgent.engineId?.let {
-                this["CORAL_LLM_URL_WITH_ENGINE"] = applicationRuntimeContext.getLlmProxyEngineUrl(it, addressConsumer).toString()
+            this["CORAL_LLM_MODELS_URL"] = applicationRuntimeContext.getLlmProxyModelsUrl(addressConsumer).toString()
+            agent.graphAgent.modelId?.let {
+                this["CORAL_LLM_URL_WITH_MODEL"] = applicationRuntimeContext.getLlmProxyModelUrl(it, addressConsumer).toString()
             }
             this["CORAL_SEND_CLAIMS"] = "0"
             this["CORAL_RUNTIME_ID"] = provider.runtime.toString().lowercase()

@@ -25,7 +25,6 @@ repositories {
         name = "sonatypeSnapshots"
     }
 
-    maven("https://github.com/CaelumF/koog/raw/master/maven-repo")
     maven("https://github.com/CaelumF/schema-kenerator/raw/develop/maven-repo")
     maven {
         url = uri("https://coral-protocol.github.io/coral-escrow-distribution/")
@@ -44,6 +43,7 @@ dependencies {
     implementation("org.fusesource.jansi:jansi:2.4.2")
     implementation("com.github.sya-ri:kgit:1.1.0")
     implementation("com.github.pgreze:kotlin-process:1.5.1")
+    implementation("ai.koog:koog-agents:0.6.0")
 
     val dockerVersion = "3.7.0"
     implementation("com.github.docker-java:docker-java:$dockerVersion")

@@ -13,7 +13,9 @@ import org.coralprotocol.coralserver.config.RootConfig
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
 import org.coralprotocol.coralserver.routes.api.v1.LlmProxyChatCompletions
-import org.coralprotocol.coralserver.routes.api.v1.LlmProxyEngineChatCompletions
+import org.coralprotocol.coralserver.routes.api.v1.LlmProxyModelChatCompletions
+import org.coralprotocol.coralserver.routes.api.v1.OpenAiChatCompletions
+import org.coralprotocol.coralserver.routes.api.v1.OpenAiModels
 import org.coralprotocol.coralserver.routes.sse.v1.Mcp
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 import org.koin.core.component.KoinComponent
@@ -61,13 +63,19 @@ class ApplicationRuntimeContext(
 
     fun getLlmProxyUrl(addressConsumer: AddressConsumer): Url {
         val builder = URLBuilder(getApiUrl(addressConsumer))
-        href(ResourcesFormat(), LlmProxyChatCompletions(), builder)
+        href(ResourcesFormat(), OpenAiChatCompletions(), builder)
         return builder.build()
     }
 
-    fun getLlmProxyEngineUrl(engineId: String, addressConsumer: AddressConsumer): Url {
+    fun getLlmProxyModelsUrl(addressConsumer: AddressConsumer): Url {
         val builder = URLBuilder(getApiUrl(addressConsumer))
-        href(ResourcesFormat(), LlmProxyEngineChatCompletions(engineId), builder)
+        href(ResourcesFormat(), OpenAiModels(), builder)
+        return builder.build()
+    }
+
+    fun getLlmProxyModelUrl(modelId: String, addressConsumer: AddressConsumer): Url {
+        val builder = URLBuilder(getApiUrl(addressConsumer))
+        href(ResourcesFormat(), LlmProxyModelChatCompletions(modelId), builder)
         return builder.build()
     }
 }

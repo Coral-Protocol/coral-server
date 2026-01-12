@@ -24,6 +24,7 @@ val networkModule = module {
         HttpClient {
             install(Resources)
             install(SSE)
+            install(HttpTimeout)
             install(ContentNegotiation) {
                 json(get(), contentType = ContentType.Application.Json)
             }

@@ -90,7 +90,7 @@ data class GraphAgent(
     val x402Budgets: List<X402BudgetedResource>,
 
     /**
-     * @see GraphAgentRequest.engineId
+     * @see GraphAgentRequest.modelId
      */
-    val engineId: String? = null,
+    val modelId: String? = null,
 )

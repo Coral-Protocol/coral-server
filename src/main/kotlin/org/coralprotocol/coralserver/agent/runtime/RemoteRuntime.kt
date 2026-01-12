@@ -1,7 +1,7 @@
 //package org.coralprotocol.coralserver.agent.runtime
 //
 //import io.ktor.client.*
-//import io.ktor.client.engine.cio.*
+//import io.ktor.client.model.cio.*
 //import io.ktor.client.plugins.contentnegotiation.*
 //import io.ktor.client.plugins.websocket.*
 //import io.ktor.serialization.kotlinx.json.*
