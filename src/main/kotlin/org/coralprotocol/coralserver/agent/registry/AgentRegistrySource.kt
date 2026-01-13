@@ -6,6 +6,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
+import org.koin.core.component.KoinComponent
 
 @Serializable
 @JsonClassDiscriminator("type")
@@ -37,7 +38,7 @@ sealed class AgentRegistrySourceIdentifier {
  * implementation.
  */
 @Serializable
-open class AgentRegistrySource(val identifier: AgentRegistrySourceIdentifier) {
+open class AgentRegistrySource(val identifier: AgentRegistrySourceIdentifier) : KoinComponent {
     @Suppress("unused")
     val timestamp: Long = System.currentTimeMillis()
 

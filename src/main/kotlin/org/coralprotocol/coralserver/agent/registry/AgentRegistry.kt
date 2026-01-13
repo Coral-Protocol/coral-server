@@ -1,30 +1,27 @@
 package org.coralprotocol.coralserver.agent.registry
 
-import kotlinx.serialization.SerializationException
-import net.peanuuutz.tomlkt.decodeFromNativeReader
-import org.coralprotocol.coralserver.config.toml
+import net.peanuuutz.tomlkt.Toml
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
-import java.io.InputStream
-import java.nio.file.Path
 
 class AgentRegistrySourceBuilder : KoinComponent {
     val logger by inject<Logger>(named(LOGGER_CONFIG))
+    val toml by inject<Toml>()
     val sources = mutableListOf<AgentRegistrySource>()
 
     fun addSource(source: AgentRegistrySource) {
         sources.add(source)
     }
 
-    fun addMarketplace() {
+    fun addMarketplaceSource() {
         sources.add(MarketplaceAgentRegistrySource())
     }
 
-    fun addLocal(path: Path) {
-        addFromStream(path.toFile().inputStream(), path)
+    fun addFileBasedSource(filePattern: String) {
+        sources.add(FileAgentRegistrySource(filePattern))
     }
 
     fun addLocalAgents(agents: List<RegistryAgent>, identifier: String) {
@@ -64,22 +61,6 @@ class AgentRegistrySourceBuilder : KoinComponent {
             logger.warn { "Registry '$identifier' contains no agents" }
 
         sources.add(ListAgentRegistrySource(agents))
-    }
-
-    fun addFromStream(stream: InputStream, path: Path = Path.of(System.getProperty("user.dir"))) {
-        try {
-            val unresolved = toml.decodeFromNativeReader<UnresolvedLocalAgentRegistry>(stream.reader())
-            val context = RegistryResolutionContext(
-                path = path,
-                registrySourceIdentifier = AgentRegistrySourceIdentifier.Local
-            )
-
-            addLocalAgents(unresolved.resolve(context), "file:$path")
-        } catch (e: SerializationException) {
-            logger.error(e) { "Failed to parse agent registry $path" }
-        } catch (e: RegistryException) {
-            logger.error(e) { "Registry $path contains badly formatted agents" }
-        }
     }
 }
 
