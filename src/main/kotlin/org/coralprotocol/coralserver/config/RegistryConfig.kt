@@ -1,10 +1,15 @@
 package org.coralprotocol.coralserver.config
 
+import java.nio.file.Path
+
 data class RegistryConfig(
     /**
-     * A list of paths to registry files.
+     * A list of agents available on the file system to add as local agents to this server.  This supports basic pattern
+     * matching.
      */
-    val localRegistries: List<String> = listOf(),
+    val localAgents: List<String> = listOf(
+        "${Path.of(System.getProperty("user.home"), ".coral", "agents")}/*"
+    ),
 
     /**
      * If this is true, all debug agents will be included in the registry

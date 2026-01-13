@@ -10,7 +10,6 @@ import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
-import java.nio.file.Path
 
 val agentModule = module {
     singleOf(::EchoDebugAgent)
@@ -22,9 +21,9 @@ val agentModule = module {
         val config: RegistryConfig = get()
         AgentRegistry {
             if (config.enableMarketplaceAgentRegistrySource)
-                addMarketplace()
+                addMarketplaceSource()
 
-            config.localRegistries.forEach { addLocal(Path.of(it)) }
+            config.localAgents.forEach { addFileBasedSource(it) }
 
             if (config.includeDebugAgents) {
                 addLocalAgents(
