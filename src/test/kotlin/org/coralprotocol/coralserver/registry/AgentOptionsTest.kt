@@ -2,21 +2,22 @@ package org.coralprotocol.coralserver.registry
 
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.nulls.shouldNotBeNull
-import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import net.peanuuutz.tomlkt.Toml
+import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
 import org.coralprotocol.coralserver.agent.registry.option.*
-import org.coralprotocol.coralserver.config.toml
 import org.coralprotocol.coralserver.util.ByteUnitSizes
 import org.coralprotocol.coralserver.util.toByteCount
+import org.koin.test.inject
 import kotlin.reflect.KClass
 
-class AgentOptionsTest : FunSpec({
+class AgentOptionsTest : CoralTest({
     test("testString") {
+        val toml by inject<Toml>()
         val option = toml.decodeFromString(
             AgentOption.serializer(), """
             type = "string"
@@ -46,6 +47,8 @@ class AgentOptionsTest : FunSpec({
     }
 
     test("testNumeric") {
+        val toml by inject<Toml>()
+
         data class TestCase(
             val typeName: String,
             val `class`: KClass<*>,
@@ -143,6 +146,7 @@ class AgentOptionsTest : FunSpec({
     }
 
     test("testFirstEdition") {
+        val toml by inject<Toml>()
         val number = toml.decodeFromString(
             AgentOption.serializer(), """
             type = "number"
@@ -175,6 +179,7 @@ class AgentOptionsTest : FunSpec({
     }
 
     test("testValidateNumber") {
+        val toml by inject<Toml>()
         val number = toml.decodeFromString(
             AgentOption.serializer(), """
             type = "i32"
@@ -195,6 +200,7 @@ class AgentOptionsTest : FunSpec({
     }
 
     test("testValidateNumberList") {
+        val toml by inject<Toml>()
         val number = toml.decodeFromString(
             AgentOption.serializer(), """
             type = "list[i32]"
@@ -219,6 +225,7 @@ class AgentOptionsTest : FunSpec({
     }
 
     test("testValidateString") {
+        val toml by inject<Toml>()
         val number = toml.decodeFromString(
             AgentOption.serializer(), """
             type = "string"
@@ -247,6 +254,7 @@ class AgentOptionsTest : FunSpec({
     }
 
     test("testValidateStringList") {
+        val toml by inject<Toml>()
         val number = toml.decodeFromString(
             AgentOption.serializer(), """
             type = "list[string]"
@@ -267,6 +275,7 @@ class AgentOptionsTest : FunSpec({
     }
 
     test("testValidateBlob") {
+        val toml by inject<Toml>()
         val blob = toml.decodeFromString(
             AgentOption.serializer(), """
             type = "blob"
@@ -304,6 +313,7 @@ class AgentOptionsTest : FunSpec({
 
     // bug fix: partial validation table was not deserializable
     test("testPartialNumericValidation") {
+        val toml by inject<Toml>()
         val number = toml.decodeFromString(
             AgentOption.serializer(), """
             type = "i32"
