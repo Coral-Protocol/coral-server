@@ -20,8 +20,8 @@ class AgentRegistrySourceBuilder : KoinComponent {
         sources.add(MarketplaceAgentRegistrySource())
     }
 
-    fun addFileBasedSource(filePattern: String) {
-        sources.add(FileAgentRegistrySource(filePattern))
+    fun addFileBasedSource(filePattern: String, watch: Boolean) {
+        sources.add(FileAgentRegistrySource(filePattern, watch))
     }
 
     fun addLocalAgents(agents: List<RegistryAgent>, identifier: String) {

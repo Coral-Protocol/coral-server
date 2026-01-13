@@ -12,6 +12,14 @@ data class RegistryConfig(
     ),
 
     /**
+     * If this is true, a file watcher will be installed for [localAgents] which will monitor:
+     * - new potential matches for given patterns
+     * - changes to matched agents
+     * - deletion of agents
+     */
+    val watchLocalAgents: Boolean = true,
+
+    /**
      * If this is true, all debug agents will be included in the registry
      */
     val includeDebugAgents: Boolean = false,

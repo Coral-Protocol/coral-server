@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.agent.registry
 
+import kotlinx.coroutines.*
 import net.peanuuutz.tomlkt.Toml
 import net.peanuuutz.tomlkt.decodeFromNativeReader
 import org.coralprotocol.coralserver.logging.Logger
@@ -8,8 +9,12 @@ import org.coralprotocol.coralserver.util.isWindows
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import java.io.File
+import java.nio.file.FileSystems
 import java.nio.file.Path
+import java.nio.file.StandardWatchEventKinds.*
+import java.nio.file.WatchEvent
 import kotlin.io.path.isDirectory
+import kotlin.io.path.name
 
 /**
  * A toml based agent registry source, matching toml files based on a given pattern.
@@ -33,30 +38,22 @@ import kotlin.io.path.isDirectory
  * - my_agent/agent1/coral-agent.toml
  * - my_agent/agent2/coral-agent.toml
  */
-class FileAgentRegistrySource(val pattern: String) : AgentRegistrySource(AgentRegistrySourceIdentifier.Local) {
+class FileAgentRegistrySource(
+    pattern: String,
+    val watch: Boolean = false,
+    val watchCoroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO),
+) : AgentRegistrySource(AgentRegistrySourceIdentifier.Local) {
+
     val logger by inject<Logger>(named(LOGGER_CONFIG))
     val toml by inject<Toml>()
 
-    private val mutableAgents = buildList {
-        findAgentFilesRecursive(pattern).forEach {
-            add(
-                toml.decodeFromNativeReader<UnresolvedRegistryAgent>(it.reader()).resolve(
-                    AgentResolutionContext(
-                        registrySourceIdentifier = AgentRegistrySourceIdentifier.Local,
-                        path = it.toPath()
-                    )
-                )
-            )
-        }
-    }.toMutableList()
+    private val mutableAgents = mutableListOf<RegistryAgent>()
 
+    init {
+        addAgentsFromPattern(pattern)
+    }
 
-    fun findAgentFilesRecursive(
-        pathPattern: String,
-        parent: String? = null,
-        root: String? = null,
-        files: MutableList<File> = mutableListOf()
-    ): List<File> {
+    fun addAgentsFromPattern(pathPattern: String, parent: String? = null, root: String? = null) {
         val pathPattern = if (isWindows()) {
             pathPattern.replace("\\", "/")
         } else {
@@ -73,15 +70,14 @@ class FileAgentRegistrySource(val pattern: String) : AgentRegistrySource(AgentRe
                 current.toFile().listFiles {
                     it.isDirectory
                 }?.forEach {
-                    findAgentFilesRecursive(
+                    addAgentsFromPattern(
                         if (index == parts.lastIndex) {
                             it.name
                         } else {
                             "${it.name}/${parts.slice(IntRange(index + 1, parts.size - 1)).joinToString("/")}"
                         },
                         current.toString(),
-                        root ?: pathPattern,
-                        files
+                        root ?: pathPattern
                     )
                 }
             } else {
@@ -90,24 +86,79 @@ class FileAgentRegistrySource(val pattern: String) : AgentRegistrySource(AgentRe
         }
 
         val fullPotentialFile = current.resolve(AGENT_FILE).toFile()
-        if (fullPotentialFile.exists())
-            files.add(fullPotentialFile)
+        if (fullPotentialFile.exists()) {
+            val agent = readAgent(fullPotentialFile)
+            mutableAgents.add(agent)
+            watchSingleAgent(fullPotentialFile, agent)
 
-        return files.toList()
+            logger.info { "agent added: ${agent.identifier} - $fullPotentialFile" }
+        }
     }
 
-    override val agents: List<RegistryAgentCatalog>
-        get() = buildList {
-            buildMap {
-                mutableAgents.forEach {
-                    getOrPut(it.name, ::mutableListOf).add(it.version)
+    private fun eventStreamForPath(path: Path, handler: CoroutineScope.(WatchEvent<*>) -> Unit): Job {
+        val watchService = FileSystems.getDefault().newWatchService()
+        path.register(watchService, ENTRY_MODIFY, ENTRY_DELETE, ENTRY_CREATE)
+
+        return watchCoroutineScope.launch {
+            while (true) {
+                val key = watchService.take()
+
+                for (event in key.pollEvents()) {
+                    handler(event)
                 }
-            }.forEach { (name, versions) ->
-                add(RegistryAgentCatalog(name, versions))
+
+                key.reset()
             }
         }
-
-    override suspend fun resolveAgent(agent: RegistryAgentIdentifier): RestrictedRegistryAgent {
-        TODO("")
     }
+
+    fun watchSingleAgent(agentFile: File, agent: RegistryAgent) {
+        if (!watch)
+            return
+
+        val watchService = FileSystems.getDefault().newWatchService()
+        val path = agentFile.toPath().parent
+        path.register(watchService, ENTRY_MODIFY, ENTRY_DELETE)
+
+        eventStreamForPath(agentFile.toPath().parent) {
+            val fileName = it.context() as Path
+            if (fileName.name != agentFile.name)
+                return@eventStreamForPath
+
+            when (it.kind()) {
+                ENTRY_MODIFY, ENTRY_CREATE -> {
+                    try {
+                        mutableAgents[mutableAgents.indexOf(agent)] = readAgent(agentFile)
+                        logger.info { "agent updated: ${agent.identifier} - $agentFile" }
+                    } catch (e: Exception) {
+                        logger.error(e) { "Error reading new contents for agent $agent provided by $agentFile" }
+                    }
+                }
+
+                ENTRY_DELETE -> {
+                    logger.warn { "agent deleted: ${agent.identifier} - $agentFile" }
+                    mutableAgents.remove(agent)
+                    cancel()
+                }
+            }
+        }
+    }
+
+    fun watchDirectory() {
+
+    }
+
+    private fun readAgent(agentFile: File) =
+        toml.decodeFromNativeReader<UnresolvedRegistryAgent>(agentFile.reader()).resolve(
+            AgentResolutionContext(
+                registrySourceIdentifier = AgentRegistrySourceIdentifier.Local,
+                path = agentFile.toPath()
+            )
+        )
+
+    override val agents: List<RegistryAgentCatalog>
+        get() = ListAgentRegistrySource(mutableAgents).agents
+
+    override suspend fun resolveAgent(agent: RegistryAgentIdentifier): RestrictedRegistryAgent =
+        ListAgentRegistrySource(mutableAgents).resolveAgent(agent)
 }

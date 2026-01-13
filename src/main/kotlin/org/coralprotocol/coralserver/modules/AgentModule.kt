@@ -23,7 +23,7 @@ val agentModule = module {
             if (config.enableMarketplaceAgentRegistrySource)
                 addMarketplaceSource()
 
-            config.localAgents.forEach { addFileBasedSource(it) }
+            config.localAgents.forEach { addFileBasedSource(it, config.watchLocalAgents) }
 
             if (config.includeDebugAgents) {
                 addLocalAgents(
