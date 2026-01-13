@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver.agent.registry
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
+import io.github.smiley4.schemakenerator.core.annotations.Optional
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
@@ -16,16 +17,19 @@ const val AGENT_FILE = "coral-agent.toml"
 @Serializable
 data class UnresolvedRegistryAgent(
     @Description("The version of this agent")
+    @Optional
     val edition: Int = 1,
 
     @SerialName("agent")
     val agentInfo: UnresolvedRegistryAgentInfo,
 
     @Description("The runtimes that this agent supports")
-    val runtimes: LocalAgentRuntimes,
+    @Optional
+    val runtimes: LocalAgentRuntimes = LocalAgentRuntimes(),
 
     @Description("The options that this agent supports, for example the API keys required for the agent to function")
-    val options: Map<String, AgentOption>,
+    @Optional
+    val options: Map<String, AgentOption> = mapOf(),
 ) : KoinComponent {
     private val logger by inject<Logger>(named(LOGGER_CONFIG))
 
