@@ -13,19 +13,13 @@ abstract class ResolutionContext {
         val relative = path.resolve(other)
         return if (relative.exists()) {
             relative
-        }
-        else {
+        } else {
             other
         }
     }
 }
 
-data class RegistryResolutionContext(
-    val registrySourceIdentifier: AgentRegistrySourceIdentifier,
-    override val path: Path
-) : ResolutionContext()
-
 data class AgentResolutionContext(
-    val registryResolutionContext: RegistryResolutionContext,
+    val registrySourceIdentifier: AgentRegistrySourceIdentifier,
     override val path: Path
 ) : ResolutionContext()

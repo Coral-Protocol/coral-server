@@ -5,14 +5,10 @@ package org.coralprotocol.coralserver.agent.registry
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import net.peanuuutz.tomlkt.decodeFromNativeReader
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.defaultAsValue
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
-import org.coralprotocol.coralserver.config.SecurityConfig
-import org.coralprotocol.coralserver.config.toml
-import java.io.File
 import java.nio.file.Path
 
 const val FIRST_AGENT_EDITION = 1
@@ -70,39 +66,3 @@ fun RegistryAgent.toPublic(): PublicRegistryAgent = PublicRegistryAgent(
     options = options,
     exportSettings = exportSettings.mapValues { (_, settings) -> settings.toPublic() }
 )
-
-/**
- * This function deserializes an [UnresolvedInlineRegistryAgent] from the provided [stream], then resolves it using the
- * provided [context].
- *
- * Important note! [UnresolvedInlineRegistryAgent] contains the [UnresolvedInlineRegistryAgent.agentExportSettings] field,
- * which poses a security risk.  Users that import definitions via reference (indexed, git, path, etc.) might not want
- * export settings in that file to take effect.
- *
- * If [SecurityConfig.enableReferencedExporting] is set to true and [exportSettings] is null then the provided export
- * settings will be used.
- */
-fun resolveRegistryAgentFromStream(
-    file: File,
-    context: RegistryResolutionContext,
-    exportSettings: Map<RuntimeId, UnresolvedAgentExportSettings>
-): RegistryAgent {
-    val unresolved = toml.decodeFromNativeReader<UnresolvedInlineRegistryAgent>(file.reader())
-//    if (!context.config.securityConfig.enableReferencedExporting) {
-//        if (unresolved.unresolvedExportSettings.isNotEmpty()) {
-//            logger.warn { "Referenced agent file $file contains export settings, but [security.enableReferencedExporting] is false. Export settings in this file will be ignored" }
-//        }
-//
-//        unresolved.unresolvedExportSettings = exportSettings
-//    }
-//    else {
-//        unresolved.unresolvedExportSettings += exportSettings
-//    }
-
-    return unresolved.resolve(
-        AgentResolutionContext(
-            registryResolutionContext = context,
-            path = file.toPath().parent
-        )
-    ).first()
-}

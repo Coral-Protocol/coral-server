@@ -17,10 +17,10 @@ data class UnresolvedRegistryAgentInfo(
     @Description("A list of agent capabilities, for example the ability to refresh MCP resources")
     val capabilities: Set<AgentCapability> = setOf(),
 ) {
-    fun resolve(context: RegistryResolutionContext): RegistryAgentInfo =
+    fun resolve(registrySourceIdentifier: AgentRegistrySourceIdentifier): RegistryAgentInfo =
         RegistryAgentInfo(
             description = description,
             capabilities = capabilities,
-            identifier = RegistryAgentIdentifier(name, version, context.registrySourceIdentifier)
+            identifier = RegistryAgentIdentifier(name, version, registrySourceIdentifier)
         )
 }
