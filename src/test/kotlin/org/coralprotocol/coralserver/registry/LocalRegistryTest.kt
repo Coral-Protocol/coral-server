@@ -57,8 +57,8 @@ class LocalRegistryTest : CoralTest({
     )
 
     class MockMarketplaceSource : AgentRegistrySource(AgentRegistrySourceIdentifier.Marketplace) {
-        override val agents: List<RegistryAgentCatalog> =
-            listOf(RegistryAgentCatalog(testAgentName, listOf(testAgentVersion)))
+        override val agents: MutableList<RegistryAgentCatalog> =
+            mutableListOf(RegistryAgentCatalog(testAgentName, listOf(testAgentVersion)))
 
         override suspend fun resolveAgent(agent: RegistryAgentIdentifier): RestrictedRegistryAgent {
             if (agent.name != testAgentName) throw Exception("Agent not found")

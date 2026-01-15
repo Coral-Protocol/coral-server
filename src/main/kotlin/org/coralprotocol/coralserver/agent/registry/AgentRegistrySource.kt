@@ -45,7 +45,7 @@ open class AgentRegistrySource(val identifier: AgentRegistrySourceIdentifier) : 
     /**
      * All agents that are available in this registry agent source
      */
-    open val agents: List<RegistryAgentCatalog> = listOf()
+    open val agents: MutableList<RegistryAgentCatalog> = mutableListOf()
 
     /**
      * @see [AgentRegistry.resolveAgent]
