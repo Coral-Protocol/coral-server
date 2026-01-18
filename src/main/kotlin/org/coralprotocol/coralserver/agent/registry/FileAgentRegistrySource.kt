@@ -146,7 +146,7 @@ class FileAgentRegistrySource(
 
             if (current.parent != null && (index != parts.lastIndex || part == "*")) {
                 if (!current.isDirectory() && current.parent.isDirectory()) {
-                    logger.info { "watching directory: \"${normalizedPathString(current.parent)}\" for \"$part\" (doesn't yet exist)" }
+                    logger.info { "watching directory: \"${normalizedPathString(current.parent)}\" for \"$part\"" }
                     watchDirectory(current.parent, remainingParts)
                     return
                 } else {
@@ -238,7 +238,6 @@ class FileAgentRegistrySource(
         }.apply {
             watchJobs[path] = this
             invokeOnCompletion {
-                logger.info { "watcher for path ${normalizedPathString(path)} stopped" }
                 watchJobs.remove(path)
                 watchService.close()
             }
@@ -309,14 +308,14 @@ class FileAgentRegistrySource(
                 logger.info { "\"$fileName\" created in \"${normalizedPathString(directory)}\", matching pattern part \"$nextPart\"$fullPatternLog" }
 
                 addAgentsFromPattern(
-                    remainingParts.slice(1..<remainingParts.size).joinToString("/"),
-                    "${normalizedPathString(directory)}/$fileName"
+                    remainingParts.joinToString("/"),
+                    normalizedPathString(directory)
                 )
-            }
 
-            // if the next part was a specific directory, and it was created, this listener doesn't need to exist anymore
-            if (!wildcard)
-                cancel()
+                // if the next part was a specific directory, and it was created, this listener doesn't need to exist anymore
+                if (!wildcard)
+                    cancel()
+            }
         }.invokeOnCompletion {
             logger.info { "watcher for \"${remainingParts.joinToString("/")}\" in \"${normalizedPathString(directory)}\" stopped" }
         }
