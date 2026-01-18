@@ -245,6 +245,8 @@ class FileAgentRegistrySource(
     }
 
     private fun watchSingleAgent(agentFile: File, agent: RegistryAgent) {
+        var agent = agent
+
         if (!watch)
             return
 
@@ -259,11 +261,33 @@ class FileAgentRegistrySource(
             when (it.kind()) {
                 ENTRY_MODIFY -> {
                     try {
-                        replaceAgent(agent, readAgent(agentFile))
-                        logger.info { "agent updated: ${agent.identifier} - \"${normalizedPathString(agentFile)}\"" }
+                        val newAgent = readAgent(agentFile)
+                        if (newAgent == agent) {
+                            logger.info {
+                                "agent file updated but parsed contents did not change - \"${
+                                    normalizedPathString(
+                                        agentFile
+                                    )
+                                }\""
+                            }
+                        } else {
+                            removeAgent(agent)
+
+                            val identifier = if (newAgent.identifier != agent.identifier) {
+                                "${agent.identifier} (new identifier: ${newAgent.identifier})"
+                            } else {
+                                agent.identifier.toString()
+                            }
+
+                            if (newAgent.identifier != agent.identifier)
+                                logger.info { "agent $identifier updated" }
+
+                            addAgent(newAgent)
+                            agent = newAgent
+                        }
                     } catch (e: Exception) {
                         logger.error(e) {
-                            "Error reading new contents for agent ${agent.identifier} provided by ${
+                            "Error parsing new contents for agent ${agent.identifier} provided by ${
                                 normalizedPathString(
                                     agentFile
                                 )

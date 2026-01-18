@@ -3,10 +3,12 @@ package org.coralprotocol.coralserver.agent.registry
 import java.util.concurrent.ConcurrentHashMap
 
 open class ListAgentRegistrySource(
-    val registryAgents: List<RegistryAgent> = listOf(),
+    registryAgents: List<RegistryAgent> = listOf(),
     private val restrictions: Set<RegistryAgentRestriction> = setOf()
 ) : AgentRegistrySource(AgentRegistrySourceIdentifier.Local) {
     private val agentCache: ConcurrentHashMap<RegistryAgentIdentifier, RegistryAgent> = ConcurrentHashMap()
+    val registryAgents
+        get() = agentCache.values
 
     init {
         addAllAgents(registryAgents)
@@ -52,14 +54,6 @@ open class ListAgentRegistrySource(
                 agents[catalogIndex] = RegistryAgentCatalog(agent.name, remainingVersions)
             }
         }
-    }
-
-    fun replaceAgent(old: RegistryAgent, new: RegistryAgent) {
-        if (!agentCache.containsKey(old.identifier) || agentCache.containsKey(new.identifier))
-            return
-
-        removeAgent(old)
-        addAgent(new)
     }
 
     override suspend fun resolveAgent(agent: RegistryAgentIdentifier): RestrictedRegistryAgent {
