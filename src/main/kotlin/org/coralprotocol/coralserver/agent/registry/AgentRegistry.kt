@@ -6,6 +6,7 @@ import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
+import kotlin.time.Duration
 
 class AgentRegistrySourceBuilder : KoinComponent {
     val logger by inject<Logger>(named(LOGGER_CONFIG))
@@ -20,8 +21,12 @@ class AgentRegistrySourceBuilder : KoinComponent {
         sources.add(MarketplaceAgentRegistrySource())
     }
 
-    fun addFileBasedSource(filePattern: String, watch: Boolean) {
-        sources.add(FileAgentRegistrySource(filePattern, watch))
+    fun addFileBasedSource(filePattern: String, watch: Boolean, rescanTimer: Duration = Duration.ZERO) {
+        val source = FileAgentRegistrySource(filePattern, watch)
+        if (rescanTimer > Duration.ZERO)
+            source.scanOnInterval(rescanTimer)
+
+        sources.add(source)
     }
 
     fun addLocalAgents(agents: List<RegistryAgent>, identifier: String) {
