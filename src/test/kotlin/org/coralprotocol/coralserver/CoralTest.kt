@@ -57,7 +57,8 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
             remoteAgentWalletName = "fake test wallet"
         ),
         registryConfig = RegistryConfig(
-            includeDebugAgents = true
+            includeDebugAgents = true,
+            localAgents = listOf()
         ),
         authConfig = AuthConfig(
             keys = setOf(authToken)
