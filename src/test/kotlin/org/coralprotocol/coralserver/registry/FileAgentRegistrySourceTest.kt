@@ -2,32 +2,57 @@
 
 package org.coralprotocol.coralserver.registry
 
+import io.kotest.assertions.nondeterministic.continually
 import io.kotest.assertions.nondeterministic.eventually
+import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldHaveSingleElement
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.registry.AGENT_FILE
 import org.coralprotocol.coralserver.agent.registry.CURRENT_AGENT_EDITION
 import org.coralprotocol.coralserver.agent.registry.FileAgentRegistrySource
 import java.nio.file.Path
+import java.util.*
 import kotlin.io.path.*
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class FileAgentRegistrySourceTest : CoralTest({
-    suspend fun withTempDir(body: suspend Path.() -> Unit) {
+    suspend fun withTempDir(body: suspend Path.(CoroutineScope) -> Unit) {
         val path = createTempDirectory()
         try {
-            path.body()
+            val scope = CoroutineScope(Job())
+
+            path.body(scope)
+            scope.cancel()
         } finally {
             path.deleteRecursively()
         }
     }
 
-    fun Path.writeAgent(name: String, path: String = "$name/$AGENT_FILE"): Path {
+    suspend fun Path.writeAgent(
+        name: String,
+        path: String = "$name/$AGENT_FILE",
+        delay: Duration = Duration.ZERO
+    ): Path {
         val agentPath = resolve(path)
-        agentPath.parent.toFile().mkdirs()
+
+        var current = agentPath.root
+        for (part in agentPath.parent) {
+            current = current.resolve(part)
+            if (!current.isDirectory()) {
+                current.createDirectory()
+                delay(delay)
+            }
+        }
+
         agentPath.writeText(
             """
             edition = $CURRENT_AGENT_EDITION
@@ -39,6 +64,17 @@ class FileAgentRegistrySourceTest : CoralTest({
         )
 
         return agentPath
+    }
+
+    test("testInvalidPath") {
+        val scope = CoroutineScope(Job())
+
+        try {
+            shouldNotThrowAny { FileAgentRegistrySource(UUID.randomUUID().toString(), true, scope) }
+            shouldNotThrowAny { FileAgentRegistrySource("${UUID.randomUUID()}/*/${UUID.randomUUID()}", true, scope) }
+        } finally {
+            scope.cancel()
+        }
     }
 
     test("testBasicFile") {
@@ -90,9 +126,9 @@ class FileAgentRegistrySourceTest : CoralTest({
                 writeText("noise")
             }
 
-            val registrySource = FileAgentRegistrySource(resolve(agentName).toString(), true)
-            registrySource.agents.shouldHaveSingleElement {
-                it.name == agentName
+            val registrySource = FileAgentRegistrySource(resolve(agentName).toString(), true, it)
+            registrySource.agents.shouldHaveSingleElement { agent ->
+                agent.name == agentName
             }
 
             noise.deleteExisting()
@@ -113,17 +149,101 @@ class FileAgentRegistrySourceTest : CoralTest({
                 writeText("noise")
             }
 
-            val registrySource = FileAgentRegistrySource(resolve(agentName).toString(), true)
-            registrySource.agents.shouldHaveSingleElement {
-                it.name == agentName
+
+            val registrySource = FileAgentRegistrySource(resolve(agentName).toString(), true, it)
+            registrySource.agents.shouldHaveSingleElement { agent ->
+                agent.name == agentName
             }
 
             noise.writeText("irrelevant update")
             writeAgent(newAgentName, "$agentName/$AGENT_FILE")
 
             eventually(3.seconds) {
-                registrySource.agents.shouldHaveSingleElement {
-                    it.name == newAgentName
+                registrySource.agents.shouldHaveSingleElement { agent ->
+                    agent.name == newAgentName
+                }
+            }
+        }
+    }
+
+    test("testWatchNewAgent") {
+        val agentNames = listOf("agent1", "agent2", "agent3")
+
+        withTempDir {
+            val registrySource = FileAgentRegistrySource(toString() + "/agents/*", true, it)
+            registrySource.agents.shouldBeEmpty()
+
+            resolve("agents").apply {
+                writeAgent("agent4", "nested/agent4/$AGENT_FILE", 500.milliseconds)
+                agentNames.forEach { agent -> writeAgent(agent) }
+            }
+
+            eventually(3.seconds) {
+                registrySource.agents.map { agent -> agent.name }.shouldContainAll(agentNames)
+            }
+        }
+    }
+
+    test("testDeleteScan") {
+        val agentName = "agent1"
+        repeat(10) { depth ->
+            withTempDir {
+                val root = resolve("root")
+                root.resolve("nest/".repeat(depth)).apply {
+                    val path = resolve("agents").apply {
+                        writeAgent(agentName)
+                    }
+
+                    val source = FileAgentRegistrySource("$path/*", false, it)
+                    source.agents.shouldHaveSingleElement { agent -> agent.name == agentName }
+
+                    root.deleteRecursively()
+                    source.scan()
+
+                    source.agents.shouldBeEmpty()
+
+                    path.writeAgent(agentName)
+                    source.scan()
+                    source.agents.shouldHaveSingleElement { agent -> agent.name == agentName }
+                }
+            }
+        }
+    }
+
+    test("testModifySyntaxError") {
+        val agentName = "agent1"
+        withTempDir {
+            val path = writeAgent(agentName)
+
+            val registrySource = FileAgentRegistrySource(resolve(agentName).toString(), true, it)
+            registrySource.agents.shouldHaveSingleElement { agent ->
+                agent.name == agentName
+            }
+
+            path.writeText("not valid toml")
+
+            continually(1.seconds) {
+                registrySource.agents.shouldHaveSingleElement { agent ->
+                    agent.name == agentName
+                }
+            }
+        }
+    }
+
+    test("testWatchNestedHuman") {
+        val agentName = "agent1"
+        withTempDir {
+            var nestedPath = this
+            repeat(5) { nestedPath = nestedPath.resolve("nest") }
+
+            val registrySource = FileAgentRegistrySource("$nestedPath/*", true, it)
+            registrySource.agents.shouldBeEmpty()
+
+            nestedPath.writeAgent(agentName, delay = 200.milliseconds)
+
+            eventually(1.seconds) {
+                registrySource.agents.shouldHaveSingleElement { agent ->
+                    agent.name == agentName
                 }
             }
         }
