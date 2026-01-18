@@ -108,24 +108,26 @@ class AgentRegistry(build: AgentRegistrySourceBuilder.() -> Unit) {
      * on local registries, so, for example, duplicates can exist between local and marketplace registries, or between
      * linked server registries and local/marketplace registries.
      */
-    val agents = sources.flatMap { it.agents }
+    val agents
+        get() = sources.flatMap { it.agents }
 
     /**
      * A list of all sources where all local sources of type [ListAgentRegistrySource] are merged into a single source.
      */
-    val mergedSources = buildList {
-        val localAgents = mutableListOf<RegistryAgent>()
+    val mergedSources
+        get() = buildList {
+            val localAgents = mutableListOf<RegistryAgent>()
 
-        sources.forEach { source ->
-            if (source.identifier == AgentRegistrySourceIdentifier.Local && source is ListAgentRegistrySource) {
-                localAgents.addAll(source.registryAgents)
-            } else {
-                add(source)
+            sources.forEach { source ->
+                if (source.identifier == AgentRegistrySourceIdentifier.Local && source is ListAgentRegistrySource) {
+                    localAgents.addAll(source.registryAgents)
+                } else {
+                    add(source)
+                }
             }
-        }
 
-        add(ListAgentRegistrySource(localAgents))
-    }
+            add(ListAgentRegistrySource(localAgents))
+        }
 
     /**
      * Returns a list of all exported agents from all local sources.
