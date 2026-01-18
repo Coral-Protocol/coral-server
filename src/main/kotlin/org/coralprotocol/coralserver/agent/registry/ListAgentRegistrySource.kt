@@ -9,15 +9,19 @@ open class ListAgentRegistrySource(
     private val agentCache: ConcurrentHashMap<RegistryAgentIdentifier, RegistryAgent> = ConcurrentHashMap()
 
     init {
-        addAll(registryAgents)
+        addAllAgents(registryAgents)
     }
 
-    fun addAll(agents: List<RegistryAgent>) =
+    fun addAllAgents(agents: List<RegistryAgent>) =
         agents.forEach { addAgent(it) }
 
-    fun removeAll(agents: List<RegistryAgent>) =
+    fun removeAllAgents(agents: List<RegistryAgent>) =
         agents.forEach { removeAgent(it) }
 
+    fun clearAgents() =
+        removeAllAgents(agentCache.values.toList())
+
+    @Synchronized
     fun addAgent(agent: RegistryAgent) {
         if (agentCache.containsKey(agent.identifier))
             return
@@ -32,6 +36,7 @@ open class ListAgentRegistrySource(
         }
     }
 
+    @Synchronized
     fun removeAgent(agent: RegistryAgent) {
         if (!agentCache.containsKey(agent.identifier))
             return
