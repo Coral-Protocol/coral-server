@@ -3,8 +3,9 @@ package org.coralprotocol.coralserver.agent.registry
 import java.util.concurrent.ConcurrentHashMap
 
 open class ListAgentRegistrySource(
+    override val name: String,
     registryAgents: List<RegistryAgent> = listOf(),
-    private val restrictions: Set<RegistryAgentRestriction> = setOf()
+    private val restrictions: Set<RegistryAgentRestriction> = setOf(),
 ) : AgentRegistrySource(AgentRegistrySourceIdentifier.Local) {
     private val agentCache: ConcurrentHashMap<RegistryAgentIdentifier, RegistryAgent> = ConcurrentHashMap()
     val registryAgents

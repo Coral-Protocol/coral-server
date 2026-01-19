@@ -42,6 +42,8 @@ open class AgentRegistrySource(val identifier: AgentRegistrySourceIdentifier) : 
     @Suppress("unused")
     val timestamp: Long = System.currentTimeMillis()
 
+    open val name: String = "default"
+
     /**
      * All agents that are available in this registry agent source
      */
