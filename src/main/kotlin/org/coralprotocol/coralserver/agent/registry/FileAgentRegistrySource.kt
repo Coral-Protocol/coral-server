@@ -1,6 +1,12 @@
+@file:OptIn(FlowPreview::class)
+
 package org.coralprotocol.coralserver.agent.registry
 
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import net.peanuuutz.tomlkt.Toml
 import net.peanuuutz.tomlkt.decodeFromNativeReader
 import org.coralprotocol.coralserver.logging.Logger
@@ -17,6 +23,7 @@ import java.nio.file.WatchEvent
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.io.path.*
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * A toml based agent registry source, matching toml files based on a given pattern.
@@ -63,11 +70,12 @@ import kotlin.time.Duration
  * were programmatically created - faster than the [java.nio.file.WatchService] is able to catch.
  */
 class FileAgentRegistrySource(
+    val registry: AgentRegistry,
     val pattern: String,
     val watch: Boolean = false,
     val watchCoroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO),
     restrictions: Set<RegistryAgentRestriction> = setOf()
-) : ListAgentRegistrySource(restrictions = restrictions) {
+) : ListAgentRegistrySource(name = "pattern [${normalizedPathString(pattern)}]", restrictions = restrictions) {
 
     private val logger by inject<Logger>(named(LOGGER_CONFIG))
     private val toml by inject<Toml>()
@@ -78,13 +86,6 @@ class FileAgentRegistrySource(
     init {
         scan()
     }
-
-    private fun normalizedPathString(path: String) =
-        if (isWindows()) {
-            path.replace("\\", "/")
-        } else {
-            path
-        }
 
     fun scan() {
         loadedAgentFiles.clear()
@@ -102,12 +103,6 @@ class FileAgentRegistrySource(
             scan()
         }
     }
-
-    private fun normalizedPathString(file: File) =
-        normalizedPathString(file.absolutePath)
-
-    private fun normalizedPathString(path: Path) =
-        normalizedPathString(path.toString())
 
     private fun addAgentsFromPattern(pathPattern: String, parent: String? = null) {
         val parts = pathPattern.split("/")
@@ -251,6 +246,51 @@ class FileAgentRegistrySource(
             return
 
         logger.info { "monitoring agent ${normalizedPathString(agentFile)}" }
+
+        val modificationFlow = MutableSharedFlow<File>(extraBufferCapacity = 64)
+        val flowJob = modificationFlow
+            .debounce(500.milliseconds)
+            .onEach {
+                try {
+                    val newAgent = readAgent(it)
+                    if (newAgent == agent) {
+                        logger.info {
+                            "agent file updated but parsed contents did not change - \"${
+                                normalizedPathString(
+                                    agentFile
+                                )
+                            }\""
+                        }
+                    } else {
+                        removeAgent(agent)
+
+                        val identifier = if (newAgent.identifier != agent.identifier) {
+                            "${agent.identifier} (new identifier: ${newAgent.identifier})"
+                        } else {
+                            agent.identifier.toString()
+                        }
+
+                        addAgent(newAgent)
+
+                        if (newAgent != agent) {
+                            logger.info { "agent $identifier updated" }
+                            registry.reportLocalDuplicates()
+                        }
+
+                        agent = newAgent
+                    }
+                } catch (e: Exception) {
+                    logger.error(e) {
+                        "Error parsing new contents for agent ${agent.identifier} provided by ${
+                            normalizedPathString(
+                                agentFile
+                            )
+                        }"
+                    }
+                }
+            }
+            .launchIn(watchCoroutineScope)
+
         eventStreamForPath(
             agentFile.toPath().parent, ENTRY_MODIFY, ENTRY_DELETE
         ) {
@@ -260,40 +300,7 @@ class FileAgentRegistrySource(
 
             when (it.kind()) {
                 ENTRY_MODIFY -> {
-                    try {
-                        val newAgent = readAgent(agentFile)
-                        if (newAgent == agent) {
-                            logger.info {
-                                "agent file updated but parsed contents did not change - \"${
-                                    normalizedPathString(
-                                        agentFile
-                                    )
-                                }\""
-                            }
-                        } else {
-                            removeAgent(agent)
-
-                            val identifier = if (newAgent.identifier != agent.identifier) {
-                                "${agent.identifier} (new identifier: ${newAgent.identifier})"
-                            } else {
-                                agent.identifier.toString()
-                            }
-
-                            if (newAgent.identifier != agent.identifier)
-                                logger.info { "agent $identifier updated" }
-
-                            addAgent(newAgent)
-                            agent = newAgent
-                        }
-                    } catch (e: Exception) {
-                        logger.error(e) {
-                            "Error parsing new contents for agent ${agent.identifier} provided by ${
-                                normalizedPathString(
-                                    agentFile
-                                )
-                            }"
-                        }
-                    }
+                    modificationFlow.tryEmit(agentFile)
                 }
 
                 ENTRY_DELETE -> {
@@ -308,6 +315,7 @@ class FileAgentRegistrySource(
                 }
             }
         }.invokeOnCompletion {
+            flowJob.cancel()
             logger.info { "watcher for agent ${agent.identifier} - \"${normalizedPathString(agentFile)}\" stopped" }
         }
     }
@@ -391,3 +399,16 @@ class FileAgentRegistrySource(
             )
         )
 }
+
+private fun normalizedPathString(path: String) =
+    if (isWindows()) {
+        path.replace("\\", "/")
+    } else {
+        path
+    }
+
+private fun normalizedPathString(file: File) =
+    normalizedPathString(file.absolutePath)
+
+private fun normalizedPathString(path: Path) =
+    normalizedPathString(path.toString())
