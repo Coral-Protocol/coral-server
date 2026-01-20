@@ -38,6 +38,7 @@ class RentalApiTest : CoralTest({
         // non-exported agents
         registry.sources.add(
             ListAgentRegistrySource(
+                "test",
                 listOf(registryAgent("exported") {
                     runtime(FunctionRuntime())
                     exportSetting(

@@ -17,7 +17,8 @@ data class SendMessageInput(
     val content: String,
 
     @Description("")
-    val mentions: Set<UniqueAgentName>
+    // cannot be a set because generated schema will include "uniqueItems: true" that OpenAI throws errors for
+    val mentions: List<UniqueAgentName>
 )
 
 @Serializable
@@ -30,7 +31,7 @@ suspend fun sendMessageExecutor(agent: SessionAgent, arguments: SendMessageInput
     try {
         return SendMessageOutput(
             status = "Message sent successfully",
-            message = agent.sendMessage(arguments.content, arguments.threadId, arguments.mentions)
+            message = agent.sendMessage(arguments.content, arguments.threadId, arguments.mentions.toSet())
         )
     }
     catch (e: SessionException) {

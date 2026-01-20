@@ -89,7 +89,7 @@ class SeedDebugAgent(client: HttpClient) : DebugAgent(client) {
 
             val thread = mcpToolManager.createThreadTool.executeOn(
                 client,
-                CreateThreadInput("thread $threadNumber", participants.toSet())
+                CreateThreadInput("thread $threadNumber", participants)
             ).thread
 
             if (operationDelay != null)
@@ -98,7 +98,7 @@ class SeedDebugAgent(client: HttpClient) : DebugAgent(client) {
             repeat(seedMessageCount.toInt()) { messageNumber ->
                 mcpToolManager.sendMessageTool.executeOn(
                     client,
-                    SendMessageInput(thread.id, "message $messageNumber", mentions.toSet())
+                    SendMessageInput(thread.id, "message $messageNumber", mentions)
                 )
 
                 if (operationDelay != null)
