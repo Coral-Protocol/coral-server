@@ -63,7 +63,7 @@ class AgentRegistry(build: AgentRegistrySourceBuilder.() -> Unit) : KoinComponen
      * A list of all agent registry sources.  Note this is mutable and can be modified at runtime.  Modification, for
      * example, can occur when new linked servers connect.
      */
-    private val sources: MutableList<AgentRegistrySource> = mutableListOf()
+    val sources: MutableList<AgentRegistrySource> = mutableListOf()
 
     init {
         val builder = AgentRegistrySourceBuilder(this)
@@ -79,7 +79,7 @@ class AgentRegistry(build: AgentRegistrySourceBuilder.() -> Unit) : KoinComponen
      * linked server registries and local/marketplace registries.
      */
     val agents
-        get() = sources.flatMap { it.agents }
+        get() = mergedSources.flatMap { it.agents }
 
     /**
      * A list of all sources where all local sources of type [ListAgentRegistrySource] are merged into a single source.
