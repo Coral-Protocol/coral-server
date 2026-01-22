@@ -9,6 +9,7 @@ import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldHaveSingleElement
+import io.kotest.matchers.collections.shouldHaveSize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -27,6 +28,9 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class FileAgentRegistrySourceTest : CoralTest({
+    val agentVersion: String = "1.0.0"
+    val humanActionTime = 150.milliseconds
+
     suspend fun withTempDir(body: suspend Path.(CoroutineScope) -> Unit) {
         val path = createTempDirectory()
         try {
@@ -61,9 +65,11 @@ class FileAgentRegistrySourceTest : CoralTest({
             
             [agent]
             name = "$name"
-            version = "1.0.0"
+            version = "$agentVersion"
         """.trimIndent()
         )
+
+        delay(delay)
 
         return agentPath
     }
@@ -74,7 +80,14 @@ class FileAgentRegistrySourceTest : CoralTest({
 
         try {
             shouldNotThrowAny { FileAgentRegistrySource(registry, UUID.randomUUID().toString(), true, scope) }
-            shouldNotThrowAny { FileAgentRegistrySource(registry, "${UUID.randomUUID()}/*/${UUID.randomUUID()}", true, scope) }
+            shouldNotThrowAny {
+                FileAgentRegistrySource(
+                    registry,
+                    "${UUID.randomUUID()}/*/${UUID.randomUUID()}",
+                    true,
+                    scope
+                )
+            }
         } finally {
             scope.cancel()
         }
@@ -106,7 +119,8 @@ class FileAgentRegistrySourceTest : CoralTest({
                 agentNames.forEach { writeAgent(it) }
             }
 
-            FileAgentRegistrySource(registry, toString() + "/agents/*").agents.map { it.name }.shouldContainExactly(agentNames)
+            FileAgentRegistrySource(registry, toString() + "/agents/*").agents.map { it.name }
+                .shouldContainExactly(agentNames)
         }
 
         // agents/agent1/data-files/coral-agent.toml
@@ -185,7 +199,7 @@ class FileAgentRegistrySourceTest : CoralTest({
             registrySource.agents.shouldBeEmpty()
 
             resolve("agents").apply {
-                writeAgent("agent4", "nested/agent4/$AGENT_FILE", 500.milliseconds)
+                writeAgent("agent4", "nested/agent4/$AGENT_FILE", humanActionTime)
                 agentNames.forEach { agent -> writeAgent(agent) }
             }
 
@@ -223,7 +237,30 @@ class FileAgentRegistrySourceTest : CoralTest({
         }
     }
 
-    test("testModifySyntaxError") {
+    test("testModifyRename") {
+        val registry by inject<AgentRegistry>()
+        val agentName = "agent1"
+        val newAgentName = "agent2"
+
+        withTempDir {
+            writeAgent(agentName)
+
+            val registrySource = FileAgentRegistrySource(registry, resolve(agentName).toString(), true, it)
+            registrySource.agents.shouldHaveSingleElement { agent ->
+                agent.name == agentName
+            }
+
+            writeAgent(newAgentName, "$agentName/$AGENT_FILE")
+
+            eventually(1.seconds) {
+                registrySource.agents.shouldHaveSingleElement { agent ->
+                    agent.name == newAgentName
+                }
+            }
+        }
+    }
+
+    test("testModifyHumanSyntaxError") {
         val registry by inject<AgentRegistry>()
         val agentName = "agent1"
 
@@ -235,13 +272,18 @@ class FileAgentRegistrySourceTest : CoralTest({
                 agent.name == agentName
             }
 
+            delay(humanActionTime)
             path.writeText("not valid toml")
+            delay(humanActionTime)
 
-            continually(1.seconds) {
-                registrySource.agents.shouldHaveSingleElement { agent ->
-                    agent.name == agentName
-                }
+            // reload should not delete the agent
+            registrySource.agents.shouldHaveSingleElement { agent ->
+                agent.name == agentName
             }
+
+            // re-scan should delete the agent
+            registrySource.scan()
+            registrySource.agents.shouldBeEmpty()
         }
     }
 
@@ -256,13 +298,60 @@ class FileAgentRegistrySourceTest : CoralTest({
             val registrySource = FileAgentRegistrySource(registry, "$nestedPath/*", true, it)
             registrySource.agents.shouldBeEmpty()
 
-            nestedPath.writeAgent(agentName, delay = 200.milliseconds)
+            nestedPath.writeAgent(agentName, delay = humanActionTime)
 
             eventually(1.seconds) {
                 registrySource.agents.shouldHaveSingleElement { agent ->
                     agent.name == agentName
                 }
             }
+        }
+    }
+
+    test("testWatchRenameFolderHuman") {
+        val registry by inject<AgentRegistry>()
+
+        withTempDir {
+            val registrySource = FileAgentRegistrySource(registry, "$this/agents/*", true, it)
+            registrySource.agents.shouldBeEmpty()
+
+            resolve("agents").apply {
+                createDirectory()
+
+                repeat(5) { index ->
+                    val newFolder = resolve("New Folder").createDirectory().toFile()
+                    delay(humanActionTime)
+
+                    val newName = resolve("agent$index").toFile()
+                    newFolder.renameTo(newName)
+                    delay(humanActionTime)
+
+                    newName.toPath().apply {
+                        writeAgent("agent$index", AGENT_FILE)
+                    }
+                }
+            }
+
+            eventually(1.seconds) {
+                registrySource.agents.shouldHaveSize(5)
+            }
+        }
+    }
+
+    test("testWatchDuplicates") {
+        val registry by inject<AgentRegistry>()
+
+        val agent1Name = "agent1"
+        val agent2Name = "agent2"
+        withTempDir {
+            val registrySource = FileAgentRegistrySource(registry, "$this/*", true, it)
+            registrySource.agents.shouldBeEmpty()
+
+            writeAgent(agent1Name, delay = humanActionTime)
+            writeAgent(agent1Name, "$agent2Name/$AGENT_FILE", delay = humanActionTime)
+
+            eventually(1.seconds) { registrySource.agents.shouldHaveSize(1) }
+            continually(3.seconds) { registrySource.agents.shouldHaveSize(1) }
         }
     }
 })
