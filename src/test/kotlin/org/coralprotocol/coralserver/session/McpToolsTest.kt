@@ -45,7 +45,7 @@ class McpToolsTest : CoralTest({
                                 val createThreadResult =
                                     mcpToolManager.createThreadTool.executeOn(
                                         client,
-                                        CreateThreadInput(threadName, setOf(agent2Name))
+                                        CreateThreadInput(threadName, listOf(agent2Name))
                                     )
 
                                 createThreadResult.thread.name shouldBe threadName
@@ -56,7 +56,7 @@ class McpToolsTest : CoralTest({
                                 agent2.synchronizedMessageTransaction {
                                     val sendMessageResult = mcpToolManager.sendMessageTool.executeOn(
                                         client,
-                                        SendMessageInput(createThreadResult.thread.id, singleMessageText, setOf())
+                                        SendMessageInput(createThreadResult.thread.id, singleMessageText, listOf())
                                     )
 
                                     assert(sendMessageResult.message.text == singleMessageText)
@@ -69,7 +69,7 @@ class McpToolsTest : CoralTest({
                                 agent2.synchronizedMessageTransaction {
                                     mcpToolManager.sendMessageTool.executeOn(
                                         client,
-                                        SendMessageInput(createThreadResult.thread.id, agentMessageText, setOf())
+                                        SendMessageInput(createThreadResult.thread.id, agentMessageText, listOf())
                                     ).message.id
                                 }
 
@@ -78,14 +78,14 @@ class McpToolsTest : CoralTest({
                                         // not mentioned, should not be picked up
                                         mcpToolManager.sendMessageTool.executeOn(
                                             client,
-                                            SendMessageInput(createThreadResult.thread.id, "spam", setOf())
+                                            SendMessageInput(createThreadResult.thread.id, "spam", listOf())
                                         )
                                     }
 
                                     // does mention, should be picked up
                                     mcpToolManager.sendMessageTool.executeOn(
                                         client,
-                                        SendMessageInput(createThreadResult.thread.id, mentionText, setOf(agent2Name))
+                                        SendMessageInput(createThreadResult.thread.id, mentionText, listOf(agent2Name))
                                     ).message.id
                                 }
 
@@ -98,7 +98,7 @@ class McpToolsTest : CoralTest({
 
                                     mcpToolManager.sendMessageTool.executeOn(
                                         client,
-                                        SendMessageInput(createThreadResult.thread.id, mentionText, setOf(agent3Name))
+                                        SendMessageInput(createThreadResult.thread.id, mentionText, listOf(agent3Name))
                                     ).message.id
                                 }
                             })

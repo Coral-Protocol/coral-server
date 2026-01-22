@@ -57,12 +57,12 @@ class McpResourceTest : CoralTest({
                                     val createThreadResult =
                                         mcpToolManager.createThreadTool.executeOn(
                                             client,
-                                            CreateThreadInput("$agent1Name thread", setOf(agent2Name, agent3Name))
+                                            CreateThreadInput("$agent1Name thread", listOf(agent2Name, agent3Name))
                                         )
 
                                     mcpToolManager.sendMessageTool.executeOn(
                                         client,
-                                        SendMessageInput(createThreadResult.thread.id, "test message", setOf())
+                                        SendMessageInput(createThreadResult.thread.id, "test message", listOf())
                                     )
 
                                     // should include 1 thread and 1 message
@@ -100,12 +100,12 @@ class McpResourceTest : CoralTest({
                                     val createThreadResult =
                                         mcpToolManager.createThreadTool.executeOn(
                                             client,
-                                            CreateThreadInput("$agent2Name thread", setOf(agent1Name, agent3Name))
+                                            CreateThreadInput("$agent2Name thread", listOf(agent1Name, agent3Name))
                                         )
 
                                     mcpToolManager.sendMessageTool.executeOn(
                                         client,
-                                        SendMessageInput(createThreadResult.thread.id, "test message", setOf())
+                                        SendMessageInput(createThreadResult.thread.id, "test message", listOf())
                                     )
 
                                     // should include output from agent1 and agent2 but not agent3
@@ -130,12 +130,12 @@ class McpResourceTest : CoralTest({
                                 val createThreadResult =
                                     mcpToolManager.createThreadTool.executeOn(
                                         client,
-                                        CreateThreadInput("$agent3Name thread", setOf(agent1Name, agent2Name))
+                                        CreateThreadInput("$agent3Name thread", listOf(agent1Name, agent2Name))
                                     )
 
                                 mcpToolManager.sendMessageTool.executeOn(
                                     client,
-                                    SendMessageInput(createThreadResult.thread.id, "test message", setOf())
+                                    SendMessageInput(createThreadResult.thread.id, "test message", listOf())
                                 )
 
                                 // should include all threads
