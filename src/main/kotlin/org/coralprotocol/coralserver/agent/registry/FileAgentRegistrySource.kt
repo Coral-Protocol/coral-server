@@ -77,13 +77,25 @@ class FileAgentRegistrySource(
     restrictions: Set<RegistryAgentRestriction> = setOf()
 ) : ListAgentRegistrySource(name = "pattern [${normalizedPathString(pattern)}]", restrictions = restrictions) {
 
+    data class WatchJobKey(
+        val path: Path,
+        val kinds: List<WatchEvent.Kind<*>>
+    )
+
     private val logger by inject<Logger>(named(LOGGER_CONFIG))
     private val toml by inject<Toml>()
     private val loadedAgentFiles = ConcurrentHashMap.newKeySet<String>()
     private val deletionWatchers = ConcurrentHashMap.newKeySet<String>()
-    private val watchJobs = ConcurrentHashMap<Path, Job>()
+    private val watchJobs = ConcurrentHashMap<WatchJobKey, Job>()
+
+    private var parentPattern: String
+    private var remainingPattern: String
 
     init {
+        val parts = normalizedPathString(pattern).split("/")
+        parentPattern = parts.first()
+        remainingPattern = parts.slice(1..<parts.size).joinToString("/")
+
         scan()
     }
 
@@ -94,7 +106,7 @@ class FileAgentRegistrySource(
         watchJobs.forEach { (_, job) -> job.cancel() }
         watchJobs.clear()
 
-        addAgentsFromPattern(normalizedPathString(pattern))
+        addAgentsFromPattern(remainingPattern, parentPattern)
     }
 
     fun scanOnInterval(interval: Duration) {
@@ -104,9 +116,9 @@ class FileAgentRegistrySource(
         }
     }
 
-    private fun addAgentsFromPattern(pathPattern: String, parent: String? = null) {
+    private fun addAgentsFromPattern(pathPattern: String, parent: String) {
         val parts = pathPattern.split("/")
-        var current = Path.of(parent ?: "").absolute()
+        var current = Path.of(parent).absolute()
         parts.forEachIndexed { index, part ->
             val remainingParts = parts.slice(index..<parts.size)
 
@@ -172,6 +184,7 @@ class FileAgentRegistrySource(
 
             // watching allows for us to wait for agent to be written to this directory
             waitForAgent(current)
+            watchForDeletion(current, parent, parts.last())
         }
     }
 
@@ -189,111 +202,125 @@ class FileAgentRegistrySource(
             4. The installed watched from step 3. also reports that "agents/agent1/coral-agent.toml" was just created
                and calls this function again for the same file
          */
-        val absolutePath = agentFile.absolutePath
-        if (loadedAgentFiles.contains(absolutePath))
-            return
+        try {
+            val absolutePath = agentFile.absolutePath
+            if (loadedAgentFiles.contains(absolutePath))
+                return
 
-        loadedAgentFiles.add(absolutePath)
+            loadedAgentFiles.add(absolutePath)
 
-        val agent = readAgent(agentFile)
-        addAgent(agent)
-        watchSingleAgent(agentFile, agent)
+            val agent = readAgent(agentFile)
+            addAgent(agent)
+            watchSingleAgent(agentFile, agent)
 
-        logger.info { "agent added: ${agent.identifier} - ${normalizedPathString(agentFile)}" }
+            logger.info { "agent added: ${agent.identifier} - ${normalizedPathString(agentFile)}" }
+        } catch (e: Exception) {
+            watchSingleAgent(agentFile, null)
+            logger.error(e) { "Error loading agent from file ${normalizedPathString(agentFile)}" }
+        }
     }
 
     private fun eventStreamForPath(
         path: Path,
         vararg kinds: WatchEvent.Kind<*>,
-        handler: CoroutineScope.(WatchEvent<*>) -> Unit
+        handler: suspend CoroutineScope.(WatchEvent<*>) -> Unit
     ): Job {
+        val watchJobKey = WatchJobKey(path, kinds.toList())
+        if (watchJobs.containsKey(watchJobKey)) {
+            watchJobs[watchJobKey]?.cancel()
+        }
+
         val watchService = FileSystems.getDefault().newWatchService()
         path.register(watchService, *kinds)
 
         return watchCoroutineScope.launch {
-            runInterruptible {
-                while (true) {
-                    try {
-                        val key = watchService.take()
-                        for (event in key.pollEvents()) {
-                            handler(event)
-                        }
-
-                        if (!key.reset())
-                            break
-                    } catch (e: InterruptedException) {
-                        throw e
-                    } catch (_: NoSuchFileException) {
-                        break
-                    } catch (e: Exception) {
-                        logger.error(e) { "Error watching path ${normalizedPathString(path)}" }
+            while (true) {
+                try {
+                    val key = runInterruptible { watchService.take() }
+                    for (event in key.pollEvents()) {
+                        handler(event)
                     }
+
+                    if (!key.reset())
+                        break
+                } catch (e: InterruptedException) {
+                    throw e
+                } catch (_: NoSuchFileException) {
+                    break
+                } catch (_: CancellationException) {
+                    break
+                } catch (e: Exception) {
+                    logger.error(e) { "Error watching path \"${normalizedPathString(path)}\"" }
                 }
             }
         }.apply {
-            watchJobs[path] = this
+            watchJobs[watchJobKey] = this
             invokeOnCompletion {
-                watchJobs.remove(path)
+                watchJobs.remove(watchJobKey)
                 watchService.close()
             }
         }
     }
 
-    private fun watchSingleAgent(agentFile: File, agent: RegistryAgent) {
+    private fun watchSingleAgent(agentFile: File, agent: RegistryAgent?) {
         var agent = agent
-
         if (!watch)
             return
 
-        logger.info { "monitoring agent ${normalizedPathString(agentFile)}" }
+        val watchPath = agentFile.toPath().parent
+        if (!watchPath.isDirectory()) {
+            logger.warn { "cannot watch non-existent directory \"${normalizedPathString(watchPath)}\"!" }
+            return
+        }
 
         val modificationFlow = MutableSharedFlow<File>(extraBufferCapacity = 64)
         val flowJob = modificationFlow
             .debounce(500.milliseconds)
-            .onEach {
+            .onEach { agentFile ->
                 try {
-                    val newAgent = readAgent(it)
-                    if (newAgent == agent) {
-                        logger.info {
-                            "agent file updated but parsed contents did not change - \"${
-                                normalizedPathString(
-                                    agentFile
-                                )
-                            }\""
-                        }
-                    } else {
-                        removeAgent(agent)
-
-                        val identifier = if (newAgent.identifier != agent.identifier) {
-                            "${agent.identifier} (new identifier: ${newAgent.identifier})"
-                        } else {
-                            agent.identifier.toString()
+                    val newAgent = readAgent(agentFile)
+                    when (val agent = agent) {
+                        newAgent -> {
+                            logger.info {
+                                "agent file updated but parsed contents did not change - \"${
+                                    normalizedPathString(
+                                        agentFile
+                                    )
+                                }\""
+                            }
                         }
 
-                        addAgent(newAgent)
-
-                        if (newAgent != agent) {
-                            logger.info { "agent $identifier updated" }
-                            registry.reportLocalDuplicates()
+                        null -> {
+                            addAgent(newAgent)
+                            logger.info { "agent added: ${newAgent.identifier} - \"${normalizedPathString(agentFile)}\"" }
                         }
 
-                        agent = newAgent
+                        else -> {
+                            removeAgent(agent)
+
+                            val identifier = if (newAgent.identifier != agent.identifier) {
+                                "${agent.identifier} (new identifier: ${newAgent.identifier})"
+                            } else {
+                                agent.identifier.toString()
+                            }
+
+                            addAgent(newAgent)
+
+                            if (newAgent != agent) {
+                                logger.info { "agent $identifier updated" }
+                                registry.reportLocalDuplicates()
+                            }
+                        }
                     }
+
+                    agent = newAgent
                 } catch (e: Exception) {
-                    logger.error(e) {
-                        "Error parsing new contents for agent ${agent.identifier} provided by ${
-                            normalizedPathString(
-                                agentFile
-                            )
-                        }"
-                    }
+                    logger.error(e) { "Error parsing new contents for agent file \"${normalizedPathString(agentFile)}\"" }
                 }
             }
             .launchIn(watchCoroutineScope)
 
-        eventStreamForPath(
-            agentFile.toPath().parent, ENTRY_MODIFY, ENTRY_DELETE
-        ) {
+        eventStreamForPath(watchPath, ENTRY_MODIFY, ENTRY_DELETE) {
             val fileName = it.context() as Path
             if (fileName.name != agentFile.name)
                 return@eventStreamForPath
@@ -304,25 +331,33 @@ class FileAgentRegistrySource(
                 }
 
                 ENTRY_DELETE -> {
-                    logger.warn { "agent deleted: ${agent.identifier} - \"${normalizedPathString(agentFile)}\"" }
-                    loadedAgentFiles.remove(agentFile.absolutePath)
-                    removeAgent(agent)
+                    if (agent != null) {
+                        logger.warn { "agent deleted: ${agent.identifier} - \"${normalizedPathString(agentFile)}\"" }
+                        loadedAgentFiles.remove(agentFile.absolutePath)
+                        removeAgent(agent)
 
-                    // if the user deletes and re-adds an agent, it will need this watcher
-                    waitForAgent(agentFile.toPath().parent)
+                        // if the user deletes and re-adds an agent, it will need this watcher
+                        waitForAgent(agentFile.toPath().parent)
 
-                    cancel()
+                        cancel()
+                    }
                 }
             }
         }.invokeOnCompletion {
             flowJob.cancel()
-            logger.info { "watcher for agent ${agent.identifier} - \"${normalizedPathString(agentFile)}\" stopped" }
+            if (agent != null)
+                logger.info { "watcher for agent ${agent.identifier} - \"${normalizedPathString(agentFile)}\" stopped" }
         }
     }
 
     private fun watchDirectory(directory: Path, remainingParts: List<String>) {
         if (!watch)
             return
+
+        if (!directory.isDirectory()) {
+            logger.warn { "cannot watch non-existent directory \"${normalizedPathString(directory)}\"!" }
+            return
+        }
 
         val nextPart = remainingParts.first()
         val remainingStr = remainingParts.joinToString("/")
@@ -340,7 +375,15 @@ class FileAgentRegistrySource(
                 logger.info { "\"$fileName\" created in \"${normalizedPathString(directory)}\", matching pattern part \"$nextPart\"$fullPatternLog" }
 
                 addAgentsFromPattern(
-                    remainingParts.joinToString("/"),
+                    if (wildcard) {
+                        if (remainingParts.size == 1) {
+                            fileName
+                        } else {
+                            "$fileName/${remainingParts.drop(1).joinToString("/")}"
+                        }
+                    } else {
+                        remainingParts.joinToString("/")
+                    },
                     normalizedPathString(directory)
                 )
 
@@ -357,16 +400,29 @@ class FileAgentRegistrySource(
         if (!watch)
             return
 
-        if (!directory.exists()) {
-            logger.warn { "cannot wait for agent in non-existent directory ${normalizedPathString(directory)}!  Absolute patterns can be used to avoid this error" }
+        if (!directory.isDirectory()) {
+            logger.warn { "cannot watch non-existent directory \"${normalizedPathString(directory)}\"!" }
             return
         }
 
-        logger.info { "waiting for $AGENT_FILE to be written in ${normalizedPathString(directory)}" }
+        logger.info { "waiting for $AGENT_FILE to be written in \"${normalizedPathString(directory)}\"" }
 
         eventStreamForPath(directory, ENTRY_CREATE) {
             if ((it.context() as Path).name == AGENT_FILE) {
-                addAgentFromFile(directory.resolve(AGENT_FILE).toFile())
+                val file = directory.resolve(AGENT_FILE).toFile()
+
+                // Allow time for contents to be written to this file
+                delay(500.milliseconds)
+
+                // If the file still exists, check for contents, if no contents, wait for modification instead of
+                // immediately throwing an error
+                if (file.exists()) {
+                    if (file.toPath().fileSize() == 0L) {
+                        watchSingleAgent(file, null)
+                    } else
+                        addAgentFromFile(directory.resolve(AGENT_FILE).toFile())
+                }
+
                 cancel()
             }
         }.invokeOnCompletion {
@@ -378,10 +434,15 @@ class FileAgentRegistrySource(
         if (!watch || directory.parent == null || deletionWatchers.contains(directory.absolutePathString()))
             return
 
+        if (!directory.isDirectory()) {
+            logger.warn { "cannot watch non-existent directory \"${normalizedPathString(directory)}\"!" }
+            return
+        }
+
         deletionWatchers.add(directory.absolutePathString())
         eventStreamForPath(directory.parent, ENTRY_DELETE) {
             if ((it.context() as Path).name == directory.name) {
-                logger.info { "${directory.name} in ${normalizedPathString(directory.parent)} was deleted, restart $restartPathPattern with $restartPart" }
+                logger.info { "${directory.name} in \"${normalizedPathString(directory.parent)}\" was deleted, restart $restartPathPattern with $restartPart" }
 
                 deletionWatchers.remove(directory.absolutePathString())
                 addAgentsFromPattern(restartPathPattern, restartPart)
@@ -395,7 +456,7 @@ class FileAgentRegistrySource(
         toml.decodeFromNativeReader<UnresolvedRegistryAgent>(agentFile.reader()).resolve(
             AgentResolutionContext(
                 registrySourceIdentifier = AgentRegistrySourceIdentifier.Local,
-                path = agentFile.toPath()
+                path = agentFile.parentFile.toPath()
             )
         )
 }
