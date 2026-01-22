@@ -7,7 +7,7 @@ open class ListAgentRegistrySource(
     registryAgents: List<RegistryAgent> = listOf(),
     private val restrictions: Set<RegistryAgentRestriction> = setOf(),
 ) : AgentRegistrySource(AgentRegistrySourceIdentifier.Local) {
-    private val agentCache: ConcurrentHashMap<RegistryAgentIdentifier, RegistryAgent> = ConcurrentHashMap()
+    protected val agentCache: ConcurrentHashMap<RegistryAgentIdentifier, RegistryAgent> = ConcurrentHashMap()
     val registryAgents
         get() = agentCache.values
 

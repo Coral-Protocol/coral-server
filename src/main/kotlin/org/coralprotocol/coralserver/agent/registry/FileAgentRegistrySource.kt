@@ -174,13 +174,6 @@ class FileAgentRegistrySource(
         if (agentFile.exists()) {
             addAgentFromFile(agentFile)
         } else {
-            logger.info {
-                "must wait for \"${pathPattern}\" in \"${parent}\" to yield agent file: ${
-                    normalizedPathString(
-                        agentFile
-                    )
-                }"
-            }
 
             // watching allows for us to wait for agent to be written to this directory
             waitForAgent(current)
@@ -210,6 +203,14 @@ class FileAgentRegistrySource(
             loadedAgentFiles.add(absolutePath)
 
             val agent = readAgent(agentFile)
+            if (agentCache.containsKey(agent.identifier)) {
+                logger.warn { "cannot add agent from file \"${normalizedPathString(agentFile)}\" because the identifier \"${agent.identifier}\" is already taken" }
+
+                // can still watch this agent though
+                watchSingleAgent(agentFile, null)
+                return
+            }
+
             addAgent(agent)
             watchSingleAgent(agentFile, agent)
 
@@ -291,11 +292,21 @@ class FileAgentRegistrySource(
                         }
 
                         null -> {
+                            if (agentCache.containsKey(newAgent.identifier)) {
+                                logger.warn { "cannot add agent from file \"${normalizedPathString(agentFile)}\" because the identifier \"${newAgent.identifier}\" is already taken" }
+                                return@onEach
+                            }
+
                             addAgent(newAgent)
                             logger.info { "agent added: ${newAgent.identifier} - \"${normalizedPathString(agentFile)}\"" }
                         }
 
                         else -> {
+                            if (agentCache.containsKey(newAgent.identifier)) {
+                                logger.warn { "cannot update agent from file \"${normalizedPathString(agentFile)}\" because the new identifier \"${newAgent.identifier}\" is already taken" }
+                                return@onEach
+                            }
+
                             removeAgent(agent)
 
                             val identifier = if (newAgent.identifier != agent.identifier) {
