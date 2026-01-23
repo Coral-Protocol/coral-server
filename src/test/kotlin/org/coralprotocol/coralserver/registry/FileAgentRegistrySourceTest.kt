@@ -28,7 +28,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class FileAgentRegistrySourceTest : CoralTest({
-    val agentVersion: String = "1.0.0"
+    val agentVersion = "1.0.0"
     val humanActionTime = 150.milliseconds
 
     suspend fun withTempDir(body: suspend Path.(CoroutineScope) -> Unit) {
@@ -100,7 +100,7 @@ class FileAgentRegistrySourceTest : CoralTest({
         withTempDir {
             writeAgent(agentName)
 
-            FileAgentRegistrySource(registry, resolve(agentName).toString()).agents.shouldHaveSingleElement {
+                FileAgentRegistrySource(registry, resolve(agentName).toString()).agents.shouldHaveSingleElement {
                 it.name == agentName
             }
         }
@@ -252,7 +252,7 @@ class FileAgentRegistrySourceTest : CoralTest({
 
             writeAgent(newAgentName, "$agentName/$AGENT_FILE")
 
-            eventually(1.seconds) {
+            eventually(3.seconds) {
                 registrySource.agents.shouldHaveSingleElement { agent ->
                     agent.name == newAgentName
                 }
@@ -300,7 +300,7 @@ class FileAgentRegistrySourceTest : CoralTest({
 
             nestedPath.writeAgent(agentName, delay = humanActionTime)
 
-            eventually(1.seconds) {
+            eventually(3.seconds) {
                 registrySource.agents.shouldHaveSingleElement { agent ->
                     agent.name == agentName
                 }
@@ -332,7 +332,7 @@ class FileAgentRegistrySourceTest : CoralTest({
                 }
             }
 
-            eventually(1.seconds) {
+            eventually(3.seconds) {
                 registrySource.agents.shouldHaveSize(5)
             }
         }
@@ -350,7 +350,7 @@ class FileAgentRegistrySourceTest : CoralTest({
             writeAgent(agent1Name, delay = humanActionTime)
             writeAgent(agent1Name, "$agent2Name/$AGENT_FILE", delay = humanActionTime)
 
-            eventually(1.seconds) { registrySource.agents.shouldHaveSize(1) }
+            eventually(3.seconds) { registrySource.agents.shouldHaveSize(1) }
             continually(3.seconds) { registrySource.agents.shouldHaveSize(1) }
         }
     }

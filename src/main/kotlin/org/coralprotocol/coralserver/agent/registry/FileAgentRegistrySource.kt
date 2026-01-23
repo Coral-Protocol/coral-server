@@ -93,7 +93,7 @@ class FileAgentRegistrySource(
 
     init {
         val parts = normalizedPathString(pattern).split("/")
-        parentPattern = parts.first()
+        parentPattern = if (isWindows()) parts.first() else "/${parts.first()}"
         remainingPattern = parts.slice(1..<parts.size).joinToString("/")
 
         scan()
