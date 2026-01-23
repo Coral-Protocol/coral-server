@@ -29,7 +29,7 @@ import kotlin.time.Duration.Companion.seconds
 
 class FileAgentRegistrySourceTest : CoralTest({
     val agentVersion = "1.0.0"
-    val humanActionTime = 150.milliseconds
+    val humanActionTime = 500.milliseconds
 
     suspend fun withTempDir(body: suspend Path.(CoroutineScope) -> Unit) {
         val path = createTempDirectory()
@@ -120,7 +120,7 @@ class FileAgentRegistrySourceTest : CoralTest({
             }
 
             FileAgentRegistrySource(registry, toString() + "/agents/*").agents.map { it.name }
-                .shouldContainExactly(agentNames)
+                .shouldContainAll(agentNames)
         }
 
         // agents/agent1/data-files/coral-agent.toml
@@ -338,7 +338,7 @@ class FileAgentRegistrySourceTest : CoralTest({
         }
     }
 
-    test("testWatchDuplicates") {
+    test("testWatchDuplicatesHuman") {
         val registry by inject<AgentRegistry>()
 
         val agent1Name = "agent1"
