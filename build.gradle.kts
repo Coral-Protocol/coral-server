@@ -118,6 +118,7 @@ tasks.test {
     testLogging {
         exceptionFormat = TestExceptionFormat.FULL
         showExceptions = true
+        showStandardStreams = true
     }
 }
 
