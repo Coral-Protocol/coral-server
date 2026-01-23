@@ -117,6 +117,7 @@ tasks.test {
     useJUnitPlatform()
     testLogging {
         exceptionFormat = TestExceptionFormat.FULL
+        showExceptions = true
     }
 }
 
