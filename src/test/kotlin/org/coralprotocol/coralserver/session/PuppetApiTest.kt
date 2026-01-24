@@ -70,7 +70,7 @@ class PuppetApiTest : CoralTest({
                 setBody(
                     CreateThreadInput(
                         threadName = "test thread",
-                        participantNames = setOf()
+                        participantNames = listOf()
                     )
                 )
             }.shouldBeOK().body()
@@ -99,7 +99,7 @@ class PuppetApiTest : CoralTest({
                     SendMessageInput(
                         threadId = threadId,
                         content = "test message",
-                        mentions = setOf(agent1Name)
+                        mentions = listOf(agent1Name)
                     )
                 )
             }.shouldBeOK()

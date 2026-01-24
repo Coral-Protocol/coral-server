@@ -79,7 +79,7 @@ class EchoDebugAgent(client: HttpClient) : DebugAgent(client) {
                 if (msg != null && (!mentions || msg.mentionNames.contains(agent.name)) && (fromAgent == null || msg.senderName == fromAgent)) {
                     mcpToolManager.sendMessageTool.executeOn(
                         client,
-                        SendMessageInput(msg.threadId, "nice message!", setOf(msg.senderName))
+                        SendMessageInput(msg.threadId, "nice message!", listOf(msg.senderName))
                     )
                     break;
                 }

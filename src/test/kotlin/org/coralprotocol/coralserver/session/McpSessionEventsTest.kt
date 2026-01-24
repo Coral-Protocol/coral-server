@@ -81,13 +81,13 @@ class McpSessionEventsTest : CoralTest({
                                     val thread =
                                         mcpToolManager.createThreadTool.executeOn(
                                             client,
-                                            CreateThreadInput(threadName, setOf(agent1Name))
+                                            CreateThreadInput(threadName, listOf(agent1Name))
                                         ).thread
 
                                     agent1.synchronizedMessageTransaction {
                                         mcpToolManager.sendMessageTool.executeOn(
                                             client,
-                                            SendMessageInput(thread.id, messageText, setOf())
+                                            SendMessageInput(thread.id, messageText, listOf())
                                         ).shouldNotBeNull().message.id
                                     }
 

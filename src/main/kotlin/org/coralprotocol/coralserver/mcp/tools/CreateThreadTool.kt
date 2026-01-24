@@ -14,7 +14,8 @@ data class CreateThreadInput(
     val threadName: String,
 
     @Description("The list of participants to include in the thread, this should include any agent that is expected to be involved in the thread's topic.  You do not need to include yourself in this list.")
-    val participantNames: Set<UniqueAgentName>
+    // cannot be a set because generated schema will include "uniqueItems: true" that OpenAI throws errors for
+    val participantNames: List<UniqueAgentName>
 )
 
 @Serializable
@@ -25,7 +26,7 @@ data class CreateThreadOutput(
 suspend fun createThreadExecutor(agent: SessionAgent, arguments: CreateThreadInput): CreateThreadOutput {
     try {
         return CreateThreadOutput(
-            agent.session.createThread(arguments.threadName, agent.name, arguments.participantNames)
+            agent.session.createThread(arguments.threadName, agent.name, arguments.participantNames.toSet())
         )
     }
     catch (e: SessionException) {

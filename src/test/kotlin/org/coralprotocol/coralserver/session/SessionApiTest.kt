@@ -73,6 +73,7 @@ class SessionApiTest : CoralTest({
         val registry by inject<AgentRegistry>()
         registry.sources.add(
             ListAgentRegistrySource(
+                "test agents",
                 listOf(registryAgent(agentName) {
                     version = agentVersion
                     runtime(FunctionRuntime { executionContext, _ ->

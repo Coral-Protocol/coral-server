@@ -23,17 +23,20 @@ val agentModule = module {
             if (config.enableMarketplaceAgentRegistrySource)
                 addMarketplaceSource()
 
-            config.localAgents.forEach { addFileBasedSource(it, config.watchLocalAgents) }
+            config.localAgents.forEach {
+                logger.info { "watching for agents matching pattern: $it" }
+                addFileBasedSource(it, config.watchLocalAgents, config.localAgentRescanTimer)
+            }
 
             if (config.includeDebugAgents) {
                 addLocalAgents(
+                    "debug agents",
                     listOf(
                         get<EchoDebugAgent>().generate(),
                         get<SeedDebugAgent>().generate(),
                         get<ToolDebugAgent>().generate(),
                         get<PuppetDebugAgent>().generate()
-                    ),
-                    "debug agents"
+                    )
                 )
             }
         }

@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver.config
 
 import java.nio.file.Path
+import kotlin.time.Duration
 
 data class RegistryConfig(
     /**
@@ -12,10 +13,20 @@ data class RegistryConfig(
     ),
 
     /**
+     * If this is non-zero, [localAgents] will be rescanned every [localAgentRescanTimer].  This must be used for
+     * comprehensive watching as just setting [watchLocalAgents] is not good enough for when agents are written to disk
+     * via script/program.
+     */
+    val localAgentRescanTimer: Duration = Duration.ZERO,
+
+    /**
      * If this is true, a file watcher will be installed for [localAgents] which will monitor:
      * - new potential matches for given patterns
      * - changes to matched agents
      * - deletion of agents
+     *
+     * Note there is a chance watching won't catch agents that are added programmatically (with very small time
+     * differences between creating parts of the path).  If this is important, consider setting [localAgentRescanTimer]
      */
     val watchLocalAgents: Boolean = true,
 

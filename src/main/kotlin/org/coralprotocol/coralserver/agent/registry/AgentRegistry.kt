@@ -6,8 +6,9 @@ import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
+import kotlin.time.Duration
 
-class AgentRegistrySourceBuilder : KoinComponent {
+class AgentRegistrySourceBuilder(private val registry: AgentRegistry) : KoinComponent {
     val logger by inject<Logger>(named(LOGGER_CONFIG))
     val toml by inject<Toml>()
     val sources = mutableListOf<AgentRegistrySource>()
@@ -20,47 +21,16 @@ class AgentRegistrySourceBuilder : KoinComponent {
         sources.add(MarketplaceAgentRegistrySource())
     }
 
-    fun addFileBasedSource(filePattern: String, watch: Boolean) {
-        sources.add(FileAgentRegistrySource(filePattern, watch))
+    fun addFileBasedSource(filePattern: String, watch: Boolean, rescanTimer: Duration = Duration.ZERO) {
+        val source = FileAgentRegistrySource(registry, filePattern, watch)
+        if (rescanTimer > Duration.ZERO)
+            source.scanOnInterval(rescanTimer)
+
+        sources.add(source)
     }
 
-    fun addLocalAgents(agents: List<RegistryAgent>, identifier: String) {
-        // agent lookups on local registry sources are performed on all local registries, so it is important that
-        // no duplicates exist between them
-        val duplicates = agents
-            .filter {
-                sources
-                    .filter { it.identifier == AgentRegistrySourceIdentifier.Local }
-                    .any {
-                        it.agents.any { catalog ->
-                            catalog.versions.any { version ->
-                                agents.any { newAgent ->
-                                    newAgent.name == catalog.name && newAgent.version == version
-                                }
-                            }
-                        }
-                    }
-            }
-
-        val agents = if (duplicates.isNotEmpty()) {
-            logger.warn {
-                "Registry '$identifier' contains ${duplicates.size} duplicate agent(s): ${
-                    duplicates.joinToString(
-                        ", "
-                    ) { it.identifier.toString() }
-                }"
-            }
-            logger.warn { "These duplicates will be ignored from this registry source" }
-
-            agents.filter { !duplicates.contains(it) }
-        } else {
-            agents
-        }
-
-        if (agents.isEmpty())
-            logger.warn { "Registry '$identifier' contains no agents" }
-
-        sources.add(ListAgentRegistrySource(agents))
+    fun addLocalAgents(name: String, agents: List<RegistryAgent>) {
+        sources.add(ListAgentRegistrySource(name, agents))
     }
 }
 
@@ -86,16 +56,21 @@ class AgentRegistrySourceBuilder : KoinComponent {
  * Coral Cloud users are able to run development agents in their cloud sessions.  Registry sources of this type also
  * involve network queries during resolution.
  */
-class AgentRegistry(build: AgentRegistrySourceBuilder.() -> Unit) {
+class AgentRegistry(build: AgentRegistrySourceBuilder.() -> Unit) : KoinComponent {
+    val logger by inject<Logger>(named(LOGGER_CONFIG))
+
     /**
      * A list of all agent registry sources.  Note this is mutable and can be modified at runtime.  Modification, for
      * example, can occur when new linked servers connect.
      */
-    val sources = run {
-        val builder = AgentRegistrySourceBuilder()
-        builder.build()
+    val sources: MutableList<AgentRegistrySource> = mutableListOf()
 
-        builder.sources
+    init {
+        val builder = AgentRegistrySourceBuilder(this)
+        builder.build()
+        sources.addAll(builder.sources)
+
+        reportLocalDuplicates()
     }
 
     /**
@@ -103,23 +78,44 @@ class AgentRegistry(build: AgentRegistrySourceBuilder.() -> Unit) {
      * on local registries, so, for example, duplicates can exist between local and marketplace registries, or between
      * linked server registries and local/marketplace registries.
      */
-    val agents = sources.flatMap { it.agents }
+    val agents
+        get() = mergedSources.flatMap { it.agents }
 
     /**
      * A list of all sources where all local sources of type [ListAgentRegistrySource] are merged into a single source.
      */
-    val mergedSources = buildList {
-        val localAgents = mutableListOf<RegistryAgent>()
+    val mergedSources
+        get() = buildList {
+            val localAgents = mutableMapOf<RegistryAgentIdentifier, RegistryAgent>()
 
-        sources.forEach { source ->
-            if (source.identifier == AgentRegistrySourceIdentifier.Local && source is ListAgentRegistrySource) {
-                localAgents.addAll(source.registryAgents)
-            } else {
-                add(source)
+            sources.forEach { source ->
+                if (source.identifier == AgentRegistrySourceIdentifier.Local && source is ListAgentRegistrySource) {
+                    source.registryAgents.forEach {
+                        localAgents[it.identifier] = it
+                    }
+                } else {
+                    add(source)
+                }
             }
+
+            add(ListAgentRegistrySource("merged", localAgents.values.toList()))
         }
 
-        add(ListAgentRegistrySource(localAgents))
+    fun reportLocalDuplicates() {
+        val identifiers = mutableMapOf<RegistryAgentIdentifier, String>()
+        sources.filter { it.identifier == AgentRegistrySourceIdentifier.Local }.forEach { source ->
+            source.agents.forEach { catalog ->
+                catalog.versions.forEach { version ->
+                    val identifier = RegistryAgentIdentifier(catalog.name, version, AgentRegistrySourceIdentifier.Local)
+                    if (identifiers.containsKey(identifier)) {
+                        logger.warn { "duplicated identifier $identifier is used in \"${identifiers[identifier]}\" and \"${source.name}\"" }
+                        logger.warn { "identifier $identifier will resolve to the agent in \"${identifiers[identifier]}\" - $identifier in \"${source.name}\" will be inaccessible" }
+                    } else {
+                        identifiers[identifier] = source.name
+                    }
+                }
+            }
+        }
     }
 
     /**

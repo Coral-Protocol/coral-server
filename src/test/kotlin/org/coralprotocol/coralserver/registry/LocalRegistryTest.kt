@@ -57,8 +57,8 @@ class LocalRegistryTest : CoralTest({
     )
 
     class MockMarketplaceSource : AgentRegistrySource(AgentRegistrySourceIdentifier.Marketplace) {
-        override val agents: List<RegistryAgentCatalog> =
-            listOf(RegistryAgentCatalog(testAgentName, listOf(testAgentVersion)))
+        override val agents: MutableList<RegistryAgentCatalog> =
+            mutableListOf(RegistryAgentCatalog(testAgentName, listOf(testAgentVersion)))
 
         override suspend fun resolveAgent(agent: RegistryAgentIdentifier): RestrictedRegistryAgent {
             if (agent.name != testAgentName) throw Exception("Agent not found")
@@ -72,8 +72,8 @@ class LocalRegistryTest : CoralTest({
             addSource(MockMarketplaceSource())
 
             // same agent added twice from different sources
-            addLocalAgents(listOf(testAgent), "test agent batch 1")
-            addLocalAgents(listOf(testAgent), "test agent batch 2")
+            addLocalAgents("test agent batch 1", listOf(testAgent))
+            addLocalAgents("test agent batch 2", listOf(testAgent))
         }
 
         shouldNotThrowAny {
@@ -97,7 +97,7 @@ class LocalRegistryTest : CoralTest({
 
     test("testExport") {
         val registry = AgentRegistry {
-            addLocalAgents(listOf(testAgent, testExportedAgent), "test agent batch 1")
+            addLocalAgents("test agent batch 1", listOf(testAgent, testExportedAgent))
         }
 
         val testAgent = shouldNotThrowAny {

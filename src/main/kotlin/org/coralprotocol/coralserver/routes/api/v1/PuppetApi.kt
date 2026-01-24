@@ -60,8 +60,8 @@ fun Route.puppetApi() {
         pathParameter<String>("sessionId") {
             description = "The session's ID"
         }
-        pathParameter<String>("sessionId") {
-            description = "The session's ID"
+        pathParameter<String>("agentName") {
+            description = "The agent's name"
         }
     }
 
@@ -84,9 +84,7 @@ fun Route.puppetApi() {
                 }
             }
             HttpStatusCode.NotFound to {
-                body<RouteException>()
-            }
-            HttpStatusCode.BadRequest to {
+                description = "Agent not found"
                 body<RouteException>()
             }
         }
@@ -97,7 +95,7 @@ fun Route.puppetApi() {
         try {
             call.respond(
                 CreateThreadOutput(
-                    agent.session.createThread(input.threadName, agent.name, input.participantNames)
+                    agent.session.createThread(input.threadName, agent.name, input.participantNames.toSet())
                 )
             )
         } catch (e: SessionException.MissingAgentException) {
@@ -121,9 +119,11 @@ fun Route.puppetApi() {
                 description = "Success"
             }
             HttpStatusCode.NotFound to {
+                description = "Agent or thread not found"
                 body<RouteException>()
             }
             HttpStatusCode.BadRequest to {
+                description = "Thread cannot be closed"
                 body<RouteException>()
             }
         }
@@ -157,12 +157,16 @@ fun Route.puppetApi() {
         response {
             HttpStatusCode.OK to {
                 description = "Success"
-                body<SendMessageOutput>()
+                body<SendMessageOutput> {
+                    description = "The sent message"
+                }
             }
             HttpStatusCode.NotFound to {
+                description = "Agent or thread not found"
                 body<RouteException>()
             }
             HttpStatusCode.BadRequest to {
+                description = "Bad message"
                 body<RouteException>()
             }
         }
@@ -174,7 +178,7 @@ fun Route.puppetApi() {
             call.respond(
                 SendMessageOutput(
                     status = "Message sent successfully",
-                    message = agent.sendMessage(input.content, input.threadId, input.mentions)
+                    message = agent.sendMessage(input.content, input.threadId, input.mentions.toSet())
                 )
             )
         } catch (e: SessionException.MissingThreadException) {
@@ -204,9 +208,11 @@ fun Route.puppetApi() {
                 description = "Success"
             }
             HttpStatusCode.NotFound to {
+                description = "Agent or thread not found"
                 body<RouteException>()
             }
             HttpStatusCode.BadRequest to {
+                description = "Participant cannot be added"
                 body<RouteException>()
             }
         }
@@ -246,9 +252,11 @@ fun Route.puppetApi() {
                 description = "Success"
             }
             HttpStatusCode.NotFound to {
+                description = "Agent or thread not found"
                 body<RouteException>()
             }
             HttpStatusCode.BadRequest to {
+                description = "Participant cannot be removed"
                 body<RouteException>()
             }
         }
@@ -285,9 +293,11 @@ fun Route.puppetApi() {
                 description = "Success"
             }
             HttpStatusCode.NotFound to {
+                description = "Agent not found"
                 body<RouteException>()
             }
             HttpStatusCode.BadRequest to {
+                description = "Agent not running"
                 body<RouteException>()
             }
         }
