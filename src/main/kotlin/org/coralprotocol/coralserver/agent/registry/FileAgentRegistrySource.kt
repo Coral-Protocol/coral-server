@@ -234,7 +234,7 @@ class FileAgentRegistrySource(
         val watchService = FileSystems.getDefault().newWatchService()
         path.register(watchService, *kinds)
 
-        return watchCoroutineScope.launch {
+        return watchCoroutineScope.launch(Dispatchers.IO) {
             while (true) {
                 try {
                     val key = runInterruptible { watchService.take() }
