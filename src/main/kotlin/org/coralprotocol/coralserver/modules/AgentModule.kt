@@ -24,7 +24,7 @@ val agentModule = module {
                 addMarketplaceSource()
 
             config.localAgents.forEach {
-                logger.info { "watching for agents matching pattern: $it" }
+                logger.trace { "watching for agents matching pattern: $it" }
                 addFileBasedSource(it, config.watchLocalAgents, config.localAgentRescanTimer)
             }
 

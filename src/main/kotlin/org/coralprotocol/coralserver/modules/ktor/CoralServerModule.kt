@@ -175,7 +175,7 @@ fun Application.coralServerModule() {
         }
     }
     install(CallLogging) {
-        level = Level.INFO
+        level = Level.TRACE
         format { call ->
             val response = call.response.status()
             if (response != null) {
@@ -242,7 +242,7 @@ fun Application.coralServerModule() {
         route("ui") { consoleUi() }
     }.run {
         getAllRoutes().forEach {
-            logger.info {
+            logger.debug {
                 "${it.selector} ${it.parent}"
             }
         }
