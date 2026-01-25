@@ -24,15 +24,14 @@ data class SessionThreadMessage(
     val threadId: ThreadId,
     val text: String,
     val senderName: UniqueAgentName,
+    val mentionNames: Set<UniqueAgentName>,
+
+    @Transient
+    val telemetry: Telemetry? = null,
 
     @Serializable(with = InstantSerializer::class)
     @Suppress("unused")
     val timestamp: Instant = utcTimeNow(),
-
-    val mentionNames: Set<UniqueAgentName>,
-
-    @Transient
-    val telemetry: Telemetry? = null
 ) {
     /**
      * Creates a version of this message that is designed to be placed in an agent's state resource.  This contains only
