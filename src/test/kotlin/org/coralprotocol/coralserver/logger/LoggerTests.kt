@@ -4,8 +4,12 @@ import io.ktor.client.*
 import io.ktor.client.plugins.resources.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.websocket.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.logging.Logger
@@ -40,10 +44,8 @@ class LoggerTests : CoralTest({
             timeout = 3.seconds,
             events = events,
         ) { flow ->
-            val connection = CompletableDeferred<Unit>()
             val wsJob = launch {
                 client.webSocket(client.href(Logs.WithToken(parent = logs, token = authToken))) {
-                    connection.complete(Unit)
                     incoming
                         .filterIsInstance<Frame.Text>(this@webSocket)
                         .map(this@webSocket) {
@@ -55,7 +57,7 @@ class LoggerTests : CoralTest({
                 }
             }
 
-            connection.await()
+            testLogger.flow.subscriptionCount.first { it == 1 }
             testLogger.block()
 
             wsJob
