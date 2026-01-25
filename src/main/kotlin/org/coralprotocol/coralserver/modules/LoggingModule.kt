@@ -3,6 +3,7 @@ package org.coralprotocol.coralserver.modules
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.LoggerContext
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder
+import ch.qos.logback.classic.filter.ThresholdFilter
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.ConsoleAppender
 import ch.qos.logback.core.CoreConstants
@@ -49,11 +50,16 @@ val loggingModule = module {
         consoleEncoder.charset = StandardCharsets.UTF_8
         consoleEncoder.start()
 
+        val consoleFilter = ThresholdFilter()
+        consoleFilter.setLevel(loggingConfig.consoleLogLevel.toString())
+        consoleFilter.start()
+
         val logConsoleAppender = ConsoleAppender<ILoggingEvent>()
         logConsoleAppender.setContext(logCtx)
         logConsoleAppender.name = "STDOUT"
         logConsoleAppender.isWithJansi = false
         logConsoleAppender.setEncoder(consoleEncoder)
+        logConsoleAppender.addFilter(consoleFilter)
         logConsoleAppender.start()
 
         val fileEncoder = PatternLayoutEncoder()
@@ -69,6 +75,10 @@ val loggingModule = module {
         logFilePolicy.setMaxFileSize(FileSize.valueOf(loggingConfig.maxFileSize))
         logFilePolicy.isCleanHistoryOnStart = loggingConfig.logClearHistoryOnStart
 
+        val fileFilter = ThresholdFilter()
+        fileFilter.setLevel(loggingConfig.fileLogLevel.toString())
+        consoleFilter.start()
+
         val logFileAppender = RollingFileAppender<ILoggingEvent>()
         logFileAppender.setContext(logCtx)
         logFileAppender.setName("FILE")
@@ -77,13 +87,13 @@ val loggingModule = module {
         logFileAppender.setEncoder(fileEncoder)
         logFileAppender.rollingPolicy = logFilePolicy
         logFileAppender.triggeringPolicy = logFilePolicy
+        logFileAppender.addFilter(fileFilter)
         logFilePolicy.setParent(logFileAppender)
         logFilePolicy.start()
         logFileAppender.start()
         
         val log = logCtx.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME)
         log.isAdditive = false
-        log.level = Level.INFO
         log.addAppender(logConsoleAppender)
         log.addAppender(logFileAppender)
         log

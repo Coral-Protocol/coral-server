@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.config
 
+import org.slf4j.event.Level
 import java.nio.file.Path
 
 data class LoggingConfig(
@@ -51,5 +52,15 @@ data class LoggingConfig(
     /**
      * https://logback.qos.ch/manual/appenders.html#maxFileSize
      */
-    val maxFileSize: String = "10MB"
+    val maxFileSize: String = "10MB",
+
+    /**
+     * Maximum logging level to print to the console
+     */
+    val consoleLogLevel: Level = Level.INFO,
+
+    /**
+     * Maximum logging level to write to file
+     */
+    val fileLogLevel: Level = Level.INFO
 )
