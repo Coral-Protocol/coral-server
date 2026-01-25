@@ -16,7 +16,7 @@ fun utcTimeNow() = Clock.System.now()
 
 object InstantSerializer : KSerializer<Instant> {
     override val descriptor: SerialDescriptor =
-        PrimitiveSerialDescriptor("UtcTimestamp", PrimitiveKind.STRING)
+        PrimitiveSerialDescriptor("UTC timestamp ISO-8601", PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, value: Instant) {
         encoder.encodeString(value.toString())
