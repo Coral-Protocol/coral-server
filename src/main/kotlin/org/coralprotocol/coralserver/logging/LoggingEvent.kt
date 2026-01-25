@@ -42,6 +42,29 @@ sealed class LoggingEvent {
     }
 
     @Serializable
+    @SerialName("trace")
+    data class Trace(
+        val text: String,
+        override val tags: Set<LoggingTag> = setOf(LoggingTag.Sensitive),
+    ) : LoggingEvent() {
+        override fun log(nativeLogger: org.slf4j.Logger) {
+            nativeLogger.trace(text)
+        }
+    }
+
+    @Serializable
+    @SerialName("debug")
+    data class Debug(
+        val text: String,
+        override val tags: Set<LoggingTag> = setOf(LoggingTag.Sensitive),
+    ) : LoggingEvent() {
+        override fun log(nativeLogger: org.slf4j.Logger) {
+            nativeLogger.debug(text)
+        }
+    }
+
+
+    @Serializable
     @SerialName("error")
     data class Error(
         val text: String,
