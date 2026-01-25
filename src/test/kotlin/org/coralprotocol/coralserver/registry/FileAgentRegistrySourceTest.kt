@@ -7,7 +7,6 @@ import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainAll
-import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldHaveSingleElement
 import io.kotest.matchers.collections.shouldHaveSize
 import kotlinx.coroutines.CoroutineScope
@@ -33,12 +32,11 @@ class FileAgentRegistrySourceTest : CoralTest({
 
     suspend fun withTempDir(body: suspend Path.(CoroutineScope) -> Unit) {
         val path = createTempDirectory()
+        val scope = CoroutineScope(Job())
         try {
-            val scope = CoroutineScope(Job())
-
             path.body(scope)
-            scope.cancel()
         } finally {
+            scope.cancel()
             path.deleteRecursively()
         }
     }
@@ -49,6 +47,8 @@ class FileAgentRegistrySourceTest : CoralTest({
         delay: Duration = Duration.ZERO
     ): Path {
         val agentPath = resolve(path)
+
+        delay(delay)
 
         var current = agentPath.root
         for (part in agentPath.parent) {
@@ -100,7 +100,7 @@ class FileAgentRegistrySourceTest : CoralTest({
         withTempDir {
             writeAgent(agentName)
 
-                FileAgentRegistrySource(registry, resolve(agentName).toString()).agents.shouldHaveSingleElement {
+            FileAgentRegistrySource(registry, resolve(agentName).toString()).agents.shouldHaveSingleElement {
                 it.name == agentName
             }
         }
@@ -162,53 +162,6 @@ class FileAgentRegistrySourceTest : CoralTest({
         }
     }
 
-    test("testWatchUpdate") {
-        val registry by inject<AgentRegistry>()
-        val agentName = "agent1"
-        val newAgentName = "agent2"
-
-        withTempDir {
-            writeAgent(agentName)
-            val noise = resolve("$agentName/noise.txt").apply {
-                writeText("noise")
-            }
-
-
-            val registrySource = FileAgentRegistrySource(registry, resolve(agentName).toString(), true, it)
-            registrySource.agents.shouldHaveSingleElement { agent ->
-                agent.name == agentName
-            }
-
-            noise.writeText("irrelevant update")
-            writeAgent(newAgentName, "$agentName/$AGENT_FILE")
-
-            eventually(3.seconds) {
-                registrySource.agents.shouldHaveSingleElement { agent ->
-                    agent.name == newAgentName
-                }
-            }
-        }
-    }
-
-    test("testWatchNewAgent") {
-        val registry by inject<AgentRegistry>()
-        val agentNames = listOf("agent1", "agent2", "agent3")
-
-        withTempDir {
-            val registrySource = FileAgentRegistrySource(registry, toString() + "/agents/*", true, it)
-            registrySource.agents.shouldBeEmpty()
-
-            resolve("agents").apply {
-                writeAgent("agent4", "nested/agent4/$AGENT_FILE", humanActionTime)
-                agentNames.forEach { agent -> writeAgent(agent) }
-            }
-
-            eventually(3.seconds) {
-                registrySource.agents.map { agent -> agent.name }.shouldContainAll(agentNames)
-            }
-        }
-    }
-
     test("testDeleteScan") {
         val registry by inject<AgentRegistry>()
         val agentName = "agent1"
@@ -237,7 +190,35 @@ class FileAgentRegistrySourceTest : CoralTest({
         }
     }
 
-    test("testModifyRename") {
+    test("testWatchUpdateHuman") {
+        val registry by inject<AgentRegistry>()
+        val agentName = "agent1"
+        val newAgentName = "agent2"
+
+        withTempDir {
+            writeAgent(agentName)
+            val noise = resolve("$agentName/noise.txt").apply {
+                writeText("noise")
+            }
+
+
+            val registrySource = FileAgentRegistrySource(registry, resolve(agentName).toString(), true, it)
+            registrySource.agents.shouldHaveSingleElement { agent ->
+                agent.name == agentName
+            }
+
+            noise.writeText("irrelevant update")
+            writeAgent(newAgentName, "$agentName/$AGENT_FILE", humanActionTime)
+
+            eventually(3.seconds) {
+                registrySource.agents.shouldHaveSingleElement { agent ->
+                    agent.name == newAgentName
+                }
+            }
+        }
+    }
+
+    test("testModifyRenameHuman") {
         val registry by inject<AgentRegistry>()
         val agentName = "agent1"
         val newAgentName = "agent2"
@@ -250,6 +231,7 @@ class FileAgentRegistrySourceTest : CoralTest({
                 agent.name == agentName
             }
 
+            delay(humanActionTime)
             writeAgent(newAgentName, "$agentName/$AGENT_FILE")
 
             eventually(3.seconds) {
@@ -352,6 +334,25 @@ class FileAgentRegistrySourceTest : CoralTest({
 
             eventually(3.seconds) { registrySource.agents.shouldHaveSize(1) }
             continually(3.seconds) { registrySource.agents.shouldHaveSize(1) }
+        }
+    }
+
+    test("testWatchNewAgentHuman") {
+        val registry by inject<AgentRegistry>()
+        val agentNames = listOf("agent1", "agent2", "agent3")
+
+        withTempDir {
+            val registrySource = FileAgentRegistrySource(registry, toString() + "/agents/*", true, it)
+            registrySource.agents.shouldBeEmpty()
+
+            resolve("agents").apply {
+                writeAgent("agent4", "nested/agent4/$AGENT_FILE", humanActionTime)
+                agentNames.forEach { agent -> writeAgent(agent, delay = humanActionTime) }
+            }
+
+            eventually(3.seconds) {
+                registrySource.agents.map { agent -> agent.name }.shouldContainAll(agentNames)
+            }
         }
     }
 })
