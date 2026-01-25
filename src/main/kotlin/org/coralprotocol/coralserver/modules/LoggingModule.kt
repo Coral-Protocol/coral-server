@@ -94,6 +94,7 @@ val loggingModule = module {
 
         val log = logCtx.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME)
         log.isAdditive = false
+        log.level = Level.TRACE
         log.addAppender(logConsoleAppender)
         if (loggingConfig.logToFileEnabled)
             log.addAppender(logFileAppender)
