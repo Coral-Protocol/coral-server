@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver
 
+import io.kotest.core.NamedTag
 import io.kotest.core.spec.RootTest
 import io.kotest.core.spec.style.FunSpec
 import io.ktor.client.*
@@ -25,13 +26,13 @@ import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.koin.core.context.loadKoinModules
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
-import org.koin.core.logger.PrintLogger
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.koin.environmentProperties
 import org.koin.test.KoinTest
 import org.slf4j.LoggerFactory
+import org.slf4j.event.Level
 import java.util.*
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 
@@ -69,6 +70,7 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
         ),
         loggingConfig = LoggingConfig(
             logBufferSize = logBufferSize.toUInt(),
+            logToFileEnabled = false,
         )
     )
 
@@ -121,9 +123,9 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                         runTestApplication {
                             startKoin {
                                 environmentProperties()
-                                logger(PrintLogger())
                                 modules(
                                     configModuleParts,
+                                    loggingModule,
                                     blockchainModule,
                                     agentModule,
                                     module {
@@ -141,7 +143,29 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                     },
                                     module {
                                         singleOf(::ApplicationRuntimeContext)
-                                        single { config }
+                                        single {
+                                            if (test.config?.tags?.contains(NamedTag("noisy")) == true) {
+                                                RootConfig(
+                                                    paymentConfig = config.paymentConfig,
+                                                    networkConfig = config.networkConfig,
+                                                    dockerConfig = config.dockerConfig,
+                                                    registryConfig = config.registryConfig,
+                                                    cacheConfig = config.cacheConfig,
+                                                    securityConfig = config.securityConfig,
+                                                    authConfig = config.authConfig,
+                                                    debugConfig = config.debugConfig,
+                                                    sessionConfig = config.sessionConfig,
+                                                    loggingConfig = LoggingConfig(
+                                                        logBufferSize = logBufferSize.toUInt(),
+                                                        logToFileEnabled = false,
+                                                        consoleLogLevel = Level.WARN
+                                                    ),
+                                                    consoleConfig = config.consoleConfig
+                                                )
+                                            } else {
+                                                config
+                                            }
+                                        }
                                         single {
                                             Json {
                                                 encodeDefaults = true

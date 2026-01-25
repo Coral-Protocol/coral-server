@@ -91,11 +91,12 @@ val loggingModule = module {
         logFilePolicy.setParent(logFileAppender)
         logFilePolicy.start()
         logFileAppender.start()
-        
+
         val log = logCtx.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME)
         log.isAdditive = false
         log.addAppender(logConsoleAppender)
-        log.addAppender(logFileAppender)
+        if (loggingConfig.logToFileEnabled)
+            log.addAppender(logFileAppender)
         log
     }
 
@@ -103,7 +104,9 @@ val loggingModule = module {
         val config by inject<LoggingConfig>()
         Logger(config.logBufferSize.toInt(), get())
     }
+}
 
+val namedLoggingModule = module {
     single<Logger>(named(LOGGER_ROUTES)) { get() }
     single<Logger>(named(LOGGER_CONFIG)) { get() }
     single<Logger>(named(LOGGER_LOG_API)) { get() }

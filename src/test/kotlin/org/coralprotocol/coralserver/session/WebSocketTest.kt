@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.session
 
+import io.kotest.core.NamedTag
 import io.kotest.matchers.collections.shouldHaveSize
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -40,7 +41,7 @@ import org.koin.test.inject
 import kotlin.time.Duration.Companion.seconds
 
 class WebSocketTest : CoralTest({
-    test("testSessionEvents") {
+    test("testSessionEvents").config(tags = setOf(NamedTag("noisy"))) {
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
         val json by inject<Json>()

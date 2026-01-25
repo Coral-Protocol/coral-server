@@ -5,6 +5,7 @@ import io.kotest.assertions.ktor.client.shouldHaveStatus
 import io.kotest.assertions.nondeterministic.continually
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.withClue
+import io.kotest.core.NamedTag
 import io.kotest.inspectors.forAll
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.collections.shouldBeEmpty
@@ -152,7 +153,7 @@ class SessionApiTest : CoralTest({
         sessionManager.waitAllSessions()
     }
 
-    test("testSessionState") {
+    test("testSessionState").config(tags = setOf(NamedTag("noisy"))) {
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
 

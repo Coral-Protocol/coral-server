@@ -15,6 +15,11 @@ data class LoggingConfig(
     val maxReplay: UInt = 2048u,
 
     /**
+     * If this is false, log messages will not be written to file regardless of level or other configuration
+     */
+    val logToFileEnabled: Boolean = true,
+
+    /**
      * Root directory for all log files
      */
     val logFilesDirectory: String = Path.of(System.getProperty("user.home"), ".coral", "logs").toString(),
