@@ -174,7 +174,7 @@ class LocalSession(
     /**
      * Returns the current state of this session.  Used by the session API.
      */
-    suspend fun getState() =
+    fun getState() =
         SessionState(
             timestamp = timestamp,
             id = id,
