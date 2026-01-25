@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalSerializationApi::class)
+@file:OptIn(ExperimentalSerializationApi::class, ExperimentalTime::class)
 
 package org.coralprotocol.coralserver.events
 
@@ -7,63 +7,66 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
-import org.coralprotocol.coralserver.session.LocalSession
-import org.coralprotocol.coralserver.session.SessionThread
-import org.coralprotocol.coralserver.session.SessionThreadMessage
-import org.coralprotocol.coralserver.session.SessionThreadMessageFilter
-import org.coralprotocol.coralserver.session.ThreadId
+import org.coralprotocol.coralserver.session.*
+import org.coralprotocol.coralserver.util.InstantSerializer
+import org.coralprotocol.coralserver.util.utcTimeNow
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 /**
  * Events used in [LocalSession.events]
  */
 @Serializable
 @JsonClassDiscriminator("type")
-sealed interface SessionEvent {
+sealed class SessionEvent {
+    @Serializable(with = InstantSerializer::class)
+    val timestamp: Instant = utcTimeNow()
+
     @Serializable
     @SerialName("runtime_started")
-    data class RuntimeStarted(val name: UniqueAgentName) : SessionEvent
+    data class RuntimeStarted(val name: UniqueAgentName) : SessionEvent()
 
     @Serializable
     @SerialName("runtime_stopped")
-    data class RuntimeStopped(val name: UniqueAgentName) : SessionEvent
+    data class RuntimeStopped(val name: UniqueAgentName) : SessionEvent()
 
     @Serializable
     @SerialName("agent_connected")
-    data class AgentConnected(val name: UniqueAgentName) : SessionEvent
+    data class AgentConnected(val name: UniqueAgentName) : SessionEvent()
 
     @Serializable
     @SerialName("agent_wait_start")
-    data class AgentWaitStart(val name: UniqueAgentName, val filters: Set<SessionThreadMessageFilter>) : SessionEvent
+    data class AgentWaitStart(val name: UniqueAgentName, val filters: Set<SessionThreadMessageFilter>) : SessionEvent()
 
     @Serializable
     @SerialName("agent_wait_stop")
-    data class AgentWaitStop(val name: UniqueAgentName, val message: SessionThreadMessage) : SessionEvent
+    data class AgentWaitStop(val name: UniqueAgentName, val message: SessionThreadMessage) : SessionEvent()
 
     @Serializable
     @SerialName("thread_created")
-    data class ThreadCreated(val thread: SessionThread) : SessionEvent
+    data class ThreadCreated(val thread: SessionThread) : SessionEvent()
 
     @Serializable
     @SerialName("thread_participant_added")
-    data class ThreadParticipantAdded(val threadId: ThreadId, val name: UniqueAgentName) : SessionEvent
+    data class ThreadParticipantAdded(val threadId: ThreadId, val name: UniqueAgentName) : SessionEvent()
 
     @Serializable
     @SerialName("thread_participant_removed")
-    data class ThreadParticipantRemoved(val threadId: ThreadId, val name: UniqueAgentName) : SessionEvent
+    data class ThreadParticipantRemoved(val threadId: ThreadId, val name: UniqueAgentName) : SessionEvent()
 
     @Serializable
     @SerialName("thread_closed")
-    data class ThreadClosed(val threadId: ThreadId, val summary: String) : SessionEvent
+    data class ThreadClosed(val threadId: ThreadId, val summary: String) : SessionEvent()
 
     @Serializable
     @SerialName("thread_message_sent")
-    data class ThreadMessageSent(val message: SessionThreadMessage) : SessionEvent
+    data class ThreadMessageSent(val message: SessionThreadMessage) : SessionEvent()
 
     @Serializable
     @SerialName("docker_container_created")
-    data class DockerContainerCreated(val containerId: String) : SessionEvent
+    data class DockerContainerCreated(val containerId: String) : SessionEvent()
 
     @Serializable
     @SerialName("docker_container_removed")
-    data class DockerContainerRemoved(val containerId: String) : SessionEvent
+    data class DockerContainerRemoved(val containerId: String) : SessionEvent()
 }
