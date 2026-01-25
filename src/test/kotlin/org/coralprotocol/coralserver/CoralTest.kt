@@ -41,38 +41,6 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
     val authToken = UUID.randomUUID().toString()
     val unitTestSecret = UUID.randomUUID().toString()
     val logBufferSize = 1024
-    val config = RootConfig(
-        // port for testing is zero
-        networkConfig = NetworkConfig(
-            bindPort = 0u
-        ),
-        paymentConfig = PaymentConfig(
-            wallets = listOf(
-                Wallet.Solana(
-                    name = "fake test wallet",
-                    cluster = SolanaCluster.DEV_NET,
-                    keypairPath = "fake-test-wallet.json",
-                    walletAddress = "this is not a real wallet address"
-                )
-            ),
-            remoteAgentWalletName = "fake test wallet"
-        ),
-        registryConfig = RegistryConfig(
-            includeDebugAgents = true,
-            localAgents = listOf()
-        ),
-        authConfig = AuthConfig(
-            keys = setOf(authToken)
-        ),
-        debugConfig = DebugConfig(
-            additionalDockerEnvironment = mapOf("UNIT_TEST_SECRET" to unitTestSecret),
-            additionalExecutableEnvironment = mapOf("UNIT_TEST_SECRET" to unitTestSecret)
-        ),
-        loggingConfig = LoggingConfig(
-            logBufferSize = logBufferSize.toUInt(),
-            logToFileEnabled = false,
-        )
-    )
 
     fun HttpRequestBuilder.withAuthToken() {
         headers.append(HttpHeaders.Authorization, "Bearer $authToken")
@@ -124,48 +92,61 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                             startKoin {
                                 environmentProperties()
                                 modules(
-                                    configModuleParts,
-                                    loggingModule,
-                                    blockchainModule,
-                                    agentModule,
-                                    module {
-                                        single {
-                                            createClient {
-                                                install(Resources)
-                                                install(WebSockets)
-                                                install(SSE)
-                                                install(HttpCookies)
-                                                install(ClientContentNegotiation) {
-                                                    json(get(), contentType = ContentType.Application.Json)
-                                                }
-                                            }
-                                        }
-                                    },
                                     module {
                                         singleOf(::ApplicationRuntimeContext)
                                         single {
-                                            if (test.config?.tags?.contains(NamedTag("noisy")) == true) {
-                                                RootConfig(
-                                                    paymentConfig = config.paymentConfig,
-                                                    networkConfig = config.networkConfig,
-                                                    dockerConfig = config.dockerConfig,
-                                                    registryConfig = config.registryConfig,
-                                                    cacheConfig = config.cacheConfig,
-                                                    securityConfig = config.securityConfig,
-                                                    authConfig = config.authConfig,
-                                                    debugConfig = config.debugConfig,
-                                                    sessionConfig = config.sessionConfig,
-                                                    loggingConfig = LoggingConfig(
-                                                        logBufferSize = logBufferSize.toUInt(),
-                                                        logToFileEnabled = false,
-                                                        consoleLogLevel = Level.WARN
+                                            RootConfig(
+                                                // port for testing is zero
+                                                networkConfig = NetworkConfig(
+                                                    bindPort = 0u
+                                                ),
+                                                paymentConfig = PaymentConfig(
+                                                    wallets = listOf(
+                                                        Wallet.Solana(
+                                                            name = "fake test wallet",
+                                                            cluster = SolanaCluster.DEV_NET,
+                                                            keypairPath = "fake-test-wallet.json",
+                                                            walletAddress = "this is not a real wallet address"
+                                                        )
                                                     ),
-                                                    consoleConfig = config.consoleConfig
+                                                    remoteAgentWalletName = "fake test wallet"
+                                                ),
+                                                registryConfig = RegistryConfig(
+                                                    includeDebugAgents = true,
+                                                    localAgents = listOf()
+                                                ),
+                                                authConfig = AuthConfig(
+                                                    keys = setOf(authToken)
+                                                ),
+                                                debugConfig = DebugConfig(
+                                                    additionalDockerEnvironment = mapOf("UNIT_TEST_SECRET" to unitTestSecret),
+                                                    additionalExecutableEnvironment = mapOf("UNIT_TEST_SECRET" to unitTestSecret)
+                                                ),
+                                                loggingConfig = LoggingConfig(
+                                                    logBufferSize = logBufferSize.toUInt(),
+                                                    logToFileEnabled = false,
+                                                    consoleLogLevel = if (test.config?.tags?.contains(NamedTag("noisy")) == true) {
+                                                        Level.WARN
+                                                    } else if (test.config?.tags?.contains(NamedTag("debug")) == true) {
+                                                        Level.TRACE
+                                                    } else {
+                                                        Level.INFO
+                                                    }
                                                 )
-                                            } else {
-                                                config
-                                            }
+                                            )
                                         }
+                                    },
+                                    configModuleParts,
+                                    loggingModule,
+                                    module {
+                                        single<Logger>(named(LOGGER_ROUTES)) { prodLogger }
+                                        single<Logger>(named(LOGGER_CONFIG)) { prodLogger }
+                                        single<Logger>(named(LOGGER_LOCAL_SESSION)) { prodLogger }
+
+                                        single<Logger>(named(LOGGER_LOG_API)) { testLogger }
+                                        single<Logger>(named(LOGGER_TEST)) { testLogger }
+                                    },
+                                    module {
                                         single {
                                             Json {
                                                 encodeDefaults = true
@@ -178,15 +159,20 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                                 ignoreUnknownKeys = false
                                             }
                                         }
+                                        single {
+                                            createClient {
+                                                install(Resources)
+                                                install(WebSockets)
+                                                install(SSE)
+                                                install(HttpCookies)
+                                                install(ClientContentNegotiation) {
+                                                    json(get(), contentType = ContentType.Application.Json)
+                                                }
+                                            }
+                                        }
                                     },
-                                    module {
-                                        single<Logger>(named(LOGGER_ROUTES)) { prodLogger }
-                                        single<Logger>(named(LOGGER_CONFIG)) { prodLogger }
-                                        single<Logger>(named(LOGGER_LOCAL_SESSION)) { prodLogger }
-
-                                        single<Logger>(named(LOGGER_LOG_API)) { testLogger }
-                                        single<Logger>(named(LOGGER_TEST)) { testLogger }
-                                    },
+                                    blockchainModule,
+                                    agentModule,
                                     module {
                                         single {
                                             LocalSessionManager(
