@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalSerializationApi::class)
+@file:OptIn(ExperimentalSerializationApi::class, ExperimentalTime::class)
 
 package org.coralprotocol.coralserver.session
 
@@ -12,6 +12,7 @@ import kotlinx.serialization.json.*
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.events.SessionEvent
 import java.util.*
+import kotlin.time.ExperimentalTime
 
 typealias ThreadId = String
 
@@ -68,7 +69,7 @@ class SessionThread(
                     }"
                 }
 
-                throw SessionException.MissingAgentException("Cannot mention agents (${missing.joinToString(", "){ it.name }}) as they are not participants of thread ${this.id}")
+                throw SessionException.MissingAgentException("Cannot mention agents (${missing.joinToString(", ") { it.name }}) as they are not participants of thread ${this.id}")
             }
         }
 
