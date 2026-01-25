@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package org.coralprotocol.coralserver.session
 
 import kotlinx.coroutines.Job
@@ -9,17 +11,18 @@ import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.Logger
-import org.coralprotocol.coralserver.logging.LoggingInterface
 import org.coralprotocol.coralserver.logging.LoggingTag
 import org.coralprotocol.coralserver.modules.LOGGER_LOCAL_SESSION
 import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.session.remote.RemoteSession
 import org.coralprotocol.coralserver.session.state.SessionState
+import org.coralprotocol.coralserver.util.utcTimeNow
 import org.jetbrains.annotations.TestOnly
 import org.koin.core.component.get
 import org.koin.core.qualifier.named
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.time.ExperimentalTime
 
 /**
  * This is the representation of a (local) Coral session.  Starting a session on a Coral server can only be done by
@@ -50,8 +53,9 @@ class LocalSession(
     agentGraph: AgentGraph,
     sessionManager: LocalSessionManager
 ) : Session(sessionManager.managementScope, sessionManager.supervisedSessions) {
-    val logger = get<Logger>(named(LOGGER_LOCAL_SESSION)).withTags(LoggingTag.Namespace(namespace.name), LoggingTag.Session(id))
-    val timestamp = System.currentTimeMillis()
+    val logger =
+        get<Logger>(named(LOGGER_LOCAL_SESSION)).withTags(LoggingTag.Namespace(namespace.name), LoggingTag.Session(id))
+    val timestamp = utcTimeNow()
 
     /**
      * Agent states in this session.  Note that even though one [SessionAgent] maps to one graph agent, the agent
@@ -140,8 +144,7 @@ class LocalSession(
 
         val participantLogStr = if (participants.isEmpty()) {
             ".  No other participants were added to the this thread"
-        }
-        else {
+        } else {
             ", and participants: ${participants.joinToString(", ")}"
         }
 

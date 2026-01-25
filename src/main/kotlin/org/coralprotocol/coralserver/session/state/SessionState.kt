@@ -1,9 +1,14 @@
+@file:OptIn(ExperimentalTime::class)
+
 package org.coralprotocol.coralserver.session.state
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.session.SessionId
 import org.coralprotocol.coralserver.session.SessionThread
+import org.coralprotocol.coralserver.util.InstantSerializer
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 @Serializable
 @Description("The state of a running session")
@@ -12,7 +17,8 @@ data class SessionState(
     val id: SessionId,
 
     @Description("The timestamp of when this state was generated")
-    val timestamp: Long,
+    @Serializable(with = InstantSerializer::class)
+    val timestamp: Instant,
 
     @Description("The namespace that this session resides in")
     val namespace: String,

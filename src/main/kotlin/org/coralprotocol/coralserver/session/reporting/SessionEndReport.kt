@@ -1,16 +1,23 @@
+@file:OptIn(ExperimentalTime::class)
+
 package org.coralprotocol.coralserver.session.reporting
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.session.SessionId
+import org.coralprotocol.coralserver.util.InstantSerializer
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 @Serializable
 data class SessionEndReport(
-    @Description("UNIX time for when the session started")
-    val startTime: Long,
+    @Description("The time that the session started, ISO 8601")
+    @Serializable(with = InstantSerializer::class)
+    val startTime: Instant,
 
-    @Description("UNIX time for when the session ended")
-    val endTime: Long,
+    @Description("The time that the session ended, ISO 8601")
+    @Serializable(with = InstantSerializer::class)
+    val endTime: Instant,
 
     @Description("The namespace that the session belonged in")
     val namespace: String,

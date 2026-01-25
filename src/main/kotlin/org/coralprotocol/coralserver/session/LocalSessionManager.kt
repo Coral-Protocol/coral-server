@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package org.coralprotocol.coralserver.session
 
 import io.ktor.client.*
@@ -24,12 +26,14 @@ import org.coralprotocol.coralserver.session.models.SessionPersistenceMode
 import org.coralprotocol.coralserver.session.models.SessionRuntimeSettings
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
 import org.coralprotocol.coralserver.util.addJsonBodyWithSignature
+import org.coralprotocol.coralserver.util.utcTimeNow
 import org.coralprotocol.payment.blockchain.BlockchainService
 import org.coralprotocol.payment.blockchain.models.SessionInfo
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.ExperimentalTime
 
 data class LocalSessionNamespace(
     val name: String,
@@ -253,7 +257,7 @@ class LocalSessionManager(
                     addJsonBodyWithSignature(
                         json,
                         config.webhookSecret, SessionEndReport(
-                            session.timestamp, System.currentTimeMillis(),
+                            session.timestamp, utcTimeNow(),
                             namespace = session.namespace.name,
                             sessionId = session.id,
                             agentStats = session.agents.values.flatMap { it.usageReports },
@@ -264,10 +268,10 @@ class LocalSessionManager(
         }
 
         val delay = when (val mode = settings.persistenceMode) {
-            is SessionPersistenceMode.HoldAfterExit -> mode.duration
-            is SessionPersistenceMode.MinimumTime -> (session.timestamp + mode.time) - System.currentTimeMillis()
-            SessionPersistenceMode.None -> 0
-        }.milliseconds
+            is SessionPersistenceMode.HoldAfterExit -> mode.duration.milliseconds
+            is SessionPersistenceMode.MinimumTime -> (session.timestamp + mode.time.milliseconds) - utcTimeNow()
+            SessionPersistenceMode.None -> Duration.ZERO
+        }
 
         if (delay > 0.milliseconds) {
             logger.info { "holding session ${session.id} in memory for $delay" }
