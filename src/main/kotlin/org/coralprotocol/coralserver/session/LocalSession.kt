@@ -181,7 +181,8 @@ class LocalSession(
             namespace = namespace.name,
             agents = agents.values.map { it.getState() },
             threads = threads.values.toList(),
-            closing = closing
+            status = status.value,
+            annotations = annotations
         )
 
     @TestOnly
