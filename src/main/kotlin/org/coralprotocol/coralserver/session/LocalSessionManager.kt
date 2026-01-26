@@ -7,6 +7,7 @@ import io.ktor.client.request.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
@@ -35,9 +36,13 @@ import kotlin.time.ExperimentalTime
 
 data class LocalSessionNamespace(
     val name: String,
+    val deleteOnLastSessionExit: Boolean,
+
     // todo: make a kotlin version of this
     val sessions: ConcurrentHashMap<String, LocalSession>,
-)
+
+    override val annotations: Map<String, String>,
+) : SessionResource
 
 data class AgentLocator(
     val namespace: LocalSessionNamespace,
@@ -146,22 +151,43 @@ class LocalSessionManager(
     }
 
     /**
-     * Creates a session in [namespace].  The namespace will be created if it does not exist.  This function will not
-     * launch any agents!  See [createAndLaunchSession] if you want to one-call session creation and launching.
+     * Creates a new namespace with settings specified by a [SessionNamespaceBuilder]
+     *
+     * @throws SessionException.InvalidNamespace if name specified in [SessionNamespaceBuilder.name] is already taken
      */
-    suspend fun createSession(namespace: String, agentGraph: AgentGraph): Pair<LocalSession, LocalSessionNamespace> {
-        val namespace = sessionNamespaces.getOrPut(namespace) {
-            events.emit(LocalSessionManagerEvent.NamespaceCreated(namespace))
-            LocalSessionNamespace(namespace, ConcurrentHashMap())
-        }
+    suspend fun createNamespace(builder: SessionNamespaceBuilder): LocalSessionNamespace {
+        if (sessionNamespaces.containsKey(builder.name))
+            throw SessionException.InvalidNamespace("A namespace with name \"${builder.name}\" already exists")
 
+        val namespace = LocalSessionNamespace(
+            name = builder.name,
+            deleteOnLastSessionExit = builder.deleteOnLastSessionExit,
+            sessions = ConcurrentHashMap(),
+            annotations = builder.annotations
+        )
+        sessionNamespaces[builder.name] = namespace
+        events.emit(LocalSessionManagerEvent.NamespaceCreated(builder.name))
+
+        return namespace
+    }
+
+    /**
+     * Creates a session in [namespace].  This function will not launch any agents!  See [createAndLaunchSession] if
+     * you want to one-call session creation and launching.
+     */
+    suspend fun createSession(
+        namespace: LocalSessionNamespace,
+        agentGraph: AgentGraph,
+        annotations: Map<String, String>
+    ): Pair<LocalSession, LocalSessionNamespace> {
         val sessionId: SessionId = UUID.randomUUID().toString()
         val session = LocalSession(
             id = sessionId,
             namespace = namespace,
             paymentSessionId = createPaymentSession(agentGraph)?.sessionId,
             agentGraph = agentGraph,
-            sessionManager = this
+            sessionManager = this,
+            annotations = annotations
         )
         namespace.sessions[sessionId] = session
         events.emit(LocalSessionManagerEvent.SessionCreated(session.id, namespace.name))
@@ -170,21 +196,15 @@ class LocalSessionManager(
     }
 
     /**
-     * Helper function, calls [createSession] and then immediately launches all agents in the session.  After the
-     * session closes, [handleSessionClose] will be called.
+     * Launches an existing session on [managementScope]
      */
-    suspend fun createAndLaunchSession(
-        namespace: String,
-        agentGraph: AgentGraph,
-        settings: SessionRuntimeSettings = SessionRuntimeSettings()
-    ): Pair<LocalSession, LocalSessionNamespace> {
-        val (session, namespace) = createSession(namespace, agentGraph)
-        session.launchAgents()
-
-        val timeoutDuration = settings.ttl?.milliseconds ?: Duration.INFINITE
-
+    fun launchSession(session: LocalSession, namespace: LocalSessionNamespace, settings: SessionRuntimeSettings) {
         managementScope.launch {
+            val timeoutDuration = settings.ttl?.milliseconds ?: Duration.INFINITE
             val timedOut = withTimeoutOrNull(timeoutDuration) {
+                session.status.update { SessionStatus.Running(utcTimeNow()) }
+
+                session.launchAgents()
                 session.joinAgents()
             } == null
 
@@ -197,6 +217,20 @@ class LocalSessionManager(
                 handleSessionClose(session, namespace, it, settings)
             }
         }
+    }
+
+    /**
+     * Helper function, calls [createSession] and then immediately launches all agents in the session.  After the
+     * session closes, [handleSessionClose] will be called.
+     */
+    suspend fun createAndLaunchSession(
+        namespace: LocalSessionNamespace,
+        agentGraph: AgentGraph,
+        settings: SessionRuntimeSettings = SessionRuntimeSettings(),
+        annotations: Map<String, String>
+    ): Pair<LocalSession, LocalSessionNamespace> {
+        val (session, namespace) = createSession(namespace, agentGraph, annotations)
+        launchSession(session, namespace, settings)
 
         return Pair(session, namespace)
     }
@@ -217,7 +251,7 @@ class LocalSessionManager(
      */
     fun getSessions(namespace: String) =
         sessionNamespaces[namespace]?.sessions?.values?.toList()
-            ?: throw SessionException.InvalidNamespace("The provided namespace does not exist")
+            ?: throw SessionException.InvalidNamespace("Namespace \"$namespace\" does not exist")
 
     /**
      * Returns a list of registered namespaces
@@ -239,7 +273,14 @@ class LocalSessionManager(
         cause: Throwable?,
         settings: SessionRuntimeSettings
     ) {
-        session.closing = true
+        session.status.update {
+            if (it is SessionStatus.Running) {
+                SessionStatus.Closing(it.executionTime, utcTimeNow())
+            } else {
+                logger.warn { "session ${session.id} has closed before ever being executed!" }
+                SessionStatus.Closing(utcTimeNow(), utcTimeNow())
+            }
+        }
 
         // Secrets must be relinquished so that no more references to this session exist
         session.agents.forEach { (name, agent) ->
