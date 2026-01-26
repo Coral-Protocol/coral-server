@@ -14,11 +14,7 @@ import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.modules.LOGGER_ROUTES
 import org.coralprotocol.coralserver.routes.ApiV1
 import org.coralprotocol.coralserver.routes.RouteException
-import org.coralprotocol.coralserver.session.LocalSessionManager
-import org.coralprotocol.coralserver.session.SessionException
-import org.coralprotocol.coralserver.session.SessionId
-import org.coralprotocol.coralserver.session.SessionIdentifier
-import org.coralprotocol.coralserver.session.SessionRequest
+import org.coralprotocol.coralserver.session.*
 import org.coralprotocol.coralserver.session.state.SessionState
 import org.koin.core.qualifier.named
 import org.koin.ktor.ext.inject
@@ -32,7 +28,7 @@ data class BasicNamespace(
 @Serializable
 data class BasicSession(
     val sessionId: SessionId,
-    val closing: Boolean
+    val status: SessionStatus
 )
 
 @Resource("sessions")
@@ -53,7 +49,7 @@ fun Route.sessionApi() {
     val localSessionManager by inject<LocalSessionManager>()
     val logger by inject<Logger>(named(LOGGER_ROUTES))
 
-    post<Sessions.WithNamespace>({
+    post<Sessions>({
         summary = "Create session"
         description = "Creates a new session in a given namespace"
         operationId = "createSession"
@@ -61,10 +57,6 @@ fun Route.sessionApi() {
         request {
             body<SessionRequest> {
                 description = "The session request body, containing the agents to use in the session and other settings"
-            }
-            pathParameter<String>("namespace") {
-                description =
-                    "The namespace this session should be created in.  This namespace will be created if it does not exist."
             }
         }
         response {
@@ -87,24 +79,46 @@ fun Route.sessionApi() {
                 }
             }
         }
-    }) {
+    }) { _ ->
         val sessionRequest = call.receive<SessionRequest>()
         val agentGraph = sessionRequest.agentGraphRequest.toAgentGraph(registry)
 
-        val (session, _) = localSessionManager.createAndLaunchSession(
-            it.namespace,
+        val existingNamespaces = localSessionManager.getNamespaces()
+        val namespace = when (sessionRequest.namespaceRequest) {
+            is SessionNamespaceRequest.CreateIfNotExists -> {
+                existingNamespaces.firstOrNull { it.name == sessionRequest.namespaceRequest.builder.name }
+                    ?: localSessionManager.createNamespace(sessionRequest.namespaceRequest.builder)
+            }
+
+            is SessionNamespaceRequest.UseExisting -> {
+                existingNamespaces.firstOrNull { it.name == sessionRequest.namespaceRequest.name }
+                    ?: throw RouteException(HttpStatusCode.NotFound, "Namespace not found")
+            }
+        }
+
+        val (session, _) = localSessionManager.createSession(
+            namespace,
             agentGraph,
-            sessionRequest.sessionRuntimeSettings
+            sessionRequest.annotations
         )
+
+        when (sessionRequest.execution) {
+            is SessionRequestExecution.Defer -> {
+                logger.info { "session ${session.id} was created in ${namespace.name} with deferred execution" }
+            }
+
+            is SessionRequestExecution.Execute -> {
+                logger.info { "session ${session.id} was created ${namespace.name} with immediate execution" }
+                localSessionManager.launchSession(session, namespace, sessionRequest.execution.runtimeSettings)
+            }
+        }
 
         call.respond(
             SessionIdentifier(
                 sessionId = session.id,
-                namespace = it.namespace
+                namespace = namespace.name
             )
         )
-
-        logger.info { "Created new session ${session.id}" }
     }
 
     get<Sessions.WithNamespace>({
@@ -155,7 +169,7 @@ fun Route.sessionApi() {
     }) {
         call.respond(localSessionManager.getNamespaces().map { namespace ->
             BasicNamespace(namespace.name, namespace.sessions.values.map {
-                BasicSession(it.id, it.closing)
+                BasicSession(it.id, it.status.value)
             })
         })
     }
