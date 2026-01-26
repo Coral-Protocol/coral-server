@@ -51,7 +51,8 @@ class LocalSession(
     override val paymentSessionId: PaymentSessionId? = null,
     val namespace: LocalSessionNamespace,
     agentGraph: AgentGraph,
-    sessionManager: LocalSessionManager
+    sessionManager: LocalSessionManager,
+    override val annotations: Map<String, String> = mapOf(),
 ) : Session(sessionManager.managementScope, sessionManager.supervisedSessions) {
     val logger =
         get<Logger>(named(LOGGER_LOCAL_SESSION)).withTags(LoggingTag.Namespace(namespace.name), LoggingTag.Session(id))
