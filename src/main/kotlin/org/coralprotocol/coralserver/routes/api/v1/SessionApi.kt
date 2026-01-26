@@ -17,8 +17,8 @@ import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionException
 import org.coralprotocol.coralserver.session.SessionId
-import org.coralprotocol.coralserver.session.models.SessionIdentifier
-import org.coralprotocol.coralserver.session.models.SessionRequest
+import org.coralprotocol.coralserver.session.SessionIdentifier
+import org.coralprotocol.coralserver.session.SessionRequest
 import org.coralprotocol.coralserver.session.state.SessionState
 import org.koin.core.qualifier.named
 import org.koin.ktor.ext.inject

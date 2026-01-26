@@ -22,8 +22,6 @@ import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.payment.BlankBlockchainService
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
-import org.coralprotocol.coralserver.session.models.SessionPersistenceMode
-import org.coralprotocol.coralserver.session.models.SessionRuntimeSettings
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
 import org.coralprotocol.coralserver.util.addJsonBodyWithSignature
 import org.coralprotocol.coralserver.util.utcTimeNow
@@ -178,7 +176,7 @@ class LocalSessionManager(
     suspend fun createAndLaunchSession(
         namespace: String,
         agentGraph: AgentGraph,
-        settings: SessionRuntimeSettings
+        settings: SessionRuntimeSettings = SessionRuntimeSettings()
     ): Pair<LocalSession, LocalSessionNamespace> {
         val (session, namespace) = createSession(namespace, agentGraph)
         session.launchAgents()

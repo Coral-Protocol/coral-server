@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.session.models
+package org.coralprotocol.coralserver.session
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.Serializable
