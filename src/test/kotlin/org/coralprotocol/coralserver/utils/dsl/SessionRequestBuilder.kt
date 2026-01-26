@@ -5,28 +5,51 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
 import org.coralprotocol.coralserver.agent.graph.GraphAgentTool
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
-import org.coralprotocol.coralserver.session.SessionEndWebhook
-import org.coralprotocol.coralserver.session.SessionPersistenceMode
-import org.coralprotocol.coralserver.session.SessionRequest
-import org.coralprotocol.coralserver.session.SessionRuntimeSettings
-import org.coralprotocol.coralserver.session.SessionWebhooks
+import org.coralprotocol.coralserver.session.*
 import kotlin.time.Duration
 
 @TestDsl
 class SessionRequestBuilder {
     private var agentGraphRequest: AgentGraphRequest = AgentGraphRequest(listOf())
-    private var sessionRuntimeSettings: SessionRuntimeSettings = SessionRuntimeSettings()
+    private var namespaceRequest: SessionNamespaceRequest = SessionNamespaceRequest.CreateIfNotExists(
+        SessionNamespaceBuilder("default")
+    )
+    private var executionSettings: SessionRequestExecution = SessionRequestExecution.Execute(SessionRuntimeSettings())
+
+    private val annotations: MutableMap<String, String> = mutableMapOf()
 
     fun agentGraphRequest(block: AgentGraphRequestBuilder.() -> Unit) {
         agentGraphRequest = AgentGraphRequestBuilder().apply(block).build()
     }
 
-    fun runtimeSettings(block: SessionRuntimeSettingsBuilder.() -> Unit) {
-        sessionRuntimeSettings = SessionRuntimeSettingsBuilder().apply(block).build()
+    fun useExistingNamespace(name: String) {
+        namespaceRequest = SessionNamespaceRequest.UseExisting(name)
+    }
+
+    fun createNamespaceIfNotExists(block: SessionNamespaceBuilderBuilder.() -> Unit) {
+        namespaceRequest =
+            SessionNamespaceRequest.CreateIfNotExists(SessionNamespaceBuilderBuilder().apply(block).build())
+    }
+
+    fun immediateExecution(block: SessionRuntimeSettingsBuilder.() -> Unit) {
+        executionSettings = SessionRequestExecution.Execute(SessionRuntimeSettingsBuilder().apply(block).build())
+    }
+
+    fun deferExecution() {
+        executionSettings = SessionRequestExecution.Defer
+    }
+
+    fun annotation(name: String, value: String) {
+        annotations[name] = value
     }
 
     fun build(): SessionRequest {
-        return SessionRequest(agentGraphRequest, sessionRuntimeSettings)
+        return SessionRequest(
+            agentGraphRequest,
+            namespaceRequest,
+            executionSettings,
+            annotations
+        )
     }
 }
 
@@ -93,6 +116,21 @@ class SessionWebhooksBuilder {
 
     fun build(): SessionWebhooks {
         return SessionWebhooks(sessionEnd)
+    }
+}
+
+@TestDsl
+class SessionNamespaceBuilderBuilder {
+    var name: String = "default"
+    var deleteOnLastSessionExit = false
+    private val annotations: MutableMap<String, String> = mutableMapOf()
+
+    fun annotation(name: String, value: String) {
+        annotations[name] = value
+    }
+
+    fun build(): SessionNamespaceBuilder {
+        return SessionNamespaceBuilder(name, deleteOnLastSessionExit, annotations)
     }
 }
 
