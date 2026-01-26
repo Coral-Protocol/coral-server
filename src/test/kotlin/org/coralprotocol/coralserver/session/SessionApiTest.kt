@@ -6,7 +6,6 @@ import io.kotest.assertions.nondeterministic.continually
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.withClue
 import io.kotest.inspectors.forAll
-import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSingleElement
 import io.kotest.matchers.collections.shouldHaveSize
@@ -61,6 +60,7 @@ class SessionApiTest : CoralTest({
     val agentName = "delay"
     val agentVersion = "1.0.0"
     val agentIdentifier = RegistryAgentIdentifier(agentName, agentVersion, AgentRegistrySourceIdentifier.Local)
+    val namespaceName = "default"
 
     suspend fun sessionWithDelay(
         client: HttpClient,
@@ -89,8 +89,7 @@ class SessionApiTest : CoralTest({
             )
         )
 
-        val testNamespace = Sessions.WithNamespace(namespace = "test namespace")
-        return client.authenticatedPost(testNamespace) {
+        return client.authenticatedPost(Sessions()) {
             setBody(
                 sessionRequest {
                     agentGraphRequest {
@@ -100,7 +99,10 @@ class SessionApiTest : CoralTest({
                         }
                         isolateAllAgents()
                     }
-                    runtimeSettings {
+                    createNamespaceIfNotExists {
+                        name = namespaceName
+                    }
+                    immediateExecution {
                         settings()
                     }
                 }
@@ -113,24 +115,24 @@ class SessionApiTest : CoralTest({
         val localSessionManager by inject<LocalSessionManager>()
 
         val sessionsRes = Sessions()
-        val testNamespace = Sessions.WithNamespace(namespace = "test namespace")
+        val testNamespace = Sessions.WithNamespace(namespace = namespaceName)
 
         repeat(10) {
             sessionWithDelay(client, 100, false)
         }
 
         var namespaces: List<BasicNamespace> = shouldNotThrowAny {
-            client.authenticatedGet(sessionsRes).body()
+            client.authenticatedGet(sessionsRes).shouldBeOK().body()
         }
         namespaces.shouldHaveSize(1)
         namespaces.first().sessions.shouldHaveSize(10)
 
-        val sessions: List<SessionId> = client.authenticatedGet(testNamespace).body()
+        val sessions: List<SessionId> = client.authenticatedGet(testNamespace).shouldBeOK().body()
         sessions.shouldHaveSize(10)
 
         localSessionManager.waitAllSessions()
 
-        namespaces = client.authenticatedGet(sessionsRes).body()
+        namespaces = client.authenticatedGet(sessionsRes).shouldBeOK().body()
         namespaces.shouldBeEmpty()
 
         // namespace should be deleted when the last session exits
@@ -141,7 +143,7 @@ class SessionApiTest : CoralTest({
         val client by inject<HttpClient>()
         val sessionManager by inject<LocalSessionManager>()
 
-        val testNamespace = Sessions.WithNamespace(namespace = "test namespace")
+        val testNamespace = Sessions.WithNamespace(namespace = namespaceName)
         val sessionId = sessionWithDelay(client, 1000, true)
 
         val testSession = Sessions.WithNamespace.Session(testNamespace, sessionId.sessionId)
@@ -154,11 +156,11 @@ class SessionApiTest : CoralTest({
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
 
-        val namespace = Sessions.WithNamespace(namespace = "debug agent namespace")
+        val namespace = Sessions.WithNamespace(namespace = namespaceName)
         val threadCount = 5u
         val messageCount = 5u
 
-        val sessionId: SessionIdentifier = client.authenticatedPost(namespace) {
+        val sessionId: SessionIdentifier = client.authenticatedPost(Sessions()) {
             setBody(
                 sessionRequest {
                     agentGraphRequest {
@@ -168,7 +170,10 @@ class SessionApiTest : CoralTest({
                         }
                         isolateAllAgents()
                     }
-                    runtimeSettings {
+                    createNamespaceIfNotExists {
+                        name = namespaceName
+                    }
+                    immediateExecution {
                         persistenceMode = SessionPersistenceMode.HoldAfterExit(1000)
                     }
                 }
@@ -198,7 +203,7 @@ class SessionApiTest : CoralTest({
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
 
-        val namespace = Sessions.WithNamespace(namespace = "debug agent namespace")
+        val namespace = Sessions.WithNamespace(namespace = namespaceName)
         val threadCount = 5u
         val messageCount = 5u
 
@@ -213,7 +218,10 @@ class SessionApiTest : CoralTest({
                         }
                         isolateAllAgents()
                     }
-                    runtimeSettings {
+                    createNamespaceIfNotExists {
+                        name = namespaceName
+                    }
+                    immediateExecution {
                         ttl = 100.milliseconds
                     }
                 }
@@ -288,7 +296,7 @@ class SessionApiTest : CoralTest({
                 Sessions.WithNamespace(namespace = id.namespace),
                 id.sessionId
             )
-        ).shouldBeOK().body<SessionState>().closing.shouldBeTrue()
+        ).shouldBeOK().body<SessionState>().status.shouldBeInstanceOf<SessionStatus.Closing>()
     }
 
     test("testSessionWebhook").config(timeout = 30.seconds) {
@@ -355,7 +363,9 @@ class SessionApiTest : CoralTest({
 
         @Serializable
         @Resource("customTool/{sessionId}/{agentId}")
+        @Suppress("unused")
         class CustomToolPath(val sessionId: String, val agentId: String)
+
         application.routing {
             post<CustomToolPath> { _ ->
                 try {
@@ -369,7 +379,7 @@ class SessionApiTest : CoralTest({
             }
         }
 
-        client.authenticatedPost(Sessions.WithNamespace(namespace = "test namespace")) {
+        client.authenticatedPost(Sessions()) {
             setBody(
                 sessionRequest {
                     agentGraphRequest {
@@ -397,7 +407,7 @@ class SessionApiTest : CoralTest({
                     }
                 }
             )
-        }
+        }.shouldBeOK()
 
         localSessionManager.waitAllSessions()
 

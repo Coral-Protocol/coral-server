@@ -47,7 +47,7 @@ class McpResourceTest : CoralTest({
 
         val threads = MutableStateFlow(0)
 
-        localSessionManager.createSession(
+        val (session, _) = localSessionManager.createSession(
             "test", AgentGraph(
                 agents = mapOf(
                     graphAgentPair(agent1Name) {
@@ -151,5 +151,7 @@ class McpResourceTest : CoralTest({
                     }
                 )
             ))
+
+        session.fullLifeCycle()
     }
 })

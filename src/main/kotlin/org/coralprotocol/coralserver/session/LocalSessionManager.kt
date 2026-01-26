@@ -178,7 +178,7 @@ class LocalSessionManager(
     suspend fun createSession(
         namespace: LocalSessionNamespace,
         agentGraph: AgentGraph,
-        annotations: Map<String, String>
+        sessionAnnotations: Map<String, String> = mapOf()
     ): Pair<LocalSession, LocalSessionNamespace> {
         val sessionId: SessionId = UUID.randomUUID().toString()
         val session = LocalSession(
@@ -187,12 +187,24 @@ class LocalSessionManager(
             paymentSessionId = createPaymentSession(agentGraph)?.sessionId,
             agentGraph = agentGraph,
             sessionManager = this,
-            annotations = annotations
+            annotations = sessionAnnotations
         )
         namespace.sessions[sessionId] = session
         events.emit(LocalSessionManagerEvent.SessionCreated(session.id, namespace.name))
 
         return Pair(session, namespace)
+    }
+
+    /**
+     * Helper function for dynamically creating a basic namespace from a string
+     */
+    suspend fun createSession(
+        namespaceName: String,
+        agentGraph: AgentGraph,
+        sessionAnnotations: Map<String, String> = mapOf()
+    ): Pair<LocalSession, LocalSessionNamespace> {
+        val namespace = createNamespace(SessionNamespaceBuilder(name = namespaceName))
+        return createSession(namespace, agentGraph, sessionAnnotations)
     }
 
     /**
@@ -227,12 +239,25 @@ class LocalSessionManager(
         namespace: LocalSessionNamespace,
         agentGraph: AgentGraph,
         settings: SessionRuntimeSettings = SessionRuntimeSettings(),
-        annotations: Map<String, String>
+        sessionAnnotations: Map<String, String> = mapOf()
     ): Pair<LocalSession, LocalSessionNamespace> {
-        val (session, namespace) = createSession(namespace, agentGraph, annotations)
+        val (session, namespace) = createSession(namespace, agentGraph, sessionAnnotations)
         launchSession(session, namespace, settings)
 
         return Pair(session, namespace)
+    }
+
+    /**
+     * Helper function for dynamically creating a basic namespace from a string
+     */
+    suspend fun createAndLaunchSession(
+        namespaceName: String,
+        agentGraph: AgentGraph,
+        settings: SessionRuntimeSettings = SessionRuntimeSettings(),
+        sessionAnnotations: Map<String, String> = mapOf()
+    ): Pair<LocalSession, LocalSessionNamespace> {
+        val namespace = createNamespace(SessionNamespaceBuilder(name = namespaceName))
+        return createAndLaunchSession(namespace, agentGraph, settings, sessionAnnotations)
     }
 
     /**

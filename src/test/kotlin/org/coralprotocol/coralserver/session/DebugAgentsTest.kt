@@ -22,11 +22,10 @@ class DebugAgentsTest : CoralTest({
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
 
-        val namespace = Sessions.WithNamespace(namespace = "debug agent namespace")
         val threadCount = 50u
         val messageCount = 100u
 
-        val sessionId: SessionIdentifier = client.authenticatedPost(namespace) {
+        val sessionId: SessionIdentifier = client.authenticatedPost(Sessions()) {
             setBody(sessionRequest {
                 agentGraphRequest {
                     agent(SeedDebugAgent.identifier) {
@@ -54,11 +53,10 @@ class DebugAgentsTest : CoralTest({
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
 
-        val namespace = Sessions.WithNamespace(namespace = "debug agent namespace")
         val threadCount = 5u
         val messageCount = 10u
 
-        val sessionId: SessionIdentifier = client.authenticatedPost(namespace) {
+        val sessionId: SessionIdentifier = client.authenticatedPost(Sessions()) {
             setBody(sessionRequest {
                 agentGraphRequest {
                     agent(SeedDebugAgent.identifier) {
