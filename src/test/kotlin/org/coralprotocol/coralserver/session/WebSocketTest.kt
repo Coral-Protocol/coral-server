@@ -9,11 +9,9 @@ import io.ktor.client.request.*
 import io.ktor.websocket.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.channels.toList
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -27,7 +25,6 @@ import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.modules.WEBSOCKET_COROUTINE_SCOPE_NAME
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.routes.ws.v1.Events
-import org.coralprotocol.coralserver.session.models.SessionIdentifier
 import org.coralprotocol.coralserver.util.filterIsInstance
 import org.coralprotocol.coralserver.util.fromWsFrame
 import org.coralprotocol.coralserver.util.map

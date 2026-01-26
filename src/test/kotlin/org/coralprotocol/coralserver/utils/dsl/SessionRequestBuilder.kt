@@ -5,7 +5,11 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
 import org.coralprotocol.coralserver.agent.graph.GraphAgentTool
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
-import org.coralprotocol.coralserver.session.models.*
+import org.coralprotocol.coralserver.session.SessionEndWebhook
+import org.coralprotocol.coralserver.session.SessionPersistenceMode
+import org.coralprotocol.coralserver.session.SessionRequest
+import org.coralprotocol.coralserver.session.SessionRuntimeSettings
+import org.coralprotocol.coralserver.session.SessionWebhooks
 import kotlin.time.Duration
 
 @TestDsl

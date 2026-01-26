@@ -17,7 +17,6 @@ import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.mcp.tools.*
 import org.coralprotocol.coralserver.routes.api.v1.Puppet
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
-import org.coralprotocol.coralserver.session.models.SessionIdentifier
 import org.coralprotocol.coralserver.utils.dsl.sessionRequest
 import org.koin.test.inject
 import kotlin.time.Duration.Companion.seconds

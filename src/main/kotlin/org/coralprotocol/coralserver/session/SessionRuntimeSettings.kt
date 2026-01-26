@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalSerializationApi::class)
 
-package org.coralprotocol.coralserver.session.models
+package org.coralprotocol.coralserver.session
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import io.github.smiley4.schemakenerator.core.annotations.Optional

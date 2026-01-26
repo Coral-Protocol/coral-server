@@ -46,8 +46,6 @@ import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.routes.api.v1.BasicNamespace
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
-import org.coralprotocol.coralserver.session.models.SessionIdentifier
-import org.coralprotocol.coralserver.session.models.SessionPersistenceMode
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
 import org.coralprotocol.coralserver.session.state.SessionState
 import org.coralprotocol.coralserver.util.signatureVerifiedBody

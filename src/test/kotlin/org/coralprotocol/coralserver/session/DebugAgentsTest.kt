@@ -13,7 +13,6 @@ import org.coralprotocol.coralserver.agent.debug.EchoDebugAgent
 import org.coralprotocol.coralserver.agent.debug.SeedDebugAgent
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
-import org.coralprotocol.coralserver.session.models.SessionIdentifier
 import org.coralprotocol.coralserver.utils.dsl.sessionRequest
 import org.koin.core.component.inject
 import kotlin.time.Duration.Companion.seconds
