@@ -32,7 +32,7 @@ class McpToolsTest : CoralTest({
         val agent2Name = "agent2"
         val agent3Name = "agent3"
 
-        localSessionManager.createSession(
+        val (session, _) = localSessionManager.createSession(
             "test", AgentGraph(
                 agents = mapOf(
                     graphAgentPair(agent1Name) {
@@ -168,5 +168,7 @@ class McpToolsTest : CoralTest({
                     }
                 )
             ))
+
+        session.fullLifeCycle()
     }
 })

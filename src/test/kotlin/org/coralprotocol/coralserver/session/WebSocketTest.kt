@@ -43,11 +43,10 @@ class WebSocketTest : CoralTest({
         val json by inject<Json>()
         val websocketCoroutineScope by inject<CoroutineScope>(named(WEBSOCKET_COROUTINE_SCOPE_NAME))
 
-        val namespace = Sessions.WithNamespace(namespace = "debug agent namespace")
         val threadCount = 10u
         val messageCount = 10u
 
-        val id: SessionIdentifier = client.authenticatedPost(namespace) {
+        val id: SessionIdentifier = client.authenticatedPost(Sessions()) {
             setBody(
                 sessionRequest {
                     agentGraphRequest {
@@ -109,10 +108,7 @@ class WebSocketTest : CoralTest({
         val websocketCoroutineScope by inject<CoroutineScope>(named(WEBSOCKET_COROUTINE_SCOPE_NAME))
 
         val ns1Name = "ns1"
-        val ns1 = Sessions.WithNamespace(namespace = ns1Name)
-
         val ns2Name = "ns2"
-        val ns2 = Sessions.WithNamespace(namespace = ns2Name)
 
         val webSocketJob = this.shouldPostEventsFromBody(
             timeout = 3.seconds,
@@ -149,10 +145,13 @@ class WebSocketTest : CoralTest({
             // post sessions after WS connection established
             localSessionManager.events.subscriptionCount.first { it == 1 }
 
-            for (ns in listOf(ns1, ns2)) {
-                client.authenticatedPost(ns) {
+            for (namespaceName in listOf(ns1Name, ns2Name)) {
+                client.authenticatedPost(Sessions()) {
                     setBody(
                         sessionRequest {
+                            createNamespaceIfNotExists {
+                                name = namespaceName
+                            }
                             agentGraphRequest {
                                 agent(SeedDebugAgent.identifier) {
                                     provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)

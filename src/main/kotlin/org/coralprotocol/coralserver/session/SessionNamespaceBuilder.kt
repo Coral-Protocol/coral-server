@@ -16,5 +16,5 @@ data class SessionNamespaceBuilder(
     )
     val deleteOnLastSessionExit: Boolean = true,
 
-    override val annotations: Map<String, String>,
+    override val annotations: Map<String, String> = mapOf(),
 ) : SessionResource
