@@ -17,6 +17,7 @@ import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.session.remote.RemoteSession
 import org.coralprotocol.coralserver.session.state.SessionState
+import org.coralprotocol.coralserver.session.state.SessionStateExtended
 import org.coralprotocol.coralserver.util.utcTimeNow
 import org.jetbrains.annotations.TestOnly
 import org.koin.core.component.get
@@ -176,14 +177,16 @@ class LocalSession(
      * Returns the current state of this session.  Used by the session API.
      */
     fun getState() =
-        SessionState(
-            timestamp = timestamp,
-            id = id,
-            namespace = namespace.name,
-            agents = agents.values.map { it.getState() },
-            threads = threads.values.toList(),
-            status = status.value,
-            annotations = annotations
+        SessionStateExtended(
+            base = SessionState(
+                id = id,
+                timestamp = timestamp,
+                namespace = namespace.name,
+                status = status.value,
+                annotations = annotations
+            ),
+            agents = agents.map { (_, agent) -> agent.getState() },
+            threads = threads.values.toList()
         )
 
     @TestOnly
