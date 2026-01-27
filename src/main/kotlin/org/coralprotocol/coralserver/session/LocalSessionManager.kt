@@ -275,11 +275,12 @@ class LocalSessionManager(
      */
     suspend fun deleteNamespace(namespaceName: String) {
         val namespace = getNamespace(namespaceName)
-        getNamespace(namespaceName).sessions.values.forEach { session ->
+        namespace.sessions.values.forEach { session ->
             session.cancelAndJoinAgents()
         }
 
-        if (!namespace.deleteOnLastSessionExit) {
+        // Allow deleteOnLastSessionExit to delete the namespace if it would have from the above cancelation of agents
+        if (!namespace.deleteOnLastSessionExit || namespace.sessions.isEmpty()) {
             events.emit(LocalSessionManagerEvent.NamespaceClosed(namespace.name))
             sessionNamespaces.remove(namespace.name)
         }
@@ -315,7 +316,7 @@ class LocalSessionManager(
 
     fun getSession(namespaceName: String, sessionId: SessionId) =
         getNamespace(namespaceName).sessions[sessionId]
-            ?: SessionException.InvalidSession("Session \"$sessionId\" not found")
+            ?: throw SessionException.InvalidSession("Session \"$sessionId\" not found")
 
     /**
      * Behaviour for session exit.
