@@ -38,7 +38,7 @@ suspend fun <T> RoutingContext.webSocketFlow(
 ) {
     val trackingId = UUID.randomUUID().toString()
     call.respond(WebSocketUpgrade(call) {
-        logger.info { "WS ($name) connection opened: $trackingId" }
+        logger.trace { "WS ($name) connection opened: $trackingId" }
 
         val start = System.currentTimeMillis()
         toServerSession(call).proceedWebSocket {
@@ -52,7 +52,7 @@ suspend fun <T> RoutingContext.webSocketFlow(
             try {
                 this@proceedWebSocket.coroutineContext[Job]?.join()
             } finally {
-                logger.info { "WS ($name) connection closed: $trackingId (alive for ${(System.currentTimeMillis() - start).milliseconds})" }
+                logger.trace { "WS ($name) connection closed: $trackingId (alive for ${(System.currentTimeMillis() - start).milliseconds})" }
                 flowJob.cancel()
             }
         }

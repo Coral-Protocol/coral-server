@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.session
 
+import io.kotest.core.NamedTag
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
@@ -11,7 +12,7 @@ import org.koin.core.component.inject
 
 
 class ConcurrencyTest : CoralTest({
-    test("testSessionThread") {
+    test("testSessionThread").config(tags = setOf(NamedTag("noisy"))) {
         val localSessionManager by inject<LocalSessionManager>()
 
         val iterations = 100

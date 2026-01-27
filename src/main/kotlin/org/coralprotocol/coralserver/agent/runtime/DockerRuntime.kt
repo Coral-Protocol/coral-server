@@ -62,7 +62,7 @@ data class DockerRuntime(
             val volumes = executionContext.disposableResources
                 .filterIsInstance<SessionAgentDisposableResource.TemporaryFile>()
                 .map {
-                    executionContext.logger.info { "Binding host file ${it.file} to container path ${it.mountPath}" }
+                    executionContext.logger.debug { "Binding host file ${it.file} to container path ${it.mountPath}" }
                     Bind(it.file.toString(), Volume(it.mountPath))
                 }
 

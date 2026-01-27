@@ -40,6 +40,14 @@ class Logger(
         log(LoggingEvent.Warning(message()))
     }
 
+    override fun debug(message: () -> String) {
+        log(LoggingEvent.Debug(message()))
+    }
+
+    override fun trace(message: () -> String) {
+        log(LoggingEvent.Trace(message()))
+    }
+
     override fun error(throwable: Throwable?, message: () -> String) {
         log(LoggingEvent.Error(error = throwable, text = message()))
     }
@@ -50,6 +58,14 @@ class Logger(
 
     override fun warn(vararg tags: LoggingTag, message: () -> String) {
         log(LoggingEvent.Warning(message(), tags.toSet()))
+    }
+
+    override fun debug(vararg tags: LoggingTag, message: () -> String) {
+        log(LoggingEvent.Debug(message(), tags.toSet()))
+    }
+
+    override fun trace(vararg tags: LoggingTag, message: () -> String) {
+        log(LoggingEvent.Trace(message(), tags.toSet()))
     }
 
     override fun error(vararg tags: LoggingTag, throwable: Throwable?, message: () -> String) {

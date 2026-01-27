@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver.session
 
 import io.kotest.assertions.ktor.client.shouldBeOK
+import io.kotest.core.NamedTag
 import io.kotest.inspectors.forAllValues
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.maps.shouldHaveSize
@@ -19,7 +20,7 @@ import org.koin.core.component.inject
 import kotlin.time.Duration.Companion.seconds
 
 class DebugAgentsTest : CoralTest({
-    test("testSeedDebugAgent").config(timeout = 60.seconds) {
+    test("testSeedDebugAgent").config(timeout = 60.seconds, tags = setOf(NamedTag("noisy"))) {
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
 
@@ -51,7 +52,7 @@ class DebugAgentsTest : CoralTest({
         }
     }
 
-    test("testEchoDebugAgent").config(timeout = 30.seconds) {
+    test("testEchoDebugAgent").config(timeout = 30.seconds, tags = setOf(NamedTag("noisy"))) {
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
 
