@@ -160,11 +160,11 @@ class LocalSessionManager(
     }
 
     /**
-     * Creates a new namespace with settings specified by a [SessionNamespaceBuilder]
+     * Creates a new namespace with settings specified by a [SessionNamespaceRequest]
      *
-     * @throws SessionException.InvalidNamespace if name specified in [SessionNamespaceBuilder.name] is already taken
+     * @throws SessionException.InvalidNamespace if name specified in [SessionNamespaceRequest.name] is already taken
      */
-    suspend fun createNamespace(builder: SessionNamespaceBuilder): LocalSessionNamespace {
+    suspend fun createNamespace(builder: SessionNamespaceRequest): LocalSessionNamespace {
         if (sessionNamespaces.containsKey(builder.name))
             throw SessionException.InvalidNamespace("A namespace with name \"${builder.name}\" already exists")
 
@@ -212,7 +212,7 @@ class LocalSessionManager(
         agentGraph: AgentGraph,
         sessionAnnotations: Map<String, String> = mapOf()
     ): Pair<LocalSession, LocalSessionNamespace> {
-        val namespace = createNamespace(SessionNamespaceBuilder(name = namespaceName))
+        val namespace = createNamespace(SessionNamespaceRequest(name = namespaceName))
         return createSession(namespace, agentGraph, sessionAnnotations)
     }
 
@@ -265,7 +265,7 @@ class LocalSessionManager(
         settings: SessionRuntimeSettings = SessionRuntimeSettings(),
         sessionAnnotations: Map<String, String> = mapOf()
     ): Pair<LocalSession, LocalSessionNamespace> {
-        val namespace = createNamespace(SessionNamespaceBuilder(name = namespaceName))
+        val namespace = createNamespace(SessionNamespaceRequest(name = namespaceName))
         return createAndLaunchSession(namespace, agentGraph, settings, sessionAnnotations)
     }
 

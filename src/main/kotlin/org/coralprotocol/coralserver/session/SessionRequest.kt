@@ -30,13 +30,13 @@ sealed interface SessionRequestExecution {
 
 @Serializable
 @JsonClassDiscriminator("type")
-sealed interface SessionNamespaceRequest {
+sealed interface SessionNamespaceProvider {
     @Serializable
     @SerialName("use_existing")
     @Description("Indicates that the session request should use an existing namespace")
     data class UseExisting(
         val name: String
-    ) : SessionNamespaceRequest
+    ) : SessionNamespaceProvider
 
     @Serializable
     @SerialName("create_if_not_exists")
@@ -48,8 +48,8 @@ sealed interface SessionNamespaceRequest {
         """
     )
     data class CreateIfNotExists(
-        val builder: SessionNamespaceBuilder
-    ) : SessionNamespaceRequest
+        val builder: SessionNamespaceRequest
+    ) : SessionNamespaceProvider
 }
 
 @Serializable
@@ -58,7 +58,7 @@ data class SessionRequest(
     val agentGraphRequest: AgentGraphRequest,
 
     @Description("A description of what namespace this session should run in")
-    val namespaceRequest: SessionNamespaceRequest,
+    val namespaceProvider: SessionNamespaceProvider,
 
     @Optional
     val execution: SessionRequestExecution = SessionRequestExecution.Execute(),

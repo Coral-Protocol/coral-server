@@ -78,14 +78,14 @@ fun Route.sessionApi() {
         val agentGraph = sessionRequest.agentGraphRequest.toAgentGraph(registry)
 
         val existingNamespaces = localSessionManager.getNamespaces()
-        val namespace = when (sessionRequest.namespaceRequest) {
-            is SessionNamespaceRequest.CreateIfNotExists -> {
-                existingNamespaces.firstOrNull { it.name == sessionRequest.namespaceRequest.builder.name }
-                    ?: localSessionManager.createNamespace(sessionRequest.namespaceRequest.builder)
+        val namespace = when (sessionRequest.namespaceProvider) {
+            is SessionNamespaceProvider.CreateIfNotExists -> {
+                existingNamespaces.firstOrNull { it.name == sessionRequest.namespaceProvider.builder.name }
+                    ?: localSessionManager.createNamespace(sessionRequest.namespaceProvider.builder)
             }
 
-            is SessionNamespaceRequest.UseExisting -> {
-                existingNamespaces.firstOrNull { it.name == sessionRequest.namespaceRequest.name }
+            is SessionNamespaceProvider.UseExisting -> {
+                existingNamespaces.firstOrNull { it.name == sessionRequest.namespaceProvider.name }
                     ?: throw RouteException(HttpStatusCode.NotFound, "Namespace not found")
             }
         }
@@ -121,7 +121,7 @@ fun Route.sessionApi() {
         operationId = "createNamespace"
         securitySchemeNames("token")
         request {
-            body<SessionNamespaceBuilder> {
+            body<SessionNamespaceRequest> {
                 description = "Namespace settings"
             }
         }
@@ -144,7 +144,7 @@ fun Route.sessionApi() {
         }
     }) {
         try {
-            localSessionManager.createNamespace(call.receive<SessionNamespaceBuilder>())
+            localSessionManager.createNamespace(call.receive<SessionNamespaceRequest>())
         } catch (e: SessionException.InvalidNamespace) {
             throw RouteException(HttpStatusCode.BadRequest, e)
         }
