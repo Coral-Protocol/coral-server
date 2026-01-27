@@ -91,20 +91,21 @@ class LoggerTests : CoralTest({
 
         // first 10 messages should be dropped
         repeat(10) {
-            testLogger.error { "this should not be included! $it" }
+            testLogger.trace { "this should not be included! $it" }
         }
 
         val limit = 50
         repeat(limit) {
             val randomId = UUID.randomUUID().toString()
-            events.add(TestEvent("info message: $randomId") { it is LoggingEvent.Info && it.text == randomId })
-            testLogger.info { randomId }
+            events.add(TestEvent("info message: $randomId") { it is LoggingEvent.Debug && it.text == randomId })
+            testLogger.debug { randomId }
         }
 
         // this should include both prints that occurred before the description because of the limit 100 replay
         genericLoggingTest(
             logs = Logs(
-                limit = limit
+                limit = limit,
+                allowSensitive = true,
             ),
             events = events,
         ) {
@@ -212,13 +213,14 @@ class LoggerTests : CoralTest({
         val events = mutableListOf<TestEvent<LoggingEvent>>()
         repeat(logBufferSize) {
             val randomId = UUID.randomUUID().toString()
-            events.add(TestEvent("within buffer size $randomId") { it is LoggingEvent.Warning && it.text == randomId })
-            testLogger.warn { randomId }
+            events.add(TestEvent("within buffer size $randomId") { it is LoggingEvent.Debug && it.text == randomId })
+            testLogger.debug { randomId }
         }
 
         genericLoggingTest(
             logs = Logs(
-                limit = 2048 // should NOT include the first info message because it is outside the log's buffer size
+                limit = 2048, // should NOT include the first info message because it is outside the log's buffer size
+                allowSensitive = true,
             ),
             events = events,
         ) {

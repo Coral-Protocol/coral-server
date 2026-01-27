@@ -123,7 +123,7 @@ class FileAgentRegistrySource(
             val remainingParts = parts.slice(index..<parts.size)
 
             if (part == "*") {
-                logger.info {
+                logger.trace {
                     "watching directory: \"${normalizedPathString(current)}\" for \"${
                         remainingParts.joinToString(
                             "/"
@@ -153,7 +153,7 @@ class FileAgentRegistrySource(
 
             if (current.parent != null && (index != parts.lastIndex || part == "*")) {
                 if (!current.isDirectory() && current.parent.isDirectory()) {
-                    logger.info { "watching directory: \"${normalizedPathString(current.parent)}\" for \"$part\"" }
+                    logger.trace { "watching directory: \"${normalizedPathString(current.parent)}\" for \"$part\"" }
                     watchDirectory(current.parent, remainingParts)
                     return
                 } else {
@@ -282,7 +282,7 @@ class FileAgentRegistrySource(
                     val newAgent = readAgent(agentFile)
                     when (val agent = agent) {
                         newAgent -> {
-                            logger.info {
+                            logger.trace {
                                 "agent file updated but parsed contents did not change - \"${
                                     normalizedPathString(
                                         agentFile
@@ -357,7 +357,7 @@ class FileAgentRegistrySource(
         }.invokeOnCompletion {
             flowJob.cancel()
             if (agent != null)
-                logger.info { "watcher for agent ${agent.identifier} - \"${normalizedPathString(agentFile)}\" stopped" }
+                logger.trace { "watcher for agent ${agent.identifier} - \"${normalizedPathString(agentFile)}\" stopped" }
         }
     }
 
@@ -383,7 +383,7 @@ class FileAgentRegistrySource(
                     ""
                 }
 
-                logger.info { "\"$fileName\" created in \"${normalizedPathString(directory)}\", matching pattern part \"$nextPart\"$fullPatternLog" }
+                logger.trace { "\"$fileName\" created in \"${normalizedPathString(directory)}\", matching pattern part \"$nextPart\"$fullPatternLog" }
 
                 addAgentsFromPattern(
                     if (wildcard) {
@@ -403,7 +403,7 @@ class FileAgentRegistrySource(
                     cancel()
             }
         }.invokeOnCompletion {
-            logger.info { "watcher for \"${remainingParts.joinToString("/")}\" in \"${normalizedPathString(directory)}\" stopped" }
+            logger.trace { "watcher for \"${remainingParts.joinToString("/")}\" in \"${normalizedPathString(directory)}\" stopped" }
         }
     }
 
@@ -416,7 +416,7 @@ class FileAgentRegistrySource(
             return
         }
 
-        logger.info { "waiting for $AGENT_FILE to be written in \"${normalizedPathString(directory)}\"" }
+        logger.trace { "waiting for $AGENT_FILE to be written in \"${normalizedPathString(directory)}\"" }
 
         eventStreamForPath(directory, ENTRY_CREATE) {
             if ((it.context() as Path).name == AGENT_FILE) {
@@ -437,7 +437,7 @@ class FileAgentRegistrySource(
                 cancel()
             }
         }.invokeOnCompletion {
-            logger.info { "watcher for $AGENT_FILE in \"${normalizedPathString(directory)}\" stopped" }
+            logger.trace { "watcher for $AGENT_FILE in \"${normalizedPathString(directory)}\" stopped" }
         }
     }
 
@@ -453,7 +453,7 @@ class FileAgentRegistrySource(
         deletionWatchers.add(directory.absolutePathString())
         eventStreamForPath(directory.parent, ENTRY_DELETE) {
             if ((it.context() as Path).name == directory.name) {
-                logger.info { "${directory.name} in \"${normalizedPathString(directory.parent)}\" was deleted, restart $restartPathPattern with $restartPart" }
+                logger.trace { "${directory.name} in \"${normalizedPathString(directory.parent)}\" was deleted, restart $restartPathPattern with $restartPart" }
 
                 deletionWatchers.remove(directory.absolutePathString())
                 addAgentsFromPattern(restartPathPattern, restartPart)

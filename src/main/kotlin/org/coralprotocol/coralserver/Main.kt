@@ -19,6 +19,7 @@ fun main(args: Array<String>) {
             configModule,
             configModuleParts,
             loggingModule,
+            namedLoggingModule,
             blockchainModule,
             networkModule,
             agentModule,
