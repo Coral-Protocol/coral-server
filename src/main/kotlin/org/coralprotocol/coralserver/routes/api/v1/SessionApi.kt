@@ -8,36 +8,30 @@ import io.ktor.resources.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.modules.LOGGER_ROUTES
 import org.coralprotocol.coralserver.routes.ApiV1
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.*
+import org.coralprotocol.coralserver.session.state.SessionNamespaceState
 import org.coralprotocol.coralserver.session.state.SessionState
+import org.coralprotocol.coralserver.session.state.SessionStateExtended
 import org.koin.core.qualifier.named
 import org.koin.ktor.ext.inject
 
-@Serializable
-data class BasicNamespace(
-    val namespace: String,
-    val sessions: List<BasicSession>
-)
-
-@Serializable
-data class BasicSession(
-    val sessionId: SessionId,
-    val status: SessionStatus
-)
-
 @Resource("sessions")
 class Sessions(val parent: ApiV1 = ApiV1()) {
-    @Resource("{namespace}")
-    class WithNamespace(val parent: Sessions = Sessions(), val namespace: String) {
+    @Resource("session")
+    class Session(val parent: Sessions = Sessions()) {
+        @Resource("{namespace}/{sessionId}")
+        class Existing(val parent: Session = Session(), val namespace: String, val sessionId: String)
+    }
 
-        @Resource("{sessionId}")
-        class Session(val parent: WithNamespace, val sessionId: SessionId)
+    @Resource("namespace")
+    class Namespace(val parent: Sessions = Sessions()) {
+        @Resource("{namespace}")
+        class Existing(val parent: Session = Session(), val namespace: String)
     }
 }
 
@@ -49,7 +43,7 @@ fun Route.sessionApi() {
     val localSessionManager by inject<LocalSessionManager>()
     val logger by inject<Logger>(named(LOGGER_ROUTES))
 
-    post<Sessions>({
+    post<Sessions.Session>({
         summary = "Create session"
         description = "Creates a new session in a given namespace"
         operationId = "createSession"
@@ -121,7 +115,42 @@ fun Route.sessionApi() {
         )
     }
 
-    get<Sessions.WithNamespace>({
+    post<Sessions.Namespace>({
+        summary = "Create namespace"
+        description = "Creates a new empty namespace"
+        operationId = "createNamespace"
+        securitySchemeNames("token")
+        request {
+            body<SessionNamespaceBuilder> {
+                description = "Namespace settings"
+            }
+        }
+        response {
+            HttpStatusCode.OK to {
+                description = "Success"
+            }
+            HttpStatusCode.Forbidden to {
+                description = "Invalid application ID or privacy key"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
+            }
+            HttpStatusCode.BadRequest to {
+                description = "Invalid namespace settings providewd"
+                body<RouteException> {
+                    description = "Exact error message and stack trace"
+                }
+            }
+        }
+    }) {
+        try {
+            localSessionManager.createNamespace(call.receive<SessionNamespaceBuilder>())
+        } catch (e: SessionException.InvalidNamespace) {
+            throw RouteException(HttpStatusCode.BadRequest, e)
+        }
+    }
+
+    get<Sessions.Namespace.Existing>({
         summary = "List sessions in namespace"
         description = "Returns a list of all sessions in a specific namespace"
         operationId = "getSessionsInNamespace"
@@ -134,8 +163,8 @@ fun Route.sessionApi() {
         response {
             HttpStatusCode.OK to {
                 description = "Success"
-                body<List<BasicSession>> {
-                    description = "List of session IDs"
+                body<List<SessionState>> {
+                    description = "A list of session states"
                 }
             }
             HttpStatusCode.NotFound to {
@@ -153,28 +182,68 @@ fun Route.sessionApi() {
         }
     }
 
+    delete<Sessions.Namespace.Existing>({
+        summary = "Delete a namespace"
+        description = "Deletes a given namespace, closing any session that it may contain"
+        operationId = "deleteNamespace"
+        securitySchemeNames("token")
+        request {
+            pathParameter<String>("namespace") {
+                description = "The namespace to delete"
+            }
+        }
+        response {
+            HttpStatusCode.NotFound to {
+                description = "Invalid namespace provided"
+                body<RouteException> {
+                    description = "Error message"
+                }
+            }
+        }
+    }) { path ->
+        try {
+            localSessionManager.deleteNamespace(path.namespace)
+            call.respond(HttpStatusCode.OK)
+        } catch (e: SessionException.InvalidNamespace) {
+            throw RouteException(HttpStatusCode.NotFound, e)
+        }
+    }
+
     get<Sessions>({
-        summary = "Get all sessions from all namespaces"
-        description = "Returns a list of namespaces containing their respective sessions"
+        summary = "Get a list of namespace states and their contained sessions states"
+        description = "Returns a list of namespace states and their contained sessions states"
         operationId = "getAllSessions"
         securitySchemeNames("token")
         response {
             HttpStatusCode.OK to {
                 description = "Success"
-                body<List<BasicNamespace>> {
-                    description = "List of session IDs"
+                body<List<SessionNamespaceState>> {
+                    description = "List of namespace states, containing their sessions' states"
                 }
             }
         }
     }) {
-        call.respond(localSessionManager.getNamespaces().map { namespace ->
-            BasicNamespace(namespace.name, namespace.sessions.values.map {
-                BasicSession(it.id, it.status.value)
-            })
-        })
+        call.respond(localSessionManager.getNamespaceStates())
     }
 
-    delete<Sessions.WithNamespace.Session>({
+    get<Sessions.Namespace>({
+        summary = "Get a list of namespaces names"
+        description = "Returns a list of namespaces"
+        operationId = "getAllSessions"
+        securitySchemeNames("token")
+        response {
+            HttpStatusCode.OK to {
+                description = "Success"
+                body<List<String>> {
+                    description = "List of namespace names"
+                }
+            }
+        }
+    }) {
+        call.respond(localSessionManager.getNamespaces().map { it.name })
+    }
+
+    delete<Sessions.Session.Existing>({
         summary = "Close an active session"
         description = "Closes an active session, cancelling all running agents"
         operationId = "closeSession"
@@ -201,7 +270,7 @@ fun Route.sessionApi() {
         }
     }) { path ->
         try {
-            val namespace = localSessionManager.getSessions(path.parent.namespace)
+            val namespace = localSessionManager.getSessions(path.namespace)
             val session = namespace.find { it.id == path.sessionId }
                 ?: throw RouteException(HttpStatusCode.NotFound, "Session not found")
 
@@ -212,10 +281,10 @@ fun Route.sessionApi() {
         }
     }
 
-    get<Sessions.WithNamespace.Session>({
-        summary = "Get session state"
-        description = "Returns the current state of a session, the agents, threads and their messages"
-        operationId = "getSessionState"
+    get<Sessions.Session.Existing>({
+        summary = "Get extended session state"
+        description = "Returns a session's state, extended with: agents, threads and thread messages"
+        operationId = "getExtendedSessionState"
         securitySchemeNames("token")
         request {
             pathParameter<String>("namespace") {
@@ -229,12 +298,12 @@ fun Route.sessionApi() {
         response {
             HttpStatusCode.OK to {
                 description = "Success"
-                body<SessionState> {
-                    description = "The session state"
+                body<SessionStateExtended> {
+                    description = "Extended session state"
                 }
             }
             HttpStatusCode.NotFound to {
-                description = "If either namespace or session ID is invalid"
+                description = "Either namespace or session ID is invalid"
                 body<RouteException> {
                     description = "Error message"
                 }
@@ -242,11 +311,61 @@ fun Route.sessionApi() {
         }
     }) { path ->
         try {
-            val namespace = localSessionManager.getSessions(path.parent.namespace)
+            val namespace = localSessionManager.getSessions(path.namespace)
             val session = namespace.find { it.id == path.sessionId }
                 ?: throw RouteException(HttpStatusCode.NotFound, "Session not found")
 
             call.respond(HttpStatusCode.OK, session.getState())
+        } catch (e: SessionException.InvalidNamespace) {
+            throw RouteException(HttpStatusCode.NotFound, e)
+        }
+    }
+
+    post<Sessions.Session.Existing>({
+        summary = "Executes a session"
+        description = "Executes a session was created with deferred execution"
+        operationId = "executeDeferredSession"
+        securitySchemeNames("token")
+        request {
+            body<SessionRuntimeSettings> {
+                description = "Settings for the execution of the session"
+            }
+            pathParameter<String>("namespace") {
+                description = "The namespace of the session"
+            }
+            pathParameter<String>("sessionId") {
+                description = "The sessionId of the session"
+            }
+        }
+        response {
+            HttpStatusCode.OK to {
+                description = "Success"
+            }
+            HttpStatusCode.NotFound to {
+                description = "Either namespace or session ID is invalid"
+                body<RouteException> {
+                    description = "Error message"
+                }
+            }
+            HttpStatusCode.BadRequest to {
+                description = "The session exists but is not pending execution"
+                body<RouteException> {
+                    description = "Error message"
+                }
+            }
+        }
+    }) { path ->
+        try {
+            val namespace = localSessionManager.getNamespace(path.namespace)
+            val session = namespace.sessions[path.sessionId]
+                ?: throw RouteException(HttpStatusCode.NotFound, "Session not found")
+
+            if (session.status.value is SessionStatus.PendingExecution) {
+                localSessionManager.launchSession(session, namespace, call.receive())
+            } else
+                throw RouteException(HttpStatusCode.BadRequest, "Session is not pending execution")
+
+            call.respond(HttpStatusCode.OK)
         } catch (e: SessionException.InvalidNamespace) {
             throw RouteException(HttpStatusCode.NotFound, e)
         }
