@@ -26,13 +26,13 @@ class SessionRequestBuilder {
         namespaceRequest = SessionNamespaceProvider.UseExisting(name)
     }
 
-    fun createNamespaceIfNotExists(block: SessionNamespaceBuilderBuilder.() -> Unit) {
+    fun createNamespaceIfNotExists(block: SessionNamespaceRequestBuilder.() -> Unit) {
         namespaceRequest =
-            SessionNamespaceProvider.CreateIfNotExists(SessionNamespaceBuilderBuilder().apply(block).build())
+            SessionNamespaceProvider.CreateIfNotExists(namespaceRequest(block))
     }
 
     fun immediateExecution(block: SessionRuntimeSettingsBuilder.() -> Unit) {
-        executionSettings = SessionRequestExecution.Execute(SessionRuntimeSettingsBuilder().apply(block).build())
+        executionSettings = SessionRequestExecution.Execute(runtimeSettings(block))
     }
 
     fun deferExecution() {
@@ -90,7 +90,6 @@ class AgentGraphRequestBuilder {
     }
 }
 
-
 @TestDsl
 class SessionRuntimeSettingsBuilder {
     var ttl: Duration? = null
@@ -120,7 +119,7 @@ class SessionWebhooksBuilder {
 }
 
 @TestDsl
-class SessionNamespaceBuilderBuilder {
+class SessionNamespaceRequestBuilder {
     var name: String = "default"
     var deleteOnLastSessionExit = true
     private val annotations: MutableMap<String, String> = mutableMapOf()
@@ -134,6 +133,11 @@ class SessionNamespaceBuilderBuilder {
     }
 }
 
-fun sessionRequest(block: SessionRequestBuilder.() -> Unit): SessionRequest {
-    return SessionRequestBuilder().apply(block).build()
-}
+fun namespaceRequest(block: SessionNamespaceRequestBuilder.() -> Unit) =
+    SessionNamespaceRequestBuilder().apply(block).build()
+
+fun runtimeSettings(block: SessionRuntimeSettingsBuilder.() -> Unit)
+    = SessionRuntimeSettingsBuilder().apply(block).build()
+
+fun sessionRequest(block: SessionRequestBuilder.() -> Unit): SessionRequest =
+    SessionRequestBuilder().apply(block).build()
