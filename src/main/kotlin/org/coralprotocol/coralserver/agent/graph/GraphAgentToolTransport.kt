@@ -55,7 +55,8 @@ sealed interface GraphAgentToolTransport : KoinComponent {
 
                 val urlWithSessionAndAgentPaths = URLBuilder(urlString = url)
                     .appendPathSegments(sessionId, agent.name).buildString()
-                agent.logger.info { "Making custom tool call POST to $urlWithSessionAndAgentPaths" }
+
+                agent.logger.info { "Calling custom tool $name, posting to $urlWithSessionAndAgentPaths" }
                 val response = client.post(urlWithSessionAndAgentPaths) {
                     contentType(ContentType.Application.Json)
                     addJsonBodyWithSignature(json, config.customToolSecret, request.arguments, signatureHeader)

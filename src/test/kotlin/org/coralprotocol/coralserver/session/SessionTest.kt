@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.session
 
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.core.NamedTag
 import io.kotest.inspectors.shouldForAll
 import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
@@ -201,7 +202,7 @@ class SessionTest : CoralTest({
 
     }
 
-    test("testMentions").config(coroutineTestScope = true) {
+    test("testMentions").config(coroutineTestScope = true, tags = setOf(NamedTag("noisy"))) {
         val localSessionManager by inject<LocalSessionManager>()
 
         val session = localSessionManager.createSession(

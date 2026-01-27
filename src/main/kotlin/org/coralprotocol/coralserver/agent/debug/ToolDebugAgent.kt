@@ -87,7 +87,7 @@ class ToolDebugAgent(client: HttpClient) : DebugAgent(client) {
             if (response.isError == true) {
                 agent.logger.warn { "Failed to call tool $toolName: $text" }
             } else {
-                agent.logger.info { "Tool $toolName returned: $text" }
+                agent.logger.debug { "Tool $toolName returned: $text" }
             }
         } catch (e: SerializationException) {
             agent.logger.error(e) { "Failed to call tool $toolName: bad input" }
