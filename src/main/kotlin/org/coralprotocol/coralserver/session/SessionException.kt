@@ -9,6 +9,7 @@ open class SessionException(override val message: String): Exception(message) {
     class ThreadClosedException(message: String) : SessionException(message)
     class InvalidAgentSecret(message: String) : SessionException(message)
     class InvalidNamespace(message: String) : SessionException(message)
+    class InvalidSession(message: String) : SessionException(message)
     class AlreadyLaunchedException(message: String) : SessionException(message)
     class NotLaunchedException(message: String) : SessionException(message)
     class RestrictedRegistry(message: String) : SessionException(message)

@@ -24,6 +24,7 @@ import org.coralprotocol.coralserver.payment.BlankBlockchainService
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
+import org.coralprotocol.coralserver.session.state.SessionNamespaceState
 import org.coralprotocol.coralserver.util.addJsonBodyWithSignature
 import org.coralprotocol.coralserver.util.utcTimeNow
 import org.coralprotocol.payment.blockchain.BlockchainService
@@ -42,7 +43,15 @@ data class LocalSessionNamespace(
     val sessions: ConcurrentHashMap<String, LocalSession>,
 
     override val annotations: Map<String, String>,
-) : SessionResource
+) : SessionResource {
+    fun getState() =
+        SessionNamespaceState(
+            name = name,
+            deleteOnLastSessionExit = deleteOnLastSessionExit,
+            sessions = sessions.values.map { it.getState().base },
+            annotations = annotations
+        )
+}
 
 data class AgentLocator(
     val namespace: LocalSessionNamespace,
@@ -261,6 +270,22 @@ class LocalSessionManager(
     }
 
     /**
+     * Helper function for closing all sessions in a namespace, then deleting the namespace (even if
+     * deleteOnLastSessionExit is false for this namespace)
+     */
+    suspend fun deleteNamespace(namespaceName: String) {
+        val namespace = getNamespace(namespaceName)
+        getNamespace(namespaceName).sessions.values.forEach { session ->
+            session.cancelAndJoinAgents()
+        }
+
+        if (!namespace.deleteOnLastSessionExit) {
+            events.emit(LocalSessionManagerEvent.NamespaceClosed(namespace.name))
+            sessionNamespaces.remove(namespace.name)
+        }
+    }
+
+    /**
      * Locates an agent by the agent's secret.
      *
      * @throws SessionException.InvalidAgentSecret if the secret does not map to an agent
@@ -274,15 +299,23 @@ class LocalSessionManager(
      *
      * @throws SessionException.InvalidNamespace if the namespace does not exist
      */
-    fun getSessions(namespace: String) =
-        sessionNamespaces[namespace]?.sessions?.values?.toList()
-            ?: throw SessionException.InvalidNamespace("Namespace \"$namespace\" does not exist")
+    fun getSessions(namespaceName: String) =
+        sessionNamespaces[namespaceName]?.sessions?.values?.toList()
+            ?: throw SessionException.InvalidNamespace("Namespace \"$namespaceName\" does not exist")
 
-    /**
-     * Returns a list of registered namespaces
-     */
     fun getNamespaces() =
         sessionNamespaces.values.toList()
+
+    fun getNamespaceStates() =
+        sessionNamespaces.values.map { it.getState() }
+
+    fun getNamespace(namespaceName: String) =
+        sessionNamespaces[namespaceName]
+            ?: throw SessionException.InvalidNamespace("Namespace \"$namespaceName\" not found")
+
+    fun getSession(namespaceName: String, sessionId: SessionId) =
+        getNamespace(namespaceName).sessions[sessionId]
+            ?: SessionException.InvalidSession("Session \"$sessionId\" not found")
 
     /**
      * Behaviour for session exit.
@@ -343,7 +376,7 @@ class LocalSessionManager(
         }
 
         namespace.sessions.remove(session.id)
-        if (namespace.sessions.isEmpty()) {
+        if (namespace.sessions.isEmpty() && namespace.deleteOnLastSessionExit) {
             events.emit(LocalSessionManagerEvent.NamespaceClosed(namespace.name))
             sessionNamespaces.remove(namespace.name)
         }
