@@ -3,13 +3,16 @@ package org.coralprotocol.coralserver.session
 import io.kotest.assertions.ktor.client.shouldBeOK
 import io.kotest.assertions.ktor.client.shouldHaveStatus
 import io.kotest.assertions.nondeterministic.continually
+import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.assertions.throwables.shouldNotThrowAny
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.inspectors.forAll
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSingleElement
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.equals.shouldBeEqual
+import io.kotest.matchers.maps.shouldHaveSize
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.client.*
@@ -48,9 +51,7 @@ import org.coralprotocol.coralserver.session.reporting.SessionEndReport
 import org.coralprotocol.coralserver.session.state.SessionNamespaceState
 import org.coralprotocol.coralserver.session.state.SessionStateExtended
 import org.coralprotocol.coralserver.util.signatureVerifiedBody
-import org.coralprotocol.coralserver.utils.dsl.SessionRuntimeSettingsBuilder
-import org.coralprotocol.coralserver.utils.dsl.registryAgent
-import org.coralprotocol.coralserver.utils.dsl.sessionRequest
+import org.coralprotocol.coralserver.utils.dsl.*
 import org.koin.core.component.inject
 import java.util.*
 import kotlin.time.Duration.Companion.milliseconds
@@ -418,5 +419,101 @@ class SessionApiTest : CoralTest({
             throw response
 
         response.shouldBeInstanceOf<ToolPayload>().shouldBeEqual(toolPayload)
+    }
+
+
+    test("testDeferredExecution") {
+        val client by inject<HttpClient>()
+        val localSessionManager by inject<LocalSessionManager>()
+
+        val sessionId: SessionIdentifier = client.authenticatedPost(Sessions.Session()) {
+            setBody(
+                sessionRequest {
+                    agentGraphRequest {
+                        agent(SeedDebugAgent.identifier) {
+                            option("START_DELAY", AgentOptionValue.UInt(250u))
+                        }
+                        isolateAllAgents()
+                    }
+                    deferExecution()
+                }
+            )
+        }.shouldBeOK().body()
+
+        val session = localSessionManager.getSession(sessionId.namespace, sessionId.sessionId)
+        continually(1.seconds) { session.status.value.shouldBeEqual(SessionStatus.PendingExecution) }
+
+        client.authenticatedPost(
+            Sessions.Session.Existing(
+                namespace = sessionId.namespace,
+                sessionId = sessionId.sessionId
+            )
+        ) {
+            setBody(runtimeSettings {
+                persistenceMode = SessionPersistenceMode.HoldAfterExit(500)
+            })
+        }.shouldBeOK()
+
+        // runs for at least 250ms because of START_DELAY
+        session.status.value.shouldBeInstanceOf<SessionStatus.Running>()
+
+        eventually(1.seconds) {
+            session.status.value.shouldBeInstanceOf<SessionStatus.Closing>()
+        }
+    }
+
+    test("testNamespaces") {
+        val client by inject<HttpClient>()
+        val localSessionManager by inject<LocalSessionManager>()
+
+        val ns1Name = UUID.randomUUID().toString()
+        client.authenticatedPost(Sessions.Namespace()) {
+            setBody(namespaceRequest {
+                name = ns1Name
+            })
+        }.shouldBeOK()
+
+        // will throw if namespace doesn't exist
+        shouldNotThrowAny { localSessionManager.getNamespace(ns1Name) }
+
+        client.authenticatedDelete(Sessions.Namespace.Existing(namespace = ns1Name)).shouldBeOK()
+
+        // should throw because namespace no longer exists
+        shouldThrow<SessionException.InvalidNamespace> { localSessionManager.getNamespace(ns1Name) }
+    }
+
+    test("testNamespacesWithSessions").config(timeout = 5.seconds) {
+        val client by inject<HttpClient>()
+        val localSessionManager by inject<LocalSessionManager>()
+
+        val ns1Name = UUID.randomUUID().toString()
+        client.authenticatedPost(Sessions.Namespace()) {
+            setBody(namespaceRequest {
+                name = ns1Name
+            })
+        }.shouldBeOK()
+
+        val numSessions = 5
+        repeat(numSessions) {
+            client.authenticatedPost(Sessions.Session()) {
+                setBody(
+                    sessionRequest {
+                        agentGraphRequest {
+                            agent(SeedDebugAgent.identifier) {
+                                option("START_DELAY", AgentOptionValue.UInt(10000u))
+                            }
+                            isolateAllAgents()
+                        }
+                        useExistingNamespace(ns1Name)
+                    }
+                )
+            }.shouldBeOK().body()
+        }
+
+        localSessionManager.getNamespace(ns1Name).shouldNotBeNull().sessions.shouldHaveSize(numSessions)
+
+        // delete should only return after all sessions exit
+        client.authenticatedDelete(Sessions.Namespace.Existing(namespace = ns1Name)).shouldBeOK()
+        shouldThrow<SessionException.InvalidNamespace> { localSessionManager.getNamespace(ns1Name) }
     }
 })
