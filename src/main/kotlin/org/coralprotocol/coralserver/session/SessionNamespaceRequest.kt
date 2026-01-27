@@ -4,7 +4,7 @@ import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class SessionNamespaceBuilder(
+data class SessionNamespaceRequest(
     @Description("The name of this namespace")
     val name: String,
 
