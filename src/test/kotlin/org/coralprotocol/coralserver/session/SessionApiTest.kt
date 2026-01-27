@@ -43,10 +43,10 @@ import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.routes.RouteException
-import org.coralprotocol.coralserver.routes.api.v1.BasicNamespace
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
-import org.coralprotocol.coralserver.session.state.SessionState
+import org.coralprotocol.coralserver.session.state.SessionNamespaceState
+import org.coralprotocol.coralserver.session.state.SessionStateExtended
 import org.coralprotocol.coralserver.util.signatureVerifiedBody
 import org.coralprotocol.coralserver.utils.dsl.SessionRuntimeSettingsBuilder
 import org.coralprotocol.coralserver.utils.dsl.registryAgent
@@ -89,7 +89,7 @@ class SessionApiTest : CoralTest({
             )
         )
 
-        return client.authenticatedPost(Sessions()) {
+        return client.authenticatedPost(Sessions.Session()) {
             setBody(
                 sessionRequest {
                     agentGraphRequest {
@@ -115,13 +115,15 @@ class SessionApiTest : CoralTest({
         val localSessionManager by inject<LocalSessionManager>()
 
         val sessionsRes = Sessions()
-        val testNamespace = Sessions.WithNamespace(namespace = namespaceName)
+        val testNamespace = Sessions.Namespace.Existing(namespace = namespaceName)
 
         repeat(10) {
-            sessionWithDelay(client, 100, false)
+            sessionWithDelay(client, 100, false) {
+
+            }
         }
 
-        var namespaces: List<BasicNamespace> = shouldNotThrowAny {
+        var namespaces: List<SessionNamespaceState> = shouldNotThrowAny {
             client.authenticatedGet(sessionsRes).shouldBeOK().body()
         }
         namespaces.shouldHaveSize(1)
@@ -135,18 +137,15 @@ class SessionApiTest : CoralTest({
         namespaces = client.authenticatedGet(sessionsRes).shouldBeOK().body()
         namespaces.shouldBeEmpty()
 
-        // namespace should be deleted when the last session exits
         client.authenticatedGet(testNamespace).shouldHaveStatus(HttpStatusCode.NotFound)
     }
 
     test("testDeleteSession") {
         val client by inject<HttpClient>()
         val sessionManager by inject<LocalSessionManager>()
-
-        val testNamespace = Sessions.WithNamespace(namespace = namespaceName)
         val sessionId = sessionWithDelay(client, 1000, true)
 
-        val testSession = Sessions.WithNamespace.Session(testNamespace, sessionId.sessionId)
+        val testSession = Sessions.Session.Existing(namespace = namespaceName, sessionId = sessionId.sessionId)
         client.authenticatedDelete(testSession).shouldBeOK()
 
         sessionManager.waitAllSessions()
@@ -156,11 +155,10 @@ class SessionApiTest : CoralTest({
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
 
-        val namespace = Sessions.WithNamespace(namespace = namespaceName)
         val threadCount = 5u
         val messageCount = 5u
 
-        val sessionId: SessionIdentifier = client.authenticatedPost(Sessions()) {
+        val sessionId: SessionIdentifier = client.authenticatedPost(Sessions.Session()) {
             setBody(
                 sessionRequest {
                     agentGraphRequest {
@@ -184,8 +182,13 @@ class SessionApiTest : CoralTest({
         val session = localSessionManager.getSessions(sessionId.namespace).firstOrNull().shouldNotBeNull()
         session.joinAgents()
 
-        val state: SessionState =
-            client.authenticatedGet(Sessions.WithNamespace.Session(namespace, sessionId.sessionId))
+        val state: SessionStateExtended =
+            client.authenticatedGet(
+                Sessions.Session.Existing(
+                    namespace = namespaceName,
+                    sessionId = sessionId.sessionId
+                )
+            )
                 .shouldBeOK()
                 .body()
 
@@ -203,11 +206,10 @@ class SessionApiTest : CoralTest({
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
 
-        val namespace = Sessions.WithNamespace(namespace = namespaceName)
         val threadCount = 5u
         val messageCount = 5u
 
-        client.authenticatedPost(namespace) {
+        client.authenticatedPost(Sessions.Session()) {
             setBody(
                 sessionRequest {
                     agentGraphRequest {
@@ -243,9 +245,9 @@ class SessionApiTest : CoralTest({
         }
         continually(1.seconds) {
             client.authenticatedGet(
-                Sessions.WithNamespace.Session(
-                    Sessions.WithNamespace(namespace = id.namespace),
-                    id.sessionId
+                Sessions.Session.Existing(
+                    namespace = namespaceName,
+                    sessionId = id.sessionId
                 )
             ).shouldBeOK()
         }
@@ -259,9 +261,9 @@ class SessionApiTest : CoralTest({
         }
         continually(1.seconds) {
             client.authenticatedGet(
-                Sessions.WithNamespace.Session(
-                    Sessions.WithNamespace(namespace = id.namespace),
-                    id.sessionId
+                Sessions.Session.Existing(
+                    namespace = namespaceName,
+                    sessionId = id.sessionId
                 )
             ).shouldBeOK()
         }
@@ -276,9 +278,9 @@ class SessionApiTest : CoralTest({
         delay(100)
 
         client.authenticatedGet(
-            Sessions.WithNamespace.Session(
-                Sessions.WithNamespace(namespace = id.namespace),
-                id.sessionId
+            Sessions.Session.Existing(
+                namespace = namespaceName,
+                sessionId = id.sessionId
             )
         ).shouldHaveStatus(HttpStatusCode.NotFound)
 
@@ -292,11 +294,11 @@ class SessionApiTest : CoralTest({
         delay(100)
 
         client.authenticatedGet(
-            Sessions.WithNamespace.Session(
-                Sessions.WithNamespace(namespace = id.namespace),
-                id.sessionId
+            Sessions.Session.Existing(
+                namespace = namespaceName,
+                sessionId = id.sessionId
             )
-        ).shouldBeOK().body<SessionState>().status.shouldBeInstanceOf<SessionStatus.Closing>()
+        ).shouldBeOK().body<SessionStateExtended>().base.status.shouldBeInstanceOf<SessionStatus.Closing>()
     }
 
     test("testSessionWebhook").config(timeout = 30.seconds) {
@@ -379,7 +381,7 @@ class SessionApiTest : CoralTest({
             }
         }
 
-        client.authenticatedPost(Sessions()) {
+        client.authenticatedPost(Sessions.Session()) {
             setBody(
                 sessionRequest {
                     agentGraphRequest {

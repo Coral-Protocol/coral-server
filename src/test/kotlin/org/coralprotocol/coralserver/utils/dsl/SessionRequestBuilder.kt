@@ -11,8 +11,8 @@ import kotlin.time.Duration
 @TestDsl
 class SessionRequestBuilder {
     private var agentGraphRequest: AgentGraphRequest = AgentGraphRequest(listOf())
-    private var namespaceRequest: SessionNamespaceRequest = SessionNamespaceRequest.CreateIfNotExists(
-        SessionNamespaceBuilder("default")
+    private var namespaceRequest: SessionNamespaceProvider = SessionNamespaceProvider.CreateIfNotExists(
+        SessionNamespaceRequest("default")
     )
     private var executionSettings: SessionRequestExecution = SessionRequestExecution.Execute(SessionRuntimeSettings())
 
@@ -23,12 +23,12 @@ class SessionRequestBuilder {
     }
 
     fun useExistingNamespace(name: String) {
-        namespaceRequest = SessionNamespaceRequest.UseExisting(name)
+        namespaceRequest = SessionNamespaceProvider.UseExisting(name)
     }
 
     fun createNamespaceIfNotExists(block: SessionNamespaceBuilderBuilder.() -> Unit) {
         namespaceRequest =
-            SessionNamespaceRequest.CreateIfNotExists(SessionNamespaceBuilderBuilder().apply(block).build())
+            SessionNamespaceProvider.CreateIfNotExists(SessionNamespaceBuilderBuilder().apply(block).build())
     }
 
     fun immediateExecution(block: SessionRuntimeSettingsBuilder.() -> Unit) {
@@ -122,15 +122,15 @@ class SessionWebhooksBuilder {
 @TestDsl
 class SessionNamespaceBuilderBuilder {
     var name: String = "default"
-    var deleteOnLastSessionExit = false
+    var deleteOnLastSessionExit = true
     private val annotations: MutableMap<String, String> = mutableMapOf()
 
     fun annotation(name: String, value: String) {
         annotations[name] = value
     }
 
-    fun build(): SessionNamespaceBuilder {
-        return SessionNamespaceBuilder(name, deleteOnLastSessionExit, annotations)
+    fun build(): SessionNamespaceRequest {
+        return SessionNamespaceRequest(name, deleteOnLastSessionExit, annotations)
     }
 }
 
