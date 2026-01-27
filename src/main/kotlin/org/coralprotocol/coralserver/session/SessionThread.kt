@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalSerializationApi::class)
+@file:OptIn(ExperimentalSerializationApi::class, ExperimentalTime::class)
 
 package org.coralprotocol.coralserver.session
 
@@ -11,7 +11,11 @@ import kotlinx.serialization.Transient
 import kotlinx.serialization.json.*
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.events.SessionEvent
+import org.coralprotocol.coralserver.util.InstantSerializer
+import org.coralprotocol.coralserver.util.utcTimeNow
 import java.util.*
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 typealias ThreadId = String
 
@@ -22,7 +26,11 @@ class SessionThread(
     val creatorName: UniqueAgentName,
     private val participants: MutableSet<UniqueAgentName> = mutableSetOf(),
     private val messages: MutableList<SessionThreadMessage> = mutableListOf(),
-    var state: SessionThreadState = SessionThreadState.Open
+    var state: SessionThreadState = SessionThreadState.Open,
+
+    @Serializable(with = InstantSerializer::class)
+    @Suppress("unused")
+    val timestamp: Instant = utcTimeNow(),
 ) {
     @Transient
     private val participantsMutex = Mutex()
@@ -68,7 +76,7 @@ class SessionThread(
                     }"
                 }
 
-                throw SessionException.MissingAgentException("Cannot mention agents (${missing.joinToString(", "){ it.name }}) as they are not participants of thread ${this.id}")
+                throw SessionException.MissingAgentException("Cannot mention agents (${missing.joinToString(", ") { it.name }}) as they are not participants of thread ${this.id}")
             }
         }
 
@@ -239,7 +247,10 @@ sealed interface SessionThreadState {
     @Serializable
     @SerialName("closed")
     data class Closed(
-        val summary: String
+        val summary: String,
+
+        @Serializable(with = InstantSerializer::class)
+        val timestamp: Instant = utcTimeNow(),
     ) : SessionThreadState
 }
 

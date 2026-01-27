@@ -6,30 +6,32 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonClassDiscriminator
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
+import kotlinx.serialization.json.*
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.models.Telemetry
-import java.util.UUID
+import org.coralprotocol.coralserver.util.InstantSerializer
+import org.coralprotocol.coralserver.util.utcTimeNow
+import java.util.*
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
-typealias MessageId  = String
+typealias MessageId = String
 
+@OptIn(ExperimentalTime::class)
 @Serializable
 data class SessionThreadMessage(
     val id: MessageId = UUID.randomUUID().toString(),
     val threadId: ThreadId,
     val text: String,
     val senderName: UniqueAgentName,
-    val timestamp: Long = System.currentTimeMillis(),
     val mentionNames: Set<UniqueAgentName>,
 
     @Transient
-    val telemetry: Telemetry? = null
+    val telemetry: Telemetry? = null,
+
+    @Serializable(with = InstantSerializer::class)
+    @Suppress("unused")
+    val timestamp: Instant = utcTimeNow(),
 ) {
     /**
      * Creates a version of this message that is designed to be placed in an agent's state resource.  This contains only
@@ -38,7 +40,7 @@ data class SessionThreadMessage(
     fun asJsonState() = buildJsonObject {
         put("messageText", text)
         put("sendingAgentName", senderName)
-        put("messageUnixTime", timestamp)
+        put("messageTimestamp", timestamp.toString())
 
         if (mentionNames.isNotEmpty())
             put("mentionAgentNames", JsonArray(mentionNames.map { JsonPrimitive(it) }))

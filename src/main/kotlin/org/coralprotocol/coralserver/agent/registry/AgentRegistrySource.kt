@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalSerializationApi::class)
+@file:OptIn(ExperimentalSerializationApi::class, ExperimentalTime::class)
 
 package org.coralprotocol.coralserver.agent.registry
 
@@ -6,7 +6,10 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
+import org.coralprotocol.coralserver.util.InstantSerializer
+import org.coralprotocol.coralserver.util.utcTimeNow
 import org.koin.core.component.KoinComponent
+import kotlin.time.ExperimentalTime
 
 @Serializable
 @JsonClassDiscriminator("type")
@@ -40,7 +43,8 @@ sealed class AgentRegistrySourceIdentifier {
 @Serializable
 open class AgentRegistrySource(val identifier: AgentRegistrySourceIdentifier) : KoinComponent {
     @Suppress("unused")
-    val timestamp: Long = System.currentTimeMillis()
+    @Serializable(with = InstantSerializer::class)
+    val timestamp = utcTimeNow()
 
     open val name: String = "default"
 
