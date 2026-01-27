@@ -31,7 +31,7 @@ class Sessions(val parent: ApiV1 = ApiV1()) {
     @Resource("namespace")
     class Namespace(val parent: Sessions = Sessions()) {
         @Resource("{namespace}")
-        class Existing(val parent: Session = Session(), val namespace: String)
+        class Existing(val parent: Namespace = Namespace(), val namespace: String)
     }
 }
 
@@ -145,6 +145,7 @@ fun Route.sessionApi() {
     }) {
         try {
             localSessionManager.createNamespace(call.receive<SessionNamespaceRequest>())
+            call.respond(HttpStatusCode.OK)
         } catch (e: SessionException.InvalidNamespace) {
             throw RouteException(HttpStatusCode.BadRequest, e)
         }
