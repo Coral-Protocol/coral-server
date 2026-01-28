@@ -4,11 +4,14 @@ import io.kotest.assertions.ktor.client.shouldBeOK
 import io.kotest.assertions.ktor.client.shouldHaveStatus
 import io.kotest.assertions.nondeterministic.continually
 import io.kotest.assertions.nondeterministic.eventually
+import io.kotest.assertions.throwables.shouldNotThrow
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.inspectors.forAll
+import io.kotest.inspectors.shouldForAll
 import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.collections.shouldHaveSingleElement
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.equals.shouldBeEqual
@@ -49,6 +52,7 @@ import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
 import org.coralprotocol.coralserver.session.state.SessionNamespaceState
+import org.coralprotocol.coralserver.session.state.SessionState
 import org.coralprotocol.coralserver.session.state.SessionStateExtended
 import org.coralprotocol.coralserver.util.signatureVerifiedBody
 import org.coralprotocol.coralserver.utils.dsl.*
@@ -130,8 +134,8 @@ class SessionApiTest : CoralTest({
         namespaces.shouldHaveSize(1)
         namespaces.first().sessions.shouldHaveSize(10)
 
-        val sessions: List<SessionId> = client.authenticatedGet(testNamespace).shouldBeOK().body()
-        sessions.shouldHaveSize(10)
+        val sessionStates: List<SessionState> = client.authenticatedGet(testNamespace).shouldBeOK().body()
+        sessionStates.shouldHaveSize(10)
 
         localSessionManager.waitAllSessions()
 
@@ -507,7 +511,7 @@ class SessionApiTest : CoralTest({
                         useExistingNamespace(ns1Name)
                     }
                 )
-            }.shouldBeOK().body()
+            }.shouldBeOK()
         }
 
         localSessionManager.getNamespace(ns1Name).shouldNotBeNull().sessions.shouldHaveSize(numSessions)
@@ -515,5 +519,114 @@ class SessionApiTest : CoralTest({
         // delete should only return after all sessions exit
         client.authenticatedDelete(Sessions.Namespace.Existing(namespace = ns1Name)).shouldBeOK()
         shouldThrow<SessionException.InvalidNamespace> { localSessionManager.getNamespace(ns1Name) }
+    }
+
+    test("testGetNamespaceNames") {
+        val client by inject<HttpClient>()
+
+        val ids = buildList {
+            repeat(10) {
+                val id = UUID.randomUUID().toString()
+                add(id)
+
+                client.authenticatedPost(Sessions.Namespace()) {
+                    setBody(namespaceRequest {
+                        name = id
+                    })
+                }.shouldBeOK()
+            }
+        }
+
+        val namespaceNames: List<String> = client.authenticatedGet(Sessions.Namespace()).shouldBeOK().body()
+        namespaceNames.shouldContainAll(ids)
+    }
+
+    test("testGetNamespaceSessions") {
+        val client by inject<HttpClient>()
+
+        val nsName = UUID.randomUUID().toString()
+        client.authenticatedPost(Sessions.Namespace()) {
+            setBody(namespaceRequest {
+                name = nsName
+            })
+        }.shouldBeOK()
+
+        val numSessions = 5
+        val ids = buildList {
+            repeat(numSessions) {
+                val id: SessionIdentifier = client.authenticatedPost(Sessions.Session()) {
+                    setBody(
+                        sessionRequest {
+                            agentGraphRequest {
+                                agent(SeedDebugAgent.identifier) {
+                                    option("START_DELAY", AgentOptionValue.UInt(10000u))
+                                }
+                                isolateAllAgents()
+                            }
+                            useExistingNamespace(nsName)
+                        }
+                    )
+                }.shouldBeOK().body()
+
+                add(id.sessionId)
+            }
+        }
+
+        val sessions: List<SessionState> =
+            client.authenticatedGet(Sessions.Namespace.Existing(namespace = nsName)).shouldBeOK().body()
+
+        sessions.shouldForAll {
+            it.namespace.shouldBeEqual(nsName)
+        }
+
+        sessions.map { it.id }.shouldContainAll(ids)
+    }
+
+    test("testNamespaceDeleteOnLastSessionExit") {
+        val client by inject<HttpClient>()
+        val localSessionManager by inject<LocalSessionManager>()
+
+        val deleteName = "this namespace should be deleted"
+        val deleteBlock: SessionNamespaceRequestBuilder.() -> Unit = {
+            name = deleteName
+            deleteOnLastSessionExit = true
+        }
+
+        val noDeleteName = "this namespace should not be deleted"
+        val noDeleteBlock: SessionNamespaceRequestBuilder.() -> Unit = {
+            name = noDeleteName
+            deleteOnLastSessionExit = false
+        }
+
+        val sessionIds = buildList {
+            for (block in listOf(deleteBlock, noDeleteBlock)) {
+                add(client.authenticatedPost(Sessions.Session()) {
+                    setBody(
+                        sessionRequest {
+                            agentGraphRequest {
+                                agent(SeedDebugAgent.identifier) {
+                                    option("START_DELAY", AgentOptionValue.UInt(250u))
+                                }
+                                isolateAllAgents()
+                            }
+                            createNamespaceIfNotExists(block)
+                        }
+                    )
+                }.shouldBeOK().body<SessionIdentifier>())
+            }
+        }
+
+        sessionIds.shouldHaveSize(2)
+        sessionIds.shouldForAll {
+            shouldNotThrowAny { localSessionManager.getSession(it.namespace, it.sessionId) }
+        }
+
+        localSessionManager.waitAllSessions()
+
+        val deleteSession = sessionIds[0]
+        val noDeleteSession = sessionIds[1]
+
+        shouldThrow<SessionException.InvalidNamespace> { localSessionManager.getNamespace(deleteSession.namespace) }
+        shouldNotThrow<SessionException.InvalidNamespace> { localSessionManager.getNamespace(noDeleteSession.namespace) }
     }
 })
