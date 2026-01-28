@@ -25,7 +25,7 @@ class DebugAgentsTest : CoralTest({
         val threadCount = 50u
         val messageCount = 100u
 
-        val sessionId: SessionIdentifier = client.authenticatedPost(Sessions()) {
+        val sessionId: SessionIdentifier = client.authenticatedPost(Sessions.Session()) {
             setBody(sessionRequest {
                 agentGraphRequest {
                     agent(SeedDebugAgent.identifier) {
@@ -56,7 +56,7 @@ class DebugAgentsTest : CoralTest({
         val threadCount = 5u
         val messageCount = 10u
 
-        val sessionId: SessionIdentifier = client.authenticatedPost(Sessions()) {
+        val sessionId: SessionIdentifier = client.authenticatedPost(Sessions.Session()) {
             setBody(sessionRequest {
                 agentGraphRequest {
                     agent(SeedDebugAgent.identifier) {
