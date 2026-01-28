@@ -53,15 +53,15 @@ class DebugAgentsTest : CoralTest({
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
 
-        val threadCount = 5u
-        val messageCount = 10u
+        val threadCount = 1u
+        val messageCount = 50u
 
         val sessionId: SessionIdentifier = client.authenticatedPost(Sessions.Session()) {
             setBody(sessionRequest {
                 agentGraphRequest {
                     agent(SeedDebugAgent.identifier) {
-                        option("START_DELAY", AgentOptionValue.UInt(10u))
-                        option("OPERATION_DELAY", AgentOptionValue.UInt(10u))
+                        option("START_DELAY", AgentOptionValue.UInt(100u))
+                        option("OPERATION_DELAY", AgentOptionValue.UInt(200u))
                         option("SEED_THREAD_COUNT", AgentOptionValue.UInt(threadCount))
                         option("SEED_MESSAGE_COUNT", AgentOptionValue.UInt(messageCount))
                         option("PARTICIPANTS", AgentOptionValue.StringList(listOf("echo")))
