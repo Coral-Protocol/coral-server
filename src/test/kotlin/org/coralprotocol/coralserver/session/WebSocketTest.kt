@@ -22,6 +22,8 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.events.LocalSessionManagerEvent
 import org.coralprotocol.coralserver.events.SessionEvent
+import org.coralprotocol.coralserver.logging.Logger
+import org.coralprotocol.coralserver.modules.LOGGER_TEST
 import org.coralprotocol.coralserver.modules.WEBSOCKET_COROUTINE_SCOPE_NAME
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.routes.ws.v1.Events
@@ -46,7 +48,7 @@ class WebSocketTest : CoralTest({
         val threadCount = 10u
         val messageCount = 10u
 
-        val id: SessionIdentifier = client.authenticatedPost(Sessions()) {
+        val id: SessionIdentifier = client.authenticatedPost(Sessions.Session()) {
             setBody(
                 sessionRequest {
                     agentGraphRequest {
@@ -115,6 +117,7 @@ class WebSocketTest : CoralTest({
             events = mutableListOf(
                 TestEvent("ns1 create") { it is LocalSessionManagerEvent.NamespaceCreated && it.namespace == ns1Name },
                 TestEvent("ns1 session create") { it is LocalSessionManagerEvent.SessionCreated && it.namespace == ns1Name },
+                TestEvent("ns1 session running") { it is LocalSessionManagerEvent.SessionRunning && it.namespace == ns1Name },
                 TestEvent("ns1 destroy") { it is LocalSessionManagerEvent.NamespaceClosed && it.namespace == ns1Name },
                 TestEvent("ns1 session closing") { it is LocalSessionManagerEvent.SessionClosing && it.namespace == ns1Name },
                 TestEvent("ns1 session closed") { it is LocalSessionManagerEvent.SessionClosed && it.namespace == ns1Name },
@@ -146,7 +149,7 @@ class WebSocketTest : CoralTest({
             localSessionManager.events.subscriptionCount.first { it == 1 }
 
             for (namespaceName in listOf(ns1Name, ns2Name)) {
-                client.authenticatedPost(Sessions()) {
+                client.authenticatedPost(Sessions.Session()) {
                     setBody(
                         sessionRequest {
                             createNamespaceIfNotExists {

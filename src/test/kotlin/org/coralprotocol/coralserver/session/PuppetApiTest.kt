@@ -31,7 +31,7 @@ class PuppetApiTest : CoralTest({
         client: HttpClient,
         body: suspend (Puppet.Agent, Puppet.Agent, LocalSession) -> Unit
     ) {
-        val id: SessionIdentifier = client.authenticatedPost(Sessions()) {
+        val id: SessionIdentifier = client.authenticatedPost(Sessions.Session()) {
             setBody(
                 sessionRequest {
                     createNamespaceIfNotExists {

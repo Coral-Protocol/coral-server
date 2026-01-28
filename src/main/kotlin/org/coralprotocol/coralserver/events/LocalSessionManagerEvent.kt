@@ -25,6 +25,10 @@ sealed class LocalSessionManagerEvent {
     data class SessionCreated(val sessionId: SessionId, override val namespace: String) : LocalSessionManagerEvent()
 
     @Serializable
+    @SerialName("session_running")
+    data class SessionRunning(val sessionId: SessionId, override val namespace: String) : LocalSessionManagerEvent()
+
+    @Serializable
     @SerialName("session_closing")
     data class SessionClosing(val sessionId: SessionId, override val namespace: String) : LocalSessionManagerEvent()
 

@@ -223,6 +223,7 @@ class LocalSessionManager(
         managementScope.launch {
             val timeoutDuration = settings.ttl?.milliseconds ?: Duration.INFINITE
             val timedOut = withTimeoutOrNull(timeoutDuration) {
+                events.emit(LocalSessionManagerEvent.SessionRunning(session.id, namespace.name))
                 session.status.update { SessionStatus.Running(utcTimeNow()) }
 
                 session.launchAgents()
