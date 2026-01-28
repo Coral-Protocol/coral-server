@@ -98,11 +98,11 @@ fun Route.sessionApi() {
 
         when (sessionRequest.execution) {
             is SessionRequestExecution.Defer -> {
-                logger.info { "session ${session.id} was created in ${namespace.name} with deferred execution" }
+                logger.info { "session \"${session.id}\" was created in \"${namespace.name}\" with deferred execution" }
             }
 
             is SessionRequestExecution.Execute -> {
-                logger.info { "session ${session.id} was created ${namespace.name} with immediate execution" }
+                logger.info { "session \"${session.id}\" was created in \"${namespace.name}\" with immediate execution" }
                 localSessionManager.launchSession(session, namespace, sessionRequest.execution.runtimeSettings)
             }
         }
@@ -177,7 +177,7 @@ fun Route.sessionApi() {
         }
     }) { path ->
         try {
-            call.respond(localSessionManager.getSessions(path.namespace).map { it.id })
+            call.respond(localSessionManager.getSessions(path.namespace).map { it.getState().base })
         } catch (e: SessionException.InvalidNamespace) {
             throw RouteException(HttpStatusCode.NotFound, e)
         }
