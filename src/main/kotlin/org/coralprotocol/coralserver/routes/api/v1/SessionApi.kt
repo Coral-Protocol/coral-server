@@ -15,7 +15,7 @@ import org.coralprotocol.coralserver.routes.ApiV1
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.*
 import org.coralprotocol.coralserver.session.state.SessionNamespaceState
-import org.coralprotocol.coralserver.session.state.SessionState
+import org.coralprotocol.coralserver.session.state.SessionStateBase
 import org.coralprotocol.coralserver.session.state.SessionStateExtended
 import org.koin.core.qualifier.named
 import org.koin.ktor.ext.inject
@@ -80,8 +80,8 @@ fun Route.sessionApi() {
         val existingNamespaces = localSessionManager.getNamespaces()
         val namespace = when (sessionRequest.namespaceProvider) {
             is SessionNamespaceProvider.CreateIfNotExists -> {
-                existingNamespaces.firstOrNull { it.name == sessionRequest.namespaceProvider.builder.name }
-                    ?: localSessionManager.createNamespace(sessionRequest.namespaceProvider.builder)
+                existingNamespaces.firstOrNull { it.name == sessionRequest.namespaceProvider.namespaceRequest.name }
+                    ?: localSessionManager.createNamespace(sessionRequest.namespaceProvider.namespaceRequest)
             }
 
             is SessionNamespaceProvider.UseExisting -> {
@@ -164,7 +164,7 @@ fun Route.sessionApi() {
         response {
             HttpStatusCode.OK to {
                 description = "Success"
-                body<List<SessionState>> {
+                body<List<SessionStateBase>> {
                     description = "A list of session states"
                 }
             }
