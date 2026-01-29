@@ -95,13 +95,14 @@ class SessionRuntimeSettingsBuilder {
     var ttl: Duration? = null
     var persistenceMode: SessionPersistenceMode = SessionPersistenceMode.None
     var webhooks: SessionWebhooks = SessionWebhooks()
+    var extendedEndReport = false
 
     fun webhooks(block: SessionWebhooksBuilder.() -> Unit) {
         webhooks = SessionWebhooksBuilder().apply(block).build()
     }
 
     fun build(): SessionRuntimeSettings {
-        return SessionRuntimeSettings(ttl?.inWholeMilliseconds, persistenceMode, webhooks)
+        return SessionRuntimeSettings(ttl?.inWholeMilliseconds, extendedEndReport, persistenceMode, webhooks)
     }
 }
 
@@ -136,8 +137,8 @@ class SessionNamespaceRequestBuilder {
 fun namespaceRequest(block: SessionNamespaceRequestBuilder.() -> Unit) =
     SessionNamespaceRequestBuilder().apply(block).build()
 
-fun runtimeSettings(block: SessionRuntimeSettingsBuilder.() -> Unit)
-    = SessionRuntimeSettingsBuilder().apply(block).build()
+fun runtimeSettings(block: SessionRuntimeSettingsBuilder.() -> Unit) =
+    SessionRuntimeSettingsBuilder().apply(block).build()
 
 fun sessionRequest(block: SessionRequestBuilder.() -> Unit): SessionRequest =
     SessionRequestBuilder().apply(block).build()

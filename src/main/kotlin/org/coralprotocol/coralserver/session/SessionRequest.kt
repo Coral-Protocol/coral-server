@@ -48,7 +48,7 @@ sealed interface SessionNamespaceProvider {
         """
     )
     data class CreateIfNotExists(
-        val builder: SessionNamespaceRequest
+        val namespaceRequest: SessionNamespaceRequest
     ) : SessionNamespaceProvider
 }
 

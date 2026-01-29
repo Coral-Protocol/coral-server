@@ -188,7 +188,8 @@ class SessionAgentExecutionContext(
                     name,
                     registryAgent.identifier,
                     startTime,
-                    utcTimeNow()
+                    utcTimeNow(),
+                    graphAgent.annotations
                 )
             )
         }
