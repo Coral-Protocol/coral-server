@@ -16,7 +16,7 @@ import org.coralprotocol.coralserver.modules.LOGGER_LOCAL_SESSION
 import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.session.remote.RemoteSession
-import org.coralprotocol.coralserver.session.state.SessionState
+import org.coralprotocol.coralserver.session.state.SessionStateBase
 import org.coralprotocol.coralserver.session.state.SessionStateExtended
 import org.coralprotocol.coralserver.util.utcTimeNow
 import org.jetbrains.annotations.TestOnly
@@ -178,7 +178,7 @@ class LocalSession(
      */
     fun getState() =
         SessionStateExtended(
-            base = SessionState(
+            base = SessionStateBase(
                 id = id,
                 timestamp = timestamp,
                 namespace = namespace.name,

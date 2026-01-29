@@ -12,7 +12,7 @@ data class SessionNamespaceState(
     val deleteOnLastSessionExit: Boolean,
 
     @Description("A list of sessions that exist inside this namespace")
-    val sessions: List<SessionState>,
+    val sessions: List<SessionStateBase>,
 
     @Description("Annotations for this namespace")
     val annotations: Map<String, String>,
