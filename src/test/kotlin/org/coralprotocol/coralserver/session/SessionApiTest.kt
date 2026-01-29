@@ -13,7 +13,6 @@ import io.kotest.inspectors.forAll
 import io.kotest.inspectors.shouldForAll
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainAll
-import io.kotest.matchers.collections.shouldHaveSingleElement
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.maps.shouldHaveSize
@@ -54,6 +53,7 @@ import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
 import org.coralprotocol.coralserver.session.state.SessionNamespaceState
 import org.coralprotocol.coralserver.session.state.SessionState
+import org.coralprotocol.coralserver.session.state.SessionStateBase
 import org.coralprotocol.coralserver.session.state.SessionStateExtended
 import org.coralprotocol.coralserver.util.signatureVerifiedBody
 import org.coralprotocol.coralserver.utils.dsl.*
@@ -135,8 +135,8 @@ class SessionApiTest : CoralTest({
         namespaces.shouldHaveSize(1)
         namespaces.first().sessions.shouldHaveSize(10)
 
-        val sessionStates: List<SessionState> = client.authenticatedGet(testNamespace).shouldBeOK().body()
-        sessionStates.shouldHaveSize(10)
+        val sessionStateBases: List<SessionStateBase> = client.authenticatedGet(testNamespace).shouldBeOK().body()
+        sessionStateBases.shouldHaveSize(10)
 
         localSessionManager.waitAllSessions()
 
@@ -328,25 +328,55 @@ class SessionApiTest : CoralTest({
             }
         }
 
-        val id = sessionWithDelay(
-            client,
-            100,
-            false
-        ) {
-            webhooks {
-                sessionEndUrl(path)
-            }
-        }
+        val id = client.authenticatedPost(Sessions.Session()) {
+            setBody(
+                sessionRequest {
+                    agentGraphRequest {
+                        agent(SeedDebugAgent.identifier) {
+                            option("START_DELAY", AgentOptionValue.UInt(100u))
+                            option("SEED_MESSAGE_COUNT", AgentOptionValue.UInt(1u))
+                            annotation("agentAnnotation", "123")
+                        }
+                        isolateAllAgents()
+                    }
+                    createNamespaceIfNotExists {
+                        name = namespaceName
+                        annotation("namespaceAnnotation", "123")
+                    }
+                    immediateExecution {
+                        webhooks {
+                            sessionEndUrl(path)
+                        }
+                        extendedEndReport = true
+                    }
+                    annotation("sessionAnnotation", "123")
+                }
+            )
+        }.shouldBeOK().body<SessionIdentifier>()
 
         val report = withClue("invalid signature") {
             completableDeferred.await().shouldNotBeNull()
         }
 
-        report.sessionId.shouldBeEqual(id.sessionId)
-        report.namespace.shouldBeEqual(id.namespace)
-        report.agentStats.shouldHaveSingleElement {
-            it.name == agentName
+        val sessionState = report.sessionState.shouldBeInstanceOf<SessionState.Extended>().state
+        sessionState.base.id.shouldBeEqual(id.sessionId)
+        sessionState.base.annotations.shouldBeEqual(
+            mapOf(
+                "sessionAnnotation" to "123"
+            )
+        )
+
+        val thread = sessionState.threads.shouldHaveSize(1).first()
+        thread.withMessageLock {
+            it.shouldHaveSize(1)
         }
+
+        report.namespaceState.name.shouldBeEqual(id.namespace)
+        report.namespaceState.annotations.shouldBeEqual(mapOf("namespaceAnnotation" to "123"))
+
+
+        val agentStat = report.agentStats.shouldHaveSize(1).first()
+        agentStat.annotations.shouldBeEqual(mapOf("agentAnnotation" to "123"))
     }
 
     test("testCustomTools").config(timeout = 30.seconds) {
@@ -573,7 +603,7 @@ class SessionApiTest : CoralTest({
             }
         }
 
-        val sessions: List<SessionState> =
+        val sessions: List<SessionStateBase> =
             client.authenticatedGet(Sessions.Namespace.Existing(namespace = nsName)).shouldBeOK().body()
 
         sessions.shouldForAll {
