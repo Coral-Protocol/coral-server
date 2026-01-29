@@ -1,6 +1,5 @@
 package org.coralprotocol.coralserver.session
 
-import io.kotest.assertions.nondeterministic.continually
 import io.kotest.matchers.collections.shouldHaveSize
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -8,14 +7,10 @@ import io.ktor.client.plugins.resources.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.client.request.*
 import io.ktor.websocket.*
-import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.channels.toList
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.debug.SeedDebugAgent
@@ -24,8 +19,6 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.events.LocalSessionManagerEvent
 import org.coralprotocol.coralserver.events.SessionEvent
-import org.coralprotocol.coralserver.logging.Logger
-import org.coralprotocol.coralserver.modules.LOGGER_TEST
 import org.coralprotocol.coralserver.modules.WEBSOCKET_COROUTINE_SCOPE_NAME
 import org.coralprotocol.coralserver.routes.api.v1.Sessions
 import org.coralprotocol.coralserver.routes.ws.v1.Events
@@ -38,10 +31,10 @@ import org.coralprotocol.coralserver.utils.shouldHaveEvents
 import org.coralprotocol.coralserver.utils.shouldPostEventsFromBody
 import org.koin.core.qualifier.named
 import org.koin.test.inject
-import kotlin.time.Duration.Companion.minutes
+import java.util.*
 import kotlin.time.Duration.Companion.seconds
 
-class WebSocketTest : CoralTest({
+class WebSocketEventTest : CoralTest({
     test("testSessionEvents") {
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
@@ -106,7 +99,7 @@ class WebSocketTest : CoralTest({
         )
     }
 
-    test("testLocalSessionManagerEvents") {
+    test("testLsmEvents") {
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
         val json by inject<Json>()
@@ -129,10 +122,7 @@ class WebSocketTest : CoralTest({
             val wsJob = launch {
                 val url = client.href(
                     Events.WithToken.LsmEvents(
-                        Events.WithToken(
-                            parent = Events(),
-                            token = authToken,
-                        ),
+                        Events.WithToken(token = authToken),
                         namespaceFilter = ns1Name
                     )
                 )
@@ -171,6 +161,89 @@ class WebSocketTest : CoralTest({
                             }
                         }
                     )
+                }
+            }
+
+            wsJob
+        }
+
+        webSocketJob.cancelAndJoin()
+        localSessionManager.waitAllSessions()
+        websocketCoroutineScope.cancel()
+    }
+
+    test("testLsmEventsWithAnnotationFilter") {
+        val client by inject<HttpClient>()
+        val localSessionManager by inject<LocalSessionManager>()
+        val json by inject<Json>()
+        val websocketCoroutineScope by inject<CoroutineScope>(named(WEBSOCKET_COROUTINE_SCOPE_NAME))
+
+
+        val expectedEvents = mutableListOf<TestEvent<LocalSessionManagerEvent>>()
+        val requests = mutableListOf<SessionRequest>()
+        repeat(10) { index ->
+            val filtered = index < 5
+            val namespaceName = "namespace $index"
+            requests.add(sessionRequest {
+                createNamespaceIfNotExists {
+                    name = namespaceName
+                    if (filtered)
+                        annotation("filtered", "true")
+                }
+                agentGraphRequest {
+                    agent(SeedDebugAgent.identifier) {
+                        provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
+
+                        option("START_DELAY", AgentOptionValue.UInt(1000u))
+                        option("SEED_THREAD_COUNT", AgentOptionValue.UInt(1u))
+                        option("SEED_MESSAGE_COUNT", AgentOptionValue.UInt(1u))
+                    }
+                    isolateAllAgents()
+                }
+            })
+
+            if (filtered) {
+                expectedEvents.add(TestEvent("$namespaceName created") { it is LocalSessionManagerEvent.NamespaceCreated && it.namespace == namespaceName })
+                expectedEvents.add(TestEvent("$namespaceName session created") { it is LocalSessionManagerEvent.SessionCreated && it.namespace == namespaceName })
+                expectedEvents.add(TestEvent("$namespaceName session running") { it is LocalSessionManagerEvent.SessionRunning && it.namespace == namespaceName })
+                expectedEvents.add(TestEvent("$namespaceName session closing") { it is LocalSessionManagerEvent.SessionClosing && it.namespace == namespaceName })
+                expectedEvents.add(TestEvent("$namespaceName session closed") { it is LocalSessionManagerEvent.SessionClosed && it.namespace == namespaceName })
+                expectedEvents.add(TestEvent("$namespaceName closing") { it is LocalSessionManagerEvent.NamespaceClosed && it.namespace == namespaceName })
+            }
+        }
+
+
+        val webSocketJob = this.shouldPostEventsFromBody(
+            timeout = 3.seconds,
+            events = expectedEvents
+        ) { flow ->
+            val wsJob = launch {
+                val url = client.href(
+                    Events.WithToken.LsmEvents(
+                        Events.WithToken(token = authToken),
+                        namespaceAnnotationFilters = Base64.getUrlEncoder()
+                            .encodeToString(json.encodeToString(mapOf("filtered" to "true")).toByteArray())
+                    )
+                )
+
+                client.webSocket(url) {
+                    incoming
+                        .filterIsInstance<Frame.Text>(this@webSocket)
+                        .map(this@webSocket) {
+                            it.fromWsFrame<LocalSessionManagerEvent>(json)
+                        }
+                        .consumeEach {
+                            flow.emit(it)
+                        }
+                }
+            }
+
+            // post sessions after WS connection established
+            localSessionManager.events.subscriptionCount.first { it == 1 }
+
+            requests.forEach {
+                client.authenticatedPost(Sessions.Session()) {
+                    setBody(it)
                 }
             }
 
