@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.session
 
+import io.kotest.assertions.nondeterministic.continually
 import io.kotest.matchers.collections.shouldHaveSize
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -10,6 +11,7 @@ import io.ktor.websocket.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.channels.toList
 import kotlinx.coroutines.flow.first
@@ -36,6 +38,7 @@ import org.coralprotocol.coralserver.utils.shouldHaveEvents
 import org.coralprotocol.coralserver.utils.shouldPostEventsFromBody
 import org.koin.core.qualifier.named
 import org.koin.test.inject
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 class WebSocketTest : CoralTest({
@@ -127,9 +130,10 @@ class WebSocketTest : CoralTest({
                 val url = client.href(
                     Events.WithToken.LsmEvents(
                         Events.WithToken(
-                            parent = Events(namespaceFilter = ns1Name),
-                            token = authToken
-                        )
+                            parent = Events(),
+                            token = authToken,
+                        ),
+                        namespaceFilter = ns1Name
                     )
                 )
 
@@ -173,8 +177,8 @@ class WebSocketTest : CoralTest({
             wsJob
         }
 
+        webSocketJob.cancelAndJoin()
         localSessionManager.waitAllSessions()
         websocketCoroutineScope.cancel()
-        webSocketJob.join()
     }
 })

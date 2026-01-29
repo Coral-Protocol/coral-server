@@ -164,18 +164,18 @@ class LocalSessionManager(
      *
      * @throws SessionException.InvalidNamespace if name specified in [SessionNamespaceRequest.name] is already taken
      */
-    suspend fun createNamespace(builder: SessionNamespaceRequest): LocalSessionNamespace {
-        if (sessionNamespaces.containsKey(builder.name))
-            throw SessionException.InvalidNamespace("A namespace with name \"${builder.name}\" already exists")
+    suspend fun createNamespace(request: SessionNamespaceRequest): LocalSessionNamespace {
+        if (sessionNamespaces.containsKey(request.name))
+            throw SessionException.InvalidNamespace("A namespace with name \"${request.name}\" already exists")
 
         val namespace = LocalSessionNamespace(
-            name = builder.name,
-            deleteOnLastSessionExit = builder.deleteOnLastSessionExit,
+            name = request.name,
+            deleteOnLastSessionExit = request.deleteOnLastSessionExit,
             sessions = ConcurrentHashMap(),
-            annotations = builder.annotations
+            annotations = request.annotations
         )
-        sessionNamespaces[builder.name] = namespace
-        events.emit(LocalSessionManagerEvent.NamespaceCreated(builder.name))
+        sessionNamespaces[request.name] = namespace
+        events.emit(LocalSessionManagerEvent.NamespaceCreated(request.name, request.annotations))
 
         return namespace
     }
@@ -199,7 +199,7 @@ class LocalSessionManager(
             annotations = sessionAnnotations
         )
         namespace.sessions[sessionId] = session
-        events.emit(LocalSessionManagerEvent.SessionCreated(session.id, namespace.name))
+        events.emit(LocalSessionManagerEvent.SessionCreated(session.id, namespace.name, namespace.annotations))
 
         return Pair(session, namespace)
     }
@@ -223,7 +223,7 @@ class LocalSessionManager(
         managementScope.launch {
             val timeoutDuration = settings.ttl?.milliseconds ?: Duration.INFINITE
             val timedOut = withTimeoutOrNull(timeoutDuration) {
-                events.emit(LocalSessionManagerEvent.SessionRunning(session.id, namespace.name))
+                events.emit(LocalSessionManagerEvent.SessionRunning(session.id, namespace.name, namespace.annotations))
                 session.status.update { SessionStatus.Running(utcTimeNow()) }
 
                 session.launchAgents()
@@ -282,7 +282,7 @@ class LocalSessionManager(
 
         // Allow deleteOnLastSessionExit to delete the namespace if it would have from the above cancelation of agents
         if (!namespace.deleteOnLastSessionExit || namespace.sessions.isEmpty()) {
-            events.emit(LocalSessionManagerEvent.NamespaceClosed(namespace.name))
+            events.emit(LocalSessionManagerEvent.NamespaceClosed(namespace.name, namespace.annotations))
             sessionNamespaces.remove(namespace.name)
         }
     }
@@ -347,7 +347,7 @@ class LocalSessionManager(
             agentSecretLookup.remove(agent.secret)
         }
 
-        events.emit(LocalSessionManagerEvent.SessionClosing(session.id, namespace.name))
+        events.emit(LocalSessionManagerEvent.SessionClosing(session.id, namespace.name, namespace.annotations))
 
         // The session end webhook should not block any of the other session ending logic
         if (settings.webhooks.sessionEnd != null) {
@@ -379,13 +379,13 @@ class LocalSessionManager(
 
         namespace.sessions.remove(session.id)
         if (namespace.sessions.isEmpty() && namespace.deleteOnLastSessionExit) {
-            events.emit(LocalSessionManagerEvent.NamespaceClosed(namespace.name))
+            events.emit(LocalSessionManagerEvent.NamespaceClosed(namespace.name, namespace.annotations))
             sessionNamespaces.remove(namespace.name)
         }
 
         logger.info { "session ${session.id} closed" }
 
-        events.emit(LocalSessionManagerEvent.SessionClosed(session.id, namespace.name))
+        events.emit(LocalSessionManagerEvent.SessionClosed(session.id, namespace.name, namespace.annotations))
         session.sessionScope.cancel()
     }
 
