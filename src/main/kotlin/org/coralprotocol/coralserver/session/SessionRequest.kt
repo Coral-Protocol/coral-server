@@ -14,7 +14,7 @@ import org.coralprotocol.coralserver.agent.graph.AgentGraphRequest
 @JsonClassDiscriminator("mode")
 sealed interface SessionRequestExecution {
     @Serializable
-    @SerialName("execute_now")
+    @SerialName("immediate")
     @Description("The session should be executed immediately with the specified runtime settings")
     data class Execute(
         @Optional
