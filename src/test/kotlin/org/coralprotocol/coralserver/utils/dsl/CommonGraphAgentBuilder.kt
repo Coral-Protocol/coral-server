@@ -101,7 +101,8 @@ class GraphAgentRequestBuilder(
             customToolAccess = customToolAccess,
             plugins = plugins,
             provider = provider,
-            x402Budgets = x402Budgets
+            x402Budgets = x402Budgets,
+            annotations = annotations.toMap(),
         )
     }
 }

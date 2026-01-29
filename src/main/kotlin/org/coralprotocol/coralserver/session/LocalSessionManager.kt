@@ -25,6 +25,7 @@ import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
 import org.coralprotocol.coralserver.session.state.SessionNamespaceState
+import org.coralprotocol.coralserver.session.state.SessionState
 import org.coralprotocol.coralserver.util.addJsonBodyWithSignature
 import org.coralprotocol.coralserver.util.utcTimeNow
 import org.coralprotocol.payment.blockchain.BlockchainService
@@ -356,9 +357,14 @@ class LocalSessionManager(
                     addJsonBodyWithSignature(
                         json,
                         config.webhookSecret, SessionEndReport(
-                            session.timestamp, utcTimeNow(),
-                            namespace = session.namespace.name,
-                            sessionId = session.id,
+                            timestamp = utcTimeNow(),
+                            namespaceState = session.namespace.getState(),
+                            sessionState = if (settings.extendedEndReport) {
+                                SessionState.Extended(session.getState())
+                            }
+                            else {
+                                SessionState.Base(session.getState().base)
+                            },
                             agentStats = session.agents.values.flatMap { it.usageReports },
                         )
                     )
