@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.session.SessionAgentStatus
+import org.coralprotocol.coralserver.session.SessionResource
 
 @Serializable
 @Description("The state of an agent running in a session")
@@ -22,5 +23,7 @@ data class SessionAgentState(
     val description: String?,
 
     @Description("A list of agents that this agent is aware of, constructed from agent groups in the AgentGraph")
-    val links: Set<UniqueAgentName>
-)
+    val links: Set<UniqueAgentName>,
+
+    override val annotations: Map<String, String>
+) : SessionResource
