@@ -19,28 +19,51 @@ sealed class LocalSessionManagerEvent {
     val timestamp: Instant = utcTimeNow()
 
     abstract val namespace: String
+    abstract val namespaceAnnotations: Map<String, String>
 
     @Serializable
     @SerialName("session_created")
-    data class SessionCreated(val sessionId: SessionId, override val namespace: String) : LocalSessionManagerEvent()
+    data class SessionCreated(
+        val sessionId: SessionId,
+        override val namespace: String,
+        override val namespaceAnnotations: Map<String, String>
+    ) : LocalSessionManagerEvent()
 
     @Serializable
     @SerialName("session_running")
-    data class SessionRunning(val sessionId: SessionId, override val namespace: String) : LocalSessionManagerEvent()
+    data class SessionRunning(
+        val sessionId: SessionId,
+        override val namespace: String,
+        override val namespaceAnnotations: Map<String, String>
+    ) : LocalSessionManagerEvent()
 
     @Serializable
     @SerialName("session_closing")
-    data class SessionClosing(val sessionId: SessionId, override val namespace: String) : LocalSessionManagerEvent()
+    data class SessionClosing(
+        val sessionId: SessionId,
+        override val namespace: String,
+        override val namespaceAnnotations: Map<String, String>
+    ) : LocalSessionManagerEvent()
 
     @Serializable
     @SerialName("session_closed")
-    data class SessionClosed(val sessionId: SessionId, override val namespace: String) : LocalSessionManagerEvent()
+    data class SessionClosed(
+        val sessionId: SessionId,
+        override val namespace: String,
+        override val namespaceAnnotations: Map<String, String>
+    ) : LocalSessionManagerEvent()
 
     @Serializable
     @SerialName("namespace_created")
-    data class NamespaceCreated(override val namespace: String) : LocalSessionManagerEvent()
+    data class NamespaceCreated(
+        override val namespace: String,
+        override val namespaceAnnotations: Map<String, String>
+    ) : LocalSessionManagerEvent()
 
     @Serializable
     @SerialName("namespace_closed")
-    data class NamespaceClosed(override val namespace: String) : LocalSessionManagerEvent()
+    data class NamespaceClosed(
+        override val namespace: String,
+        override val namespaceAnnotations: Map<String, String>
+    ) : LocalSessionManagerEvent()
 }
