@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.modules
 
+import kotlinx.coroutines.runBlocking
 import org.coralprotocol.coralserver.agent.debug.EchoDebugAgent
 import org.coralprotocol.coralserver.agent.debug.PuppetDebugAgent
 import org.coralprotocol.coralserver.agent.debug.SeedDebugAgent
@@ -20,8 +21,11 @@ val agentModule = module {
     single(createdAtStart = true) {
         val config: RegistryConfig = get()
         AgentRegistry {
-            if (config.enableMarketplaceAgentRegistrySource)
-                addMarketplaceSource()
+            if (config.enableMarketplaceAgentRegistrySource) {
+                runBlocking {
+                    addMarketplaceSource()
+                }
+            }
 
             config.localAgents.forEach {
                 logger.trace { "watching for agents matching pattern: $it" }
