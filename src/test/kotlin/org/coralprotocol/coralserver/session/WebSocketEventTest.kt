@@ -21,7 +21,7 @@ import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.events.LocalSessionManagerEvent
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.modules.WEBSOCKET_COROUTINE_SCOPE_NAME
-import org.coralprotocol.coralserver.routes.api.v1.Sessions
+import org.coralprotocol.coralserver.routes.api.v1.LocalSessions
 import org.coralprotocol.coralserver.routes.ws.v1.Events
 import org.coralprotocol.coralserver.util.filterIsInstance
 import org.coralprotocol.coralserver.util.fromWsFrame
@@ -45,7 +45,7 @@ class WebSocketEventTest : CoralTest({
         val threadCount = 10u
         val messageCount = 10u
 
-        val id: SessionIdentifier = client.authenticatedPost(Sessions.Session()) {
+        val id: SessionIdentifier = client.authenticatedPost(LocalSessions.Session()) {
             setBody(
                 sessionRequest {
                     agentGraphRequest {
@@ -144,7 +144,7 @@ class WebSocketEventTest : CoralTest({
             localSessionManager.events.subscriptionCount.first { it == 1 }
 
             for (namespaceName in listOf(ns1Name, ns2Name)) {
-                client.authenticatedPost(Sessions.Session()) {
+                client.authenticatedPost(LocalSessions.Session()) {
                     setBody(
                         sessionRequest {
                             createNamespaceIfNotExists {
@@ -243,7 +243,7 @@ class WebSocketEventTest : CoralTest({
             localSessionManager.events.subscriptionCount.first { it == 1 }
 
             requests.forEach {
-                client.authenticatedPost(Sessions.Session()) {
+                client.authenticatedPost(LocalSessions.Session()) {
                     setBody(it)
                 }
             }

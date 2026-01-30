@@ -218,7 +218,7 @@ fun Application.coralServerModule() {
     }
     routing {
         authenticate("token", "authSessionToken") {
-            sessionApi()
+            localSessionApi()
             registryApi()
             puppetApi()
         }

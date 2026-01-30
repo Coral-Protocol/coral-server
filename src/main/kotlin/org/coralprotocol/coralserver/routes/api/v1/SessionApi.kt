@@ -20,16 +20,16 @@ import org.coralprotocol.coralserver.session.state.SessionStateExtended
 import org.koin.core.qualifier.named
 import org.koin.ktor.ext.inject
 
-@Resource("sessions")
-class Sessions(val parent: ApiV1 = ApiV1()) {
+@Resource("local")
+class LocalSessions(val parent: ApiV1 = ApiV1()) {
     @Resource("session")
-    class Session(val parent: Sessions = Sessions()) {
+    class Session(val parent: LocalSessions = LocalSessions()) {
         @Resource("{namespace}/{sessionId}")
         class Existing(val parent: Session = Session(), val namespace: String, val sessionId: String)
     }
 
     @Resource("namespace")
-    class Namespace(val parent: Sessions = Sessions()) {
+    class Namespace(val parent: LocalSessions = LocalSessions()) {
         @Resource("{namespace}")
         class Existing(val parent: Namespace = Namespace(), val namespace: String)
     }
@@ -38,12 +38,12 @@ class Sessions(val parent: ApiV1 = ApiV1()) {
 /**
  * Configures session-related routes.
  */
-fun Route.sessionApi() {
+fun Route.localSessionApi() {
     val registry by inject<AgentRegistry>()
     val localSessionManager by inject<LocalSessionManager>()
     val logger by inject<Logger>(named(LOGGER_ROUTES))
 
-    post<Sessions.Session>({
+    post<LocalSessions.Session>({
         summary = "Create session"
         description = "Creates a new session in a given namespace"
         operationId = "createSession"
@@ -115,7 +115,7 @@ fun Route.sessionApi() {
         )
     }
 
-    post<Sessions.Namespace>({
+    post<LocalSessions.Namespace>({
         summary = "Create namespace"
         description = "Creates a new empty namespace"
         operationId = "createNamespace"
@@ -151,7 +151,7 @@ fun Route.sessionApi() {
         }
     }
 
-    get<Sessions.Namespace.Existing>({
+    get<LocalSessions.Namespace.Existing>({
         summary = "List sessions in namespace"
         description = "Returns a list of all sessions in a specific namespace"
         operationId = "getSessionsInNamespace"
@@ -183,7 +183,7 @@ fun Route.sessionApi() {
         }
     }
 
-    delete<Sessions.Namespace.Existing>({
+    delete<LocalSessions.Namespace.Existing>({
         summary = "Delete a namespace"
         description = "Deletes a given namespace, closing any session that it may contain"
         operationId = "deleteNamespace"
@@ -210,7 +210,7 @@ fun Route.sessionApi() {
         }
     }
 
-    get<Sessions>({
+    get<LocalSessions>({
         summary = "Get a list of namespace states and their contained sessions states"
         description = "Returns a list of namespace states and their contained sessions states"
         operationId = "getAllSessions"
@@ -227,7 +227,7 @@ fun Route.sessionApi() {
         call.respond(localSessionManager.getNamespaceStates())
     }
 
-    get<Sessions.Namespace>({
+    get<LocalSessions.Namespace>({
         summary = "Get a list of namespaces names"
         description = "Returns a list of namespaces"
         operationId = "getAllSessions"
@@ -244,7 +244,7 @@ fun Route.sessionApi() {
         call.respond(localSessionManager.getNamespaces().map { it.name })
     }
 
-    delete<Sessions.Session.Existing>({
+    delete<LocalSessions.Session.Existing>({
         summary = "Close an active session"
         description = "Closes an active session, cancelling all running agents"
         operationId = "closeSession"
@@ -282,7 +282,7 @@ fun Route.sessionApi() {
         }
     }
 
-    get<Sessions.Session.Existing>({
+    get<LocalSessions.Session.Existing>({
         summary = "Get extended session state"
         description = "Returns a session's state, extended with: agents, threads and thread messages"
         operationId = "getExtendedSessionState"
@@ -322,7 +322,7 @@ fun Route.sessionApi() {
         }
     }
 
-    post<Sessions.Session.Existing>({
+    post<LocalSessions.Session.Existing>({
         summary = "Executes a session"
         description = "Executes a session was created with deferred execution"
         operationId = "executeDeferredSession"
