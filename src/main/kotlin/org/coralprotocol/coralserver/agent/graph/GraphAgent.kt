@@ -6,7 +6,7 @@ import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.RegistryAgent
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
-import org.coralprotocol.coralserver.routes.api.v1.Sessions
+import org.coralprotocol.coralserver.routes.api.v1.LocalSessions
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.SessionResource
 import org.coralprotocol.coralserver.session.remote.RemoteSession
@@ -25,7 +25,7 @@ import org.coralprotocol.coralserver.x402.X402BudgetedResource
  * with a given identifier, it is an invalid configuration to have more than one agent with the same identifier.
  *
  * The use of agents in Coral server happens exclusively within sessions, either a [LocalSession] or a [RemoteSession].
- * To start a session, a POST request to [Sessions] must be made, the relevant member of the request body is a
+ * To start a session, a POST request to [LocalSessions] must be made, the relevant member of the request body is a
  * [AgentGraphRequest] which is a request for a graph of agents, where each agent is in the graph is represented by a
  * [GraphAgentRequest].
  *

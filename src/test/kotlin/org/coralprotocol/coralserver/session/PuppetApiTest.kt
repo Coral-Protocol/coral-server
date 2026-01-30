@@ -16,7 +16,7 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.mcp.tools.*
 import org.coralprotocol.coralserver.routes.api.v1.Puppet
-import org.coralprotocol.coralserver.routes.api.v1.Sessions
+import org.coralprotocol.coralserver.routes.api.v1.LocalSessions
 import org.coralprotocol.coralserver.utils.dsl.sessionRequest
 import org.koin.test.inject
 import kotlin.time.Duration.Companion.seconds
@@ -31,7 +31,7 @@ class PuppetApiTest : CoralTest({
         client: HttpClient,
         body: suspend (Puppet.Agent, Puppet.Agent, LocalSession) -> Unit
     ) {
-        val id: SessionIdentifier = client.authenticatedPost(Sessions.Session()) {
+        val id: SessionIdentifier = client.authenticatedPost(LocalSessions.Session()) {
             setBody(
                 sessionRequest {
                     createNamespaceIfNotExists {

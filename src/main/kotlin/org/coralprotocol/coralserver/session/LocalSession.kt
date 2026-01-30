@@ -14,7 +14,7 @@ import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.logging.LoggingTag
 import org.coralprotocol.coralserver.modules.LOGGER_LOCAL_SESSION
 import org.coralprotocol.coralserver.payment.PaymentSessionId
-import org.coralprotocol.coralserver.routes.api.v1.Sessions
+import org.coralprotocol.coralserver.routes.api.v1.LocalSessions
 import org.coralprotocol.coralserver.session.remote.RemoteSession
 import org.coralprotocol.coralserver.session.state.SessionStateBase
 import org.coralprotocol.coralserver.session.state.SessionStateExtended
@@ -27,7 +27,7 @@ import kotlin.time.ExperimentalTime
 
 /**
  * This is the representation of a (local) Coral session.  Starting a session on a Coral server can only be done by
- * sending POST request to [Sessions].  A local session may contain imported agents that run on other Coral servers,
+ * sending POST request to [LocalSessions].  A local session may contain imported agents that run on other Coral servers,
  * those agents do not have any special representation in the Local session, but on the remote server the agents ran are
  * part of a [RemoteSession].
  *

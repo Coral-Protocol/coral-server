@@ -13,7 +13,7 @@ import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.debug.EchoDebugAgent
 import org.coralprotocol.coralserver.agent.debug.SeedDebugAgent
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
-import org.coralprotocol.coralserver.routes.api.v1.Sessions
+import org.coralprotocol.coralserver.routes.api.v1.LocalSessions
 import org.coralprotocol.coralserver.utils.dsl.sessionRequest
 import org.koin.core.component.inject
 import kotlin.time.Duration.Companion.seconds
@@ -26,7 +26,7 @@ class DebugAgentsTest : CoralTest({
         val threadCount = 50u
         val messageCount = 100u
 
-        val sessionId: SessionIdentifier = client.authenticatedPost(Sessions.Session()) {
+        val sessionId: SessionIdentifier = client.authenticatedPost(LocalSessions.Session()) {
             setBody(sessionRequest {
                 agentGraphRequest {
                     agent(SeedDebugAgent.identifier) {
@@ -57,7 +57,7 @@ class DebugAgentsTest : CoralTest({
         val threadCount = 1u
         val messageCount = 50u
 
-        val sessionId: SessionIdentifier = client.authenticatedPost(Sessions.Session()) {
+        val sessionId: SessionIdentifier = client.authenticatedPost(LocalSessions.Session()) {
             setBody(sessionRequest {
                 agentGraphRequest {
                     agent(SeedDebugAgent.identifier) {
