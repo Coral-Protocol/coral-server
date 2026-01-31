@@ -117,27 +117,20 @@ class FileAgentRegistrySource(
     }
 
     private fun addAgentsFromPattern(pathPattern: String, parent: String) {
-        val parts = pathPattern.split("/")
+        val parts = pathPattern.split("/").filter { it.isNotEmpty() }
         var current = Path.of(parent).absolute()
+
         parts.forEachIndexed { index, part ->
             val remainingParts = parts.slice(index..<parts.size)
 
             if (part == "*") {
-                logger.trace {
-                    "watching directory: \"${normalizedPathString(current)}\" for \"${
-                        remainingParts.joinToString(
-                            "/"
-                        )
-                    }\""
-                }
-
                 // watch this directory for any future items matching the remainder of the pattern (this function will
                 // do nothing if watch = false)
                 watchDirectory(current, remainingParts)
 
-                current.toFile().listFiles {
-                    it.isDirectory
-                }?.forEach {
+                // Scan existing subdirectories. Note that the recursion will handle deeper directories,
+                // ensuring we don't scan too deep unless the pattern demands it
+                current.toFile().listFiles { it.isDirectory }?.forEach {
                     addAgentsFromPattern(
                         if (index == parts.lastIndex) {
                             it.name
@@ -147,22 +140,19 @@ class FileAgentRegistrySource(
                         normalizedPathString(current)
                     )
                 }
-            } else {
-                current = current.resolve(part)
-            }
 
-            if (current.parent != null && (index != parts.lastIndex || part == "*")) {
-                if (!current.isDirectory() && current.parent.isDirectory()) {
-                    logger.trace { "watching directory: \"${normalizedPathString(current.parent)}\" for \"$part\"" }
-                    watchDirectory(current.parent, remainingParts)
-                    return
-                } else {
-                    watchForDeletion(
-                        current,
-                        parts.slice(index..<parts.size).joinToString("/"),
-                        normalizedPathString(current.parent)
-                    )
+                return@addAgentsFromPattern
+            } else {
+                val next = current.resolve(part)
+                if (!next.isDirectory()) {
+                    if (current.isDirectory()) {
+                        watchDirectory(current, remainingParts)
+                    }
+                    return@addAgentsFromPattern
                 }
+
+                watchForDeletion(next, remainingParts.joinToString("/"), normalizedPathString(current))
+                current = next
             }
         }
 
@@ -375,8 +365,8 @@ class FileAgentRegistrySource(
 
         eventStreamForPath(directory, ENTRY_CREATE) {
             val fileName = (it.context() as Path).name
-            val wildcard = nextPart == "*"
-            if (nextPart.equals(fileName, ignoreCase = isWindows()) || wildcard) {
+            val isWildcard = nextPart == "*"
+            if (nextPart.equals(fileName, ignoreCase = isWindows()) || isWildcard) {
                 val fullPatternLog = if (nextPart != remainingStr) {
                     " from full pattern \"$remainingStr\""
                 } else {
@@ -386,20 +376,12 @@ class FileAgentRegistrySource(
                 logger.trace { "\"$fileName\" created in \"${normalizedPathString(directory)}\", matching pattern part \"$nextPart\"$fullPatternLog" }
 
                 addAgentsFromPattern(
-                    if (wildcard) {
-                        if (remainingParts.size == 1) {
-                            fileName
-                        } else {
-                            "$fileName/${remainingParts.drop(1).joinToString("/")}"
-                        }
-                    } else {
-                        remainingParts.joinToString("/")
-                    },
-                    normalizedPathString(directory)
+                    remainingParts.drop(1).joinToString("/"),
+                    normalizedPathString(directory.resolve(fileName))
                 )
 
                 // if the next part was a specific directory, and it was created, this listener doesn't need to exist anymore
-                if (!wildcard)
+                if (!isWildcard)
                     cancel()
             }
         }.invokeOnCompletion {
