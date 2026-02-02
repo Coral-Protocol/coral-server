@@ -157,7 +157,7 @@ class FileAgentRegistrySource(
         }
 
         // if the last part in this pattern is a wildcard, directories are expected here not agents
-        if (parts.last() == "*")
+        if (parts.isNotEmpty() && parts.last() == "*")
             return
 
         val agentFile = current.resolve(AGENT_FILE).toFile()
@@ -167,7 +167,6 @@ class FileAgentRegistrySource(
 
             // watching allows for us to wait for agent to be written to this directory
             waitForAgent(current)
-            watchForDeletion(current, parent, parts.last())
         }
     }
 
@@ -375,9 +374,14 @@ class FileAgentRegistrySource(
 
                 logger.trace { "\"$fileName\" created in \"${normalizedPathString(directory)}\", matching pattern part \"$nextPart\"$fullPatternLog" }
 
+                val nextDir = directory.resolve(fileName)
+                if (!isWildcard) {
+                    watchForDeletion(nextDir, remainingStr, normalizedPathString(directory))
+                }
+
                 addAgentsFromPattern(
                     remainingParts.drop(1).joinToString("/"),
-                    normalizedPathString(directory.resolve(fileName))
+                    normalizedPathString(nextDir)
                 )
 
                 // if the next part was a specific directory, and it was created, this listener doesn't need to exist anymore
