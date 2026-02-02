@@ -6,12 +6,12 @@ import io.github.smiley4.ktoropenapi.resources.extractTypesafeDocumentation
 import io.github.smiley4.ktoropenapi.resources.post
 import io.ktor.http.*
 import io.ktor.resources.*
-import io.ktor.server.http.content.resource
 import io.ktor.server.resources.*
 import io.ktor.server.resources.Resources
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
+import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import kotlinx.serialization.serializer
 import org.coralprotocol.coralserver.routes.McpV1
 import org.coralprotocol.coralserver.routes.RouteException
@@ -29,7 +29,6 @@ class Sse(val parent: McpV1 = McpV1(), val agentSecret: SessionAgentSecret)
 
 @Resource("{agentSecret}/mcp")
 class StreamableHttp(val parent: McpV1 = McpV1(), val agentSecret: SessionAgentSecret)
-
 
 fun Route.mcpRoutes() {
     val localSessionManager by inject<LocalSessionManager>()
@@ -52,7 +51,12 @@ fun Route.mcpRoutes() {
                             call.response.header(HttpHeaders.Connection, "keep-alive")
                             call.response.header("X-Accel-Buffering", "no")
                             call.respond(SSEServerContent(call) {
-                                agentLocator.agent.connectSseSession(this)
+                                agentLocator.agent.connectMcpTransport(
+                                    SseServerTransport(
+                                        endpoint = "",
+                                        session = this
+                                    )
+                                )
                             })
                         } catch (_: SessionException.InvalidAgentSecret) {
                             call.respond(HttpStatusCode.Unauthorized)
@@ -62,8 +66,6 @@ fun Route.mcpRoutes() {
             }
         }
     }
-
-    sse()
 
     suspend fun RoutingContext.postMessage(secret: SessionAgentSecret) {
         try {
