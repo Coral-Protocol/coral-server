@@ -79,7 +79,8 @@ class FileAgentRegistrySource(
 
     data class WatchJobKey(
         val path: Path,
-        val kinds: List<WatchEvent.Kind<*>>
+        val kinds: List<WatchEvent.Kind<*>>,
+        val pattern: String = ""
     )
 
     private val logger by inject<Logger>(named(LOGGER_CONFIG))
@@ -216,9 +217,10 @@ class FileAgentRegistrySource(
     private fun eventStreamForPath(
         path: Path,
         vararg kinds: WatchEvent.Kind<*>,
+        pattern: String = "",
         handler: suspend CoroutineScope.(WatchEvent<*>) -> Unit
     ): Job {
-        val watchJobKey = WatchJobKey(path, kinds.toList())
+        val watchJobKey = WatchJobKey(path, kinds.toList(), pattern)
         if (watchJobs.containsKey(watchJobKey)) {
             watchJobs[watchJobKey]?.cancel()
         }
@@ -365,7 +367,7 @@ class FileAgentRegistrySource(
         val nextPart = remainingParts.first()
         val remainingStr = remainingParts.joinToString("/")
 
-        eventStreamForPath(directory, ENTRY_CREATE) {
+        eventStreamForPath(directory, ENTRY_CREATE, pattern = remainingStr) {
             val fileName = (it.context() as Path).name
             val isWildcard = nextPart == "*"
             if (nextPart.equals(fileName, ignoreCase = isWindows()) || isWildcard) {
@@ -409,7 +411,7 @@ class FileAgentRegistrySource(
 
         logger.trace { "waiting for $AGENT_FILE to be written in \"${normalizedPathString(directory)}\"" }
 
-        eventStreamForPath(directory, ENTRY_CREATE) {
+        eventStreamForPath(directory, ENTRY_CREATE, pattern = AGENT_FILE) {
             if ((it.context() as Path).name == AGENT_FILE) {
                 val file = directory.resolve(AGENT_FILE).toFile()
 
@@ -433,7 +435,7 @@ class FileAgentRegistrySource(
     }
 
     private fun watchForDeletion(directory: Path, restartPathPattern: String, restartPart: String) {
-        if (!watch || directory.parent == null || deletionWatchers.contains(directory.absolutePathString()))
+        if (!watch || directory.parent == null || deletionWatchers.contains(directory.absolutePathString() + ":" + restartPathPattern))
             return
 
         if (!directory.isDirectory()) {
@@ -441,12 +443,13 @@ class FileAgentRegistrySource(
             return
         }
 
-        deletionWatchers.add(directory.absolutePathString())
-        eventStreamForPath(directory.parent, ENTRY_DELETE) {
+        val watcherKey = directory.absolutePathString() + ":" + restartPathPattern
+        deletionWatchers.add(watcherKey)
+        eventStreamForPath(directory.parent, ENTRY_DELETE, pattern = restartPathPattern) {
             if ((it.context() as Path).name == directory.name) {
                 logger.trace { "${directory.name} in \"${normalizedPathString(directory.parent)}\" was deleted, restart $restartPathPattern with $restartPart" }
 
-                deletionWatchers.remove(directory.absolutePathString())
+                deletionWatchers.remove(watcherKey)
                 addAgentsFromPattern(restartPathPattern, restartPart)
 
                 cancel()
