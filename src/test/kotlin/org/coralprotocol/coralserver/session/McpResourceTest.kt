@@ -6,9 +6,10 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.client.*
-import io.modelcontextprotocol.kotlin.sdk.ReadResourceRequest
-import io.modelcontextprotocol.kotlin.sdk.TextResourceContents
 import io.modelcontextprotocol.kotlin.sdk.client.Client
+import io.modelcontextprotocol.kotlin.sdk.types.ReadResourceRequest
+import io.modelcontextprotocol.kotlin.sdk.types.ReadResourceRequestParams
+import io.modelcontextprotocol.kotlin.sdk.types.TextResourceContents
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -29,7 +30,7 @@ import org.koin.test.inject
 class McpResourceTest : CoralTest({
     suspend fun Client.readResourceByName(name: McpResourceName): String {
         val resourceResult =
-            readResource(ReadResourceRequest(name.toString()))
+            readResource(ReadResourceRequest(ReadResourceRequestParams(name.toString())))
                 .shouldNotBeNull()
 
         val resource = resourceResult.contents.first()

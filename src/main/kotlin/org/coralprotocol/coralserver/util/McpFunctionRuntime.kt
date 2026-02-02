@@ -1,9 +1,9 @@
 package org.coralprotocol.coralserver.util
 
 import io.ktor.client.*
-import io.modelcontextprotocol.kotlin.sdk.Implementation
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import io.modelcontextprotocol.kotlin.sdk.client.SseClientTransport
+import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.session.LocalSession

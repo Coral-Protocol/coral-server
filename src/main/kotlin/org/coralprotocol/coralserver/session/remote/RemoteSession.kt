@@ -2,7 +2,6 @@ package org.coralprotocol.coralserver.session.remote
 
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CompletableJob
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.session.Session
