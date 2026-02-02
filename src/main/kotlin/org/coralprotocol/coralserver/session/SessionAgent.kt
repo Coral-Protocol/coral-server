@@ -1,18 +1,9 @@
 package org.coralprotocol.coralserver.session
 
 import io.ktor.server.application.*
-import io.modelcontextprotocol.kotlin.sdk.server.Server
-import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
-import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
-import io.modelcontextprotocol.kotlin.sdk.server.StreamableHttpServerTransport
+import io.modelcontextprotocol.kotlin.sdk.server.*
 import io.modelcontextprotocol.kotlin.sdk.shared.AbstractTransport
-import io.modelcontextprotocol.kotlin.sdk.types.EmptyJsonObject
-import io.modelcontextprotocol.kotlin.sdk.types.Implementation
-import io.modelcontextprotocol.kotlin.sdk.types.ReadResourceRequest
-import io.modelcontextprotocol.kotlin.sdk.types.ReadResourceResult
-import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
-import io.modelcontextprotocol.kotlin.sdk.types.TextResourceContents
-import io.modelcontextprotocol.kotlin.sdk.types.Tool
+import io.modelcontextprotocol.kotlin.sdk.types.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -38,6 +29,7 @@ import org.coralprotocol.coralserver.x402.X402BudgetedResource
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.component.inject
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.measureTimedValue
 
@@ -110,7 +102,13 @@ class SessionAgent(
      * A list of connected transports for this agent
      * @see connectMcpTransport
      */
-    private val mcpTransports = MutableStateFlow<List<AbstractTransport>>(listOf())
+    private val mcpSessions = ConcurrentHashMap<String, ServerSession>()
+
+    /**
+     * The number of *potential* mcp sessions.  Note that this number will increase before the client is accepted, to
+     * facilitate blocking agents.
+     */
+    private val mcpSessionCount = MutableStateFlow(0)
 
     /**
      * A list of resources that this agent has access to, each resource constrained by a budget.  This is used for x402
@@ -174,12 +172,12 @@ class SessionAgent(
     }
 
     /**
-     * Calls [SseServerTransport.handlePostMessage] on all [mcpTransports].  This should only be called by the API
+     * Calls [SseServerTransport.handlePostMessage] on all [mcpSessions].  This should only be called by the API
      * endpoint associated with an SSE connection to this agent's MCP server.
      */
     suspend fun handlePostMessage(call: ApplicationCall) {
-        mcpTransports.value.forEach { transport ->
-            when (transport) {
+        mcpSessions.values.forEach { session ->
+            when (val transport = session.transport) {
                 is SseServerTransport -> {
                     transport.handlePostMessage(call)
                 }
@@ -239,11 +237,11 @@ class SessionAgent(
      * Returns true when the first connection MCP connection is made to this agent
      */
     suspend fun waitForMcpConnection(timeoutMs: Long = 10_000L): Boolean {
-        if (mcpTransports.value.isNotEmpty())
+        if (mcpSessions.isNotEmpty())
             return true
 
         return withTimeoutOrNull(timeoutMs) {
-            return@withTimeoutOrNull mcpTransports.first()
+            return@withTimeoutOrNull mcpSessionCount.first { it != 0 }
         } != null
     }
 
@@ -251,17 +249,22 @@ class SessionAgent(
      * Connects an SSE session to this agent's MCP server
      */
     suspend fun connectMcpTransport(transport: AbstractTransport) {
-        if (mcpTransports.value.isEmpty()) {
+        if (mcpSessionCount.value == 0) {
             this.session.events.emit(SessionEvent.AgentConnected(name))
         }
 
-        transport.onClose {
-            mcpTransports.update { transports -> transports.filter { it != transport } }
-        }
-        mcpTransports.update { it + listOf(transport) }
-
+        mcpSessionCount.update { it + 1 }
         handleBlocking()
-        createSession(transport)
+
+        val session = createSession(transport)
+
+        transport.onClose {
+            mcpSessionCount.update {
+                mcpSessions.remove(name)
+                mcpSessions.count()
+            }
+        }
+        mcpSessions[name] = session
     }
 
     /**
@@ -424,7 +427,7 @@ class SessionAgent(
             put("agentName", name)
             put("agentDescription", description)
             put("agentWaiting", waiters.isNotEmpty())
-            put("agentConnected", mcpTransports.value.isNotEmpty())
+            put("agentConnected", mcpSessionCount.value != 0)
         }
 
     /**
@@ -435,7 +438,7 @@ class SessionAgent(
             name = name,
             registryAgentIdentifier = graphAgent.registryAgent.identifier,
             isWaiting = waiters.isNotEmpty(),
-            isConnected = mcpTransports.value.isNotEmpty(),
+            isConnected = mcpSessionCount.value != 0,
             description = description,
             links = links.map { it.name }.toSet()
         )
