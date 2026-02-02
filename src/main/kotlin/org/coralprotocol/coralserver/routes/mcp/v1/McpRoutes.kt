@@ -12,6 +12,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.serialization.serializer
 import org.coralprotocol.coralserver.routes.McpV1
 import org.coralprotocol.coralserver.routes.RouteException
@@ -57,6 +58,8 @@ fun Route.mcpRoutes() {
                                         session = this
                                     )
                                 )
+
+                                awaitCancellation()
                             })
                         } catch (_: SessionException.InvalidAgentSecret) {
                             call.respond(HttpStatusCode.Unauthorized)
