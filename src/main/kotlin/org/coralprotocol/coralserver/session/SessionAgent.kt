@@ -1,7 +1,10 @@
 package org.coralprotocol.coralserver.session
 
 import io.ktor.server.application.*
-import io.modelcontextprotocol.kotlin.sdk.server.*
+import io.modelcontextprotocol.kotlin.sdk.server.Server
+import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
+import io.modelcontextprotocol.kotlin.sdk.server.ServerSession
+import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import io.modelcontextprotocol.kotlin.sdk.shared.AbstractTransport
 import io.modelcontextprotocol.kotlin.sdk.types.*
 import kotlinx.coroutines.CoroutineScope
@@ -100,9 +103,9 @@ class SessionAgent(
 
     /**
      * A list of connected transports for this agent
-     * @see connectMcpTransport
+     * @see connectTransport
      */
-    private val mcpSessions = ConcurrentHashMap<String, ServerSession>()
+    val mcpSessions = ConcurrentHashMap<String, ServerSession>()
 
     /**
      * The number of *potential* mcp sessions.  Note that this number will increase before the client is accepted, to
@@ -172,20 +175,11 @@ class SessionAgent(
     }
 
     /**
-     * Calls [SseServerTransport.handlePostMessage] on all [mcpSessions].  This should only be called by the API
-     * endpoint associated with an SSE connection to this agent's MCP server.
+     * Calls [SseServerTransport.handlePostMessage] on sessions that have legacy sse transports.
      */
-    suspend fun handlePostMessage(call: ApplicationCall) {
-        mcpSessions.values.forEach { session ->
-            when (val transport = session.transport) {
-                is SseServerTransport -> {
-                    transport.handlePostMessage(call)
-                }
-
-                is StreamableHttpServerTransport -> {
-                    transport.handlePostRequest(null, call)
-                }
-            }
+    suspend fun handleSsePostMessage(call: ApplicationCall) {
+        mcpSessions.values.map { it.transport }.filterIsInstance<SseServerTransport>().forEach { transport ->
+            transport.handlePostMessage(call)
         }
     }
 
@@ -246,9 +240,11 @@ class SessionAgent(
     }
 
     /**
-     * Connects an SSE session to this agent's MCP server
+     * Creates a session for this agent from a given transport.  Session information is stored in [mcpSessions] and
+     * [mcpSessionCount].  Once the transport closes, the session will be removed from the aforementioned.
      */
-    suspend fun connectMcpTransport(transport: AbstractTransport) {
+    suspend fun <T> connectTransport(transport: T, sessionId: String? = null): T
+            where T : AbstractTransport {
         if (mcpSessionCount.value == 0) {
             this.session.events.emit(SessionEvent.AgentConnected(name))
         }
@@ -257,14 +253,17 @@ class SessionAgent(
         handleBlocking()
 
         val session = createSession(transport)
+        val sessionId = sessionId ?: session.sessionId
 
         transport.onClose {
             mcpSessionCount.update {
-                mcpSessions.remove(name)
+                mcpSessions.remove(sessionId)
                 mcpSessions.count()
             }
         }
-        mcpSessions[name] = session
+        mcpSessions[sessionId] = session
+
+        return transport
     }
 
     /**
