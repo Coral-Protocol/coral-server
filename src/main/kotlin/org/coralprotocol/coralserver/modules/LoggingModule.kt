@@ -34,7 +34,16 @@ val loggingModule = module {
         logCtx.reset()
 
         logCtx.getLogger("io.ktor.server.plugins.cors.CORS").level = Level.OFF
+
+        // anthropic slop noise reduction
         logCtx.getLogger("io.modelcontextprotocol.kotlin.sdk.server.Server").level = Level.OFF
+        logCtx.getLogger("io.modelcontextprotocol.kotlin.sdk.server.Protocol").level = Level.OFF
+        logCtx.getLogger("io.modelcontextprotocol.kotlin.sdk.shared.Protocol").level = Level.OFF
+        logCtx.getLogger("io.modelcontextprotocol.kotlin.sdk.server.FeatureNotificationService").level = Level.OFF
+        logCtx.getLogger("io.modelcontextprotocol.kotlin.sdk.server.SessionNotificationJob").level = Level.OFF
+        logCtx.getLogger("io.modelcontextprotocol.kotlin.sdk.server.ServerSessionRegistry").level = Level.OFF
+        logCtx.getLogger("FeatureRegistry[Tool]").level = Level.OFF
+        logCtx.getLogger("FeatureRegistry[Resource]").level = Level.OFF
 
         logCtx.putObject(
             CoreConstants.PATTERN_RULE_REGISTRY, mapOf(
