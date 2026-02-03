@@ -10,7 +10,7 @@ import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.mcp.tools.*
-import org.coralprotocol.coralserver.util.mcpFunctionRuntime
+import org.coralprotocol.coralserver.util.sseFunctionRuntime
 import org.coralprotocol.coralserver.utils.TestEvent
 import org.coralprotocol.coralserver.utils.dsl.graphAgentPair
 import org.coralprotocol.coralserver.utils.shouldPostEvents
@@ -37,7 +37,7 @@ class McpSessionEventsTest : CoralTest({
                 agents = mapOf(
                     graphAgentPair(agent1Name) {
                         registryAgent {
-                            runtime(client.mcpFunctionRuntime(name, version) { client, session ->
+                            runtime(client.sseFunctionRuntime(name, version) { client, session ->
                                 session.shouldPostEvents(
                                     timeout = 15.seconds,
                                     allowUnexpectedEvents = true,
@@ -55,7 +55,7 @@ class McpSessionEventsTest : CoralTest({
                     },
                     graphAgentPair(agent2Name) {
                         registryAgent {
-                            runtime(client.mcpFunctionRuntime(name, version) { client, session ->
+                            runtime(client.sseFunctionRuntime(name, version) { client, session ->
                                 val agent1 = session.getAgent(agent1Name)
 
                                 session.shouldPostEvents(
@@ -110,7 +110,7 @@ class McpSessionEventsTest : CoralTest({
                     },
                     graphAgentPair(agent3Name) {
                         registryAgent {
-                            runtime(client.mcpFunctionRuntime(name, version) { _, _ ->
+                            runtime(client.sseFunctionRuntime(name, version) { _, _ ->
                                 // nop
                             })
                         }

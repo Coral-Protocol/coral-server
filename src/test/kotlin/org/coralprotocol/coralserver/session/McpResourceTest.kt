@@ -23,7 +23,7 @@ import org.coralprotocol.coralserver.mcp.McpResourceName
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.mcp.tools.CreateThreadInput
 import org.coralprotocol.coralserver.mcp.tools.SendMessageInput
-import org.coralprotocol.coralserver.util.mcpFunctionRuntime
+import org.coralprotocol.coralserver.util.sseFunctionRuntime
 import org.coralprotocol.coralserver.utils.dsl.graphAgentPair
 import org.koin.test.inject
 
@@ -53,7 +53,7 @@ class McpResourceTest : CoralTest({
                 agents = mapOf(
                     graphAgentPair(agent1Name) {
                         registryAgent {
-                            runtime(client.mcpFunctionRuntime(name, version) { client, _ ->
+                            runtime(client.sseFunctionRuntime(name, version) { client, _ ->
                                 shouldNotThrowAny {
                                     val createThreadResult =
                                         mcpToolManager.createThreadTool.executeOn(
@@ -93,7 +93,7 @@ class McpResourceTest : CoralTest({
                     },
                     graphAgentPair(agent2Name) {
                         registryAgent {
-                            runtime(client.mcpFunctionRuntime(name, version) { client, _ ->
+                            runtime(client.sseFunctionRuntime(name, version) { client, _ ->
                                 shouldNotThrowAny {
                                     // wait for agent1
                                     threads.first { it == 1 }
@@ -124,7 +124,7 @@ class McpResourceTest : CoralTest({
                     },
                     graphAgentPair(agent3Name) {
                         registryAgent {
-                            runtime(client.mcpFunctionRuntime(name, version) { client, _ ->
+                            runtime(client.sseFunctionRuntime(name, version) { client, _ ->
                                 // wait for agent1 and agent2
                                 threads.first { it == 2 }
 

@@ -11,7 +11,7 @@ import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.mcp.tools.optional.CloseSessionInput
-import org.coralprotocol.coralserver.util.mcpFunctionRuntime
+import org.coralprotocol.coralserver.util.sseFunctionRuntime
 import org.coralprotocol.coralserver.utils.dsl.graphAgentPair
 import org.koin.test.inject
 
@@ -31,7 +31,7 @@ class McpAgentPluginTest : CoralTest({
                 agents = mapOf(
                     graphAgentPair(agent1Name) {
                         registryAgent {
-                            runtime(client.mcpFunctionRuntime(name, version) { client, _ ->
+                            runtime(client.sseFunctionRuntime(name, version) { client, _ ->
                                 agent2Ready.await()
                                 mcpToolManager.closeSessionTool.executeOn(client, CloseSessionInput("Test closure"))
                             })
@@ -41,7 +41,7 @@ class McpAgentPluginTest : CoralTest({
                     },
                     graphAgentPair(agent2Name) {
                         registryAgent {
-                            runtime(client.mcpFunctionRuntime(name, version) { client, _ ->
+                            runtime(client.sseFunctionRuntime(name, version) { client, _ ->
                                 // agent2 does not have the close session plugin installed
                                 shouldThrow<IllegalStateException> {
                                     mcpToolManager.closeSessionTool.executeOn(

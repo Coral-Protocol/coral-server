@@ -8,7 +8,7 @@ import org.coralprotocol.coralserver.agent.runtime.ExecutableRuntime
 import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.events.SessionEvent
-import org.coralprotocol.coralserver.util.mcpFunctionRuntime
+import org.coralprotocol.coralserver.util.sseFunctionRuntime
 import org.coralprotocol.coralserver.utils.TestEvent
 import org.coralprotocol.coralserver.utils.dsl.graphAgentPair
 import org.coralprotocol.coralserver.utils.shouldPostEvents
@@ -40,7 +40,7 @@ open class SessionEventsTest : CoralTest({
                                         },
                                     )
                                 ) {
-                                    client.mcpFunctionRuntime(name, version) { _, _ ->
+                                    client.sseFunctionRuntime(name, version) { _, _ ->
                                         // just to trigger AgentConnected
                                     }.execute(executionContext, applicationRuntimeContext)
                                 }

@@ -12,7 +12,7 @@ import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.mcp.tools.*
-import org.coralprotocol.coralserver.util.mcpFunctionRuntime
+import org.coralprotocol.coralserver.util.sseFunctionRuntime
 import org.coralprotocol.coralserver.utils.dsl.graphAgentPair
 import org.coralprotocol.coralserver.utils.synchronizedMessageTransaction
 import org.koin.test.inject
@@ -37,7 +37,7 @@ class McpToolsTest : CoralTest({
                 agents = mapOf(
                     graphAgentPair(agent1Name) {
                         registryAgent {
-                            runtime(client.mcpFunctionRuntime(name, version) { client, session ->
+                            runtime(client.sseFunctionRuntime(name, version) { client, session ->
                                 val agent2 = session.getAgent(agent2Name)
                                 val agent3 = session.getAgent(agent3Name)
 
@@ -108,7 +108,7 @@ class McpToolsTest : CoralTest({
                     },
                     graphAgentPair(agent2Name) {
                         registryAgent {
-                            runtime(client.mcpFunctionRuntime(name, version) { client, session ->
+                            runtime(client.sseFunctionRuntime(name, version) { client, session ->
                                 val singleMessageResult =
                                     mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput)
                                 singleMessageResult.message?.text shouldBe singleMessageText
@@ -129,7 +129,7 @@ class McpToolsTest : CoralTest({
                     },
                     graphAgentPair(agent3Name) {
                         registryAgent {
-                            runtime(client.mcpFunctionRuntime(name, version) { client, session ->
+                            runtime(client.sseFunctionRuntime(name, version) { client, session ->
                                 val agent3 = session.getAgent(agent3Name)
 
                                 val mentionMessageResult =

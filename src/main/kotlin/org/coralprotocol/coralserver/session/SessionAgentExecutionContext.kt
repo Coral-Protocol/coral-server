@@ -106,7 +106,7 @@ class SessionAgentExecutionContext(
 
             // Coral environment variables
             this["CORAL_CONNECTION_URL"] =
-                applicationRuntimeContext.getMcpUrl(this@SessionAgentExecutionContext, addressConsumer).toString()
+                applicationRuntimeContext.getSseUrl(this@SessionAgentExecutionContext, addressConsumer).toString()
             this["CORAL_AGENT_ID"] = agent.name
             this["CORAL_AGENT_SECRET"] = agent.secret
             this["CORAL_SESSION_ID"] = agent.session.id
