@@ -79,7 +79,8 @@ class FileAgentRegistrySource(
 
     data class WatchJobKey(
         val path: Path,
-        val kinds: List<WatchEvent.Kind<*>>
+        val kinds: List<WatchEvent.Kind<*>>,
+        val pattern: String = ""
     )
 
     private val logger by inject<Logger>(named(LOGGER_CONFIG))
@@ -117,27 +118,20 @@ class FileAgentRegistrySource(
     }
 
     private fun addAgentsFromPattern(pathPattern: String, parent: String) {
-        val parts = pathPattern.split("/")
+        val parts = pathPattern.split("/").filter { it.isNotEmpty() }
         var current = Path.of(parent).absolute()
+
         parts.forEachIndexed { index, part ->
             val remainingParts = parts.slice(index..<parts.size)
 
             if (part == "*") {
-                logger.trace {
-                    "watching directory: \"${normalizedPathString(current)}\" for \"${
-                        remainingParts.joinToString(
-                            "/"
-                        )
-                    }\""
-                }
-
                 // watch this directory for any future items matching the remainder of the pattern (this function will
                 // do nothing if watch = false)
                 watchDirectory(current, remainingParts)
 
-                current.toFile().listFiles {
-                    it.isDirectory
-                }?.forEach {
+                // Scan existing subdirectories. Note that the recursion will handle deeper directories,
+                // ensuring we don't scan too deep unless the pattern demands it
+                current.toFile().listFiles { it.isDirectory }?.forEach {
                     addAgentsFromPattern(
                         if (index == parts.lastIndex) {
                             it.name
@@ -147,27 +141,24 @@ class FileAgentRegistrySource(
                         normalizedPathString(current)
                     )
                 }
-            } else {
-                current = current.resolve(part)
-            }
 
-            if (current.parent != null && (index != parts.lastIndex || part == "*")) {
-                if (!current.isDirectory() && current.parent.isDirectory()) {
-                    logger.trace { "watching directory: \"${normalizedPathString(current.parent)}\" for \"$part\"" }
-                    watchDirectory(current.parent, remainingParts)
-                    return
-                } else {
-                    watchForDeletion(
-                        current,
-                        parts.slice(index..<parts.size).joinToString("/"),
-                        normalizedPathString(current.parent)
-                    )
+                return@addAgentsFromPattern
+            } else {
+                val next = current.resolve(part)
+                if (!next.isDirectory()) {
+                    if (current.isDirectory()) {
+                        watchDirectory(current, remainingParts)
+                    }
+                    return@addAgentsFromPattern
                 }
+
+                watchForDeletion(next, remainingParts.joinToString("/"), normalizedPathString(current))
+                current = next
             }
         }
 
         // if the last part in this pattern is a wildcard, directories are expected here not agents
-        if (parts.last() == "*")
+        if (parts.isNotEmpty() && parts.last() == "*")
             return
 
         val agentFile = current.resolve(AGENT_FILE).toFile()
@@ -177,7 +168,9 @@ class FileAgentRegistrySource(
 
             // watching allows for us to wait for agent to be written to this directory
             waitForAgent(current)
-            watchForDeletion(current, parent, parts.last())
+            if (parts.isNotEmpty()) {
+                watchForDeletion(current, parts.last(), normalizedPathString(current.parent))
+            }
         }
     }
 
@@ -224,9 +217,10 @@ class FileAgentRegistrySource(
     private fun eventStreamForPath(
         path: Path,
         vararg kinds: WatchEvent.Kind<*>,
+        pattern: String = "",
         handler: suspend CoroutineScope.(WatchEvent<*>) -> Unit
     ): Job {
-        val watchJobKey = WatchJobKey(path, kinds.toList())
+        val watchJobKey = WatchJobKey(path, kinds.toList(), pattern)
         if (watchJobs.containsKey(watchJobKey)) {
             watchJobs[watchJobKey]?.cancel()
         }
@@ -373,10 +367,10 @@ class FileAgentRegistrySource(
         val nextPart = remainingParts.first()
         val remainingStr = remainingParts.joinToString("/")
 
-        eventStreamForPath(directory, ENTRY_CREATE) {
+        eventStreamForPath(directory, ENTRY_CREATE, pattern = remainingStr) {
             val fileName = (it.context() as Path).name
-            val wildcard = nextPart == "*"
-            if (nextPart.equals(fileName, ignoreCase = isWindows()) || wildcard) {
+            val isWildcard = nextPart == "*"
+            if (nextPart.equals(fileName, ignoreCase = isWindows()) || isWildcard) {
                 val fullPatternLog = if (nextPart != remainingStr) {
                     " from full pattern \"$remainingStr\""
                 } else {
@@ -384,22 +378,21 @@ class FileAgentRegistrySource(
                 }
 
                 logger.trace { "\"$fileName\" created in \"${normalizedPathString(directory)}\", matching pattern part \"$nextPart\"$fullPatternLog" }
-
                 addAgentsFromPattern(
-                    if (wildcard) {
+                    if (isWildcard) {
                         if (remainingParts.size == 1) {
                             fileName
                         } else {
                             "$fileName/${remainingParts.drop(1).joinToString("/")}"
                         }
                     } else {
-                        remainingParts.joinToString("/")
+                        remainingStr
                     },
                     normalizedPathString(directory)
                 )
 
                 // if the next part was a specific directory, and it was created, this listener doesn't need to exist anymore
-                if (!wildcard)
+                if (!isWildcard)
                     cancel()
             }
         }.invokeOnCompletion {
@@ -418,7 +411,7 @@ class FileAgentRegistrySource(
 
         logger.trace { "waiting for $AGENT_FILE to be written in \"${normalizedPathString(directory)}\"" }
 
-        eventStreamForPath(directory, ENTRY_CREATE) {
+        eventStreamForPath(directory, ENTRY_CREATE, pattern = AGENT_FILE) {
             if ((it.context() as Path).name == AGENT_FILE) {
                 val file = directory.resolve(AGENT_FILE).toFile()
 
@@ -442,7 +435,7 @@ class FileAgentRegistrySource(
     }
 
     private fun watchForDeletion(directory: Path, restartPathPattern: String, restartPart: String) {
-        if (!watch || directory.parent == null || deletionWatchers.contains(directory.absolutePathString()))
+        if (!watch || directory.parent == null || deletionWatchers.contains(directory.absolutePathString() + ":" + restartPathPattern))
             return
 
         if (!directory.isDirectory()) {
@@ -450,12 +443,13 @@ class FileAgentRegistrySource(
             return
         }
 
-        deletionWatchers.add(directory.absolutePathString())
-        eventStreamForPath(directory.parent, ENTRY_DELETE) {
+        val watcherKey = directory.absolutePathString() + ":" + restartPathPattern
+        deletionWatchers.add(watcherKey)
+        eventStreamForPath(directory.parent, ENTRY_DELETE, pattern = restartPathPattern) {
             if ((it.context() as Path).name == directory.name) {
                 logger.trace { "${directory.name} in \"${normalizedPathString(directory.parent)}\" was deleted, restart $restartPathPattern with $restartPart" }
 
-                deletionWatchers.remove(directory.absolutePathString())
+                deletionWatchers.remove(watcherKey)
                 addAgentsFromPattern(restartPathPattern, restartPart)
 
                 cancel()

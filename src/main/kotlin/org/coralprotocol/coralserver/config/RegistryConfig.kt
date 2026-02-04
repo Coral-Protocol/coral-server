@@ -9,7 +9,10 @@ data class RegistryConfig(
      * matching.
      */
     val localAgents: List<String> = listOf(
-        "${Path.of(System.getProperty("user.home"), ".coral", "agents")}/*"
+        // Agents added with coralizer link are separated by agent version at the time of linking
+        "${Path.of(System.getProperty("user.home"), ".coral", "agents")}/*/*",
+        // For agents manually added it's more natural that they aren't separated by version
+        "${Path.of(System.getProperty("user.home"), ".coral", "agents")}/*",
     ),
 
     /**
