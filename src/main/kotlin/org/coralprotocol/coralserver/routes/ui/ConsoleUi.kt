@@ -93,7 +93,10 @@ fun Route.consoleUi() {
         return
     }
 
-    staticFiles("console", bundlePath.toFile())
+    staticFiles("console", bundlePath.toFile()) {
+        default("index.html")
+    }
+
     // The console requires a secure context, which is not available from 0.0.0.0
     // see https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Secure_Contexts
     val consoleServingHost = "localhost"
