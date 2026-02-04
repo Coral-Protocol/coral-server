@@ -2,15 +2,18 @@ package org.coralprotocol.coralserver.session
 
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.ktor.client.*
+import io.modelcontextprotocol.kotlin.sdk.client.Client
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
+import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.mcp.tools.*
-import org.coralprotocol.coralserver.util.mcpFunctionRuntime
+import org.coralprotocol.coralserver.util.sseFunctionRuntime
+import org.coralprotocol.coralserver.util.streamableHttpFunctionRuntime
 import org.coralprotocol.coralserver.utils.TestEvent
 import org.coralprotocol.coralserver.utils.dsl.graphAgentPair
 import org.coralprotocol.coralserver.utils.shouldPostEvents
@@ -19,7 +22,13 @@ import org.koin.test.inject
 import kotlin.time.Duration.Companion.seconds
 
 class McpSessionEventsTest : CoralTest({
-    test("testMcpSessionEvents") {
+    suspend fun testWithProvider(
+        runtimeProvider: HttpClient.(
+            name: String,
+            version: String,
+            func: suspend (Client, LocalSession) -> Unit
+        ) -> FunctionRuntime
+    ) {
         val localSessionManager by inject<LocalSessionManager>()
         val client by inject<HttpClient>()
         val mcpToolManager by inject<McpToolManager>()
@@ -37,7 +46,7 @@ class McpSessionEventsTest : CoralTest({
                 agents = mapOf(
                     graphAgentPair(agent1Name) {
                         registryAgent {
-                            runtime(client.mcpFunctionRuntime(name, version) { client, session ->
+                            runtime(client.runtimeProvider(name, version) { client, session ->
                                 session.shouldPostEvents(
                                     timeout = 15.seconds,
                                     allowUnexpectedEvents = true,
@@ -55,7 +64,7 @@ class McpSessionEventsTest : CoralTest({
                     },
                     graphAgentPair(agent2Name) {
                         registryAgent {
-                            runtime(client.mcpFunctionRuntime(name, version) { client, session ->
+                            runtime(client.runtimeProvider(name, version) { client, session ->
                                 val agent1 = session.getAgent(agent1Name)
 
                                 session.shouldPostEvents(
@@ -110,7 +119,7 @@ class McpSessionEventsTest : CoralTest({
                     },
                     graphAgentPair(agent3Name) {
                         registryAgent {
-                            runtime(client.mcpFunctionRuntime(name, version) { _, _ ->
+                            runtime(client.runtimeProvider(name, version) { _, _ ->
                                 // nop
                             })
                         }
@@ -118,5 +127,13 @@ class McpSessionEventsTest : CoralTest({
                     }
                 )
             ))
+    }
+
+    test("testSseMcpSessionEvents") {
+        testWithProvider(HttpClient::sseFunctionRuntime)
+    }
+
+    test("testStreamableHttpMcpSessionEvents") {
+        testWithProvider(HttpClient::streamableHttpFunctionRuntime)
     }
 })

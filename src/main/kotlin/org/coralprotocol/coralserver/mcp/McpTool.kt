@@ -1,10 +1,8 @@
 package org.coralprotocol.coralserver.mcp
 
-import io.modelcontextprotocol.kotlin.sdk.CallToolRequest
-import io.modelcontextprotocol.kotlin.sdk.CallToolResult
-import io.modelcontextprotocol.kotlin.sdk.TextContent
-import io.modelcontextprotocol.kotlin.sdk.Tool
+
 import io.modelcontextprotocol.kotlin.sdk.client.Client
+import io.modelcontextprotocol.kotlin.sdk.types.*
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
@@ -20,7 +18,7 @@ class McpTool<In, Out>(
     val name: McpToolName,
     val description: String,
     val requiredSnippets: Set<McpInstructionSnippet>,
-    val inputSchema: Tool.Input,
+    val inputSchema: ToolSchema,
     private val executor: suspend (agent: SessionAgent, arguments: In) -> Out,
     private val inputSerializer: KSerializer<In>,
     private val outputSerializer: KSerializer<Out>,
@@ -34,7 +32,7 @@ class McpTool<In, Out>(
             agent.logger.error(e) { "Couldn't deserialize input given to $name" }
 
             return CallToolResult(
-                content = listOf(TextContent(e.message)),
+                content = listOf(TextContent(e.message ?: "serialization error")),
                 structuredContent = buildJsonObject {
                     put("error", e.message)
                 },
@@ -63,7 +61,7 @@ class McpTool<In, Out>(
             agent.logger.error(e) { "Unexpected error occurred while executing tool $name" }
 
             CallToolResult(
-                content = listOf(TextContent(e.message)),
+                content = listOf(TextContent(e.message ?: "unknown error")),
                 structuredContent = buildJsonObject {
                     put("error", e.message)
                 },
@@ -76,8 +74,7 @@ class McpTool<In, Out>(
         val jsonObj = json.encodeToJsonElement(inputSerializer, arguments) as JsonObject
 
         val response =
-            client.callTool(CallToolRequest(name.toString(), jsonObj))
-                ?: throw McpToolException("No response from server")
+            client.callTool(CallToolRequest(CallToolRequestParams(name.toString(), jsonObj)))
 
         if (response.isError == true) {
             val errorMsg = response.structuredContent?.get("error")?.jsonPrimitive?.content ?: "Unknown error"

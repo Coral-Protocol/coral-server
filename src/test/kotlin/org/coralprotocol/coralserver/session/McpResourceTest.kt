@@ -6,9 +6,10 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.client.*
-import io.modelcontextprotocol.kotlin.sdk.ReadResourceRequest
-import io.modelcontextprotocol.kotlin.sdk.TextResourceContents
 import io.modelcontextprotocol.kotlin.sdk.client.Client
+import io.modelcontextprotocol.kotlin.sdk.types.ReadResourceRequest
+import io.modelcontextprotocol.kotlin.sdk.types.ReadResourceRequestParams
+import io.modelcontextprotocol.kotlin.sdk.types.TextResourceContents
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -16,27 +17,35 @@ import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
+import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.mcp.McpInstructionSnippet
 import org.coralprotocol.coralserver.mcp.McpResourceName
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.mcp.tools.CreateThreadInput
 import org.coralprotocol.coralserver.mcp.tools.SendMessageInput
-import org.coralprotocol.coralserver.util.mcpFunctionRuntime
+import org.coralprotocol.coralserver.util.sseFunctionRuntime
+import org.coralprotocol.coralserver.util.streamableHttpFunctionRuntime
 import org.coralprotocol.coralserver.utils.dsl.graphAgentPair
 import org.koin.test.inject
 
 class McpResourceTest : CoralTest({
     suspend fun Client.readResourceByName(name: McpResourceName): String {
         val resourceResult =
-            readResource(ReadResourceRequest(name.toString()))
+            readResource(ReadResourceRequest(ReadResourceRequestParams(name.toString())))
                 .shouldNotBeNull()
 
         val resource = resourceResult.contents.first()
         return resource.shouldBeInstanceOf<TextResourceContents>().text
     }
 
-    test("testStateAndInstructions") {
+    suspend fun testStateAndInstructions(
+        runtimeProvider: HttpClient.(
+            name: String,
+            version: String,
+            func: suspend (Client, LocalSession) -> Unit
+        ) -> FunctionRuntime
+    ) {
         val localSessionManager by inject<LocalSessionManager>()
         val client by inject<HttpClient>()
         val mcpToolManager by inject<McpToolManager>()
@@ -47,12 +56,12 @@ class McpResourceTest : CoralTest({
 
         val threads = MutableStateFlow(0)
 
-        localSessionManager.createSession(
+        val (session, _) = localSessionManager.createSession(
             "test", AgentGraph(
                 agents = mapOf(
                     graphAgentPair(agent1Name) {
                         registryAgent {
-                            runtime(client.mcpFunctionRuntime(name, version) { client, _ ->
+                            runtime(client.runtimeProvider(name, version) { client, _ ->
                                 shouldNotThrowAny {
                                     val createThreadResult =
                                         mcpToolManager.createThreadTool.executeOn(
@@ -92,7 +101,7 @@ class McpResourceTest : CoralTest({
                     },
                     graphAgentPair(agent2Name) {
                         registryAgent {
-                            runtime(client.mcpFunctionRuntime(name, version) { client, _ ->
+                            runtime(client.runtimeProvider(name, version) { client, _ ->
                                 shouldNotThrowAny {
                                     // wait for agent1
                                     threads.first { it == 1 }
@@ -123,7 +132,7 @@ class McpResourceTest : CoralTest({
                     },
                     graphAgentPair(agent3Name) {
                         registryAgent {
-                            runtime(client.mcpFunctionRuntime(name, version) { client, _ ->
+                            runtime(client.runtimeProvider(name, version) { client, _ ->
                                 // wait for agent1 and agent2
                                 threads.first { it == 2 }
 
@@ -151,5 +160,15 @@ class McpResourceTest : CoralTest({
                     }
                 )
             ))
+
+        session.fullLifeCycle()
+    }
+
+    test("testSseStateAndInstructions") {
+        testStateAndInstructions(HttpClient::sseFunctionRuntime)
+    }
+
+    test("testStreamableHttpStateAndInstructions") {
+        testStateAndInstructions(HttpClient::streamableHttpFunctionRuntime)
     }
 })

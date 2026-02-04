@@ -1,13 +1,16 @@
 package org.coralprotocol.coralserver.session
 
 import io.ktor.server.application.*
-import io.ktor.server.sse.*
-import io.modelcontextprotocol.kotlin.sdk.*
 import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
+import io.modelcontextprotocol.kotlin.sdk.server.ServerSession
 import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
-import kotlinx.coroutines.CompletableDeferred
+import io.modelcontextprotocol.kotlin.sdk.shared.AbstractTransport
+import io.modelcontextprotocol.kotlin.sdk.types.*
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonObject
@@ -29,6 +32,7 @@ import org.coralprotocol.coralserver.x402.X402BudgetedResource
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.component.inject
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.measureTimedValue
 
@@ -98,16 +102,16 @@ class SessionAgent(
     val waiters = ConcurrentMutableList<SessionAgentWaiter>()
 
     /**
-     * A list of SSE connections to this agent's MCP server.
-     * @see connectSseSession
+     * A list of connected transports for this agent
+     * @see connectTransport
      */
-    private val sseTransports = mutableListOf<SseServerTransport>()
+    val mcpSessions = ConcurrentHashMap<String, ServerSession>()
 
     /**
-     * Completed when the first connection to this agent's MCP server is made.
-     * @see [waitForSseConnection]
+     * The number of *potential* mcp sessions.  Note that this number will increase before the client is accepted, to
+     * facilitate blocking agents.
      */
-    private val firstConnectionEstablished = CompletableDeferred<SseServerTransport>()
+    private val mcpSessionCount = MutableStateFlow(0)
 
     /**
      * A list of resources that this agent has access to, each resource constrained by a budget.  This is used for x402
@@ -164,18 +168,19 @@ class SessionAgent(
 
         graphAgent.plugins.forEach { it.install(this) }
         graphAgent.customTools.forEach { (name, tool) ->
-            addTool(tool.schema) {
+            addTool(Tool(name, tool.schema)) {
                 tool.transport.execute(name, this, it)
             }
         }
     }
 
     /**
-     * Calls [SseServerTransport.handlePostMessage] on all [sseTransports].  This should only be called by the API
-     * endpoint associated with an SSE connection to this agent's MCP server.
+     * Calls [SseServerTransport.handlePostMessage] on sessions that have legacy sse transports.
      */
-    suspend fun handlePostMessage(call: ApplicationCall) {
-        sseTransports.forEach { transport -> transport.handlePostMessage(call) }
+    suspend fun handleSsePostMessage(call: ApplicationCall) {
+        mcpSessions.values.map { it.transport }.filterIsInstance<SseServerTransport>().forEach { transport ->
+            transport.handlePostMessage(call)
+        }
     }
 
     /**
@@ -186,7 +191,7 @@ class SessionAgent(
      *
      * If [GraphAgent.blocking] is false, this function will return immediately.
      * If [GraphAgent.blocking] is true, this function will collect every connected agent using a recursive depth-first
-     * search on [links] (that has [GraphAgent.blocking] == true) and call [SessionAgent.waitForSseConnection] on each
+     * search on [links] (that has [GraphAgent.blocking] == true) and call [SessionAgent.waitForMcpConnection] on each
      * of them, returning either when all connected blocking agents are trying to connect to their respective MCP
      * servers, or when the [timeoutMs] is reached.
      */
@@ -213,7 +218,7 @@ class SessionAgent(
 
         logger.info { "waiting for blocking agents: ${connectedBlockingAgents.joinToString(", ") { it.name }}" }
         val timeout = withTimeoutOrNull(timeoutMs) {
-            connectedBlockingAgents.forEach { it.waitForSseConnection(timeoutMs / connectedBlockingAgents.size) }
+            connectedBlockingAgents.forEach { it.waitForMcpConnection(timeoutMs / connectedBlockingAgents.size) }
         } == null
 
         if (timeout)
@@ -223,35 +228,42 @@ class SessionAgent(
     }
 
     /**
-     * Returns true when the first connection SSE connection is made to this agent.  This will not check if that
-     * connection is still alive.
+     * Returns true when the first connection MCP connection is made to this agent
      */
-    suspend fun waitForSseConnection(timeoutMs: Long = 10_000L): Boolean {
-        if (firstConnectionEstablished.isCompleted)
+    suspend fun waitForMcpConnection(timeoutMs: Long = 10_000L): Boolean {
+        if (mcpSessions.isNotEmpty())
             return true
 
         return withTimeoutOrNull(timeoutMs) {
-            return@withTimeoutOrNull firstConnectionEstablished.await()
+            return@withTimeoutOrNull mcpSessionCount.first { it != 0 }
         } != null
     }
 
     /**
-     * Connects an SSE session to this agent's MCP server
+     * Creates a session for this agent from a given transport.  Session information is stored in [mcpSessions] and
+     * [mcpSessionCount].  Once the transport closes, the session will be removed from the aforementioned.
      */
-    suspend fun connectSseSession(session: ServerSSESession) {
-        val transport = SseServerTransport(
-            endpoint = "",
-            session = session
-        )
-
-        sseTransports.add(transport)
-        if (!firstConnectionEstablished.isCompleted) {
-            firstConnectionEstablished.complete(transport)
+    suspend fun <T> connectTransport(transport: T, sessionId: String? = null): T
+            where T : AbstractTransport {
+        if (mcpSessionCount.value == 0) {
             this.session.events.emit(SessionEvent.AgentConnected(name))
         }
 
+        mcpSessionCount.update { it + 1 }
         handleBlocking()
-        connect(transport)
+
+        val session = createSession(transport)
+        val sessionId = sessionId ?: session.sessionId
+
+        transport.onClose {
+            mcpSessionCount.update {
+                mcpSessions.remove(sessionId)
+                mcpSessions.count()
+            }
+        }
+        mcpSessions[sessionId] = session
+
+        return transport
     }
 
     /**
@@ -331,7 +343,7 @@ class SessionAgent(
             description = tool.description,
             inputSchema = tool.inputSchema
         ) { request ->
-            tool.execute(this, request.arguments)
+            tool.execute(this, request.arguments ?: EmptyJsonObject)
         }
 
         requiredInstructionSnippets += tool.requiredSnippets
@@ -414,7 +426,7 @@ class SessionAgent(
             put("agentName", name)
             put("agentDescription", description)
             put("agentWaiting", waiters.isNotEmpty())
-            put("agentConnected", firstConnectionEstablished.isCompleted)
+            put("agentConnected", mcpSessionCount.value != 0)
         }
 
     /**
@@ -425,7 +437,7 @@ class SessionAgent(
             name = name,
             registryAgentIdentifier = graphAgent.registryAgent.identifier,
             isWaiting = waiters.isNotEmpty(),
-            isConnected = firstConnectionEstablished.isCompleted,
+            isConnected = mcpSessionCount.value != 0,
             description = description,
             links = links.map { it.name }.toSet()
         )
