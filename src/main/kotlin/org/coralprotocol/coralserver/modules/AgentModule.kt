@@ -1,10 +1,7 @@
 package org.coralprotocol.coralserver.modules
 
 import kotlinx.coroutines.runBlocking
-import org.coralprotocol.coralserver.agent.debug.EchoDebugAgent
-import org.coralprotocol.coralserver.agent.debug.PuppetDebugAgent
-import org.coralprotocol.coralserver.agent.debug.SeedDebugAgent
-import org.coralprotocol.coralserver.agent.debug.ToolDebugAgent
+import org.coralprotocol.coralserver.agent.debug.*
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.config.RegistryConfig
 import org.coralprotocol.coralserver.mcp.McpToolManager
@@ -17,6 +14,7 @@ val agentModule = module {
     singleOf(::SeedDebugAgent)
     singleOf(::ToolDebugAgent)
     singleOf(::PuppetDebugAgent)
+    singleOf(::SocketDebugAgent)
 
     single(createdAtStart = true) {
         val config: RegistryConfig = get()
@@ -39,7 +37,8 @@ val agentModule = module {
                         get<EchoDebugAgent>().generate(),
                         get<SeedDebugAgent>().generate(),
                         get<ToolDebugAgent>().generate(),
-                        get<PuppetDebugAgent>().generate()
+                        get<PuppetDebugAgent>().generate(),
+                        get<SocketDebugAgent>().generate()
                     )
                 )
             }
