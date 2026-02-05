@@ -88,4 +88,9 @@ data class GraphAgent(
      * @see GraphAgentRequest.x402Budgets
      */
     val x402Budgets: List<X402BudgetedResource>,
+
+    /**
+     * @see GraphAgentRequest.exportDevEnvFile
+     */
+    val exportDevEnvFile: Boolean,
 )

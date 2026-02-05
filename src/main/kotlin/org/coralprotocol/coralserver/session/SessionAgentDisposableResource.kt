@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.session
 
 import org.apache.commons.io.file.PathUtils.deleteFile
 import org.coralprotocol.coralserver.config.DockerConfig
+import java.nio.file.Path
 import kotlin.io.path.createTempFile
 import kotlin.io.path.name
 import kotlin.io.path.writeBytes
@@ -18,6 +19,12 @@ sealed interface SessionAgentDisposableResource {
 
         override fun dispose() {
             deleteFile(file)
+        }
+    }
+
+    class DeleteFile(private val file: Path) : SessionAgentDisposableResource {
+        override fun dispose() {
+            runCatching { deleteFile(file) }
         }
     }
 }
