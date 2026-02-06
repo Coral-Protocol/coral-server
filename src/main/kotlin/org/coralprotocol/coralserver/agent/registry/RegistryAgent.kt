@@ -12,13 +12,15 @@ import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import java.nio.file.Path
 
 const val FIRST_AGENT_EDITION = 1
-const val CURRENT_AGENT_EDITION = 2
+const val CURRENT_AGENT_EDITION = 3
 
 @Serializable
 data class RegistryAgent(
     private val info: RegistryAgentInfo,
+    val edition: Int = CURRENT_AGENT_EDITION,
     val runtimes: LocalAgentRuntimes,
     val options: Map<String, AgentOption> = mapOf(),
+    val marketplace: RegistryAgentMarketplaceSettings? = null,
 
     @Transient
     val path: Path? = null,

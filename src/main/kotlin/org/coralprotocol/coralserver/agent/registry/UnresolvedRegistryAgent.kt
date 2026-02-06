@@ -16,7 +16,7 @@ const val AGENT_FILE = "coral-agent.toml"
 
 @Serializable
 data class UnresolvedRegistryAgent(
-    @Description("The version of this agent")
+    @Description("The edition of this agent")
     @Optional
     val edition: Int = 1,
 
@@ -30,6 +30,10 @@ data class UnresolvedRegistryAgent(
     @Description("The options that this agent supports, for example the API keys required for the agent to function")
     @Optional
     val options: Map<String, AgentOption> = mapOf(),
+
+    @Description("Information for this agent relevant to it's potential listing on the marketplace")
+    @Optional
+    val marketplace: RegistryAgentMarketplaceSettings? = null
 ) : KoinComponent {
     private val logger by inject<Logger>(named(LOGGER_CONFIG))
 
@@ -52,7 +56,8 @@ data class UnresolvedRegistryAgent(
             info = agentInfo.resolve(context.registrySourceIdentifier),
             runtimes = runtimes,
             options = options,
-            path = context.path
+            path = context.path,
+            edition = edition,
         )
     }
 }
