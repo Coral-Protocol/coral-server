@@ -156,7 +156,7 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                         }
                                         single {
                                             Toml {
-                                                ignoreUnknownKeys = false
+                                                ignoreUnknownKeys = true
                                             }
                                         }
                                         single {

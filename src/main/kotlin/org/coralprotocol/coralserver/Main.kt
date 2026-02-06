@@ -34,7 +34,9 @@ fun main(args: Array<String>) {
                 }
                 single {
                     Toml {
-                        ignoreUnknownKeys = false
+                        // currently only used for loading coral-agent.toml files, to allow as many newer coral-agent.toml files
+                        // as possible on earlier versions of the server, this must be set to true
+                        ignoreUnknownKeys = true
                     }
                 }
             }
