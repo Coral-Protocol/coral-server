@@ -106,7 +106,8 @@ class SessionAgentExecutionContext(
 
             // Coral environment variables
             this["CORAL_CONNECTION_URL"] =
-                applicationRuntimeContext.getSseUrl(this@SessionAgentExecutionContext, addressConsumer).toString()
+                applicationRuntimeContext.getStreamableHttpUrl(this@SessionAgentExecutionContext, addressConsumer)
+                    .toString()
             this["CORAL_AGENT_ID"] = agent.name
             this["CORAL_AGENT_SECRET"] = agent.secret
             this["CORAL_SESSION_ID"] = agent.session.id
