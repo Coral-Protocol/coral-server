@@ -5,7 +5,7 @@ import kotlinx.serialization.Transient
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 
 @Serializable
-class FunctionRuntime(
+data class FunctionRuntime(
     @Transient
     private val function: suspend (
         executionContext: SessionAgentExecutionContext,

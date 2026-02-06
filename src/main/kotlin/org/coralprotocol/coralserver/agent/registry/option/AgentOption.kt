@@ -31,9 +31,11 @@ sealed class AgentOption : KoinComponent {
      * Description field should now be set in the display field class. This property is deprecated.
      * This remains for first edition agent definitions and may be removed in the future.
      */
-    private val description: kotlin.String? = null
+    @Deprecated("use display.description instead")
+    val description: kotlin.String? = null
 
     init {
+        @Suppress("DEPRECATION")
         if (display == null && description != null) {
             display = AgentOptionDisplay(description = description)
         }
@@ -51,6 +53,7 @@ sealed class AgentOption : KoinComponent {
         if (edition != CURRENT_AGENT_EDITION)
             return
 
+        @Suppress("DEPRECATION")
         if (description != null) {
             logger.warn {
                 """

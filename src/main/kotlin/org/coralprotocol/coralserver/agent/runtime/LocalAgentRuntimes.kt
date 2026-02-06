@@ -5,7 +5,6 @@ package org.coralprotocol.coralserver.agent.runtime
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 
 @Serializable
 enum class RuntimeId {
@@ -21,7 +20,7 @@ enum class RuntimeId {
 
 @Serializable
 @SerialName("runtime")
-class LocalAgentRuntimes(
+data class LocalAgentRuntimes(
     @SerialName("executable")
     val executableRuntime: ExecutableRuntime? = null,
 
