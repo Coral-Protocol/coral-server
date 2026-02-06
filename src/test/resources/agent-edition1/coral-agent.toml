@@ -1,0 +1,24 @@
+edition = 1
+
+[agent]
+name = "edition-1"
+version = "0.1.0"
+
+[options.SECRET]
+type = "secret"
+description = "edition 1 secret type"
+
+[options.NUMBER]
+type = "number"
+description = "edition 1 number type"
+
+[options.STRING]
+type = "string"
+description = "edition 1 string type"
+default = "default value for the string type"
+
+[runtimes.docker]
+image = "myuser/myimage"
+
+[runtimes.executable]
+command = ["my-agent.exe", "--some-argument"]
