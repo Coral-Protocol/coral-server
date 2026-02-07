@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.routes.ui
 
 import io.ktor.http.*
 import io.ktor.server.http.content.*
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.config.ConsoleConfig
 import org.coralprotocol.coralserver.config.NetworkConfig
@@ -94,7 +95,14 @@ fun Route.consoleUi() {
     }
 
     staticFiles("console", bundlePath.toFile()) {
-        default("index.html")
+        fallback { path, call ->
+            val file = bundlePath.resolve("$path.html")
+            if (file.startsWith(bundlePath) && file.exists()) {
+                call.respondFile(file.toFile())
+            } else {
+                call.respondFile(bundlePath.resolve("404.html").toFile())
+            }
+        }
     }
 
     // The console requires a secure context, which is not available from 0.0.0.0
@@ -102,7 +110,7 @@ fun Route.consoleUi() {
     val consoleServingHost = "localhost"
     logger.info {
         "\n\n For Coral console, navigate to http://$consoleServingHost:${networkConfig.bindPort}/ui/console\n" +
-        " Login using an API key matching one set in auth.keys in the server configuration.\n"
+                " Login using an API key matching one set in auth.keys in the server configuration.\n"
     }
 
 }
