@@ -196,6 +196,38 @@ class RegistryAgentTest : CoralTest({
         agent.options["OPTIONAL_LIST_BLOB"].shouldNotBeNull().shouldBeInstanceOf<AgentOption.BlobList>()
     }
 
+    fun testMarketplace(agent: RegistryAgent) {
+        val marketplace = agent.marketplace.shouldNotBeNull()
+        marketplace.readme.shouldBeEqual("A full markdown markdown readme for the agent on the marketplace")
+        marketplace.summary.shouldBeEqual("A short NON-markdown summary of the agent on the marketplace")
+        marketplace.license.shouldNotBeNull().shouldBeEqual("example license")
+
+        marketplace.links.shouldBeEqual(
+            mapOf(
+                "github" to "https://github.com/coral-Protocol/coral-server",
+                "website" to "https://www.coralos.ai/"
+            )
+        )
+
+        val pricing = marketplace.pricing.shouldNotBeNull()
+
+        pricing.description.shouldBeEqual("A full markdown description of how the agent is priced")
+        pricing.currency.shouldBeEqual("USD")
+        pricing.recommendations.min.shouldBeEqual(0.01)
+        pricing.recommendations.max.shouldBeEqual(1.5)
+
+        val identities = marketplace.identities.shouldNotBeNull()
+        val erc8004 = identities.erc8004.shouldNotBeNull()
+
+        erc8004.wallet.shouldBeEqual("my wallet address")
+        erc8004.endpoints.shouldContainExactly(
+            listOf(
+                Erc8004Endpoint("first endpoint", "https://api.my-server.com/first"),
+                Erc8004Endpoint("second endpoint", "https://api.my-server.com/second")
+            )
+        )
+    }
+
     test("testRegistryAgent") {
         val agent = loadRegistryAgentFromResource("/agent/coral-agent.toml")
 
@@ -203,5 +235,6 @@ class RegistryAgentTest : CoralTest({
         testAgentRuntimes(agent)
         testOptions(agent)
         testJsonRecode(agent)
+        testMarketplace(agent)
     }
 })
