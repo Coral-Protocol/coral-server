@@ -5,7 +5,9 @@ package org.coralprotocol.coralserver.session
 import io.ktor.utils.io.*
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.registry.option.*
+import org.coralprotocol.coralserver.agent.runtime.AgentRuntimeTransport
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
+import org.coralprotocol.coralserver.agent.runtime.DEFAULT_AGENT_RUNTIME_TRANSPORT
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.DebugConfig
@@ -58,7 +60,7 @@ class SessionAgentExecutionContext(
      *
      * If the [provider] uses a [RuntimeId.DOCKER] runtime, the temporary files path will be translated by
      */
-    fun buildEnvironment(): Map<String, String> {
+    fun buildEnvironment(transport: AgentRuntimeTransport = DEFAULT_AGENT_RUNTIME_TRANSPORT): Map<String, String> {
         return buildMap {
             val addressConsumer = when (provider.runtime) {
                 RuntimeId.EXECUTABLE -> AddressConsumer.LOCAL
@@ -105,8 +107,17 @@ class SessionAgentExecutionContext(
             }
 
             // Coral environment variables
-            this["CORAL_CONNECTION_URL"] =
-                applicationRuntimeContext.getSseUrl(this@SessionAgentExecutionContext, addressConsumer).toString()
+            this["CORAL_CONNECTION_URL"] = when (transport) {
+                AgentRuntimeTransport.SSE -> applicationRuntimeContext.getSseUrl(
+                    this@SessionAgentExecutionContext,
+                    addressConsumer
+                ).toString()
+
+                AgentRuntimeTransport.STREAMABLE_HTTP -> applicationRuntimeContext.getStreamableHttpUrl(
+                    this@SessionAgentExecutionContext,
+                    addressConsumer
+                ).toString()
+            }
             this["CORAL_AGENT_ID"] = agent.name
             this["CORAL_AGENT_SECRET"] = agent.secret
             this["CORAL_SESSION_ID"] = agent.session.id
