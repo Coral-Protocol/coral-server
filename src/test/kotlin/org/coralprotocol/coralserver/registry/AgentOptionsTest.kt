@@ -290,21 +290,21 @@ class AgentOptionsTest : CoralTest({
         blob.shouldBeInstanceOf<AgentOption.Blob>()
         shouldNotThrowAny {
             blob.withValue(
-                AgentOptionValue.Blob(
+                AgentOptionValue.Blob.fromBytes(
                     ByteArray(ByteUnitSizes.MEBIBYTE.toByteCount(1.0).toInt())
                 )
             ).requireValue()
         }
         shouldThrow<AgentOptionValidationException> {
             blob.withValue(
-                AgentOptionValue.Blob(
+                AgentOptionValue.Blob.fromBytes(
                     ByteArray(ByteUnitSizes.MEBIBYTE.toByteCount(1.0).toInt() + 1)
                 )
             ).requireValue()
         }
         shouldThrow<AgentOptionValidationException> {
             blob.withValue(
-                AgentOptionValue.Blob(
+                AgentOptionValue.Blob.fromBytes(
                     ByteArray(0)
                 )
             ).requireValue()

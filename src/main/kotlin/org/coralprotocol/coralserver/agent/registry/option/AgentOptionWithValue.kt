@@ -1,6 +1,5 @@
 package org.coralprotocol.coralserver.agent.registry.option
 
-import io.ktor.util.*
 import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
 import org.coralprotocol.coralserver.config.DockerConfig
 import org.coralprotocol.coralserver.session.SessionAgentDisposableResource
@@ -228,9 +227,14 @@ fun AgentOptionWithValue.asFileSystemValue(dockerConfig: DockerConfig): List<Ses
  * logging, this will the incorrect value for environment variables.
  */
 fun AgentOptionWithValue.toDisplayString(): String = when (this) {
-    is AgentOptionWithValue.Blob -> "${value.value.size}b blob"
-    is AgentOptionWithValue.BlobList -> value.value.joinToString(",") { "${it.size}b blob" }
-    is AgentOptionWithValue.Boolean -> if (value.value) { "1" } else { "0" }
+    is AgentOptionWithValue.Blob -> "${value.bytes.size}b blob"
+    is AgentOptionWithValue.BlobList -> value.bytes.joinToString(",") { "${it.size}b blob" }
+    is AgentOptionWithValue.Boolean -> if (value.value) {
+        "1"
+    } else {
+        "0"
+    }
+
     is AgentOptionWithValue.Byte -> value.value.toString()
     is AgentOptionWithValue.ByteList -> value.value.joinToString(",")
     is AgentOptionWithValue.Double -> value.value.toString()
@@ -246,19 +250,19 @@ fun AgentOptionWithValue.toDisplayString(): String = when (this) {
     is AgentOptionWithValue.String -> {
         if (option.secret) {
             "*".repeat(value.value.length)
-        }
-        else {
+        } else {
             value.value
         }
     }
+
     is AgentOptionWithValue.StringList -> value.value.joinToString(",") {
         if (option.secret) {
             "*".repeat(it.length)
-        }
-        else {
+        } else {
             it
         }
     }
+
     is AgentOptionWithValue.UByte -> value.value.toString()
     is AgentOptionWithValue.UByteList -> value.value.joinToString(",")
     is AgentOptionWithValue.UInt -> value.value.toString()
@@ -294,17 +298,23 @@ fun AgentOptionWithValue.requireValue() = when (this) {
     is AgentOptionWithValue.UInt -> option.validation?.require(value.value)
     is AgentOptionWithValue.UIntList -> value.value.forEach { option.validation?.require(it) }
     is AgentOptionWithValue.ULong -> {
-        option.validation?.require(value.value.toULongOrNull()
-            ?: throw AgentOptionValidationException("${value.value} is not a valid u64"))
+        option.validation?.require(
+            value.value.toULongOrNull()
+                ?: throw AgentOptionValidationException("${value.value} is not a valid u64")
+        )
     }
+
     is AgentOptionWithValue.ULongList -> value.value.forEach {
-        option.validation?.require(it.toULongOrNull()
-            ?: throw AgentOptionValidationException("${value.value} is not a valid u64") )
+        option.validation?.require(
+            it.toULongOrNull()
+                ?: throw AgentOptionValidationException("${value.value} is not a valid u64")
+        )
     }
+
     is AgentOptionWithValue.UShort -> option.validation?.require(value.value)
     is AgentOptionWithValue.UShortList -> value.value.forEach { option.validation?.require(it) }
-    is AgentOptionWithValue.Blob -> option.validation?.require(value.value)
-    is AgentOptionWithValue.BlobList -> value.value.forEach { option.validation?.require(it) }
+    is AgentOptionWithValue.Blob -> option.validation?.require(value.bytes)
+    is AgentOptionWithValue.BlobList -> value.bytes.forEach { option.validation?.require(it) }
     is AgentOptionWithValue.Boolean -> {
         // booleans have no validator
     }

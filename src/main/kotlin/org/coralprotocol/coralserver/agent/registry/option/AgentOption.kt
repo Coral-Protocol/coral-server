@@ -3,9 +3,11 @@
 package org.coralprotocol.coralserver.agent.registry.option
 
 import io.github.smiley4.schemakenerator.core.annotations.Optional
+import io.ktor.util.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.agent.registry.AgentResolutionContext
 import org.coralprotocol.coralserver.agent.registry.CURRENT_AGENT_EDITION
@@ -142,16 +144,22 @@ sealed class AgentOption : KoinComponent {
     @Serializable
     @SerialName("blob")
     data class Blob(
-        @Suppress("ArrayInDataClass") val default: ByteArray? = null,
+        val default: kotlin.String? = null,
         val validation: BlobAgentOptionValidation? = null
-    ) : AgentOption()
+    ) : AgentOption() {
+        @Transient
+        val defaultBytes = default?.decodeBase64Bytes()
+    }
 
     @Serializable
     @SerialName("list[blob]")
     data class BlobList(
-        @Optional val default: List<ByteArray> = listOf(),
+        @Optional val default: List<kotlin.String> = listOf(),
         val validation: BlobAgentOptionValidation? = null
-    ) : AgentOption()
+    ) : AgentOption() {
+        @Transient
+        val defaultBytes = default.map { it.decodeBase64Bytes() }
+    }
 
     @Serializable
     @SerialName("bool")
