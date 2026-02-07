@@ -1,7 +1,7 @@
 package org.coralprotocol.coralserver.registry
 
-import com.google.protobuf.kotlin.toByteString
-import io.kotest.inspectors.shouldForAll
+import dev.eav.tomlkt.Toml
+import dev.eav.tomlkt.decodeFromNativeReader
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -9,8 +9,6 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.util.*
 import kotlinx.serialization.json.Json
-import net.peanuuutz.tomlkt.Toml
-import net.peanuuutz.tomlkt.decodeFromNativeReader
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
 import org.coralprotocol.coralserver.agent.registry.AgentResolutionContext
@@ -133,7 +131,8 @@ class RegistryAgentTest : CoralTest({
             .shouldBeEqual(listOf("foo", "bar", "baz"))
 
         val blobs = listOf("hello", "world")
-        val defaultListBlob = agent.options["DEFAULT_LIST_BLOB"].shouldNotBeNull().shouldBeInstanceOf<AgentOption.BlobList>()
+        val defaultListBlob =
+            agent.options["DEFAULT_LIST_BLOB"].shouldNotBeNull().shouldBeInstanceOf<AgentOption.BlobList>()
         defaultListBlob.default.shouldContainExactly(blobs.map { it.encodeBase64() })
         defaultListBlob.defaultBytes.shouldContainExactly(blobs.map { it.toByteArray().toList() })
 

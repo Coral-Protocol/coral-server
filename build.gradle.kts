@@ -89,7 +89,7 @@ dependencies {
     testImplementation("io.ktor:ktor-server-test-host")
 
     // TOML serialization
-    implementation("net.peanuuutz.tomlkt:tomlkt:0.5.0")
+    implementation("dev.eav.tomlkt:tomlkt:0.6.0")
 
     // OpenAPI
     val ktorToolsVersion = "5.2.0"

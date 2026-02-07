@@ -10,7 +10,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.agent.registry.AgentResolutionContext
-import org.coralprotocol.coralserver.agent.registry.CURRENT_AGENT_EDITION
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
 import org.koin.core.component.KoinComponent
@@ -30,56 +29,10 @@ sealed class AgentOption : KoinComponent {
     var transport: AgentOptionTransport = AgentOptionTransport.ENVIRONMENT_VARIABLE
 
     /**
-     * Description field should now be set in the display field class. This property is deprecated.
-     * This remains for first edition agent definitions and may be removed in the future.
-     */
-    @Deprecated("use display.description instead")
-    val description: kotlin.String? = null
-
-    init {
-        @Suppress("DEPRECATION")
-        if (display == null && description != null) {
-            display = AgentOptionDisplay(description = description)
-        }
-    }
-
-    /**
      * Called when the agent is resolved.  Issues warnings for bad configuration or use of deprecated fields.
      */
     fun issueConfigurationWarnings(edition: kotlin.Int, context: AgentResolutionContext, optionName: kotlin.String) {
         val locator = "Option '${optionName} in agent ${context.path}"
-
-        // a warning is issued when the agent edition is less than CURRENT_AGENT_EDITION, so there is not much point
-        // generating further warnings here if, for example, edition 2 features are used in an agent definition of
-        // edition 1
-        if (edition != CURRENT_AGENT_EDITION)
-            return
-
-        @Suppress("DEPRECATION")
-        if (description != null) {
-            logger.warn {
-                """
-                $locator has deprecated 'description' field.  Agent option description should now be set under the 'display' table, for example:
-                
-                [display]:
-                description: "$description"
-                """.trimIndent()
-            }
-        }
-
-        if (this is Number)
-            logger.warn { "$locator has deprecated 'number' type.  In edition $edition the 'number' type was renamed to 'f64'." }
-
-        if (this is Secret) {
-            logger.warn {
-                """
-                $locator has deprecated 'secret' type.  In edition $edition the 'secret' has been changed to:
-                
-                type = "string"
-                secret = true
-                """.trimIndent()
-            }
-        }
 
         if (required && defaultAsValue() != null)
             logger.warn { "$locator 'required = true' is not needed as the default value is set." }
@@ -99,8 +52,6 @@ sealed class AgentOption : KoinComponent {
             is IntList -> validation?.variants?.isEmpty() ?: false
             is Long -> validation?.variants?.isEmpty() ?: false
             is LongList -> validation?.variants?.isEmpty() ?: false
-            is Number -> validation?.variants?.isEmpty() ?: false
-            is Secret -> validation?.variants?.isEmpty() ?: false
             is Short -> validation?.variants?.isEmpty() ?: false
             is ShortList -> validation?.variants?.isEmpty() ?: false
             is String -> validation?.variants?.isEmpty() ?: false
@@ -312,24 +263,6 @@ sealed class AgentOption : KoinComponent {
         @Optional val default: List<kotlin.Double> = listOf(),
         val validation: DoubleAgentOptionValidation? = null
     ) : AgentOption()
-
-    /*
-        Edition 1 backwards compatibility options
-     */
-
-    @Serializable
-    @SerialName("number")
-    data class Number(
-        val default: kotlin.Double? = null,
-        val validation: DoubleAgentOptionValidation? = null
-    ) : AgentOption()
-
-    @Serializable
-    @SerialName("secret")
-    data class Secret(
-        val default: kotlin.String? = null,
-        val validation: StringAgentOptionValidation? = null
-    ) : AgentOption()
 }
 
 fun AgentOption.defaultAsValue(): AgentOptionValue? =
@@ -359,8 +292,6 @@ fun AgentOption.defaultAsValue(): AgentOptionValue? =
         is AgentOption.ULongList -> AgentOptionValue.ULongList(this.default)
         is AgentOption.UShort -> this.default?.let { AgentOptionValue.UShort(it) }
         is AgentOption.UShortList -> AgentOptionValue.UShortList(this.default)
-        is AgentOption.Number -> this.default?.let { AgentOptionValue.Double(it) }
-        is AgentOption.Secret -> this.default?.let { AgentOptionValue.String(it) }
     }
 
 fun AgentOption.withValue(value: AgentOptionValue) =
@@ -390,33 +321,6 @@ fun AgentOption.withValue(value: AgentOptionValue) =
         is AgentOption.ULongList -> AgentOptionWithValue.ULongList(this, (value as AgentOptionValue.ULongList))
         is AgentOption.UShort -> AgentOptionWithValue.UShort(this, (value as AgentOptionValue.UShort))
         is AgentOption.UShortList -> AgentOptionWithValue.UShortList(this, (value as AgentOptionValue.UShortList))
-
-        // Backwards compatibility: normalize to double
-        is AgentOption.Number -> {
-            val double = AgentOption.Double(
-                default = this.default,
-                validation = this.validation
-            )
-            double.required = this.required
-            double.display = this.display
-            double.transport = this.transport
-
-            AgentOptionWithValue.Double(double, (value as AgentOptionValue.Double))
-        }
-
-        // Backwards compatibility: normalize to string
-        is AgentOption.Secret -> {
-            val string = AgentOption.String(
-                default = this.default,
-                validation = this.validation,
-                secret = true
-            )
-            string.required = this.required
-            string.display = this.display
-            string.transport = this.transport
-
-            AgentOptionWithValue.String(string, (value as AgentOptionValue.String))
-        }
     }
 
 fun AgentOption.compareTypeWithValue(value: AgentOptionValue) =
@@ -434,8 +338,6 @@ fun AgentOption.compareTypeWithValue(value: AgentOptionValue) =
         is AgentOption.IntList -> value is AgentOptionValue.IntList
         is AgentOption.Long -> value is AgentOptionValue.Long
         is AgentOption.LongList -> value is AgentOptionValue.LongList
-        is AgentOption.Number -> value is AgentOptionValue.Double
-        is AgentOption.Secret -> value is AgentOptionValue.String
         is AgentOption.Short -> value is AgentOptionValue.Short
         is AgentOption.ShortList -> value is AgentOptionValue.ShortList
         is AgentOption.String -> value is AgentOptionValue.String
