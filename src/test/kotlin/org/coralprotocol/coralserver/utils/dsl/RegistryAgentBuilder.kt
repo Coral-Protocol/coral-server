@@ -3,6 +3,7 @@ package org.coralprotocol.coralserver.utils.dsl
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.runtime.*
+import java.nio.file.Path
 
 @TestDsl
 class RegistryAgentBuilder(
@@ -12,6 +13,7 @@ class RegistryAgentBuilder(
     var version: String = "1.0.0"
     var registrySourceId: AgentRegistrySourceIdentifier = AgentRegistrySourceIdentifier.Local
     var runtimes: LocalAgentRuntimes = LocalAgentRuntimes()
+    var path: Path? = null
 
     private val capabilities: MutableSet<AgentCapability> = mutableSetOf()
     private val options: MutableMap<String, AgentOption> = mutableMapOf()
@@ -66,7 +68,7 @@ class RegistryAgentBuilder(
             ),
             runtimes = runtimes,
             options = options,
-            path = null,
+            path = path,
             unresolvedExportSettings = unresolvedExportSettings
         )
     }
