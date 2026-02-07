@@ -7,6 +7,9 @@ import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.logging.LoggingTag
 import org.coralprotocol.coralserver.logging.LoggingTagIo
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
+import org.coralprotocol.coralserver.util.isWindows
+import java.nio.file.Path
+import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
 
 @Serializable
@@ -20,18 +23,49 @@ data class ExecutableRuntime(
         executionContext: SessionAgentExecutionContext,
         applicationRuntimeContext: ApplicationRuntimeContext
     ) {
-        val path = if (executionContext.path != null) {
-            val relative = executionContext.path.resolve(path)
-            if (relative.exists()) {
-                relative.toString()
+        val potentialPaths = buildList {
+            // on Windows, if given a path without an extension, try .exe, .cmd and .bat files
+            // on Linux it is expected that a marks files as executables and uses the appropriate shebang to achieve
+            // this
+            val variations = if (isWindows()) {
+                listOf(path, "$path.exe", "$path.cmd", "$path.bat")
             } else {
-                path
+                listOf(path)
             }
-        } else {
-            path
+
+            for (variation in variations) {
+                val path = Path.of(variation)
+
+                // specifying an absolute path has the highest priority
+                if (path.isAbsolute)
+                    add(path)
+
+                // relative to coral-agent.toml comes next
+                if (executionContext.path != null)
+                    add(executionContext.path.resolve(path))
+            }
         }
 
-        executionContext.logger.info { "Executing \"$path\" with arguments: \"${arguments.joinToString(" ")}\"" }
+        val existingFilePaths = potentialPaths.filter { it.exists() }
+        if (existingFilePaths.isEmpty()) {
+            executionContext.logger.error { "no executables found with given path \"$path\"" }
+            return
+        }
+
+        val path = if (existingFilePaths.size > 1) {
+            executionContext.logger.warn { "\"$path\" matches multiple files: \n - ${existingFilePaths.joinToString("\n - ")}" }
+            existingFilePaths.first().absolutePathString()
+        } else {
+            existingFilePaths.first().absolutePathString()
+        }
+
+        val argumentString = if (arguments.isNotEmpty()) {
+            " with arguments: \"${arguments.joinToString(" ")}\""
+        } else {
+            ""
+        }
+
+        executionContext.logger.info { "Executing \"$path\"$argumentString" }
 
         val result = process(
             command = (listOf(path) + arguments).toTypedArray(),
