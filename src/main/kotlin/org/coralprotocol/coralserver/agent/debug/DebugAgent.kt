@@ -89,7 +89,7 @@ abstract class DebugAgent(protected val client: HttpClient) : KoinComponent {
             ),
             options = options,
             unresolvedExportSettings = if (export) exportSettings else mapOf(),
-            edition = CURRENT_AGENT_EDITION,
+            edition = MAXIMUM_SUPPORTED_AGENT_VERSION,
         )
     }
 }

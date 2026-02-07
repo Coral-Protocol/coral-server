@@ -7,8 +7,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import net.peanuuutz.tomlkt.Toml
-import net.peanuuutz.tomlkt.decodeFromNativeReader
+import dev.eav.tomlkt.Toml
+import dev.eav.tomlkt.decodeFromNativeReader
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
 import org.coralprotocol.coralserver.util.isWindows

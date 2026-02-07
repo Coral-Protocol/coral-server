@@ -16,7 +16,7 @@ import kotlinx.coroutines.delay
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.registry.AGENT_FILE
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
-import org.coralprotocol.coralserver.agent.registry.CURRENT_AGENT_EDITION
+import org.coralprotocol.coralserver.agent.registry.MAXIMUM_SUPPORTED_AGENT_VERSION
 import org.coralprotocol.coralserver.agent.registry.FileAgentRegistrySource
 import org.koin.test.inject
 import java.nio.file.Path
@@ -61,7 +61,7 @@ class FileAgentRegistrySourceTest : CoralTest({
 
         agentPath.writeText(
             """
-            edition = $CURRENT_AGENT_EDITION
+            edition = $MAXIMUM_SUPPORTED_AGENT_VERSION
             
             [agent]
             name = "$name"

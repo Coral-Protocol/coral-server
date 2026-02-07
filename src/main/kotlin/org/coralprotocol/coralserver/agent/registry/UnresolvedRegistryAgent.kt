@@ -35,17 +35,11 @@ data class UnresolvedRegistryAgent(
     @Optional
     val marketplace: RegistryAgentMarketplaceSettings? = null
 ) : KoinComponent {
-    private val logger by inject<Logger>(named(LOGGER_CONFIG))
-
     fun resolve(context: AgentResolutionContext): RegistryAgent {
-        if (edition < FIRST_AGENT_EDITION) {
-            throw RegistryException("Agent ${context.path} has invalid edition '$edition', must be at least $FIRST_AGENT_EDITION")
-        } else if (edition > CURRENT_AGENT_EDITION) {
-            throw RegistryException("Agent ${context.path} has edition '$edition', this server's highest supported edition is '$CURRENT_AGENT_EDITION'")
-        }
-
-        if (edition == FIRST_AGENT_EDITION) {
-            logger.warn { "Agent ${context.path} has out of date edition $edition.  Current edition is $CURRENT_AGENT_EDITION" }
+        if (edition < MINIMUM_SUPPORTED_AGENT_EDITION) {
+            throw RegistryException("Agent ${context.path} has invalid edition '$edition', must be at least $MINIMUM_SUPPORTED_AGENT_EDITION")
+        } else if (edition > MAXIMUM_SUPPORTED_AGENT_VERSION) {
+            throw RegistryException("Agent ${context.path} has edition '$edition', this server's highest supported edition is '$MAXIMUM_SUPPORTED_AGENT_VERSION'")
         }
 
         options.forEach { (key, option) ->

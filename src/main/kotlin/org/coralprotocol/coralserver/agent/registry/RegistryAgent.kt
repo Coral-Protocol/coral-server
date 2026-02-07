@@ -11,13 +11,20 @@ import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import java.nio.file.Path
 
-const val FIRST_AGENT_EDITION = 1
-const val CURRENT_AGENT_EDITION = 3
+/**
+ * If this version of the server supports earlier versions of agent definitions, this field specifies the lowest.
+ */
+const val MINIMUM_SUPPORTED_AGENT_EDITION = 3
+
+/**
+ * The maximum (and current) supported agent edition.
+ */
+const val MAXIMUM_SUPPORTED_AGENT_VERSION = 3
 
 @Serializable
 data class RegistryAgent(
     private val info: RegistryAgentInfo,
-    val edition: Int = CURRENT_AGENT_EDITION,
+    val edition: Int = MAXIMUM_SUPPORTED_AGENT_VERSION,
     val runtimes: LocalAgentRuntimes,
     val options: Map<String, AgentOption> = mapOf(),
     val marketplace: RegistryAgentMarketplaceSettings? = null,
