@@ -1,8 +1,10 @@
+# NOTE: The values in this file are asserted in tests!
 edition = 3
 
 [agent]
 name = "edition-3"
 version = "0.3.0"
+capabilities = ["resources", "tool_refreshing"]
 
 [runtimes.docker]
 image = "myuser/myimage"
@@ -10,6 +12,15 @@ image = "myuser/myimage"
 [runtimes.executable]
 path = "my-agent"
 arguments = ["--some-argument"]
+
+[options.FULL_STRING_OPTION]
+type = "string"
+required = true
+transport = "fs"
+display.label = "Full string option"
+display.description = "An example of a string type option with every field configured"
+display.group = "Full options"
+display.multiline = true
 
 [options]
 DEFAULT_I8 = { type = "i8", default = -42 }

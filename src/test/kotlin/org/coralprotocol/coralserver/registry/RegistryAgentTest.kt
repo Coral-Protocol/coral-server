@@ -2,19 +2,20 @@ package org.coralprotocol.coralserver.registry
 
 import dev.eav.tomlkt.Toml
 import dev.eav.tomlkt.decodeFromNativeReader
+import io.kotest.matchers.booleans.shouldBeTrue
+import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.equals.shouldBeEqual
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.util.*
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.CoralTest
-import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
-import org.coralprotocol.coralserver.agent.registry.AgentResolutionContext
-import org.coralprotocol.coralserver.agent.registry.RegistryAgent
-import org.coralprotocol.coralserver.agent.registry.UnresolvedRegistryAgent
+import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
 import org.koin.test.inject
 
 class RegistryAgentTest : CoralTest({
@@ -25,14 +26,46 @@ class RegistryAgentTest : CoralTest({
         return registryAgent.resolve(AgentResolutionContext(AgentRegistrySourceIdentifier.Local))
     }
 
-    fun verifyJson(registryAgent: RegistryAgent) {
+    fun testJsonRecode(agent: RegistryAgent) {
         val json by inject<Json>()
-        val jsonString = json.encodeToString(registryAgent)
+        val jsonString = json.encodeToString(agent)
         val recoded = json.decodeFromString<RegistryAgent>(jsonString)
-        registryAgent.shouldBeEqual(recoded)
+        agent.shouldBeEqual(recoded)
     }
 
-    fun testEditionOptions(agent: RegistryAgent) {
+    fun testAgentHeader(agent: RegistryAgent) {
+        agent.edition.shouldBeEqual(3)
+        agent.name.shouldBe("edition-3")
+        agent.version.shouldBeEqual("0.3.0")
+        agent.capabilities.shouldContainAll(AgentCapability.TOOL_REFRESHING, AgentCapability.RESOURCES)
+    }
+
+    fun testAgentRuntimes(agent: RegistryAgent) {
+        agent.runtimes.functionRuntime.shouldBeNull()
+
+        val dockerRuntime = agent.runtimes.dockerRuntime.shouldNotBeNull()
+        val executableRuntime = agent.runtimes.executableRuntime.shouldNotBeNull()
+
+        dockerRuntime.image.shouldBeEqual("myuser/myimage")
+
+        executableRuntime.path.shouldBeEqual("my-agent")
+        executableRuntime.arguments.shouldContainExactly("--some-argument")
+    }
+
+    fun testOptions(agent: RegistryAgent) {
+        val fullStringOption =
+            agent.options["FULL_STRING_OPTION"].shouldNotBeNull().shouldBeInstanceOf<AgentOption.String>()
+
+        fullStringOption.required.shouldBeTrue()
+        fullStringOption.transport.shouldBe(AgentOptionTransport.FILE_SYSTEM)
+
+        val fullStringOptionDisplay = fullStringOption.display.shouldNotBeNull()
+        fullStringOptionDisplay.label.shouldNotBeNull().shouldBeEqual("Full string option")
+        fullStringOptionDisplay.description.shouldNotBeNull()
+            .shouldBeEqual("An example of a string type option with every field configured")
+        fullStringOptionDisplay.group.shouldNotBeNull().shouldBeEqual("Full options")
+        fullStringOptionDisplay.multiline.shouldBeTrue()
+
         val defaultI8 = agent.options["DEFAULT_I8"].shouldNotBeNull()
         defaultI8.shouldBeInstanceOf<AgentOption.Byte>().default.shouldNotBeNull()
             .shouldBeEqual(-42)
@@ -166,11 +199,9 @@ class RegistryAgentTest : CoralTest({
     test("testRegistryAgent") {
         val agent = loadRegistryAgentFromResource("/agent/coral-agent.toml")
 
-        agent.version.shouldBeEqual("0.3.0")
-        agent.edition.shouldBeEqual(3)
-        agent.name.shouldBe("edition-3")
-
-        testEditionOptions(agent) // no option changes in edition 3
-        verifyJson(agent)
+        testAgentHeader(agent)
+        testAgentRuntimes(agent)
+        testOptions(agent)
+        testJsonRecode(agent)
     }
 })
