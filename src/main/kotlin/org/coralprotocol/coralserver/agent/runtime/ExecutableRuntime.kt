@@ -8,6 +8,7 @@ import org.coralprotocol.coralserver.logging.LoggingTag
 import org.coralprotocol.coralserver.logging.LoggingTagIo
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 import org.coralprotocol.coralserver.util.isWindows
+import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
@@ -43,20 +44,25 @@ data class ExecutableRuntime(
                 // relative to coral-agent.toml comes next
                 if (executionContext.path != null)
                     add(executionContext.path.resolve(path))
+
+                // then on PATH
+                System.getenv("PATH").split(File.pathSeparator).forEach {
+                    add(Path.of(it).resolve(path))
+                }
             }
         }
 
-        val existingFilePaths = potentialPaths.filter { it.exists() }
-        if (existingFilePaths.isEmpty()) {
+        val existingExecutable = potentialPaths.filter { it.exists() && it.toFile().canExecute() }
+        if (existingExecutable.isEmpty()) {
             executionContext.logger.error { "no executables found with given path \"$path\"" }
             return
         }
 
-        val path = if (existingFilePaths.size > 1) {
-            executionContext.logger.warn { "\"$path\" matches multiple files: \n - ${existingFilePaths.joinToString("\n - ")}" }
-            existingFilePaths.first().absolutePathString()
+        val path = if (existingExecutable.size > 1) {
+            executionContext.logger.warn { "\"$path\" matches multiple files: \n - ${existingExecutable.joinToString("\n - ")}" }
+            existingExecutable.first().absolutePathString()
         } else {
-            existingFilePaths.first().absolutePathString()
+            existingExecutable.first().absolutePathString()
         }
 
         val argumentString = if (arguments.isNotEmpty()) {
