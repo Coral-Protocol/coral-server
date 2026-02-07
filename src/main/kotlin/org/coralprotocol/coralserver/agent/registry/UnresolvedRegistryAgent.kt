@@ -47,11 +47,12 @@ data class UnresolvedRegistryAgent(
         }
 
         return RegistryAgent(
+            edition = edition,
             info = agentInfo.resolve(context.registrySourceIdentifier),
             runtimes = runtimes,
             options = options,
             path = context.path,
-            edition = edition,
+            marketplace = marketplace
         )
     }
 }

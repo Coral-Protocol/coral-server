@@ -5,14 +5,14 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class RegistryAgentMarketplaceSettings(
-    // markdown
-    val shortDescription: String,
-
-    @Optional
-    val links: Map<String, String> = mapOf(),
+    val readme: String,
+    val summary: String,
 
     @Optional
     val license: String? = null,
+
+    @Optional
+    val links: Map<String, String> = mapOf(),
 
     @Optional
     val pricing: RegistryAgentMarketplacePricing? = null,
@@ -25,12 +25,16 @@ data class RegistryAgentMarketplaceSettings(
 data class RegistryAgentMarketplacePricing(
     // markdown
     val description: String,
+    val recommendations: RegistryAgentMarketplacePricingRecommendations,
 
     // todo: ISO 4217? crypto?
     val currency: String,
+)
 
-    val recommendedMinPrice: Double,
-    val recommendedMaxPrice: Double,
+@Serializable
+data class RegistryAgentMarketplacePricingRecommendations(
+    val min: Double,
+    val max: Double,
 )
 
 @Serializable

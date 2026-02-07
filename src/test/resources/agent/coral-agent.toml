@@ -1,6 +1,9 @@
 # NOTE: The values in this file are asserted in tests!
 edition = 3
 
+# should not throw errors
+unknown_key = false
+
 [agent]
 name = "edition-3"
 version = "0.3.0"
@@ -74,3 +77,31 @@ OPTIONAL_LIST_F32 = { type = "list[f32]" }
 OPTIONAL_LIST_F64 = { type = "list[f64]" }
 OPTIONAL_LIST_STRING = { type = "list[string]" }
 OPTIONAL_LIST_BLOB = { type = "list[blob]" }
+
+[marketplace]
+summary = "A short NON-markdown summary of the agent on the marketplace"
+readme = "A full markdown markdown readme for the agent on the marketplace"
+license = "example license"
+
+[marketplace.links]
+github = "https://github.com/coral-Protocol/coral-server"
+website = "https://www.coralos.ai/"
+
+[marketplace.pricing]
+description = "A full markdown description of how the agent is priced"
+currency = "USD"
+
+[marketplace.pricing.recommendations]
+min = 0.01
+max = 1.50
+
+[marketplace.identities.erc8004]
+wallet = "my wallet address"
+
+[[marketplace.identities.erc8004.endpoints]]
+name = "first endpoint"
+endpoint = "https://api.my-server.com/first"
+
+[[marketplace.identities.erc8004.endpoints]]
+name = "second endpoint"
+endpoint = "https://api.my-server.com/second"
