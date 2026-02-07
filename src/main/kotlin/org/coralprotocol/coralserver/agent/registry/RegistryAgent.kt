@@ -47,6 +47,9 @@ data class RegistryAgent(
     @Transient
     val version = identifier.version
 
+    @Transient
+    val capabilities = info.capabilities
+
     val exportSettings: AgentExportSettingsMap = unresolvedExportSettings.mapValues { (runtime, settings) ->
         settings.resolve(runtime, this)
     }
