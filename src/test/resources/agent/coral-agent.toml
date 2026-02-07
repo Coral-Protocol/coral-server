@@ -1,0 +1,64 @@
+edition = 3
+
+[agent]
+name = "edition-3"
+version = "0.3.0"
+
+[runtimes.docker]
+image = "myuser/myimage"
+
+[runtimes.executable]
+command = ["my-agent.exe", "--some-argument"]
+
+[options]
+DEFAULT_I8 = { type = "i8", default = -42 }
+DEFAULT_I16 = { type = "i16", default = 1024 }
+DEFAULT_I32 = { type = "i32", default = 123456 }
+DEFAULT_I64 = { type = "i64", default = 9876543210 }
+DEFAULT_U8 = { type = "u8", default = 200 }
+DEFAULT_U16 = { type = "u16", default = 5000 }
+DEFAULT_U32 = { type = "u32", default = 1000000 }
+DEFAULT_U64 = { type = "u64", default = "18446744073709" }
+DEFAULT_F32 = { type = "f32", default = 3.14 }
+DEFAULT_F64 = { type = "f64", default = 2.718281828 }
+DEFAULT_BOOL = { type = "bool", default = true }
+DEFAULT_STRING = { type = "string", default = "hello world" }
+DEFAULT_BLOB = { type = "blob", default = "aGVsbG8gd29ybGQ=" }
+DEFAULT_LIST_I8 = { type = "list[i8]", default = [-1, 0, 1, 127] }
+DEFAULT_LIST_I16 = { type = "list[i16]", default = [100, 200, 300] }
+DEFAULT_LIST_I32 = { type = "list[i32]", default = [1000, 2000, 3000] }
+DEFAULT_LIST_I64 = { type = "list[i64]", default = [1000000, 2000000] }
+DEFAULT_LIST_U8 = { type = "list[u8]", default = [1, 2, 3, 255] }
+DEFAULT_LIST_U16 = { type = "list[u16]", default = [500, 1000, 1500] }
+DEFAULT_LIST_U32 = { type = "list[u32]", default = [10000, 20000] }
+DEFAULT_LIST_U64 = { type = "list[u64]", default = ["100000", "200000", "300000"] }
+DEFAULT_LIST_F32 = { type = "list[f32]", default = [1.1, 2.2, 3.3] }
+DEFAULT_LIST_F64 = { type = "list[f64]", default = [1.414, 1.732, 2.236] }
+DEFAULT_LIST_STRING = { type = "list[string]", default = ["foo", "bar", "baz"] }
+DEFAULT_LIST_BLOB = { type = "list[blob]", default = ["aGVsbG8=", "d29ybGQ="] }
+
+OPTIONAL_I8 = { type = "i8" }
+OPTIONAL_I16 = { type = "i16" }
+OPTIONAL_I32 = { type = "i32" }
+OPTIONAL_I64 = { type = "i64" }
+OPTIONAL_U8 = { type = "u8" }
+OPTIONAL_U16 = { type = "u16" }
+OPTIONAL_U32 = { type = "u32" }
+OPTIONAL_U64 = { type = "u64" }
+OPTIONAL_F32 = { type = "f32" }
+OPTIONAL_F64 = { type = "f64" }
+OPTIONAL_BOOL = { type = "bool" }
+OPTIONAL_STRING = { type = "string" }
+OPTIONAL_BLOB = { type = "blob" }
+OPTIONAL_LIST_I8 = { type = "list[i8]" }
+OPTIONAL_LIST_I16 = { type = "list[i16]" }
+OPTIONAL_LIST_I32 = { type = "list[i32]" }
+OPTIONAL_LIST_I64 = { type = "list[i64]" }
+OPTIONAL_LIST_U8 = { type = "list[u8]" }
+OPTIONAL_LIST_U16 = { type = "list[u16]" }
+OPTIONAL_LIST_U32 = { type = "list[u32]" }
+OPTIONAL_LIST_U64 = { type = "list[u64]" }
+OPTIONAL_LIST_F32 = { type = "list[f32]" }
+OPTIONAL_LIST_F64 = { type = "list[f64]" }
+OPTIONAL_LIST_STRING = { type = "list[string]" }
+OPTIONAL_LIST_BLOB = { type = "list[blob]" }
