@@ -199,7 +199,7 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                             }
 
 
-                            application.coralServerModule()
+                            application.coralServerModule(true)
 
                             loadKoinModules(module { single { application } })
 
