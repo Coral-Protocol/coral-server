@@ -11,16 +11,18 @@ import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 @Serializable
 @SerialName("executable")
 data class ExecutableRuntime(
-    val command: List<String>
-) : AgentRuntime() {
+    val path: String,
+    val arguments: List<String>,
+    override val transport: AgentRuntimeTransport = DEFAULT_AGENT_RUNTIME_TRANSPORT,
+) : AgentRuntime {
     override suspend fun execute(
         executionContext: SessionAgentExecutionContext,
         applicationRuntimeContext: ApplicationRuntimeContext
     ) {
-        executionContext.logger.info { "Executing command: ${command.joinToString(" ")}" }
+        executionContext.logger.info { "Executing \"$path\" with arguments: \"${arguments.joinToString(" ")}\"" }
 
         val result = process(
-            command = command.toTypedArray(),
+            command = arguments.toTypedArray(),
             directory = executionContext.path?.toFile(),
             stdout = Redirect.Consume {
                 it.collect { line -> executionContext.logger.info(LoggingTag.Io(LoggingTagIo.OUT)) { line } }
@@ -28,7 +30,7 @@ data class ExecutableRuntime(
             stderr = Redirect.Consume {
                 it.collect { line -> executionContext.logger.warn(LoggingTag.Io(LoggingTagIo.ERROR)) { line } }
             },
-            env = executionContext.buildEnvironment()
+            env = executionContext.buildEnvironment(transport)
         )
 
         if (result.resultCode != 0) {

@@ -6,6 +6,8 @@ import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 
 @Serializable
 data class FunctionRuntime(
+    override val transport: AgentRuntimeTransport = DEFAULT_AGENT_RUNTIME_TRANSPORT,
+
     @Transient
     private val function: suspend (
         executionContext: SessionAgentExecutionContext,
@@ -13,7 +15,7 @@ data class FunctionRuntime(
     ) -> Unit = { _, _ ->
 
     }
-) : AgentRuntime() {
+) : AgentRuntime {
     override suspend fun execute(
         executionContext: SessionAgentExecutionContext,
         applicationRuntimeContext: ApplicationRuntimeContext
