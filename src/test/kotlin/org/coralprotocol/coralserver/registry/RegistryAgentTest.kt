@@ -219,11 +219,11 @@ class RegistryAgentTest : CoralTest({
         val identities = marketplace.identities.shouldNotBeNull()
         val erc8004 = identities.erc8004.shouldNotBeNull()
 
-        erc8004.wallet.shouldBeEqual("my wallet address")
+        erc8004.wallet.shouldBeEqual("1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa")
         erc8004.endpoints.shouldContainExactly(
             listOf(
-                Erc8004Endpoint("first endpoint", "https://api.my-server.com/first"),
-                Erc8004Endpoint("second endpoint", "https://api.my-server.com/second")
+                Erc8004Endpoint("first_endpoint", "https://api.my-server.com/first"),
+                Erc8004Endpoint("second-endpoint", "https://api.my-server.com/second")
             )
         )
     }

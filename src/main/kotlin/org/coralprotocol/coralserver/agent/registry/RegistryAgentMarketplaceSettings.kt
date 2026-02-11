@@ -27,8 +27,9 @@ data class RegistryAgentMarketplacePricing(
     val description: String,
     val recommendations: RegistryAgentMarketplacePricingRecommendations,
 
-    // todo: ISO 4217? crypto?
-    val currency: String,
+    // todo: a real type
+    @Optional
+    val currency: String = "USD",
 )
 
 @Serializable

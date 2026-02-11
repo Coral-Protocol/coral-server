@@ -45,6 +45,8 @@ dependencies {
     implementation("org.fusesource.jansi:jansi:2.4.2")
     implementation("com.github.sya-ri:kgit:1.1.0")
     implementation("com.github.pgreze:kotlin-process:1.5.1")
+    implementation("io.github.z4kn4fein:semver:3.0.0")
+    implementation("me.saket.bytesize:bytesize:2.1.0")
 
     val dockerVersion = "3.7.0"
     implementation("com.github.docker-java:docker-java:$dockerVersion")

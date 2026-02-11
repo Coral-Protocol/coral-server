@@ -5,26 +5,41 @@ edition = 3
 unknown_key = false
 
 [agent]
+# len 1 - 32
+# pattern: ^[a-z0-9]([a-z0-9]*(-[a-z0-9]+)*)?$
 name = "edition-3"
+
+# len 1 - 32
+# must be a valid semver version: https://semver.org/
 version = "0.3.0"
+
 capabilities = ["resources", "tool_refreshing"]
 
+# must have at least one runtime
 [runtimes.docker]
+# len: 1 - 512
+# pattern: none
 image = "myuser/myimage"
 
+# combined total size of 2KiB (UTF-8)
+# max entries 1024
+command = ["/bin/sh", "-c", "echo hello world"]
+
 [runtimes.executable]
+# len: 1 - 4096
+# pattern: none
 path = "my-agent"
+
+# combined total size 2KiB (UTF-8)
+# max entries 1024
 arguments = ["--some-argument"]
 
-[options.FULL_STRING_OPTION]
-type = "string"
-required = true
-transport = "fs"
-display.label = "Full string option"
-display.description = "An example of a string type option with every field configured"
-display.group = "Full options"
-display.multiline = true
-
+# option key:
+#   len: 1 - 256
+#   pattern: ^[a-zA-Z_][a-zA-Z_$0-9]*$
+#
+# combined total size for all defaults 6MiB (strings measured in UTF-8 bytes)
+# max entries 512
 [options]
 DEFAULT_I8 = { type = "i8", default = -42 }
 DEFAULT_I16 = { type = "i16", default = 1024 }
@@ -39,6 +54,7 @@ DEFAULT_F64 = { type = "f64", default = 2.718281828 }
 DEFAULT_BOOL = { type = "bool", default = true }
 DEFAULT_STRING = { type = "string", default = "hello world" }
 DEFAULT_BLOB = { type = "blob", default = "aGVsbG8gd29ybGQ=" }
+
 DEFAULT_LIST_I8 = { type = "list[i8]", default = [-1, 0, 1, 127] }
 DEFAULT_LIST_I16 = { type = "list[i16]", default = [100, 200, 300] }
 DEFAULT_LIST_I32 = { type = "list[i32]", default = [1000, 2000, 3000] }
@@ -78,30 +94,81 @@ OPTIONAL_LIST_F64 = { type = "list[f64]" }
 OPTIONAL_LIST_STRING = { type = "list[string]" }
 OPTIONAL_LIST_BLOB = { type = "list[blob]" }
 
+[options.FULL_STRING_OPTION]
+type = "string"
+required = true
+transport = "fs"
+
+# len: 1 - 64
+# pattern: none
+display.label = "Full string option"
+
+# len: 1 - 1024
+# can be empty
+# pattern: none
+display.description = "An example of a string type option with every field configured"
+
+# len: 1 - 64
+# pattern: none
+display.group = "Full options"
+
+display.multiline = true
+
 [marketplace]
+# len: 1 - 256
+# pattern: none
 summary = "A short NON-markdown summary of the agent on the marketplace"
+
+# len: 1 - 4096
+# pattern: none
 readme = "A full markdown markdown readme for the agent on the marketplace"
+
+# len: 1- 64
+# pattern: none
 license = "example license"
 
+# max entries 16
 [marketplace.links]
+
+# key:
+#   len: 1 - 32
+#   pattern: ^[a-zA-Z][a-zA-Z_\-0-9]*$
+# value:
+#   len: 1 - 256
+#   pattern: valid URI, https, tel or mailto schema
 github = "https://github.com/coral-Protocol/coral-server"
 website = "https://www.coralos.ai/"
 
 [marketplace.pricing]
+# len: 1 - 256
+# pattern: none
 description = "A full markdown description of how the agent is priced"
+
+# currently USD only
 currency = "USD"
 
 [marketplace.pricing.recommendations]
+# min 0, max 20
 min = 0.01
+
+# must be > min
 max = 1.50
 
 [marketplace.identities.erc8004]
-wallet = "my wallet address"
+# pattern: valid base58, decoded key length of 32
+wallet = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
 
+# max entries 32
 [[marketplace.identities.erc8004.endpoints]]
-name = "first endpoint"
+
+# len: 1 - 32
+# pattern: ^[a-zA-Z][a-zA-Z_\-0-9]*$
+name = "first_endpoint"
+
+# len: 1 - 256
+# pattern: valid URI, https scheme
 endpoint = "https://api.my-server.com/first"
 
 [[marketplace.identities.erc8004.endpoints]]
-name = "second endpoint"
+name = "second-endpoint"
 endpoint = "https://api.my-server.com/second"

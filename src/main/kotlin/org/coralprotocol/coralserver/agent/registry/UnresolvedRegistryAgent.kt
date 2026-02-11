@@ -6,11 +6,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
-import org.coralprotocol.coralserver.logging.Logger
-import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
-import org.koin.core.qualifier.named
 
 const val AGENT_FILE = "coral-agent.toml"
 
@@ -46,7 +42,7 @@ data class UnresolvedRegistryAgent(
             option.issueConfigurationWarnings(edition, context, key)
         }
 
-        return RegistryAgent(
+        val registryAgent = RegistryAgent(
             edition = edition,
             info = agentInfo.resolve(context.registrySourceIdentifier),
             runtimes = runtimes,
@@ -54,5 +50,8 @@ data class UnresolvedRegistryAgent(
             path = context.path,
             marketplace = marketplace
         )
+        registryAgent.validate()
+
+        return registryAgent
     }
 }
