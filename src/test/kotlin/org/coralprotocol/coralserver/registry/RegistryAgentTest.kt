@@ -16,6 +16,7 @@ import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
+import org.coralprotocol.coralserver.agent.runtime.AgentRuntimeTransport
 import org.koin.test.inject
 
 class RegistryAgentTest : CoralTest({
@@ -47,9 +48,11 @@ class RegistryAgentTest : CoralTest({
         val executableRuntime = agent.runtimes.executableRuntime.shouldNotBeNull()
 
         dockerRuntime.image.shouldBeEqual("myuser/myimage")
+        dockerRuntime.transport.shouldBe(AgentRuntimeTransport.STREAMABLE_HTTP)
 
         executableRuntime.path.shouldBeEqual("my-agent")
         executableRuntime.arguments.shouldContainExactly("--some-argument")
+        executableRuntime.transport.shouldBe(AgentRuntimeTransport.SSE)
     }
 
     fun testOptions(agent: RegistryAgent) {
