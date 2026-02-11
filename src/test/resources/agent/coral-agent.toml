@@ -17,6 +17,7 @@ capabilities = ["resources", "tool_refreshing"]
 
 # must have at least one runtime
 [runtimes.docker]
+transport = "streamable_http"
 # len: 1 - 512
 # pattern: none
 image = "myuser/myimage"
@@ -26,6 +27,7 @@ image = "myuser/myimage"
 command = ["/bin/sh", "-c", "echo hello world"]
 
 [runtimes.executable]
+transport = "sse"
 # len: 1 - 4096
 # pattern: none
 path = "my-agent"
