@@ -119,14 +119,6 @@ data class RegistryAgent(
     val requiredOptions = options
         .filterValues { it.required }
 
-    private fun <T> validateNumberRange(number: T, low: T, high: T) where T : Comparable<T> {
-        if (number < low)
-            throw RegistryException("\"$name\" must be at least $low, was $number")
-
-        if (number > high)
-            throw RegistryException("\"$name\" must be at most $high, was $number")
-    }
-
     private fun validateStringLength(name: String, string: String, range: IntRange) {
         if (range.first > 0 && string.isEmpty())
             throw RegistryException("\"$name\" must not be empty")
@@ -136,13 +128,6 @@ data class RegistryAgent(
 
         if (string.length > range.last)
             throw RegistryException("\"$name\" must be at most ${range.last} characters long, was ${string.length}")
-    }
-
-    private fun validateName() {
-        validateStringLength("agent.name", name, AGENT_NAME_LENGTH)
-
-        if (!name.matches(AGENT_NAME_PATTERN))
-            throw RegistryException("\"agent.name\" must start with a lowercase alphabetic character and contain only lowercase alphanumeric characters or '-'")
     }
 
     private fun validateStringList(
@@ -163,6 +148,13 @@ data class RegistryAgent(
         val size = BinaryByteSize(list.sumOf { it.toByteArray().size })
         if (size > maxTotalSize)
             throw RegistryException("total size for \"$name\" must be at most $maxTotalSize, was $size")
+    }
+
+    private fun validateName() {
+        validateStringLength("agent.name", name, AGENT_NAME_LENGTH)
+
+        if (!name.matches(AGENT_NAME_PATTERN))
+            throw RegistryException("value for \"agent.name\" ($name) must start with a lowercase alphabetic character and contain only lowercase alphanumeric characters or '-'")
     }
 
     private fun validateVersion() {
