@@ -2,6 +2,8 @@ package org.coralprotocol.coralserver.registry
 
 import dev.eav.tomlkt.Toml
 import dev.eav.tomlkt.decodeFromNativeReader
+import io.kotest.assertions.throwables.shouldNotThrowAny
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.collections.shouldContainExactly
@@ -12,11 +14,19 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.util.*
 import kotlinx.serialization.json.Json
+import org.bitcoinj.core.Base58
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionDisplay
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
 import org.coralprotocol.coralserver.agent.runtime.AgentRuntimeTransport
+import org.coralprotocol.coralserver.agent.runtime.DockerRuntime
+import org.coralprotocol.coralserver.agent.runtime.ExecutableRuntime
+import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
+import org.coralprotocol.coralserver.utils.dsl.RegistryAgentMarketplaceIdentityErc8004Builder
+import org.coralprotocol.coralserver.utils.dsl.RegistryAgentMarketplacePricingBuilder
+import org.coralprotocol.coralserver.utils.dsl.registryAgent
 import org.koin.test.inject
 
 class RegistryAgentTest : CoralTest({
@@ -231,7 +241,7 @@ class RegistryAgentTest : CoralTest({
         )
     }
 
-    test("testRegistryAgent") {
+    test("testRegistryAgentFile") {
         val agent = loadRegistryAgentFromResource("/agent/coral-agent.toml")
 
         testAgentHeader(agent)
@@ -239,5 +249,586 @@ class RegistryAgentTest : CoralTest({
         testOptions(agent)
         testJsonRecode(agent)
         testMarketplace(agent)
+    }
+
+    test("testValidateAgentName") {
+        val validNames = listOf("valid", "valid-name", "valid-name-1")
+        val invalidNames = listOf("-invalid", "😡", "agent_underscore", "a".repeat(AGENT_NAME_LENGTH.last + 1))
+
+        for (name in validNames) {
+            shouldNotThrowAny {
+                registryAgent(name) {
+                    runtime(FunctionRuntime())
+                }.validate()
+            }
+        }
+
+
+        for (name in invalidNames) {
+            shouldThrow<RegistryException> {
+                registryAgent(name) {
+                    runtime(FunctionRuntime())
+                }.validate()
+            }
+        }
+    }
+
+    test("testValidateAgentVersion") {
+        val validVersions = listOf("0.1.0", "1.2.3", "1.2.3-alpha.1", "1.2.3+build.5")
+        val invalidVersions =
+            listOf("not-a-version", "1", "1.2", "1.2.3.4", "1.2.x", "a".repeat(AGENT_VERSION_LENGTH.last + 1))
+
+        for (version in validVersions) {
+            shouldNotThrowAny {
+                registryAgent("valid") {
+                    this.version = version
+                    runtime(FunctionRuntime())
+                }.validate()
+            }
+        }
+
+        for (version in invalidVersions) {
+            shouldThrow<RegistryException> {
+                registryAgent("valid") {
+                    this.version = version
+                    runtime(FunctionRuntime())
+                }.validate()
+            }
+        }
+    }
+
+    test("testValidateAgentRequiresAtLeastOneRuntime") {
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+            }.validate()
+        }
+
+        // no runtime defined
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+
+            }.validate()
+        }
+    }
+
+    test("testValidateDockerImageLength") {
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(DockerRuntime(image = "myuser/myimage"))
+            }.validate()
+        }
+
+        // docker image empty
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(DockerRuntime(image = ""))
+            }.validate()
+        }
+
+        // docker image too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(DockerRuntime(image = "a".repeat(AGENT_DOCKER_IMAGE_LENGTH.last + 1)))
+            }.validate()
+        }
+    }
+
+    test("testValidateDockerCommandEntriesAndTotalSize") {
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(
+                    DockerRuntime(
+                        image = "myuser/myimage",
+                        command = listOf("/bin/sh", "-c", "echo hello world")
+                    )
+                )
+            }.validate()
+        }
+
+        // docker command too many entries
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    DockerRuntime(
+                        image = "myuser/myimage",
+                        command = List(AGENT_DOCKER_COMMAND_ENTRIES.last + 1) { "a" }
+                    )
+                )
+            }.validate()
+        }
+
+        // docker command size too big
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    DockerRuntime(
+                        image = "myuser/myimage",
+                        command = listOf("a".repeat(AGENT_DOCKER_COMMAND_MAX_SIZE.inWholeBytes.toInt() + 1))
+                    )
+                )
+            }.validate()
+        }
+    }
+
+    test("testValidateExecutablePathLength") {
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(ExecutableRuntime(path = "my-agent", arguments = listOf()))
+            }.validate()
+        }
+
+        // executable path empty
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(ExecutableRuntime(path = ""))
+            }.validate()
+        }
+
+        // executable path too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(ExecutableRuntime(path = "a".repeat(AGENT_EXECUTABLE_PATH_LENGTH.last + 1)))
+            }.validate()
+        }
+    }
+
+    test("testValidateExecutableArgumentsEntriesAndTotalSize") {
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(ExecutableRuntime(path = "my-agent", arguments = listOf("--some-argument")))
+            }.validate()
+        }
+
+        // too many argument entries
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    ExecutableRuntime(
+                        path = "my-agent",
+                        arguments = List(AGENT_EXECUTABLE_ARGUMENTS_ENTRIES.last + 1) { "a" }
+                    )
+                )
+            }.validate()
+        }
+
+        // argument size too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    ExecutableRuntime(
+                        path = "my-agent",
+                        arguments = listOf("a".repeat(AGENT_DOCKER_COMMAND_MAX_SIZE.inWholeBytes.toInt() + 1))
+                    )
+                )
+            }.validate()
+        }
+    }
+
+    test("testValidateOptionCount") {
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                repeat(AGENT_OPTION_MAX_ENTRIES) { idx ->
+                    option("OPT_$idx", AgentOption.String(default = "x"))
+                }
+            }.validate()
+        }
+
+        // too many entries
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                repeat(AGENT_OPTION_MAX_ENTRIES + 1) { idx ->
+                    option("OPT_$idx", AgentOption.String(default = "x"))
+                }
+            }.validate()
+        }
+    }
+
+    test("testValidateOptionKeyName") {
+        val validKeys = listOf("A", "A1", "_A", "myOption", "myOption_2")
+        val invalidKeys = listOf("", "1bad", "-bad", "a-bad", "a b", "😡", "a".repeat(AGENT_OPTION_NAME_LENGTH.last + 1))
+
+        for (key in validKeys) {
+            shouldNotThrowAny {
+                registryAgent("valid") {
+                    runtime(FunctionRuntime())
+                    option(key, AgentOption.String(default = "x"))
+                }.validate()
+            }
+        }
+
+        for (key in invalidKeys) {
+            shouldThrow<RegistryException> {
+                registryAgent("valid") {
+                    runtime(FunctionRuntime())
+                    option(key, AgentOption.String(default = "x"))
+                }.validate()
+            }
+        }
+    }
+
+    test("testValidateOptionDisplayLengths") {
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                option(
+                    "OPT",
+                    AgentOption.String(default = "x").also {
+                        it.display = AgentOptionDisplay(
+                            label = "a".repeat(AGENT_OPTION_DISPLAY_LABEL_LENGTH.last),
+                            description = "a".repeat(AGENT_OPTION_DISPLAY_DESCRIPTION_LENGTH.last),
+                            group = "a".repeat(AGENT_OPTION_DISPLAY_GROUP_LENGTH.last),
+                            multiline = false
+                        )
+                    }
+                )
+            }.validate()
+        }
+
+        // option label too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                option(
+                    "OPT",
+                    AgentOption.String(default = "x").also {
+                        it.display = AgentOptionDisplay(
+                            label = "a".repeat(AGENT_OPTION_DISPLAY_LABEL_LENGTH.last + 1)
+                        )
+                    }
+                )
+            }.validate()
+        }
+
+        // option description too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                option(
+                    "OPT",
+                    AgentOption.String(default = "x").also {
+                        it.display = AgentOptionDisplay(
+                            description = "a".repeat(AGENT_OPTION_DISPLAY_DESCRIPTION_LENGTH.last + 1)
+                        )
+                    }
+                )
+            }.validate()
+        }
+
+        // option group too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                option(
+                    "OPT",
+                    AgentOption.String(default = "x").also {
+                        it.display = AgentOptionDisplay(
+                            group = "a".repeat(AGENT_OPTION_DISPLAY_GROUP_LENGTH.last + 1)
+                        )
+                    }
+                )
+            }.validate()
+        }
+    }
+
+    test("testValidateOptionDefaultsTotalSize") {
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                option("OK", AgentOption.String(default = "a".repeat(1024)))
+            }.validate()
+        }
+
+        // multiple options consuming a total default size more than allowed
+        var budget = AGENT_OPTION_DEFAULTS_MAX_SIZE.inWholeBytes.toInt()
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                while (budget > 0) {
+                    val size = 1024
+                    option("NIBBLE$budget", AgentOption.String(default = "a".repeat(size)))
+
+                    budget -= size
+                }
+
+                // if the budget was consumed exactly, take one extra byte
+                if (budget == 0)
+                    option("OVERFLOW", AgentOption.String(default = "a"))
+
+            }.validate()
+        }
+    }
+
+    test("testValidateMarketplaceSummaryReadmeAndLicenseLengths") {
+        fun agentWithMarketplace(marketplace: RegistryAgentMarketplaceSettings): RegistryAgent =
+            registryAgent("valid") { runtime(FunctionRuntime()) }.copy(marketplace = marketplace)
+
+        shouldNotThrowAny {
+            agentWithMarketplace(
+                RegistryAgentMarketplaceSettings(
+                    summary = "a".repeat(AGENT_MARKETPLACE_SUMMARY_LENGTH.last),
+                    readme = "a".repeat(AGENT_MARKETPLACE_README_MAX_SIZE.last),
+                    license = "a".repeat(AGENT_MARKETPLACE_LICENSE_LENGTH.last),
+                )
+            ).validate()
+        }
+
+        // summary too long
+        shouldThrow<RegistryException> {
+            agentWithMarketplace(
+                RegistryAgentMarketplaceSettings(
+                    summary = "a".repeat(AGENT_MARKETPLACE_SUMMARY_LENGTH.last + 1),
+                    readme = "ok"
+                )
+            ).validate()
+        }
+
+        // readme too long
+        shouldThrow<RegistryException> {
+            agentWithMarketplace(
+                RegistryAgentMarketplaceSettings(
+                    summary = "ok",
+                    readme = "a".repeat(AGENT_MARKETPLACE_README_MAX_SIZE.last + 1)
+                )
+            ).validate()
+        }
+
+        // license too long
+        shouldThrow<RegistryException> {
+            agentWithMarketplace(
+                RegistryAgentMarketplaceSettings(
+                    summary = "ok",
+                    readme = "ok",
+                    license = "a".repeat(AGENT_MARKETPLACE_LICENSE_LENGTH.last + 1),
+                )
+            ).validate()
+        }
+    }
+
+    test("testValidateMarketplaceLinks") {
+        fun agentWithLinks(links: Map<String, String>): RegistryAgent {
+            return registryAgent("valid") {
+                runtime(FunctionRuntime())
+                marketplace {
+                    summary = "a"
+                    readme = "a"
+                    links.forEach { (name, url) -> link(name, url) }
+                }
+            }
+        }
+
+        shouldNotThrowAny {
+            agentWithLinks(
+                mapOf(
+                    "github" to "https://example.com",
+                    "email" to "mailto:test@example.com",
+                    "phone" to "tel:+15555555555"
+                )
+            ).validate()
+        }
+
+        // too many entries
+        shouldThrow<RegistryException> {
+            agentWithLinks(
+                (0 until (AGENT_MARKETPLACE_LINKS_MAX_ENTRIES + 1)).associate { idx ->
+                    "link$idx" to "https://example.com/$idx"
+                }
+            ).validate()
+        }
+
+        // name cannot start with a digit
+        shouldThrow<RegistryException> {
+            agentWithLinks(mapOf("1bad" to "https://example.com")).validate()
+        }
+
+        // not secure (not https)
+        shouldThrow<RegistryException> {
+            agentWithLinks(mapOf("bad" to "http://example.com")).validate()
+        }
+
+        // invalid url
+        shouldThrow<RegistryException> {
+            agentWithLinks(mapOf("bad" to "not a url")).validate()
+        }
+
+        // link name too long
+        shouldThrow<RegistryException> {
+            agentWithLinks(mapOf("a".repeat(AGENT_MARKETPLACE_LINKS_NAME_LENGTH.last + 1) to "https://example.com"))
+                .validate()
+        }
+
+        // url too long
+        shouldThrow<RegistryException> {
+            agentWithLinks(mapOf("ok" to "http://example.com/" + "a".repeat(AGENT_MARKETPLACE_LINK_VALUE_LENGTH.last))).validate()
+        }
+    }
+
+    test("testValidateMarketplacePricing") {
+        fun agentWithPricing(
+            description: String,
+            recommendations: RegistryAgentMarketplacePricingRecommendations,
+            builder: RegistryAgentMarketplacePricingBuilder.() -> Unit = {}
+        ): RegistryAgent {
+            return registryAgent("valid") {
+                runtime(FunctionRuntime())
+                marketplace {
+                    summary = "a"
+                    readme = "a"
+                    pricing(description, recommendations, builder)
+                }
+            }
+        }
+
+        shouldNotThrowAny {
+            agentWithPricing(
+                "a".repeat(AGENT_MARKETPLACE_PRICING_DESCRIPTION_LENGTH.last),
+                RegistryAgentMarketplacePricingRecommendations(min = 0.01, max = 1.0)
+            ).validate()
+        }
+
+        // EUR not supported
+        shouldThrow<RegistryException> {
+            agentWithPricing(
+                "a".repeat(AGENT_MARKETPLACE_PRICING_DESCRIPTION_LENGTH.last),
+                RegistryAgentMarketplacePricingRecommendations(min = 0.01, max = 1.0)
+            ) {
+                currency = "EUR"
+            }.validate()
+        }
+
+        // description is too long
+        shouldThrow<RegistryException> {
+            agentWithPricing(
+                "a".repeat(AGENT_MARKETPLACE_PRICING_DESCRIPTION_LENGTH.last + 1),
+                RegistryAgentMarketplacePricingRecommendations(min = 0.01, max = 1.0)
+            ).validate()
+        }
+
+        // min is too low
+        shouldThrow<RegistryException> {
+            agentWithPricing(
+                "a".repeat(AGENT_MARKETPLACE_PRICING_DESCRIPTION_LENGTH.last),
+                RegistryAgentMarketplacePricingRecommendations(min = -0.01, max = 1.0)
+            ).validate()
+        }
+
+        // min is too high
+        shouldThrow<RegistryException> {
+            agentWithPricing(
+                "a".repeat(AGENT_MARKETPLACE_PRICING_DESCRIPTION_LENGTH.last),
+                RegistryAgentMarketplacePricingRecommendations(
+                    min = AGENT_MARKETPLACE_PRICING_MIN_MAX + 0.01,
+                    max = 1.0
+                )
+            ).validate()
+        }
+
+        // max is not greater than min
+        shouldThrow<RegistryException> {
+            agentWithPricing(
+                "a".repeat(AGENT_MARKETPLACE_PRICING_DESCRIPTION_LENGTH.last),
+                RegistryAgentMarketplacePricingRecommendations(
+                    min = 1.0,
+                    max = 1.0
+                )
+            ).validate()
+        }
+    }
+
+    test("testValidateMarketplaceErc8004WalletAndEndpoints") {
+        fun agentWithErc8004(
+            wallet: String = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+            block: RegistryAgentMarketplaceIdentityErc8004Builder.() -> Unit
+        ): RegistryAgent {
+            return registryAgent("valid") {
+                runtime(FunctionRuntime())
+                marketplace {
+                    summary = "a"
+                    readme = "a"
+                    identities {
+                        erc8004(wallet, block)
+                    }
+                }
+            }
+        }
+
+        shouldNotThrowAny {
+            agentWithErc8004 {
+                endpoint("endpoint1", "https://example.com/api")
+            }.validate()
+        }
+
+        // invalid wallet (not base58)
+        shouldThrow<RegistryException> {
+            agentWithErc8004(wallet = "this-is-not-base58!!!") {
+                endpoint("endpoint1", "https://example.com/api")
+            }.validate()
+        }
+
+        // invalid wallet (too few bytes)
+        shouldThrow<RegistryException> {
+            agentWithErc8004(wallet = Base58.encode(ByteArray(24) { 1 })) {
+                endpoint("endpoint1", "https://example.com/api")
+            }.validate()
+        }
+
+        // invalid wallet (too many bytes)
+        shouldThrow<RegistryException> {
+            agentWithErc8004(wallet = Base58.encode(ByteArray(33) { 1 })) {
+                endpoint("endpoint1", "https://example.com/api")
+            }.validate()
+        }
+
+        // too many entries
+        shouldThrow<RegistryException> {
+            agentWithErc8004 {
+                List(AGENT_MARKETPLACE_ERC8004_ENDPOINTS_MAX_ENTRIES + 1) { idx ->
+                    endpoint("endpoint$idx", "https://example.com/$idx")
+                }
+            }.validate()
+        }
+
+        // endpoint name is too long
+        shouldThrow<RegistryException> {
+            agentWithErc8004 {
+                endpoint(
+                    "a".repeat(AGENT_MARKETPLACE_ERC8004_ENDPOINTS_NAME_LENGTH.last + 1),
+                    "https://example.com/api"
+                )
+            }.validate()
+        }
+
+        // endpoint name starts with a digit
+        shouldThrow<RegistryException> {
+            agentWithErc8004 {
+                endpoint("1bad", "https://example.com/api")
+            }.validate()
+        }
+
+        // endpoint too long
+        shouldThrow<RegistryException> {
+            agentWithErc8004 {
+                endpoint(
+                    "endpoint1",
+                    "http://valid.com/" + "a".repeat(AGENT_MARKETPLACE_ERC8004_ENDPOINTS_ENDPOINT_LENGTH.last)
+                )
+            }.validate()
+        }
+
+        // http (not https)
+        shouldThrow<RegistryException> {
+            agentWithErc8004 {
+                endpoint("endpoint1", "http://example.com/api")
+            }.validate()
+        }
+
+        // bad url
+        shouldThrow<RegistryException> {
+            agentWithErc8004 {
+                endpoint("endpoint1", "not a url")
+            }.validate()
+        }
     }
 })
