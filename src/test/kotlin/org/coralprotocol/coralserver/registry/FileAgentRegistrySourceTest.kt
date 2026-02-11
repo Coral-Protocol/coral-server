@@ -66,6 +66,9 @@ class FileAgentRegistrySourceTest : CoralTest({
             [agent]
             name = "$name"
             version = "$agentVersion"
+            
+            [runtimes.executable]
+            path = "test"
         """.trimIndent()
         )
 
