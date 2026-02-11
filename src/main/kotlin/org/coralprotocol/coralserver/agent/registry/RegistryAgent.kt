@@ -31,7 +31,7 @@ const val MINIMUM_SUPPORTED_AGENT_EDITION = 3
 const val MAXIMUM_SUPPORTED_AGENT_VERSION = 3
 
 // [agent]
-val AGENT_NAME_LENGTH = 1..63
+val AGENT_NAME_LENGTH = 1..32
 val AGENT_NAME_PATTERN = "^[a-z0-9]([a-z0-9]*(-[a-z0-9]+)*)?$".toRegex()
 val AGENT_VERSION_LENGTH = 1..24
 
