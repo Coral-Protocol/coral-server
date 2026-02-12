@@ -13,8 +13,7 @@ const val AGENT_FILE = "coral-agent.toml"
 @Serializable
 data class UnresolvedRegistryAgent(
     @Description("The edition of this agent")
-    @Optional
-    val edition: Int = 1,
+    val edition: Int,
 
     @SerialName("agent")
     val agentInfo: UnresolvedRegistryAgentInfo,
