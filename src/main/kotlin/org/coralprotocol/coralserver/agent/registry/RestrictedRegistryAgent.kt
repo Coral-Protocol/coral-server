@@ -7,25 +7,25 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
-import kotlinx.serialization.json.JsonIgnoreUnknownKeys
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
 import org.coralprotocol.coralserver.session.SessionException
 
 @Serializable
-@JsonIgnoreUnknownKeys
 data class RestrictedRegistryAgent(
     val registryAgent: RegistryAgent,
-    val restrictions: Set<RegistryAgentRestriction> = setOf()
+    val restrictions: Set<RegistryAgentRestriction> = setOf(),
+    val extension: RegistryAgentExtension? = null
 ) {
-    fun toPublic() = PublicRestrictedRegistryAgent(registryAgent.toPublic(), restrictions)
+    fun toPublic() = PublicRestrictedRegistryAgent(registryAgent.toPublic(), restrictions, extension)
 }
 
 @Serializable
 @Description("Represents an agent that can have restrictions on where it can run.")
 data class PublicRestrictedRegistryAgent(
     val registryAgent: PublicRegistryAgent,
-    val restrictions: Set<RegistryAgentRestriction>
+    val restrictions: Set<RegistryAgentRestriction>,
+    val extension: RegistryAgentExtension? = null
 )
 
 @Serializable
