@@ -46,7 +46,9 @@ data class RegistryAgentMarketplaceIdentities(
 @Serializable
 data class RegistryAgentMarketplaceIdentityErc8004(
     val wallet: String,
-    val endpoints: List<Erc8004Endpoint>
+
+    @Optional
+    val endpoints: List<Erc8004Endpoint> = listOf()
 )
 
 @Serializable
