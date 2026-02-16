@@ -54,6 +54,7 @@ import org.coralprotocol.coralserver.routes.ws.v1.logRoutes
 import org.coralprotocol.coralserver.server.AuthSession
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionException
+import org.coralprotocol.coralserver.session.reporting.SessionEndReport
 import org.koin.core.qualifier.named
 import org.koin.ktor.ext.inject
 import org.slf4j.event.Level
@@ -125,6 +126,9 @@ fun Application.coralServerModule(isTest: Boolean = false) {
 
                 // Logging
                 schema<LoggingEvent>("LoggingEvent")
+
+                // Webhooks
+                schema<SessionEndReport>("SessionEndReport")
             }
             specAssigner = { url: String, tags: List<String> ->
                 // when another spec version is added, determine the version based on the url here or use
