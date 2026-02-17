@@ -230,7 +230,7 @@ fun Route.localSessionApi() {
     get<LocalSessions.Namespace>({
         summary = "Get a list of namespaces names"
         description = "Returns a list of namespaces"
-        operationId = "getAllSessions"
+        operationId = "getAllNamespaceNames"
         securitySchemeNames("token")
         response {
             HttpStatusCode.OK to {
