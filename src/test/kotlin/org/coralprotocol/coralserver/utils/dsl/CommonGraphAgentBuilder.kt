@@ -20,6 +20,7 @@ open class CommonGraphAgentBuilder(
     var systemPrompt: String? = null
     var blocking: Boolean = true
     var provider: GraphAgentProvider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
+    var exportDevEnvFile: Boolean = false
 
     protected val plugins = mutableSetOf<GraphAgentPlugin>()
     protected val x402Budgets = mutableListOf<X402BudgetedResource>()
@@ -63,7 +64,8 @@ class GraphAgentBuilder(name: String) : CommonGraphAgentBuilder(name) {
             customTools = customTools.toMap(),
             plugins = plugins.toSet(),
             provider = provider,
-            x402Budgets = x402Budgets.toList()
+            x402Budgets = x402Budgets.toList(),
+            exportDevEnvFile = exportDevEnvFile,
         )
     }
 }
@@ -95,7 +97,8 @@ class GraphAgentRequestBuilder(
             customToolAccess = customToolAccess,
             plugins = plugins,
             provider = provider,
-            x402Budgets = x402Budgets
+            x402Budgets = x402Budgets,
+            exportDevEnvFile = exportDevEnvFile,
         )
     }
 }

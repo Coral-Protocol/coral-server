@@ -2,7 +2,8 @@
 
 package org.coralprotocol.coralserver.session
 
-import io.ktor.utils.io.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.awaitCancellation
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.registry.option.*
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
@@ -16,6 +17,10 @@ import org.coralprotocol.coralserver.util.utcTimeNow
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.io.File
+import java.nio.file.Path
+import kotlin.io.path.exists
+import kotlin.io.path.readLines
+import kotlin.io.path.writeText
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -23,6 +28,11 @@ class SessionAgentExecutionContext(
     val agent: SessionAgent,
     val applicationRuntimeContext: ApplicationRuntimeContext
 ) : KoinComponent {
+    private companion object {
+        private const val DEV_ENV_FILE_NAME = "coral-agent.dev.env"
+        private const val GITIGNORE_FILE_NAME = ".gitignore"
+    }
+
     val logger = agent.logger
     val name = agent.name
     val session = agent.session
@@ -132,6 +142,14 @@ class SessionAgentExecutionContext(
 
         try {
             handleRuntimeStarted()
+
+            // Export env vars to coral-agent.dev.env if appropriate and set, instead of launching the runtime for development purposes.
+            if (graphAgent.exportDevEnvFile && provider is GraphAgentProvider.Local && path != null) {
+                if (exportDevEnvFile(path)) {
+                    awaitCancellation() // Keep session alive as runtime wasn't launched
+                }
+            }
+
             if (provider is GraphAgentProvider.Local)
                 launchLocal(provider)
 
@@ -147,6 +165,60 @@ class SessionAgentExecutionContext(
 
         // todo: restart logic
         logger.info { "Agent ${agent.name} runtime exited" }
+    }
+
+    private fun exportDevEnvFile(agentDirectory: Path): Boolean {
+        val gitignore = agentDirectory.resolve(GITIGNORE_FILE_NAME)
+        val isAllowed = gitignore.exists() && gitignore.readLines().any {
+            Regex("""^\s*/?coral-agent\.dev\.env\s*$""").matches(it)
+        }
+
+        if (!isAllowed) {
+            logger.warn {
+                "Dev env export is enabled for agent ${agent.name}, but it did not create $DEV_ENV_FILE_NAME " +
+                    "because an adjacent $GITIGNORE_FILE_NAME did not contain a line matching $DEV_ENV_FILE_NAME"
+            }
+            return false
+        }
+
+        val envFile = agentDirectory.resolve(DEV_ENV_FILE_NAME)
+        logger.info { "Exporting $DEV_ENV_FILE_NAME for agent ${agent.name}" }
+        val env = buildEnvironment()
+            .toSortedMap()
+            .entries
+            .joinToString("\n", postfix = "\n") { (key, value) ->
+                "$key=${value.toDotEnvValue()}"
+            }
+
+        envFile.writeText(env)
+        disposableResources.add(SessionAgentDisposableResource.DeleteFile(envFile))
+
+        logger.info {
+            "Wrote dev env file for agent ${agent.name} to $envFile (will be deleted when the session ends)"
+        }
+        return true
+    }
+
+    private fun String.toDotEnvValue(): String {
+        if (isEmpty()) return "\"\""
+
+        val needsQuotes = any { it.isWhitespace() } || any { it == '#' || it == '"' || it == '\\' } || contains('\n') || contains('\r')
+        if (!needsQuotes) return this
+
+        val escaped = buildString {
+            for (c in this@toDotEnvValue) {
+                when (c) {
+                    '\\' -> append("\\\\")
+                    '"' -> append("\\\"")
+                    '\n' -> append("\\n")
+                    '\r' -> append("\\r")
+                    '\t' -> append("\\t")
+                    else -> append(c)
+                }
+            }
+        }
+
+        return "\"$escaped\""
     }
 
 

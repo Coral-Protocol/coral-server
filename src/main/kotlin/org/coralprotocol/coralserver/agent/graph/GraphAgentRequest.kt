@@ -50,6 +50,10 @@ data class GraphAgentRequest(
     @Description("An optional list of resources and an accompanied budget that this agent may spend on services that accept x402 payments")
     @Optional
     val x402Budgets: List<X402BudgetedResource> = listOf(),
+
+    @Description("Development option. If true, for agents loaded from a local `coral-agent.toml`, Coral will write a `coral-agent.dev.env` file and will NOT execute the agent runtime.")
+    @Optional
+    val exportDevEnvFile: Boolean = false,
 ) {
     /**
      * Given a reference to the agent registry [AgentRegistry], this function will attempt to convert this request into
@@ -131,6 +135,7 @@ data class GraphAgentRequest(
             plugins = plugins,
             provider = provider,
             x402Budgets = x402Budgets,
+            exportDevEnvFile = exportDevEnvFile,
         )
     }
 }
