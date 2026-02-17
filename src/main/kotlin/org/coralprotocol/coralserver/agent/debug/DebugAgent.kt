@@ -7,12 +7,14 @@ import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.value
+import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.SessionAgent
-import org.coralprotocol.coralserver.util.mcpFunctionRuntime
+import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
+import org.coralprotocol.coralserver.util.streamableHttpFunctionRuntime
 import org.koin.core.component.KoinComponent
 
 interface DebugAgentIdHolder {
@@ -59,6 +61,18 @@ abstract class DebugAgent(protected val client: HttpClient) : KoinComponent {
             ?: throw IllegalStateException("Missing required option $optionName")
     }
 
+    open suspend fun runtime(
+        executionContext: SessionAgentExecutionContext,
+        runtimeContext: ApplicationRuntimeContext
+    ) {
+        client.streamableHttpFunctionRuntime(
+            companion.identifier.name,
+            companion.identifier.name
+        ) { client, session ->
+            execute(client, session, executionContext.agent)
+        }.execute(executionContext, runtimeContext)
+    }
+
     fun generate(
         export: Boolean = false
     ): RegistryAgent {
@@ -70,9 +84,7 @@ abstract class DebugAgent(protected val client: HttpClient) : KoinComponent {
             ),
             runtimes = LocalAgentRuntimes(
                 functionRuntime = FunctionRuntime { executionContext, runtimeContext ->
-                    client.mcpFunctionRuntime(companion.identifier.name, companion.identifier.name) { client, session ->
-                        execute(client, session, executionContext.agent)
-                    }.execute(executionContext, runtimeContext)
+                    runtime(executionContext, runtimeContext)
                 }
             ),
             options = options,

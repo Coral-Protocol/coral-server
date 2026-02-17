@@ -36,7 +36,7 @@ repositories {
 dependencies {
     testImplementation(kotlin("test"))
     implementation("org.coralprotocol.payment:blockchain:0.1.1:all")
-    implementation("io.modelcontextprotocol:kotlin-sdk:0.6.0") {}
+    implementation("io.modelcontextprotocol:kotlin-sdk:0.8.3") {}
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1")
@@ -82,6 +82,7 @@ dependencies {
     implementation("io.ktor:ktor-server-content-negotiation")
     implementation("io.ktor:ktor-server-resources")
     implementation("io.ktor:ktor-serialization-kotlinx-json")
+    implementation("io.ktor:ktor-server-websockets:${ktorVersion}")
     testImplementation("io.ktor:ktor-server-core")
     testImplementation("io.ktor:ktor-server-cio")
     testImplementation("io.ktor:ktor-server-sse")

@@ -21,7 +21,7 @@ data class ConsoleConfig(
     /**
      * The version of the console to download, will be appended to [consoleReleaseUrl]
      */
-    val consoleReleaseVersion: String = "0.2.1",
+    val consoleReleaseVersion: String = "0.3.0",
 
     /**
      * The name of the zip bundle in the release
@@ -32,7 +32,7 @@ data class ConsoleConfig(
      * If this is true, other folders in [cachePath] that are not relevant to the [consoleReleaseVersion] will be
      * deleted.
      */
-    val deleteOldVersions: Boolean = true,
+    val deleteOldVersions: Boolean = false,
 
     /**
      * If this is true, the specified console bundle will be downloaded on every launch, replacing the last bundle with
