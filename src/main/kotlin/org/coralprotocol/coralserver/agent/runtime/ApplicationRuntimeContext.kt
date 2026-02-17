@@ -12,7 +12,8 @@ import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.RootConfig
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
-import org.coralprotocol.coralserver.routes.sse.v1.Mcp
+import org.coralprotocol.coralserver.routes.mcp.v1.Sse
+import org.coralprotocol.coralserver.routes.mcp.v1.StreamableHttp
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -50,9 +51,16 @@ class ApplicationRuntimeContext(
         return config.resolveBaseUrl(addressConsumer)
     }
 
-    fun getMcpUrl(executionContext: SessionAgentExecutionContext, addressConsumer: AddressConsumer): Url {
+    fun getSseUrl(executionContext: SessionAgentExecutionContext, addressConsumer: AddressConsumer): Url {
         val builder = URLBuilder(getApiUrl(addressConsumer))
-        href(ResourcesFormat(), Mcp.Sse(agentSecret = executionContext.agent.secret), builder)
+        href(ResourcesFormat(), Sse(agentSecret = executionContext.agent.secret), builder)
+
+        return builder.build()
+    }
+
+    fun getStreamableHttpUrl(executionContext: SessionAgentExecutionContext, addressConsumer: AddressConsumer): Url {
+        val builder = URLBuilder(getApiUrl(addressConsumer))
+        href(ResourcesFormat(), StreamableHttp(agentSecret = executionContext.agent.secret), builder)
 
         return builder.build()
     }

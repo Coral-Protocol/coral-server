@@ -5,12 +5,12 @@ import io.github.smiley4.schemakenerator.jsonschema.JsonSchemaSteps.compileInlin
 import io.github.smiley4.schemakenerator.jsonschema.JsonSchemaSteps.generateJsonSchema
 import io.github.smiley4.schemakenerator.jsonschema.JsonSchemaSteps.merge
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.analyzeTypeUsingKotlinxSerialization
-import org.coralprotocol.coralserver.logging.Logger
-import io.modelcontextprotocol.kotlin.sdk.Tool
+import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.serializer
+import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.mcp.tools.*
 import org.coralprotocol.coralserver.mcp.tools.optional.CloseSessionInput
 import org.coralprotocol.coralserver.mcp.tools.optional.closeSessionExecutor
@@ -130,7 +130,7 @@ class McpToolManager(private val logger: Logger) {
         if (required.size != properties.size)
             logger.warn { "Generated input schema for mcp tool $name contains optional properties, this will cause problems with OpenAI's structured output and potentially other models" }
 
-        val inputSchema = Tool.Input(
+        val inputSchema = ToolSchema(
             required = required.map { it.jsonPrimitive.content },
             properties = properties
         )

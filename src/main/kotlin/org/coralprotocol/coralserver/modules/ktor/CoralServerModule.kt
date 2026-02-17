@@ -46,7 +46,7 @@ import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.modules.LOGGER_ROUTES
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.routes.api.v1.*
-import org.coralprotocol.coralserver.routes.sse.v1.mcpRoutes
+import org.coralprotocol.coralserver.routes.mcp.v1.mcpRoutes
 import org.coralprotocol.coralserver.routes.ui.consoleUi
 import org.coralprotocol.coralserver.routes.ui.documentationInterface
 import org.coralprotocol.coralserver.routes.ws.v1.eventRoutes
@@ -54,87 +54,94 @@ import org.coralprotocol.coralserver.routes.ws.v1.logRoutes
 import org.coralprotocol.coralserver.server.AuthSession
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionException
+import org.coralprotocol.coralserver.session.reporting.SessionEndReport
 import org.koin.core.qualifier.named
 import org.koin.ktor.ext.inject
 import org.slf4j.event.Level
 import kotlin.time.Duration.Companion.seconds
 
-fun Application.coralServerModule() {
+fun Application.coralServerModule(isTest: Boolean = false) {
     val networkConfig by inject<NetworkConfig>()
     val authConfig by inject<AuthConfig>()
     val localSessionManager by inject<LocalSessionManager>()
     val json by inject<Json>()
     val logger by inject<Logger>(named(LOGGER_ROUTES))
 
-    install(OpenApi) {
-        info {
-            title = "Coral Server API"
-            version = "1.0"
-        }
-        tags {
-            tagGenerator = { url -> listOf(url.getOrNull(2)) }
-        }
-        security {
-            securityScheme("token") {
-                type = AuthType.HTTP
-                scheme = AuthScheme.BEARER
-                bearerFormat = "Configured token"
+    if (!isTest) {
+        install(OpenApi) {
+            info {
+                title = "Coral Server API"
+                version = "1.0"
             }
-            securityScheme("agentSecret") {
-                type = AuthType.HTTP
-                scheme = AuthScheme.BEARER
-                bearerFormat = "Generated agent secret"
+            tags {
+                tagGenerator = { url -> listOf(url.getOrNull(2)) }
             }
-        }
-        schemas {
-            generator = SchemaGenerator.kotlinx { }
-            // Generated types from routes
-            generator = { type ->
-                type
-                    .analyzeTypeUsingKotlinxSerialization {
-
-                    }
-                    .addMissingSupertypeSubtypeRelations()
-                    .addJsonClassDiscriminatorProperty()
-                    .generateSwaggerSchema({
-                        strictDiscriminatorProperty = true
-                    })
-                    .handleCoreAnnotations()
-                    .handleSchemaAnnotations()
-                    .customizeTypes { _, schema ->
-                        // Mapping is broken, and one of the code generation libraries I am using checks the
-                        // references here
-                        schema.discriminator?.mapping = null;
-                    }
-                    .withTitle(TitleType.SIMPLE)
-                    .compileReferencingRoot(
-                        explicitNullTypes = false,
-                        inlineDiscriminatedTypes = true,
-                        builder = TitleBuilder.BUILDER_OPENAPI_SIMPLE
-                    )
+            security {
+                securityScheme("token") {
+                    type = AuthType.HTTP
+                    scheme = AuthScheme.BEARER
+                    bearerFormat = "Configured token"
+                }
+                securityScheme("agentSecret") {
+                    type = AuthType.HTTP
+                    scheme = AuthScheme.BEARER
+                    bearerFormat = "Generated agent secret"
+                }
             }
+            schemas {
+                generator = SchemaGenerator.kotlinx { }
+                // Generated types from routes
+                generator = { type ->
+                    type
+                        .analyzeTypeUsingKotlinxSerialization {
 
-            // Mcp types
-            schema<McpToolName>("McpToolName")
-            schema<McpResourceName>("McpResourceName")
+                        }
+                        .addMissingSupertypeSubtypeRelations()
+                        .addJsonClassDiscriminatorProperty()
+                        .generateSwaggerSchema({
+                            strictDiscriminatorProperty = true
+                        })
+                        .handleCoreAnnotations()
+                        .handleSchemaAnnotations()
+                        .customizeTypes { _, schema ->
+                            // Mapping is broken, and one of the code generation libraries I am using checks the
+                            // references here
+                            schema.discriminator?.mapping = null;
+                        }
+                        .withTitle(TitleType.SIMPLE)
+                        .compileReferencingRoot(
+                            explicitNullTypes = false,
+                            inlineDiscriminatedTypes = true,
+                            builder = TitleBuilder.BUILDER_OPENAPI_SIMPLE
+                        )
+                }
 
-            // WebSocket types
-            schema<LocalSessionManagerEvent>("LocalSessionManagerEvent")
-            schema<SessionEvent>("SessionEvent")
+                // Mcp types
+                schema<McpToolName>("McpToolName")
+                schema<McpResourceName>("McpResourceName")
 
-            // Logging
-            schema<LoggingEvent>("LoggingEvent")
+                // WebSocket types
+                schema<LocalSessionManagerEvent>("LocalSessionManagerEvent")
+                schema<SessionEvent>("SessionEvent")
+
+                // Logging
+                schema<LoggingEvent>("LoggingEvent")
+
+                // Webhooks
+                schema<SessionEndReport>("SessionEndReport")
+            }
+            specAssigner = { url: String, tags: List<String> ->
+                // when another spec version is added, determine the version based on the url here or use
+                // specVersion on the new routes
+                "v1"
+            }
+            pathFilter = { method, parts ->
+                parts.getOrNull(0) == "api"
+            }
+            outputFormat = OutputFormat.JSON
         }
-        specAssigner = { url: String, tags: List<String> ->
-            // when another spec version is added, determine the version based on the url here or use
-            // specVersion on the new routes
-            "v1"
-        }
-        pathFilter = { method, parts ->
-            parts.getOrNull(0) == "api"
-        }
-        outputFormat = OutputFormat.JSON
     }
+
     install(Resources)
     install(SSE)
     install(ContentNegotiation) {
@@ -229,7 +236,8 @@ fun Application.coralServerModule() {
 
         // safe interfaces, not subject to auth
         agentRentalApi()
-        documentationInterface()
+        if (!isTest)
+            documentationInterface()
 
         // url / custom auth
         authApi()
@@ -238,8 +246,10 @@ fun Application.coralServerModule() {
         logRoutes()
 
         // source of truth for OpenAPI docs/codegen
-        route("api_v1.json") { openApi("v1") }
-        route("ui") { consoleUi() }
+        if (!isTest) {
+            route("api_v1.json") { openApi("v1") }
+            route("ui") { consoleUi() }
+        }
     }.run {
         getAllRoutes().forEach {
             logger.debug {
