@@ -3,6 +3,7 @@
 package org.coralprotocol.coralserver.session
 
 import io.ktor.utils.io.*
+import kotlinx.coroutines.flow.update
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.registry.option.*
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
@@ -172,6 +173,7 @@ class SessionAgentExecutionContext(
      */
     private suspend fun handleRuntimeStarted() {
         lastLaunchTime = utcTimeNow()
+        agent.status.update { SessionAgentStatus.Running(SessionAgentConnectionStatus.NotConnected) }
         session.events.emit((SessionEvent.RuntimeStarted(name)))
     }
 
@@ -179,6 +181,7 @@ class SessionAgentExecutionContext(
      * Called immediately after the runtime stops, for any reason.
      */
     private suspend fun handleRuntimeStopped() {
+        agent.status.update { SessionAgentStatus.Stopped }
         val startTime = lastLaunchTime
         if (startTime != null) {
             usageReports.add(
@@ -186,7 +189,8 @@ class SessionAgentExecutionContext(
                     name,
                     registryAgent.identifier,
                     startTime,
-                    utcTimeNow()
+                    utcTimeNow(),
+                    graphAgent.annotations
                 )
             )
         }

@@ -43,6 +43,14 @@ sealed class SessionEvent {
     data class AgentWaitStop(val name: UniqueAgentName, val message: SessionThreadMessage) : SessionEvent()
 
     @Serializable
+    @SerialName("agent_sleep_start")
+    data class AgentSleepStart(val name: UniqueAgentName) : SessionEvent()
+
+    @Serializable
+    @SerialName("agent_sleep_stop")
+    data class AgentSleepStop(val name: UniqueAgentName) : SessionEvent()
+
+    @Serializable
     @SerialName("thread_created")
     data class ThreadCreated(val thread: SessionThread) : SessionEvent()
 

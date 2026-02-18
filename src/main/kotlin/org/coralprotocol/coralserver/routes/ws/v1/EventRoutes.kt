@@ -9,6 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.onEach
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.config.AuthConfig
 import org.coralprotocol.coralserver.logging.Logger
@@ -24,12 +25,10 @@ import org.coralprotocol.coralserver.util.toWsFrame
 import org.coralprotocol.coralserver.util.webSocketFlow
 import org.koin.core.qualifier.named
 import org.koin.ktor.ext.inject
+import java.util.*
 
 @Resource("events")
-class Events(
-    val parent: WsV1 = WsV1(),
-    val namespaceFilter: String? = null,
-) {
+class Events(val parent: WsV1 = WsV1()) {
 
     @Resource("{token}")
     class WithToken(val parent: Events = Events(), val token: String) {
@@ -37,14 +36,22 @@ class Events(
         class SessionEvents(val parent: WithToken, val namespace: String, val sessionId: String)
 
         @Resource("lsm")
-        class LsmEvents(val parent: WithToken)
+        class LsmEvents(
+            val parent: WithToken,
+            val namespaceFilter: String? = null,
+            val namespaceAnnotationFilters: String? = null
+        )
     }
 
     @Resource("session/{namespace}/{sessionId}")
     class SessionEvents(val parent: Events = Events(), val namespace: String, val sessionId: String)
 
     @Resource("lsm")
-    class LsmEvents(val parent: Events)
+    class LsmEvents(
+        val parent: Events,
+        val namespaceFilter: String? = null,
+        val namespaceAnnotationFilters: String? = null
+    )
 }
 
 fun Route.eventRoutes() {
@@ -72,11 +79,27 @@ fun Route.eventRoutes() {
         }
     }
 
-    suspend fun RoutingContext.handleServerEvents(namespaceFilter: String? = null) {
+    suspend fun RoutingContext.handleServerEvents(
+        namespaceFilter: String? = null,
+        namespaceAnnotationFilters: String? = null
+    ) {
+        val namespaceAnnotationFilters =
+            namespaceAnnotationFilters?.let {
+                json.decodeFromString<Map<String, String>>(
+                    Base64.getUrlDecoder().decode(it.toByteArray()).decodeToString()
+                )
+            }
+
         webSocketFlow("events", logger, websocketCoroutineScope) {
             localSessionManager.events
                 .filter {
-                    namespaceFilter == null || it.namespace == namespaceFilter
+                    if (namespaceAnnotationFilters != null && !namespaceAnnotationFilters.all { (key, value) ->
+                            it.hasNamespaceAnnotation(key, value)
+                        }) {
+                        false
+                    } else {
+                        namespaceFilter == null || it.isInNamespace(namespaceFilter)
+                    }
                 }
                 .onEach { outgoing.send(it.toWsFrame(json)) }
                 .catch {
@@ -109,7 +132,11 @@ fun Route.eventRoutes() {
         if (!config.keys.contains(path.parent.token))
             throw RouteException(HttpStatusCode.Unauthorized, "Invalid token")
 
-        handleServerEvents(path.parent.parent.namespaceFilter)
+        try {
+            handleServerEvents(path.namespaceFilter, path.namespaceAnnotationFilters)
+        } catch (e: SerializationException) {
+            throw RouteException(HttpStatusCode.BadRequest, e)
+        }
     }
 
     get<Events.LsmEvents>({
@@ -118,6 +145,10 @@ fun Route.eventRoutes() {
         if (call.sessions.get<AuthSession.Token>() == null)
             throw RouteException(HttpStatusCode.Unauthorized, "Unauthorized")
 
-        handleServerEvents(path.parent.namespaceFilter)
+        try {
+            handleServerEvents(path.namespaceFilter, path.namespaceAnnotationFilters)
+        } catch (e: SerializationException) {
+            throw RouteException(HttpStatusCode.BadRequest, e)
+        }
     }
 }

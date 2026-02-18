@@ -21,11 +21,16 @@ open class CommonGraphAgentBuilder(
     var blocking: Boolean = true
     var provider: GraphAgentProvider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
 
+    protected val annotations: MutableMap<String, String> = mutableMapOf()
     protected val plugins = mutableSetOf<GraphAgentPlugin>()
     protected val x402Budgets = mutableListOf<X402BudgetedResource>()
 
     fun plugin(plugin: GraphAgentPlugin) {
         plugins.add(plugin)
+    }
+
+    fun annotation(name: String, value: String) {
+        annotations[name] = value
     }
 
     fun x402Budget(budget: X402BudgetedResource) {
@@ -63,7 +68,8 @@ class GraphAgentBuilder(name: String) : CommonGraphAgentBuilder(name) {
             customTools = customTools.toMap(),
             plugins = plugins.toSet(),
             provider = provider,
-            x402Budgets = x402Budgets.toList()
+            x402Budgets = x402Budgets.toList(),
+            annotations = annotations.toMap(),
         )
     }
 }
@@ -95,7 +101,8 @@ class GraphAgentRequestBuilder(
             customToolAccess = customToolAccess,
             plugins = plugins,
             provider = provider,
-            x402Budgets = x402Budgets
+            x402Budgets = x402Budgets,
+            annotations = annotations.toMap(),
         )
     }
 }
