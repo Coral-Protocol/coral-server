@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalSerializationApi::class)
 
-package org.coralprotocol.coralserver.session.models
+package org.coralprotocol.coralserver.session
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import io.github.smiley4.schemakenerator.core.annotations.Optional
@@ -46,6 +46,9 @@ data class SessionWebhooks(
 data class SessionRuntimeSettings(
     @Description("If specified, the session will never live longer than this many milliseconds.")
     val ttl: Long? = null,
+
+    @Description("If specified, the end report generated for this session will be extended, including threads and messages")
+    val extendedEndReport: Boolean = false,
 
     @Description("Persistence mode for the session. Default is \"none\" meaning the session will be deleted as soon as it exits")
     @Optional

@@ -41,7 +41,7 @@ class McpSessionEventsTest : CoralTest({
         val messageText = "test message"
         val closeSummary = "test thread closed"
 
-        localSessionManager.createSession(
+        val (session, _) = localSessionManager.createSession(
             "test", AgentGraph(
                 agents = mapOf(
                     graphAgentPair(agent1Name) {
@@ -127,6 +127,8 @@ class McpSessionEventsTest : CoralTest({
                     }
                 )
             ))
+
+        session.fullLifeCycle()
     }
 
     test("testSseMcpSessionEvents") {
