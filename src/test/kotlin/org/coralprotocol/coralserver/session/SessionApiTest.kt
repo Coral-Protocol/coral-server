@@ -51,7 +51,7 @@ import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.routes.api.v1.LocalSessions
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
-import org.coralprotocol.coralserver.session.state.SessionNamespaceState
+import org.coralprotocol.coralserver.session.state.SessionNamespaceStateExtended
 import org.coralprotocol.coralserver.session.state.SessionState
 import org.coralprotocol.coralserver.session.state.SessionStateBase
 import org.coralprotocol.coralserver.session.state.SessionStateExtended
@@ -129,7 +129,7 @@ class SessionApiTest : CoralTest({
             }
         }
 
-        var namespaces: List<SessionNamespaceState> = shouldNotThrowAny {
+        var namespaces: List<SessionNamespaceStateExtended> = shouldNotThrowAny {
             client.authenticatedGet(localSessionsRes).shouldBeOK().body()
         }
         namespaces.shouldHaveSize(1)

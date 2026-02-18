@@ -4,7 +4,7 @@ package org.coralprotocol.coralserver.session.reporting
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.Serializable
-import org.coralprotocol.coralserver.session.state.SessionNamespaceState
+import org.coralprotocol.coralserver.session.state.SessionNamespaceStateBase
 import org.coralprotocol.coralserver.session.state.SessionState
 import org.coralprotocol.coralserver.util.InstantSerializer
 import kotlin.time.ExperimentalTime
@@ -17,7 +17,7 @@ data class SessionEndReport(
     val timestamp: Instant,
 
     @Description("The namespace that the session belonged in")
-    val namespaceState: SessionNamespaceState,
+    val namespaceState: SessionNamespaceStateBase,
 
     @Description("The state of the ended session")
     val sessionState: SessionState,
