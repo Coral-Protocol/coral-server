@@ -516,6 +516,7 @@ class SessionApiTest : CoralTest({
         val ns1Name = UUID.randomUUID().toString()
         client.authenticatedPost(LocalSessions.Namespace()) {
             setBody(namespaceRequest {
+                deleteOnLastSessionExit = true
                 name = ns1Name
             })
         }.shouldBeOK()
