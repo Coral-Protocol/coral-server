@@ -7,6 +7,7 @@ import io.ktor.client.request.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
@@ -22,9 +23,10 @@ import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.payment.BlankBlockchainService
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
-import org.coralprotocol.coralserver.session.models.SessionPersistenceMode
-import org.coralprotocol.coralserver.session.models.SessionRuntimeSettings
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
+import org.coralprotocol.coralserver.session.state.SessionNamespaceStateBase
+import org.coralprotocol.coralserver.session.state.SessionNamespaceStateExtended
+import org.coralprotocol.coralserver.session.state.SessionState
 import org.coralprotocol.coralserver.util.addJsonBodyWithSignature
 import org.coralprotocol.coralserver.util.utcTimeNow
 import org.coralprotocol.payment.blockchain.BlockchainService
@@ -37,9 +39,24 @@ import kotlin.time.ExperimentalTime
 
 data class LocalSessionNamespace(
     val name: String,
+    val deleteOnLastSessionExit: Boolean,
+    var deleted: Boolean = false,
+
     // todo: make a kotlin version of this
     val sessions: ConcurrentHashMap<String, LocalSession>,
-)
+
+    override val annotations: Map<String, String>,
+) : SessionResource {
+    fun getState() =
+        SessionNamespaceStateExtended(
+            base = SessionNamespaceStateBase(
+                name = name,
+                deleteOnLastSessionExit = deleteOnLastSessionExit,
+                annotations = annotations
+            ),
+            sessions = sessions.values.map { it.getState().base }
+        )
+}
 
 data class AgentLocator(
     val namespace: LocalSessionNamespace,
@@ -148,45 +165,78 @@ class LocalSessionManager(
     }
 
     /**
-     * Creates a session in [namespace].  The namespace will be created if it does not exist.  This function will not
-     * launch any agents!  See [createAndLaunchSession] if you want to one-call session creation and launching.
+     * Creates a new namespace with settings specified by a [SessionNamespaceRequest]
+     *
+     * @throws SessionException.InvalidNamespace if name specified in [SessionNamespaceRequest.name] is already taken
      */
-    suspend fun createSession(namespace: String, agentGraph: AgentGraph): Pair<LocalSession, LocalSessionNamespace> {
-        val namespace = sessionNamespaces.getOrPut(namespace) {
-            events.emit(LocalSessionManagerEvent.NamespaceCreated(namespace))
-            LocalSessionNamespace(namespace, ConcurrentHashMap())
-        }
+    suspend fun createNamespace(request: SessionNamespaceRequest): LocalSessionNamespace {
+        if (sessionNamespaces.containsKey(request.name))
+            throw SessionException.InvalidNamespace("A namespace with name \"${request.name}\" already exists")
 
+        val namespace = LocalSessionNamespace(
+            name = request.name,
+            deleteOnLastSessionExit = request.deleteOnLastSessionExit,
+            sessions = ConcurrentHashMap(),
+            annotations = request.annotations
+        )
+        sessionNamespaces[request.name] = namespace
+        events.emit(LocalSessionManagerEvent.NamespaceCreated(namespace.getState().base))
+
+        return namespace
+    }
+
+    /**
+     * Creates a session in [namespace].  This function will not launch any agents!  See [createAndLaunchSession] if
+     * you want to one-call session creation and launching.
+     */
+    suspend fun createSession(
+        namespace: LocalSessionNamespace,
+        agentGraph: AgentGraph,
+        sessionAnnotations: Map<String, String> = mapOf()
+    ): Pair<LocalSession, LocalSessionNamespace> {
         val sessionId: SessionId = UUID.randomUUID().toString()
         val session = LocalSession(
             id = sessionId,
             namespace = namespace,
             paymentSessionId = createPaymentSession(agentGraph)?.sessionId,
             agentGraph = agentGraph,
-            sessionManager = this
+            sessionManager = this,
+            annotations = sessionAnnotations
         )
         namespace.sessions[sessionId] = session
-        events.emit(LocalSessionManagerEvent.SessionCreated(session.id, namespace.name))
+        events.emit(
+            LocalSessionManagerEvent.SessionCreated(
+                session.getState().base,
+                namespace.getState().base
+            )
+        )
 
         return Pair(session, namespace)
     }
 
     /**
-     * Helper function, calls [createSession] and then immediately launches all agents in the session.  After the
-     * session closes, [handleSessionClose] will be called.
+     * Helper function for dynamically creating a basic namespace from a string
      */
-    suspend fun createAndLaunchSession(
-        namespace: String,
+    suspend fun createSession(
+        namespaceName: String,
         agentGraph: AgentGraph,
-        settings: SessionRuntimeSettings
+        sessionAnnotations: Map<String, String> = mapOf()
     ): Pair<LocalSession, LocalSessionNamespace> {
-        val (session, namespace) = createSession(namespace, agentGraph)
-        session.launchAgents()
+        val namespace = createNamespace(SessionNamespaceRequest(name = namespaceName))
+        return createSession(namespace, agentGraph, sessionAnnotations)
+    }
 
-        val timeoutDuration = settings.ttl?.milliseconds ?: Duration.INFINITE
-
+    /**
+     * Launches an existing session on [managementScope]
+     */
+    fun launchSession(session: LocalSession, namespace: LocalSessionNamespace, settings: SessionRuntimeSettings) {
         managementScope.launch {
+            val timeoutDuration = settings.ttl?.milliseconds ?: Duration.INFINITE
             val timedOut = withTimeoutOrNull(timeoutDuration) {
+                events.emit(LocalSessionManagerEvent.SessionRunning(session.getState().base, namespace.getState().base))
+                session.status.update { SessionStatus.Running(utcTimeNow()) }
+
+                session.launchAgents()
                 session.joinAgents()
             } == null
 
@@ -199,8 +249,55 @@ class LocalSessionManager(
                 handleSessionClose(session, namespace, it, settings)
             }
         }
+    }
+
+    /**
+     * Helper function, calls [createSession] and then immediately launches all agents in the session.  After the
+     * session closes, [handleSessionClose] will be called.
+     */
+    suspend fun createAndLaunchSession(
+        namespace: LocalSessionNamespace,
+        agentGraph: AgentGraph,
+        settings: SessionRuntimeSettings = SessionRuntimeSettings(),
+        sessionAnnotations: Map<String, String> = mapOf()
+    ): Pair<LocalSession, LocalSessionNamespace> {
+        val (session, namespace) = createSession(namespace, agentGraph, sessionAnnotations)
+        launchSession(session, namespace, settings)
 
         return Pair(session, namespace)
+    }
+
+    /**
+     * Helper function for dynamically creating a basic namespace from a string
+     */
+    suspend fun createAndLaunchSession(
+        namespaceName: String,
+        agentGraph: AgentGraph,
+        settings: SessionRuntimeSettings = SessionRuntimeSettings(),
+        sessionAnnotations: Map<String, String> = mapOf()
+    ): Pair<LocalSession, LocalSessionNamespace> {
+        val namespace = createNamespace(SessionNamespaceRequest(name = namespaceName))
+        return createAndLaunchSession(namespace, agentGraph, settings, sessionAnnotations)
+    }
+
+    /**
+     * Helper function for closing all sessions in a namespace, then deleting the namespace (even if
+     * deleteOnLastSessionExit is false for this namespace)
+     */
+    suspend fun deleteNamespace(namespaceName: String) {
+        val namespace = getNamespace(namespaceName)
+        namespace.deleted = true
+        namespace.sessions.values.forEach { session ->
+            session.cancelAndJoinAgents()
+        }
+
+        // It's important that this function doesn't return until the namespace is deleted, even if
+        // deleteOnLastSessionExit is true, that logic is performed on the session's invokeOnCompletion callback, so it
+        // is possible the above code for cancelling and joining agents in the sessions does NOT delete the namespace
+        //
+        // namespace must be marked as deleted too to avoid double deletion
+        events.emit(LocalSessionManagerEvent.NamespaceClosed(namespace.getState().base))
+        sessionNamespaces.remove(namespace.name)
     }
 
     /**
@@ -217,15 +314,23 @@ class LocalSessionManager(
      *
      * @throws SessionException.InvalidNamespace if the namespace does not exist
      */
-    fun getSessions(namespace: String) =
-        sessionNamespaces[namespace]?.sessions?.values?.toList()
-            ?: throw SessionException.InvalidNamespace("The provided namespace does not exist")
+    fun getSessions(namespaceName: String) =
+        sessionNamespaces[namespaceName]?.sessions?.values?.toList()
+            ?: throw SessionException.InvalidNamespace("Namespace \"$namespaceName\" does not exist")
 
-    /**
-     * Returns a list of registered namespaces
-     */
     fun getNamespaces() =
         sessionNamespaces.values.toList()
+
+    fun getNamespaceStates() =
+        sessionNamespaces.values.map { it.getState() }
+
+    fun getNamespace(namespaceName: String) =
+        sessionNamespaces[namespaceName]
+            ?: throw SessionException.InvalidNamespace("Namespace \"$namespaceName\" not found")
+
+    fun getSession(namespaceName: String, sessionId: SessionId) =
+        getNamespace(namespaceName).sessions[sessionId]
+            ?: throw SessionException.InvalidSession("Session \"$sessionId\" not found")
 
     /**
      * Behaviour for session exit.
@@ -241,14 +346,21 @@ class LocalSessionManager(
         cause: Throwable?,
         settings: SessionRuntimeSettings
     ) {
-        session.closing = true
+        session.status.update {
+            if (it is SessionStatus.Running) {
+                SessionStatus.Closing(it.executionTime, utcTimeNow())
+            } else {
+                logger.warn { "session ${session.id} has closed before ever being executed!" }
+                SessionStatus.Closing(utcTimeNow(), utcTimeNow())
+            }
+        }
 
         // Secrets must be relinquished so that no more references to this session exist
         session.agents.forEach { (name, agent) ->
             agentSecretLookup.remove(agent.secret)
         }
 
-        events.emit(LocalSessionManagerEvent.SessionClosing(session.id, namespace.name))
+        events.emit(LocalSessionManagerEvent.SessionClosing(session.getState().base, namespace.getState().base))
 
         // The session end webhook should not block any of the other session ending logic
         if (settings.webhooks.sessionEnd != null) {
@@ -257,9 +369,13 @@ class LocalSessionManager(
                     addJsonBodyWithSignature(
                         json,
                         config.webhookSecret, SessionEndReport(
-                            session.timestamp, utcTimeNow(),
-                            namespace = session.namespace.name,
-                            sessionId = session.id,
+                            timestamp = utcTimeNow(),
+                            namespaceState = session.namespace.getState().base,
+                            sessionState = if (settings.extendedEndReport) {
+                                SessionState.Extended(session.getState())
+                            } else {
+                                SessionState.Base(session.getState().base)
+                            },
                             agentStats = session.agents.values.flatMap { it.usageReports },
                         )
                     )
@@ -278,15 +394,19 @@ class LocalSessionManager(
             delay(delay)
         }
 
-        namespace.sessions.remove(session.id)
-        if (namespace.sessions.isEmpty()) {
-            events.emit(LocalSessionManagerEvent.NamespaceClosed(namespace.name))
-            sessionNamespaces.remove(namespace.name)
-        }
 
         logger.info { "session ${session.id} closed" }
 
-        events.emit(LocalSessionManagerEvent.SessionClosed(session.id, namespace.name))
+        events.emit(LocalSessionManagerEvent.SessionClosed(session.getState().base, namespace.getState().base))
+
+        if (!namespace.deleted) {
+            namespace.sessions.remove(session.id)
+            if (namespace.sessions.isEmpty() && namespace.deleteOnLastSessionExit) {
+                events.emit(LocalSessionManagerEvent.NamespaceClosed(namespace.getState().base))
+                sessionNamespaces.remove(namespace.name)
+            }
+        }
+
         session.sessionScope.cancel()
     }
 

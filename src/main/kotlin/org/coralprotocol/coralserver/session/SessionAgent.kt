@@ -102,6 +102,14 @@ class SessionAgent(
     val waiters = ConcurrentMutableList<SessionAgentWaiter>()
 
     /**
+     * The full status of this agent.  This is a nested status type: runtime -> connection -> waiting/sleeping/thinking.
+     *
+     * This means that an agent that is not connected cannot be waiting, sleeping or thinking.  An agent that is not
+     * running cannot be connected.
+     */
+    var status: MutableStateFlow<SessionAgentStatus> = MutableStateFlow(SessionAgentStatus.Waiting)
+
+    /**
      * A list of connected transports for this agent
      * @see connectTransport
      */
@@ -175,6 +183,46 @@ class SessionAgent(
     }
 
     /**
+     * Helper function for setting the connection status as connected
+     *
+     * The agent's status will only be updated by this function if the agent's previous status was running.
+     */
+    fun setConnectionStatusConnected() {
+        status.update {
+            if (it !is SessionAgentStatus.Running) {
+                logger.warn { "cannot set the connection status of an agent that is not running, runtime status is: $it" }
+                it
+            } else {
+                //todo: when sleeping is implemented this should not default to the thinking state, but the default
+                //      sleep state
+                SessionAgentStatus.Running(SessionAgentConnectionStatus.Connected(SessionAgentCommunicationStatus.Thinking))
+            }
+        }
+    }
+
+    /**
+     * Helper function for setting the communication status
+     *
+     * The agent's status can only be updated by this function if the agent's previous status is running and connected.
+     */
+    fun setCommunicationStatus(communicationStatus: SessionAgentCommunicationStatus) {
+        status.update {
+            if (it !is SessionAgentStatus.Running) {
+                logger.warn { "cannot set the communication status of an agent that is not running, runtime status is: $it" }
+                return@update it
+            }
+
+            if (it.connectionStatus !is SessionAgentConnectionStatus.Connected) {
+                logger.warn { "cannot set the communication status of an agent that is not connected" }
+                return@update it
+            }
+
+            logger.info { "communication status ${it.connectionStatus.communicationStatus} -> $communicationStatus" }
+            SessionAgentStatus.Running(SessionAgentConnectionStatus.Connected(communicationStatus))
+        }
+    }
+
+    /**
      * Calls [SseServerTransport.handlePostMessage] on sessions that have legacy sse transports.
      */
     suspend fun handleSsePostMessage(call: ApplicationCall) {
@@ -213,6 +261,7 @@ class SessionAgent(
 
         if (graphAgent.blocking != true || connectedBlockingAgents.isEmpty()) {
             logger.info { "sse connection established" }
+            setConnectionStatusConnected()
             return
         }
 
@@ -223,8 +272,10 @@ class SessionAgent(
 
         if (timeout)
             logger.warn { "timeout occurred waiting for blocking agents to connect" }
-        else
+        else {
             logger.info { "sse connection established" }
+            setConnectionStatusConnected()
+        }
     }
 
     /**
@@ -310,6 +361,7 @@ class SessionAgent(
 
             logger.info { "waiting for message that matches: ${filters.joinToString(", ")}" }
             session.events.emit(SessionEvent.AgentWaitStart(name, filters))
+            setCommunicationStatus(SessionAgentCommunicationStatus.WaitingMessage)
 
             val wait = measureTimedValue {
                 waiter.deferred.await()
@@ -317,6 +369,7 @@ class SessionAgent(
 
             session.events.emit(SessionEvent.AgentWaitStop(name, wait.value))
             logger.info { "found matching message: ${wait.value.id} in ${wait.duration}" }
+            setCommunicationStatus(SessionAgentCommunicationStatus.Thinking)
 
             wait.value
         }
@@ -329,6 +382,8 @@ class SessionAgent(
                     )
                 }"
             }
+
+            setCommunicationStatus(SessionAgentCommunicationStatus.Thinking)
         }
 
         return msg
@@ -421,25 +476,48 @@ class SessionAgent(
      * Returns a JSON object used for describing this agent in ANOTHER agent's state resource.  This should only contain
      * information that is relevant to another agent.
      */
-    suspend fun asJsonState(): JsonObject =
+    fun asJsonState(): JsonObject =
         buildJsonObject {
             put("agentName", name)
             put("agentDescription", description)
-            put("agentWaiting", waiters.isNotEmpty())
             put("agentConnected", mcpSessionCount.value != 0)
+            put(
+                "agentWaiting", status == SessionAgentStatus.Running(
+                    SessionAgentConnectionStatus.Connected(
+                        SessionAgentCommunicationStatus.WaitingMessage
+                    )
+                )
+            )
+            put(
+                "agentSleeping", status == SessionAgentStatus.Running(
+                    SessionAgentConnectionStatus.Connected(
+                        SessionAgentCommunicationStatus.Sleeping
+                    )
+                )
+            )
+            put(
+                "agentConnected", when (val status = status.value) {
+                    is SessionAgentStatus.Running -> {
+                        status.connectionStatus is SessionAgentConnectionStatus.Connected
+                    }
+
+                    else -> false
+                }
+            )
+            put("agentRunning", status.value is SessionAgentStatus.Running)
         }
 
     /**
      * Returns the current state of this agent.  Used by the session API.
      */
-    suspend fun getState(): SessionAgentState =
+    fun getState(): SessionAgentState =
         SessionAgentState(
             name = name,
             registryAgentIdentifier = graphAgent.registryAgent.identifier,
-            isWaiting = waiters.isNotEmpty(),
-            isConnected = mcpSessionCount.value != 0,
+            status = status.value,
             description = description,
-            links = links.map { it.name }.toSet()
+            links = links.map { it.name }.toSet(),
+            annotations = graphAgent.annotations
         )
 
     /**

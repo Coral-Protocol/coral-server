@@ -48,7 +48,7 @@ class SessionTest : CoralTest({
         val localSessionManager by inject<LocalSessionManager>()
 
         val session1 = localSessionManager.createSession(
-            "ns",
+            "ns1",
             AgentGraph(
                 agents = mapOf(
                     graphAgentPair("agent1"),
@@ -65,7 +65,7 @@ class SessionTest : CoralTest({
         ).first
 
         val session2 = localSessionManager.createSession(
-            "ns",
+            "ns2",
             AgentGraph(
                 mapOf(
                     graphAgentPair("agentA"),

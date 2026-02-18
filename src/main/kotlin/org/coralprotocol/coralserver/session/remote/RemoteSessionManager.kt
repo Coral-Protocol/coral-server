@@ -4,8 +4,6 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
@@ -24,7 +22,7 @@ data class Claim(
 
 class RemoteSessionManager(
     private val aggregatedPaymentClaimManager: AggregatedPaymentClaimManager
-){
+) {
     val managementScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     @VisibleForTesting
@@ -75,7 +73,8 @@ class RemoteSessionManager(
             maxCost = claim.maxCost,
             paymentSessionId = claim.paymentSessionId,
             clientWalletAddress = claim.clientWalletAddress,
-            remoteSessionManager = this
+            remoteSessionManager = this,
+            annotations = mapOf()
         )
 
 //        remoteSession.sessionClosedFlow.onEach {
@@ -105,8 +104,7 @@ class RemoteSessionManager(
             if (paymentSessionCount == 1u) {
                 aggregatedPaymentClaimManager.notifyPaymentSessionCosed(paymentSessionId)
                 paymentSessionCounts.remove(paymentSessionId)
-            }
-            else {
+            } else {
                 paymentSessionCounts[paymentSessionId] = paymentSessionCount - 1u
             }
         }
