@@ -12,6 +12,7 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.compareTypeWithValue
 import org.coralprotocol.coralserver.agent.registry.option.requireValue
 import org.coralprotocol.coralserver.agent.registry.option.withValue
+import org.coralprotocol.coralserver.session.SessionResource
 import org.coralprotocol.coralserver.x402.X402BudgetedResource
 
 @Serializable
@@ -50,7 +51,10 @@ data class GraphAgentRequest(
     @Description("An optional list of resources and an accompanied budget that this agent may spend on services that accept x402 payments")
     @Optional
     val x402Budgets: List<X402BudgetedResource> = listOf(),
-) {
+
+    @Optional
+    override val annotations: Map<String, String> = mapOf(),
+) : SessionResource {
     /**
      * Given a reference to the agent registry [AgentRegistry], this function will attempt to convert this request into
      * a [GraphAgent].  If [isRemote] is true, this function will ensure the [provider] is [GraphAgentProvider.Local]
@@ -131,6 +135,7 @@ data class GraphAgentRequest(
             plugins = plugins,
             provider = provider,
             x402Budgets = x402Budgets,
+            annotations = annotations
         )
     }
 }

@@ -3,12 +3,15 @@ package org.coralprotocol.coralserver.session
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.koin.core.component.KoinComponent
 
 typealias SessionId = String
 
-abstract class Session(parentScope: CoroutineScope, supervisedSessions: Boolean = true) : KoinComponent {
+
+abstract class Session(parentScope: CoroutineScope, supervisedSessions: Boolean = true) : KoinComponent,
+    SessionResource {
     /**
      * Unique ID for this session, passed to agents
      */
@@ -28,10 +31,5 @@ abstract class Session(parentScope: CoroutineScope, supervisedSessions: Boolean 
         CoroutineScope(parentScope.coroutineContext + Job())
     }
 
-    /**
-     * True when the session is closing.  The session is considered closing as soon as all agents have completed their
-     * lifecycles.  There can be a significant gap between closing and closed when session persistence settings keep
-     * the session in memory.
-     */
-    var closing: Boolean = false
+    var status: MutableStateFlow<SessionStatus> = MutableStateFlow(SessionStatus.PendingExecution)
 }

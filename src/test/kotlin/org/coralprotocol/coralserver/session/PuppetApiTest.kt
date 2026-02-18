@@ -16,8 +16,7 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.mcp.tools.*
 import org.coralprotocol.coralserver.routes.api.v1.Puppet
-import org.coralprotocol.coralserver.routes.api.v1.Sessions
-import org.coralprotocol.coralserver.session.models.SessionIdentifier
+import org.coralprotocol.coralserver.routes.api.v1.LocalSessions
 import org.coralprotocol.coralserver.utils.dsl.sessionRequest
 import org.koin.test.inject
 import kotlin.time.Duration.Companion.seconds
@@ -25,16 +24,19 @@ import kotlin.time.Duration.Companion.seconds
 class PuppetApiTest : CoralTest({
     val agent1Name = "puppet1"
     val agent2Name = "puppet2"
+    val namespaceName = "default"
 
     suspend fun puppetSession(
         localSessionManager: LocalSessionManager,
         client: HttpClient,
         body: suspend (Puppet.Agent, Puppet.Agent, LocalSession) -> Unit
     ) {
-        val ns = Sessions.WithNamespace(namespace = "ns")
-        val id: SessionIdentifier = client.authenticatedPost(ns) {
+        val id: SessionIdentifier = client.authenticatedPost(LocalSessions.Session()) {
             setBody(
                 sessionRequest {
+                    createNamespaceIfNotExists {
+                        name = namespaceName
+                    }
                     agentGraphRequest {
                         agent(PuppetDebugAgent.identifier) {
                             name = agent1Name
@@ -53,7 +55,7 @@ class PuppetApiTest : CoralTest({
         body(
             Puppet.Agent(namespace = id.namespace, sessionId = id.sessionId, agentName = agent1Name),
             Puppet.Agent(namespace = id.namespace, sessionId = id.sessionId, agentName = agent2Name),
-            localSessionManager.getSessions(ns.namespace).find { it.id == id.sessionId }.shouldNotBeNull()
+            localSessionManager.getSessions(namespaceName).find { it.id == id.sessionId }.shouldNotBeNull()
         )
     }
 

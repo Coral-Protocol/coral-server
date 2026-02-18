@@ -49,8 +49,10 @@ class RemoteSession(
      */
     val clientWalletAddress: String,
 
-    remoteSessionManager: RemoteSessionManager
-): Session(remoteSessionManager.managementScope) {
+    remoteSessionManager: RemoteSessionManager,
+
+    override val annotations: Map<String, String>
+) : Session(remoteSessionManager.managementScope) {
     private val lifecycle = CompletableDeferred<SessionCloseMode>()
 
     suspend fun connectMcpTransport(transport: SseServerTransport): SessionCloseMode {
