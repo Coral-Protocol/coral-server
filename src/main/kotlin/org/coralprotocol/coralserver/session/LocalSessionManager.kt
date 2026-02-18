@@ -40,6 +40,7 @@ import kotlin.time.ExperimentalTime
 data class LocalSessionNamespace(
     val name: String,
     val deleteOnLastSessionExit: Boolean,
+    var deleted: Boolean = false,
 
     // todo: make a kotlin version of this
     val sessions: ConcurrentHashMap<String, LocalSession>,
@@ -285,15 +286,18 @@ class LocalSessionManager(
      */
     suspend fun deleteNamespace(namespaceName: String) {
         val namespace = getNamespace(namespaceName)
+        namespace.deleted = true
         namespace.sessions.values.forEach { session ->
             session.cancelAndJoinAgents()
         }
 
-        // Allow deleteOnLastSessionExit to delete the namespace
-        if (!namespace.deleteOnLastSessionExit || namespace.sessions.isEmpty()) {
-            events.emit(LocalSessionManagerEvent.NamespaceClosed(namespace.getState().base))
-            sessionNamespaces.remove(namespace.name)
-        }
+        // It's important that this function doesn't return until the namespace is deleted, even if
+        // deleteOnLastSessionExit is true, that logic is performed on the session's invokeOnCompletion callback, so it
+        // is possible the above code for cancelling and joining agents in the sessions does NOT delete the namespace
+        //
+        // namespace must be marked as deleted too to avoid double deletion
+        events.emit(LocalSessionManagerEvent.NamespaceClosed(namespace.getState().base))
+        sessionNamespaces.remove(namespace.name)
     }
 
     /**
@@ -390,15 +394,19 @@ class LocalSessionManager(
             delay(delay)
         }
 
-        namespace.sessions.remove(session.id)
-        if (namespace.sessions.isEmpty() && namespace.deleteOnLastSessionExit) {
-            events.emit(LocalSessionManagerEvent.NamespaceClosed(namespace.getState().base))
-            sessionNamespaces.remove(namespace.name)
-        }
 
         logger.info { "session ${session.id} closed" }
 
         events.emit(LocalSessionManagerEvent.SessionClosed(session.getState().base, namespace.getState().base))
+
+        if (!namespace.deleted) {
+            namespace.sessions.remove(session.id)
+            if (namespace.sessions.isEmpty() && namespace.deleteOnLastSessionExit) {
+                events.emit(LocalSessionManagerEvent.NamespaceClosed(namespace.getState().base))
+                sessionNamespaces.remove(namespace.name)
+            }
+        }
+
         session.sessionScope.cancel()
     }
 
