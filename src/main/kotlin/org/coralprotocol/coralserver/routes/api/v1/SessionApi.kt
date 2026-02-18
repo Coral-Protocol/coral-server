@@ -14,7 +14,7 @@ import org.coralprotocol.coralserver.modules.LOGGER_ROUTES
 import org.coralprotocol.coralserver.routes.ApiV1
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.*
-import org.coralprotocol.coralserver.session.state.SessionNamespaceState
+import org.coralprotocol.coralserver.session.state.SessionNamespaceStateBase
 import org.coralprotocol.coralserver.session.state.SessionStateBase
 import org.coralprotocol.coralserver.session.state.SessionStateExtended
 import org.koin.core.qualifier.named
@@ -218,7 +218,7 @@ fun Route.localSessionApi() {
         response {
             HttpStatusCode.OK to {
                 description = "Success"
-                body<List<SessionNamespaceState>> {
+                body<List<SessionNamespaceStateBase>> {
                     description = "List of namespace states, containing their sessions' states"
                 }
             }
