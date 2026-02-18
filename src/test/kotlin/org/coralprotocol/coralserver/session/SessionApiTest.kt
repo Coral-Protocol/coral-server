@@ -51,10 +51,7 @@ import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.routes.api.v1.LocalSessions
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
-import org.coralprotocol.coralserver.session.state.SessionNamespaceStateExtended
-import org.coralprotocol.coralserver.session.state.SessionState
-import org.coralprotocol.coralserver.session.state.SessionStateBase
-import org.coralprotocol.coralserver.session.state.SessionStateExtended
+import org.coralprotocol.coralserver.session.state.*
 import org.coralprotocol.coralserver.util.signatureVerifiedBody
 import org.coralprotocol.coralserver.utils.dsl.*
 import org.koin.core.component.inject
@@ -120,17 +117,16 @@ class SessionApiTest : CoralTest({
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
 
-        val localSessionsRes = LocalSessions()
         val testNamespace = LocalSessions.Namespace.Existing(namespace = namespaceName)
 
         repeat(10) {
-            sessionWithDelay(client, 100, false) {
+            sessionWithDelay(client, 300, false) {
 
             }
         }
 
         var namespaces: List<SessionNamespaceStateExtended> = shouldNotThrowAny {
-            client.authenticatedGet(localSessionsRes).shouldBeOK().body()
+            client.authenticatedGet(LocalSessions.Namespace.Extended()).shouldBeOK().body()
         }
         namespaces.shouldHaveSize(1)
         namespaces.first().sessions.shouldHaveSize(10)
@@ -140,7 +136,7 @@ class SessionApiTest : CoralTest({
 
         localSessionManager.waitAllSessions()
 
-        namespaces = client.authenticatedGet(localSessionsRes).shouldBeOK().body()
+        namespaces = client.authenticatedGet(LocalSessions.Namespace()).shouldBeOK().body()
         namespaces.shouldBeEmpty()
 
         client.authenticatedGet(testNamespace).shouldHaveStatus(HttpStatusCode.NotFound)
@@ -190,9 +186,11 @@ class SessionApiTest : CoralTest({
 
         val state: SessionStateExtended =
             client.authenticatedGet(
-                LocalSessions.Session.Existing(
-                    namespace = namespaceName,
-                    sessionId = sessionId.sessionId
+                LocalSessions.Session.Existing.Extended(
+                    LocalSessions.Session.Existing(
+                        namespace = namespaceName,
+                        sessionId = sessionId.sessionId
+                    )
                 )
             )
                 .shouldBeOK()
@@ -304,7 +302,7 @@ class SessionApiTest : CoralTest({
                 namespace = namespaceName,
                 sessionId = id.sessionId
             )
-        ).shouldBeOK().body<SessionStateExtended>().base.status.shouldBeInstanceOf<SessionStatus.Closing>()
+        ).shouldBeOK().body<SessionStateBase>().status.shouldBeInstanceOf<SessionStatus.Closing>()
     }
 
     test("testSessionWebhook").config(timeout = 30.seconds) {
@@ -562,8 +560,10 @@ class SessionApiTest : CoralTest({
             }
         }
 
-        val namespaceNames: List<String> = client.authenticatedGet(LocalSessions.Namespace()).shouldBeOK().body()
-        namespaceNames.shouldContainAll(ids)
+        val namespaceNames: List<SessionNamespaceStateBase> =
+            client.authenticatedGet(LocalSessions.Namespace()).shouldBeOK().body()
+
+        namespaceNames.map { it.name }.shouldContainAll(ids)
     }
 
     test("testGetNamespaceSessions") {
@@ -605,6 +605,20 @@ class SessionApiTest : CoralTest({
         }
 
         localSessions.map { it.id }.shouldContainAll(ids)
+
+        val localSessionsExtended: List<SessionStateExtended> =
+            client.authenticatedGet(LocalSessions.Namespace.Existing.Extended(LocalSessions.Namespace.Existing(namespace = nsName)))
+                .shouldBeOK().body()
+
+        localSessionsExtended.shouldForAll {
+            it.base.namespace.shouldBeEqual(nsName)
+        }
+
+        localSessionsExtended.map { it.base.id }.shouldContainAll(ids)
+        localSessionsExtended.shouldForAll {
+            it.threads.shouldBeEmpty()
+            it.agents.shouldHaveSize(1)
+        }
     }
 
     test("testNamespaceDeleteOnLastSessionExit") {
