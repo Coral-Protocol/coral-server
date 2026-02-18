@@ -24,7 +24,8 @@ import org.coralprotocol.coralserver.payment.BlankBlockchainService
 import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
-import org.coralprotocol.coralserver.session.state.SessionNamespaceState
+import org.coralprotocol.coralserver.session.state.SessionNamespaceStateBase
+import org.coralprotocol.coralserver.session.state.SessionNamespaceStateExtended
 import org.coralprotocol.coralserver.session.state.SessionState
 import org.coralprotocol.coralserver.util.addJsonBodyWithSignature
 import org.coralprotocol.coralserver.util.utcTimeNow
@@ -46,11 +47,13 @@ data class LocalSessionNamespace(
     override val annotations: Map<String, String>,
 ) : SessionResource {
     fun getState() =
-        SessionNamespaceState(
-            name = name,
-            deleteOnLastSessionExit = deleteOnLastSessionExit,
-            sessions = sessions.values.map { it.getState().base },
-            annotations = annotations
+        SessionNamespaceStateExtended(
+            base = SessionNamespaceStateBase(
+                name = name,
+                deleteOnLastSessionExit = deleteOnLastSessionExit,
+                annotations = annotations
+            ),
+            sessions = sessions.values.map { it.getState().base }
         )
 }
 
@@ -176,7 +179,7 @@ class LocalSessionManager(
             annotations = request.annotations
         )
         sessionNamespaces[request.name] = namespace
-        events.emit(LocalSessionManagerEvent.NamespaceCreated(request.name, request.annotations))
+        events.emit(LocalSessionManagerEvent.NamespaceCreated(namespace.getState().base))
 
         return namespace
     }
@@ -200,7 +203,12 @@ class LocalSessionManager(
             annotations = sessionAnnotations
         )
         namespace.sessions[sessionId] = session
-        events.emit(LocalSessionManagerEvent.SessionCreated(session.id, namespace.name, namespace.annotations))
+        events.emit(
+            LocalSessionManagerEvent.SessionCreated(
+                session.getState().base,
+                namespace.getState().base
+            )
+        )
 
         return Pair(session, namespace)
     }
@@ -224,7 +232,7 @@ class LocalSessionManager(
         managementScope.launch {
             val timeoutDuration = settings.ttl?.milliseconds ?: Duration.INFINITE
             val timedOut = withTimeoutOrNull(timeoutDuration) {
-                events.emit(LocalSessionManagerEvent.SessionRunning(session.id, namespace.name, namespace.annotations))
+                events.emit(LocalSessionManagerEvent.SessionRunning(session.getState().base, namespace.getState().base))
                 session.status.update { SessionStatus.Running(utcTimeNow()) }
 
                 session.launchAgents()
@@ -281,9 +289,9 @@ class LocalSessionManager(
             session.cancelAndJoinAgents()
         }
 
-        // Allow deleteOnLastSessionExit to delete the namespace if it would have from the above cancelation of agents
+        // Allow deleteOnLastSessionExit to delete the namespace
         if (!namespace.deleteOnLastSessionExit || namespace.sessions.isEmpty()) {
-            events.emit(LocalSessionManagerEvent.NamespaceClosed(namespace.name, namespace.annotations))
+            events.emit(LocalSessionManagerEvent.NamespaceClosed(namespace.getState().base))
             sessionNamespaces.remove(namespace.name)
         }
     }
@@ -348,7 +356,7 @@ class LocalSessionManager(
             agentSecretLookup.remove(agent.secret)
         }
 
-        events.emit(LocalSessionManagerEvent.SessionClosing(session.id, namespace.name, namespace.annotations))
+        events.emit(LocalSessionManagerEvent.SessionClosing(session.getState().base, namespace.getState().base))
 
         // The session end webhook should not block any of the other session ending logic
         if (settings.webhooks.sessionEnd != null) {
@@ -358,11 +366,10 @@ class LocalSessionManager(
                         json,
                         config.webhookSecret, SessionEndReport(
                             timestamp = utcTimeNow(),
-                            namespaceState = session.namespace.getState(),
+                            namespaceState = session.namespace.getState().base,
                             sessionState = if (settings.extendedEndReport) {
                                 SessionState.Extended(session.getState())
-                            }
-                            else {
+                            } else {
                                 SessionState.Base(session.getState().base)
                             },
                             agentStats = session.agents.values.flatMap { it.usageReports },
@@ -385,13 +392,13 @@ class LocalSessionManager(
 
         namespace.sessions.remove(session.id)
         if (namespace.sessions.isEmpty() && namespace.deleteOnLastSessionExit) {
-            events.emit(LocalSessionManagerEvent.NamespaceClosed(namespace.name, namespace.annotations))
+            events.emit(LocalSessionManagerEvent.NamespaceClosed(namespace.getState().base))
             sessionNamespaces.remove(namespace.name)
         }
 
         logger.info { "session ${session.id} closed" }
 
-        events.emit(LocalSessionManagerEvent.SessionClosed(session.id, namespace.name, namespace.annotations))
+        events.emit(LocalSessionManagerEvent.SessionClosed(session.getState().base, namespace.getState().base))
         session.sessionScope.cancel()
     }
 

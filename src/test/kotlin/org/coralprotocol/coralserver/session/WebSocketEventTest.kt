@@ -112,12 +112,12 @@ class WebSocketEventTest : CoralTest({
         val webSocketJob = this.shouldPostEventsFromBody(
             timeout = 3.seconds,
             events = mutableListOf(
-                TestEvent("ns1 create") { it is LocalSessionManagerEvent.NamespaceCreated && it.namespace == ns1Name },
-                TestEvent("ns1 session create") { it is LocalSessionManagerEvent.SessionCreated && it.namespace == ns1Name },
-                TestEvent("ns1 session running") { it is LocalSessionManagerEvent.SessionRunning && it.namespace == ns1Name },
-                TestEvent("ns1 destroy") { it is LocalSessionManagerEvent.NamespaceClosed && it.namespace == ns1Name },
-                TestEvent("ns1 session closing") { it is LocalSessionManagerEvent.SessionClosing && it.namespace == ns1Name },
-                TestEvent("ns1 session closed") { it is LocalSessionManagerEvent.SessionClosed && it.namespace == ns1Name },
+                TestEvent("ns1 create") { it is LocalSessionManagerEvent.NamespaceCreated && it.initialState.name == ns1Name },
+                TestEvent("ns1 session create") { it is LocalSessionManagerEvent.SessionCreated && it.namespaceState.name == ns1Name },
+                TestEvent("ns1 session running") { it is LocalSessionManagerEvent.SessionRunning && it.namespaceState.name == ns1Name },
+                TestEvent("ns1 destroy") { it is LocalSessionManagerEvent.NamespaceClosed && it.finalState.name == ns1Name },
+                TestEvent("ns1 session closing") { it is LocalSessionManagerEvent.SessionClosing && it.namespaceState.name == ns1Name },
+                TestEvent("ns1 session closed") { it is LocalSessionManagerEvent.SessionClosed && it.namespaceState.name == ns1Name },
             )
         ) { flow ->
             val wsJob = launch {
@@ -204,12 +204,12 @@ class WebSocketEventTest : CoralTest({
             })
 
             if (filtered) {
-                expectedEvents.add(TestEvent("$namespaceName created") { it is LocalSessionManagerEvent.NamespaceCreated && it.namespace == namespaceName })
-                expectedEvents.add(TestEvent("$namespaceName session created") { it is LocalSessionManagerEvent.SessionCreated && it.namespace == namespaceName })
-                expectedEvents.add(TestEvent("$namespaceName session running") { it is LocalSessionManagerEvent.SessionRunning && it.namespace == namespaceName })
-                expectedEvents.add(TestEvent("$namespaceName session closing") { it is LocalSessionManagerEvent.SessionClosing && it.namespace == namespaceName })
-                expectedEvents.add(TestEvent("$namespaceName session closed") { it is LocalSessionManagerEvent.SessionClosed && it.namespace == namespaceName })
-                expectedEvents.add(TestEvent("$namespaceName closing") { it is LocalSessionManagerEvent.NamespaceClosed && it.namespace == namespaceName })
+                expectedEvents.add(TestEvent("$namespaceName created") { it is LocalSessionManagerEvent.NamespaceCreated && it.initialState.name == namespaceName })
+                expectedEvents.add(TestEvent("$namespaceName session created") { it is LocalSessionManagerEvent.SessionCreated && it.namespaceState.name == namespaceName })
+                expectedEvents.add(TestEvent("$namespaceName session running") { it is LocalSessionManagerEvent.SessionRunning && it.namespaceState.name == namespaceName })
+                expectedEvents.add(TestEvent("$namespaceName session closing") { it is LocalSessionManagerEvent.SessionClosing && it.namespaceState.name == namespaceName })
+                expectedEvents.add(TestEvent("$namespaceName session closed") { it is LocalSessionManagerEvent.SessionClosed && it.namespaceState.name == namespaceName })
+                expectedEvents.add(TestEvent("$namespaceName closing") { it is LocalSessionManagerEvent.NamespaceClosed && it.finalState.name == namespaceName })
             }
         }
 

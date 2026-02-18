@@ -94,11 +94,11 @@ fun Route.eventRoutes() {
             localSessionManager.events
                 .filter {
                     if (namespaceAnnotationFilters != null && !namespaceAnnotationFilters.all { (key, value) ->
-                            it.namespaceAnnotations[key] == value
+                            it.hasNamespaceAnnotation(key, value)
                         }) {
                         false
                     } else {
-                        namespaceFilter == null || it.namespace == namespaceFilter
+                        namespaceFilter == null || it.isInNamespace(namespaceFilter)
                     }
                 }
                 .onEach { outgoing.send(it.toWsFrame(json)) }
