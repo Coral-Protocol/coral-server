@@ -6,9 +6,10 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class RegistryAgentInfo(
-    val description: String?,
     val capabilities: Set<AgentCapability>,
     val identifier: RegistryAgentIdentifier,
+
+    val description: String,
     val readme: String,
     val summary: String,
 

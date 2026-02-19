@@ -13,16 +13,15 @@ data class UnresolvedRegistryAgentInfo(
     val version: String,
 
     @Description("A full description of the agent, this description will be given to other agents to describe this agent's responsibilities, abilities and behaviours")
-    @Optional
-    val description: String? = null,
+    val description: String,
 
     @Description("A list of agent capabilities, for example the ability to refresh MCP resources")
     val capabilities: Set<AgentCapability> = setOf(),
 
-    @Description("A markdown readme for this agent")
+    @Description("A markdown readme for this agent, this is only used for display purposes")
     val readme: String,
 
-    @Description("A short markdown summary for this agent")
+    @Description("A short markdown summary for this agent, this is only used for display purposes")
     val summary: String,
 
     @Optional
