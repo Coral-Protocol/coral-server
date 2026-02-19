@@ -14,10 +14,11 @@ class RegistryAgentBuilder(
     var registrySourceId: AgentRegistrySourceIdentifier = AgentRegistrySourceIdentifier.Local
     var readme: String? = null
     var summary: String? = null
-    var license: String? = null
+    var license: RegistryAgentLicense = RegistryAgentLicense.Spdx("MIT")
     var runtimes: LocalAgentRuntimes = LocalAgentRuntimes()
     var path: Path? = null
 
+    private val keywords: MutableSet<String> = mutableSetOf()
     private val links: MutableMap<String, String> = linkedMapOf()
     private val capabilities: MutableSet<AgentCapability> = mutableSetOf()
     private val options: MutableMap<String, AgentOption> = mutableMapOf()
@@ -28,6 +29,9 @@ class RegistryAgentBuilder(
         links[name] = value
     }
 
+    fun keyword(keyword: String) {
+        keywords.add(keyword)
+    }
 
     fun capability(capability: AgentCapability) {
         capabilities.add(capability)
@@ -83,6 +87,7 @@ class RegistryAgentBuilder(
                 readme = readme,
                 summary = summary,
                 license = license,
+                keywords = keywords,
                 links = links
             ),
             runtimes = runtimes,

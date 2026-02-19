@@ -23,9 +23,12 @@ summary = "A short NON-markdown summary of the agent on the marketplace"
 # pattern: none
 readme = "A full markdown markdown readme for the agent on the marketplace"
 
-# len: 1- 64
+[agent.license]
+type = "text"
+
+# len: 2MiB
 # pattern: none
-license = "example license"
+text = "an example license"
 
 # max entries 16
 [agent.links]

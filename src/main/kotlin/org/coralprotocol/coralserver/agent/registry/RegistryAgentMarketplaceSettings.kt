@@ -6,6 +6,9 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class RegistryAgentMarketplaceSettings(
     @Optional
+    val keywords: Set<String> = setOf(),
+
+    @Optional
     val pricing: RegistryAgentMarketplacePricing? = null,
 
     @Optional
