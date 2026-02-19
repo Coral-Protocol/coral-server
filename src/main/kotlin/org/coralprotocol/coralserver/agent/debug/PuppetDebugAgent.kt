@@ -33,6 +33,12 @@ class PuppetDebugAgent(client: HttpClient) : DebugAgent(client) {
             This description should be overridden in the session request!
         """.trimIndent()
 
+    override val readme: String
+        get() = "TODO"
+
+    override val summary: String
+        get() = "TODO"
+
     override val exportSettings: Map<RuntimeId, UnresolvedAgentExportSettings>
         get() = genericExportSettings
 

@@ -12,8 +12,8 @@ class RegistryAgentBuilder(
     var description: String? = null
     var version: String = "1.0.0"
     var registrySourceId: AgentRegistrySourceIdentifier = AgentRegistrySourceIdentifier.Local
-    var readme: String? = null
-    var summary: String? = null
+    var readme: String = "example readme"
+    var summary: String = "example summary"
     var license: RegistryAgentLicense = RegistryAgentLicense.Spdx("MIT")
     var runtimes: LocalAgentRuntimes = LocalAgentRuntimes()
     var path: Path? = null

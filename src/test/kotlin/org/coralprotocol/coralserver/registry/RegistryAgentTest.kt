@@ -50,8 +50,8 @@ class RegistryAgentTest : CoralTest({
         agent.version.shouldBeEqual("0.3.0")
         agent.capabilities.shouldContainAll(AgentCapability.TOOL_REFRESHING, AgentCapability.RESOURCES)
 
-        agent.readme.shouldNotBeNull().shouldBeEqual("A full markdown markdown readme for the agent on the marketplace")
-        agent.summary.shouldNotBeNull().shouldBeEqual("A short NON-markdown summary of the agent on the marketplace")
+        agent.readme.shouldBeEqual("A full markdown markdown readme for the agent on the marketplace")
+        agent.summary.shouldBeEqual("A short NON-markdown summary of the agent on the marketplace")
         agent.license.shouldBeInstanceOf<RegistryAgentLicense.Text>().text.shouldBeEqual("an example license")
 
         agent.links.shouldBeEqual(

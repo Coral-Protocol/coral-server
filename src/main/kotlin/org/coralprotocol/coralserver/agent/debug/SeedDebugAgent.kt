@@ -64,6 +64,12 @@ class SeedDebugAgent(client: HttpClient) : DebugAgent(client) {
     override val description: String
         get() = "Seeds a session with a configurable amount of threads and messages.  After all threads and messages were created and sent this agent will exit."
 
+    override val readme: String
+        get() = "TODO"
+
+    override val summary: String
+        get() = "TODO"
+
     override val exportSettings: Map<RuntimeId, UnresolvedAgentExportSettings>
         get() = genericExportSettings
 
