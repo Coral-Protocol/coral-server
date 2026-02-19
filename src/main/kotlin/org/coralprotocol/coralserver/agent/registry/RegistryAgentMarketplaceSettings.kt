@@ -5,15 +5,6 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class RegistryAgentMarketplaceSettings(
-    val readme: String,
-    val summary: String,
-
-    @Optional
-    val license: String? = null,
-
-    @Optional
-    val links: Map<String, String> = mapOf(),
-
     @Optional
     val pricing: RegistryAgentMarketplacePricing? = null,
 

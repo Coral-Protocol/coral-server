@@ -49,6 +49,17 @@ class RegistryAgentTest : CoralTest({
         agent.name.shouldBe("edition-3")
         agent.version.shouldBeEqual("0.3.0")
         agent.capabilities.shouldContainAll(AgentCapability.TOOL_REFRESHING, AgentCapability.RESOURCES)
+
+        agent.readme.shouldNotBeNull().shouldBeEqual("A full markdown markdown readme for the agent on the marketplace")
+        agent.summary.shouldNotBeNull().shouldBeEqual("A short NON-markdown summary of the agent on the marketplace")
+        agent.license.shouldNotBeNull().shouldBeEqual("example license")
+
+        agent.links.shouldBeEqual(
+            mapOf(
+                "github" to "https://github.com/coral-Protocol/coral-server",
+                "website" to "https://www.coralos.ai/"
+            )
+        )
     }
 
     fun testAgentRuntimes(agent: RegistryAgent) {
@@ -211,17 +222,6 @@ class RegistryAgentTest : CoralTest({
 
     fun testMarketplace(agent: RegistryAgent) {
         val marketplace = agent.marketplace.shouldNotBeNull()
-        marketplace.readme.shouldBeEqual("A full markdown markdown readme for the agent on the marketplace")
-        marketplace.summary.shouldBeEqual("A short NON-markdown summary of the agent on the marketplace")
-        marketplace.license.shouldNotBeNull().shouldBeEqual("example license")
-
-        marketplace.links.shouldBeEqual(
-            mapOf(
-                "github" to "https://github.com/coral-Protocol/coral-server",
-                "website" to "https://www.coralos.ai/"
-            )
-        )
-
         val pricing = marketplace.pricing.shouldNotBeNull()
 
         pricing.description.shouldBeEqual("A full markdown description of how the agent is priced")
@@ -294,6 +294,99 @@ class RegistryAgentTest : CoralTest({
                     runtime(FunctionRuntime())
                 }.validate()
             }
+        }
+    }
+
+    test("testValidateSummaryReadmeAndLicenseLengths") {
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                summary = "a".repeat(AGENT_SUMMARY_LENGTH.last)
+                readme = "a".repeat(AGENT_README_MAX_SIZE.last)
+                license = "a".repeat(AGENT_LICENSE_LENGTH.last)
+            }.validate()
+        }
+
+        // summary too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                summary = "a".repeat(AGENT_SUMMARY_LENGTH.last + 1)
+                readme = "ok"
+            }.validate()
+        }
+
+        // readme too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                summary = "ok"
+                readme = "a".repeat(AGENT_README_MAX_SIZE.last + 1)
+            }.validate()
+        }
+
+        // license too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                summary = "ok"
+                readme = "ok"
+                license = "a".repeat(AGENT_LICENSE_LENGTH.last + 1)
+            }.validate()
+        }
+    }
+
+    test("testValidateLinks") {
+        fun agentWithLinks(links: Map<String, String>): RegistryAgent {
+            return registryAgent("valid") {
+                runtime(FunctionRuntime())
+                links.forEach { (name, url) -> link(name, url) }
+            }
+        }
+
+        shouldNotThrowAny {
+            agentWithLinks(
+                mapOf(
+                    "github" to "https://example.com",
+                    "email" to "mailto:test@example.com",
+                    "phone" to "tel:+15555555555"
+                )
+            ).validate()
+        }
+
+        // too many entries
+        shouldThrow<RegistryException> {
+            agentWithLinks(
+                (0 until (AGENT_LINKS_MAX_ENTRIES + 1)).associate { idx ->
+                    "link$idx" to "https://example.com/$idx"
+                }
+            ).validate()
+        }
+
+        // name cannot start with a digit
+        shouldThrow<RegistryException> {
+            agentWithLinks(mapOf("1bad" to "https://example.com")).validate()
+        }
+
+        // not secure (not https)
+        shouldThrow<RegistryException> {
+            agentWithLinks(mapOf("bad" to "http://example.com")).validate()
+        }
+
+        // invalid url
+        shouldThrow<RegistryException> {
+            agentWithLinks(mapOf("bad" to "not a url")).validate()
+        }
+
+        // link name too long
+        shouldThrow<RegistryException> {
+            agentWithLinks(mapOf("a".repeat(AGENT_LINKS_NAME_LENGTH.last + 1) to "https://example.com"))
+                .validate()
+        }
+
+        // url too long
+        shouldThrow<RegistryException> {
+            agentWithLinks(mapOf("ok" to "http://example.com/" + "a".repeat(AGENT_LINK_VALUE_LENGTH.last))).validate()
         }
     }
 
@@ -561,110 +654,6 @@ class RegistryAgentTest : CoralTest({
         }
     }
 
-    test("testValidateMarketplaceSummaryReadmeAndLicenseLengths") {
-        fun agentWithMarketplace(marketplace: RegistryAgentMarketplaceSettings): RegistryAgent =
-            registryAgent("valid") { runtime(FunctionRuntime()) }.copy(marketplace = marketplace)
-
-        shouldNotThrowAny {
-            agentWithMarketplace(
-                RegistryAgentMarketplaceSettings(
-                    summary = "a".repeat(AGENT_MARKETPLACE_SUMMARY_LENGTH.last),
-                    readme = "a".repeat(AGENT_MARKETPLACE_README_MAX_SIZE.last),
-                    license = "a".repeat(AGENT_MARKETPLACE_LICENSE_LENGTH.last),
-                )
-            ).validate()
-        }
-
-        // summary too long
-        shouldThrow<RegistryException> {
-            agentWithMarketplace(
-                RegistryAgentMarketplaceSettings(
-                    summary = "a".repeat(AGENT_MARKETPLACE_SUMMARY_LENGTH.last + 1),
-                    readme = "ok"
-                )
-            ).validate()
-        }
-
-        // readme too long
-        shouldThrow<RegistryException> {
-            agentWithMarketplace(
-                RegistryAgentMarketplaceSettings(
-                    summary = "ok",
-                    readme = "a".repeat(AGENT_MARKETPLACE_README_MAX_SIZE.last + 1)
-                )
-            ).validate()
-        }
-
-        // license too long
-        shouldThrow<RegistryException> {
-            agentWithMarketplace(
-                RegistryAgentMarketplaceSettings(
-                    summary = "ok",
-                    readme = "ok",
-                    license = "a".repeat(AGENT_MARKETPLACE_LICENSE_LENGTH.last + 1),
-                )
-            ).validate()
-        }
-    }
-
-    test("testValidateMarketplaceLinks") {
-        fun agentWithLinks(links: Map<String, String>): RegistryAgent {
-            return registryAgent("valid") {
-                runtime(FunctionRuntime())
-                marketplace {
-                    summary = "a"
-                    readme = "a"
-                    links.forEach { (name, url) -> link(name, url) }
-                }
-            }
-        }
-
-        shouldNotThrowAny {
-            agentWithLinks(
-                mapOf(
-                    "github" to "https://example.com",
-                    "email" to "mailto:test@example.com",
-                    "phone" to "tel:+15555555555"
-                )
-            ).validate()
-        }
-
-        // too many entries
-        shouldThrow<RegistryException> {
-            agentWithLinks(
-                (0 until (AGENT_MARKETPLACE_LINKS_MAX_ENTRIES + 1)).associate { idx ->
-                    "link$idx" to "https://example.com/$idx"
-                }
-            ).validate()
-        }
-
-        // name cannot start with a digit
-        shouldThrow<RegistryException> {
-            agentWithLinks(mapOf("1bad" to "https://example.com")).validate()
-        }
-
-        // not secure (not https)
-        shouldThrow<RegistryException> {
-            agentWithLinks(mapOf("bad" to "http://example.com")).validate()
-        }
-
-        // invalid url
-        shouldThrow<RegistryException> {
-            agentWithLinks(mapOf("bad" to "not a url")).validate()
-        }
-
-        // link name too long
-        shouldThrow<RegistryException> {
-            agentWithLinks(mapOf("a".repeat(AGENT_MARKETPLACE_LINKS_NAME_LENGTH.last + 1) to "https://example.com"))
-                .validate()
-        }
-
-        // url too long
-        shouldThrow<RegistryException> {
-            agentWithLinks(mapOf("ok" to "http://example.com/" + "a".repeat(AGENT_MARKETPLACE_LINK_VALUE_LENGTH.last))).validate()
-        }
-    }
-
     test("testValidateMarketplacePricing") {
         fun agentWithPricing(
             description: String,
@@ -674,8 +663,6 @@ class RegistryAgentTest : CoralTest({
             return registryAgent("valid") {
                 runtime(FunctionRuntime())
                 marketplace {
-                    summary = "a"
-                    readme = "a"
                     pricing(description, recommendations, builder)
                 }
             }
@@ -745,8 +732,6 @@ class RegistryAgentTest : CoralTest({
             return registryAgent("valid") {
                 runtime(FunctionRuntime())
                 marketplace {
-                    summary = "a"
-                    readme = "a"
                     identities {
                         erc8004(wallet, block)
                     }
