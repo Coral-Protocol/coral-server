@@ -15,6 +15,10 @@ name = "edition-3"
 # must be a valid semver version: https://semver.org/
 version = "0.3.0"
 
+# len 1 - 1024
+# pattern: none
+description = "A description of this agent, designed for LLM consumption"
+
 # len: 1 - 256
 # pattern: none
 summary = "A short NON-markdown summary of the agent on the marketplace"

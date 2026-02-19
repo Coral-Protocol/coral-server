@@ -34,6 +34,7 @@ const val MAXIMUM_SUPPORTED_AGENT_VERSION = 3
 val AGENT_NAME_LENGTH = 1..32
 val AGENT_NAME_PATTERN = "^[a-z0-9]([a-z0-9]*(-[a-z0-9]+)*)?$".toRegex()
 val AGENT_VERSION_LENGTH = 1..24
+val AGENT_DESCRIPTION_LENGTH = 1..1024
 val AGENT_SUMMARY_LENGTH = 1..256
 val AGENT_README_MAX_SIZE = 1..4096
 val AGENT_LICENSE_TEXT_MAX_SIZE = 2.mebibytes
@@ -182,6 +183,7 @@ data class RegistryAgent(
     }
 
     private fun validateOptionalAgentInfo() {
+        validateStringLength("agent.description", description, AGENT_DESCRIPTION_LENGTH)
         validateStringLength("agent.summary", summary, AGENT_SUMMARY_LENGTH)
         validateStringLength("agent.readme", readme, AGENT_README_MAX_SIZE)
 

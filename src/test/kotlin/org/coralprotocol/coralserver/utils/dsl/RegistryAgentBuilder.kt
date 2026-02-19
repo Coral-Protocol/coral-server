@@ -9,7 +9,7 @@ import java.nio.file.Path
 class RegistryAgentBuilder(
     var name: String,
 ) {
-    var description: String? = null
+    var description: String = "example description"
     var version: String = "1.0.0"
     var registrySourceId: AgentRegistrySourceIdentifier = AgentRegistrySourceIdentifier.Local
     var readme: String = "example readme"

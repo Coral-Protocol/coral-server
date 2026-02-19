@@ -303,7 +303,16 @@ class RegistryAgentTest : CoralTest({
                 runtime(FunctionRuntime())
                 summary = "a".repeat(AGENT_SUMMARY_LENGTH.last)
                 readme = "a".repeat(AGENT_README_MAX_SIZE.last)
+                description = "a".repeat(AGENT_DESCRIPTION_LENGTH.last)
                 license = RegistryAgentLicense.Text("a".repeat(AGENT_LICENSE_TEXT_MAX_SIZE.inWholeBytes.toInt()))
+            }.validate()
+        }
+
+        // description too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                description = "a".repeat(AGENT_DESCRIPTION_LENGTH.last + 1)
             }.validate()
         }
 
@@ -312,7 +321,6 @@ class RegistryAgentTest : CoralTest({
             registryAgent("valid") {
                 runtime(FunctionRuntime())
                 summary = "a".repeat(AGENT_SUMMARY_LENGTH.last + 1)
-                readme = "ok"
             }.validate()
         }
 
@@ -320,7 +328,6 @@ class RegistryAgentTest : CoralTest({
         shouldThrow<RegistryException> {
             registryAgent("valid") {
                 runtime(FunctionRuntime())
-                summary = "ok"
                 readme = "a".repeat(AGENT_README_MAX_SIZE.last + 1)
             }.validate()
         }
@@ -329,8 +336,6 @@ class RegistryAgentTest : CoralTest({
         shouldThrow<RegistryException> {
             registryAgent("valid") {
                 runtime(FunctionRuntime())
-                summary = "ok"
-                readme = "ok"
                 license = RegistryAgentLicense.Text("a".repeat(AGENT_LICENSE_TEXT_MAX_SIZE.inWholeBytes.toInt() + 1))
             }.validate()
         }
