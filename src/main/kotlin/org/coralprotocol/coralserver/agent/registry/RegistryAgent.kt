@@ -34,6 +34,15 @@ const val MAXIMUM_SUPPORTED_AGENT_VERSION = 3
 val AGENT_NAME_LENGTH = 1..32
 val AGENT_NAME_PATTERN = "^[a-z0-9]([a-z0-9]*(-[a-z0-9]+)*)?$".toRegex()
 val AGENT_VERSION_LENGTH = 1..24
+val AGENT_SUMMARY_LENGTH = 1..256
+val AGENT_README_MAX_SIZE = 1..4096
+val AGENT_LICENSE_LENGTH = 1..64
+
+// [agent.links]
+const val AGENT_LINKS_MAX_ENTRIES = 16
+val AGENT_LINKS_NAME_LENGTH = 1..32
+val AGENT_LINKS_NAME_PATTERN = "^[a-zA-Z][a-zA-Z_\\-0-9]*$".toRegex()
+val AGENT_LINK_VALUE_LENGTH = 1..256
 
 // [runtimes.docker]
 val AGENT_DOCKER_IMAGE_LENGTH = 1..512
@@ -53,17 +62,6 @@ val AGENT_OPTION_DEFAULTS_MAX_SIZE = 6.mebibytes
 val AGENT_OPTION_DISPLAY_LABEL_LENGTH = 1..64
 val AGENT_OPTION_DISPLAY_DESCRIPTION_LENGTH = 1..1024
 val AGENT_OPTION_DISPLAY_GROUP_LENGTH = 1..64
-
-// [marketplace]
-val AGENT_MARKETPLACE_SUMMARY_LENGTH = 1..256
-val AGENT_MARKETPLACE_README_MAX_SIZE = 1..4096
-val AGENT_MARKETPLACE_LICENSE_LENGTH = 1..64
-
-// [marketplace.links]
-const val AGENT_MARKETPLACE_LINKS_MAX_ENTRIES = 16
-val AGENT_MARKETPLACE_LINKS_NAME_LENGTH = 1..32
-val AGENT_MARKETPLACE_LINKS_NAME_PATTERN = "^[a-zA-Z][a-zA-Z_\\-0-9]*$".toRegex()
-val AGENT_MARKETPLACE_LINK_VALUE_LENGTH = 1..256
 
 // [marketplace.pricing]
 val AGENT_MARKETPLACE_PRICING_DESCRIPTION_LENGTH = 1..256
@@ -100,11 +98,22 @@ data class RegistryAgent(
     val name = identifier.name
 
     @Transient
-
     val version = identifier.version
 
     @Transient
     val capabilities = info.capabilities
+
+    @Transient
+    val readme = info.readme
+
+    @Transient
+    val summary = info.summary
+
+    @Transient
+    val license = info.license
+
+    @Transient
+    val links = info.links
 
     val exportSettings: AgentExportSettingsMap = unresolvedExportSettings.mapValues { (runtime, settings) ->
         settings.resolve(runtime, this)
@@ -164,6 +173,36 @@ data class RegistryAgent(
             Version.parse(version)
         } catch (e: VersionFormatException) {
             throw RegistryException("invalid version provided for \"agent.version\": ${e.message}")
+        }
+    }
+
+    private fun validateOptionalAgentInfo() {
+        if (summary != null)
+            validateStringLength("agent.summary", summary, AGENT_SUMMARY_LENGTH)
+
+        if (readme != null)
+            validateStringLength("agent.readme", readme, AGENT_README_MAX_SIZE)
+
+        if (license != null)
+            validateStringLength("agent.license", license, AGENT_LICENSE_LENGTH)
+
+        if (links.size > AGENT_LINKS_MAX_ENTRIES)
+            throw RegistryException("agent link count cannot exceed $AGENT_LINKS_MAX_ENTRIES, was ${links.size}")
+
+        for ((name, link) in links) {
+            validateStringLength("agent.links[\"$name\"] (key)", name, AGENT_LINKS_NAME_LENGTH)
+
+            if (!name.matches(AGENT_LINKS_NAME_PATTERN))
+                throw RegistryException("agent link \"$name\" is not valid.  Agent link names must start with an alphabetic character and contain only alphanumeric characters or underscores")
+
+            try {
+                validateStringLength("agent.links[\"$name\"] (value)", link, AGENT_LINK_VALUE_LENGTH)
+                val uri = URI(link)
+                if (uri.scheme != "https" && uri.scheme != "mailto" && uri.scheme != "tel")
+                    throw RegistryException("agent link \"$name\" must use a HTTPS, mailto, or tel scheme")
+            } catch (e: URISyntaxException) {
+                throw RegistryException("agent link \"$name\" is not a valid URL: ${e.message}")
+            }
         }
     }
 
@@ -264,31 +303,6 @@ data class RegistryAgent(
         if (marketplace == null)
             return
 
-        validateStringLength("marketplace.summary", marketplace.summary, AGENT_MARKETPLACE_SUMMARY_LENGTH)
-        validateStringLength("marketplace.readme", marketplace.readme, AGENT_MARKETPLACE_README_MAX_SIZE)
-
-        if (marketplace.license != null)
-            validateStringLength("marketplace.license", marketplace.license, AGENT_MARKETPLACE_LICENSE_LENGTH)
-
-        if (marketplace.links.size > AGENT_MARKETPLACE_LINKS_MAX_ENTRIES)
-            throw RegistryException("marketplace link count cannot exceed $AGENT_MARKETPLACE_LINKS_MAX_ENTRIES, was ${marketplace.links.size}")
-
-        for ((name, link) in marketplace.links) {
-            validateStringLength("marketplace.links[\"$name\"] (key)", name, AGENT_MARKETPLACE_LINKS_NAME_LENGTH)
-
-            if (!name.matches(AGENT_MARKETPLACE_LINKS_NAME_PATTERN))
-                throw RegistryException("marketplace link \"$name\" is not valid.  Marketplace link names must start with an alphabetic character and contain only alphanumeric characters or underscores")
-
-            try {
-                validateStringLength("marketplace.links[\"$name\"] (value)", link, AGENT_MARKETPLACE_LINK_VALUE_LENGTH)
-                val uri = URI(link)
-                if (uri.scheme != "https" && uri.scheme != "mailto" && uri.scheme != "tel")
-                    throw RegistryException("marketplace link \"$name\" must use a HTTPS, mailto, or tel scheme")
-            } catch (e: URISyntaxException) {
-                throw RegistryException("marketplace link \"$name\" is not a valid URL: ${e.message}")
-            }
-        }
-
         val pricing = marketplace.pricing
         if (pricing != null) {
             validateStringLength(
@@ -358,6 +372,7 @@ data class RegistryAgent(
     fun validate() {
         validateName()
         validateVersion()
+        validateOptionalAgentInfo()
         validateRuntimes()
         validateOptions()
         validateMarketplace()

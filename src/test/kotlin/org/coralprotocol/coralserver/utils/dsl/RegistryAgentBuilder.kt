@@ -12,13 +12,22 @@ class RegistryAgentBuilder(
     var description: String? = null
     var version: String = "1.0.0"
     var registrySourceId: AgentRegistrySourceIdentifier = AgentRegistrySourceIdentifier.Local
+    var readme: String? = null
+    var summary: String? = null
+    var license: String? = null
     var runtimes: LocalAgentRuntimes = LocalAgentRuntimes()
     var path: Path? = null
 
+    private val links: MutableMap<String, String> = linkedMapOf()
     private val capabilities: MutableSet<AgentCapability> = mutableSetOf()
     private val options: MutableMap<String, AgentOption> = mutableMapOf()
     private val unresolvedExportSettings: MutableMap<RuntimeId, UnresolvedAgentExportSettings> = mutableMapOf()
     private var marketplace: RegistryAgentMarketplaceSettings? = null
+
+    fun link(name: String, value: String) {
+        links[name] = value
+    }
+
 
     fun capability(capability: AgentCapability) {
         capabilities.add(capability)
@@ -69,8 +78,12 @@ class RegistryAgentBuilder(
                 identifier = RegistryAgentIdentifier(
                     name = name,
                     version = version,
-                    registrySourceId = registrySourceId
-                )
+                    registrySourceId = registrySourceId,
+                ),
+                readme = readme,
+                summary = summary,
+                license = license,
+                links = links
             ),
             runtimes = runtimes,
             options = options,
@@ -83,17 +96,8 @@ class RegistryAgentBuilder(
 
 @TestDsl
 class RegistryAgentMarketplaceSettingsBuilder {
-    var summary: String? = null
-    var readme: String? = null
-    var license: String? = null
-
-    private val links: MutableMap<String, String> = linkedMapOf()
     private var pricing: RegistryAgentMarketplacePricing? = null
     private var identities: RegistryAgentMarketplaceIdentities? = null
-
-    fun link(name: String, value: String) {
-        links[name] = value
-    }
 
     fun pricing(
         description: String,
@@ -108,14 +112,7 @@ class RegistryAgentMarketplaceSettingsBuilder {
     }
 
     fun build(): RegistryAgentMarketplaceSettings {
-        val s = requireNotNull(summary) { "marketplace.summary is required" }
-        val r = requireNotNull(readme) { "marketplace.readme is required" }
-
         return RegistryAgentMarketplaceSettings(
-            readme = r,
-            summary = s,
-            license = license,
-            links = links.toMap(),
             pricing = pricing,
             identities = identities
         )

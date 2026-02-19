@@ -5,6 +5,8 @@ edition = 3
 unknown_key = false
 
 [agent]
+capabilities = ["resources", "tool_refreshing"]
+
 # len 1 - 32
 # pattern: ^[a-z0-9]([a-z0-9]*(-[a-z0-9]+)*)?$
 name = "edition-3"
@@ -13,7 +15,29 @@ name = "edition-3"
 # must be a valid semver version: https://semver.org/
 version = "0.3.0"
 
-capabilities = ["resources", "tool_refreshing"]
+# len: 1 - 256
+# pattern: none
+summary = "A short NON-markdown summary of the agent on the marketplace"
+
+# len: 1 - 4096
+# pattern: none
+readme = "A full markdown markdown readme for the agent on the marketplace"
+
+# len: 1- 64
+# pattern: none
+license = "example license"
+
+# max entries 16
+[agent.links]
+
+# key:
+#   len: 1 - 32
+#   pattern: ^[a-zA-Z][a-zA-Z_\-0-9]*$
+# value:
+#   len: 1 - 256
+#   pattern: valid URI, https, tel or mailto schema
+github = "https://github.com/coral-Protocol/coral-server"
+website = "https://www.coralos.ai/"
 
 # must have at least one runtime
 [runtimes.docker]
@@ -115,31 +139,6 @@ display.description = "An example of a string type option with every field confi
 display.group = "Full options"
 
 display.multiline = true
-
-[marketplace]
-# len: 1 - 256
-# pattern: none
-summary = "A short NON-markdown summary of the agent on the marketplace"
-
-# len: 1 - 4096
-# pattern: none
-readme = "A full markdown markdown readme for the agent on the marketplace"
-
-# len: 1- 64
-# pattern: none
-license = "example license"
-
-# max entries 16
-[marketplace.links]
-
-# key:
-#   len: 1 - 32
-#   pattern: ^[a-zA-Z][a-zA-Z_\-0-9]*$
-# value:
-#   len: 1 - 256
-#   pattern: valid URI, https, tel or mailto schema
-github = "https://github.com/coral-Protocol/coral-server"
-website = "https://www.coralos.ai/"
 
 [marketplace.pricing]
 # len: 1 - 256
