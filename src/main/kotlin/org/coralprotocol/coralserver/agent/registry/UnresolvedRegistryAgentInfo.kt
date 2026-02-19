@@ -28,8 +28,12 @@ data class UnresolvedRegistryAgentInfo(
     val summary: String? = null,
 
     @Optional
-    @Description("TODO")
-    val license: String? = null,
+    @Description("The license name as a SDPX expression or the full license text for this agent")
+    val license: RegistryAgentLicense,
+
+    @Optional
+    @Description("A list of keywords for this agent.  These keywords help users search for agents")
+    val keywords: Set<String> = setOf(),
 
     @Optional
     @Description("Links to other resources related to this agent, e.g source repository")
@@ -43,6 +47,7 @@ data class UnresolvedRegistryAgentInfo(
             readme = readme,
             summary = summary,
             license = license,
+            keywords = keywords,
             links = links
         )
 }

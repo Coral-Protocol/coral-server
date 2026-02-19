@@ -36,7 +36,9 @@ val AGENT_NAME_PATTERN = "^[a-z0-9]([a-z0-9]*(-[a-z0-9]+)*)?$".toRegex()
 val AGENT_VERSION_LENGTH = 1..24
 val AGENT_SUMMARY_LENGTH = 1..256
 val AGENT_README_MAX_SIZE = 1..4096
-val AGENT_LICENSE_LENGTH = 1..64
+val AGENT_LICENSE_TEXT_MAX_SIZE = 2.mebibytes
+const val AGENT_KEYWORDS_MAX_ENTRIES = 256
+val AGENT_KEYWORDS_LENGTH = 1..64
 
 // [agent.links]
 const val AGENT_LINKS_MAX_ENTRIES = 16
@@ -113,6 +115,9 @@ data class RegistryAgent(
     val license = info.license
 
     @Transient
+    val keywords = info.keywords
+
+    @Transient
     val links = info.links
 
     val exportSettings: AgentExportSettingsMap = unresolvedExportSettings.mapValues { (runtime, settings) ->
@@ -183,11 +188,31 @@ data class RegistryAgent(
         if (readme != null)
             validateStringLength("agent.readme", readme, AGENT_README_MAX_SIZE)
 
-        if (license != null)
-            validateStringLength("agent.license", license, AGENT_LICENSE_LENGTH)
+        when (license) {
+            is RegistryAgentLicense.Spdx -> {
+                // TODO
+            }
+            is RegistryAgentLicense.Text -> {
+                val size = BinaryByteSize(license.text.toByteArray().size)
+                if (size > AGENT_LICENSE_TEXT_MAX_SIZE) {
+                    throw RegistryException("agent license text size count cannot exceed $AGENT_LICENSE_TEXT_MAX_SIZE, was $size")
+                }
+            }
+        }
 
         if (links.size > AGENT_LINKS_MAX_ENTRIES)
             throw RegistryException("agent link count cannot exceed $AGENT_LINKS_MAX_ENTRIES, was ${links.size}")
+
+        if (keywords.size > AGENT_KEYWORDS_MAX_ENTRIES)
+            throw RegistryException("number of agent keywords cannot exceed $AGENT_KEYWORDS_MAX_ENTRIES, was ${keywords.size}")
+
+        keywords.forEachIndexed { index, keyword ->
+            validateStringLength(
+                "agent.keywords[$index]",
+                keyword,
+                AGENT_KEYWORDS_LENGTH
+            )
+        }
 
         for ((name, link) in links) {
             validateStringLength("agent.links[\"$name\"] (key)", name, AGENT_LINKS_NAME_LENGTH)

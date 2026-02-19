@@ -52,7 +52,7 @@ class RegistryAgentTest : CoralTest({
 
         agent.readme.shouldNotBeNull().shouldBeEqual("A full markdown markdown readme for the agent on the marketplace")
         agent.summary.shouldNotBeNull().shouldBeEqual("A short NON-markdown summary of the agent on the marketplace")
-        agent.license.shouldNotBeNull().shouldBeEqual("example license")
+        agent.license.shouldBeInstanceOf<RegistryAgentLicense.Text>().text.shouldBeEqual("an example license")
 
         agent.links.shouldBeEqual(
             mapOf(
@@ -303,7 +303,7 @@ class RegistryAgentTest : CoralTest({
                 runtime(FunctionRuntime())
                 summary = "a".repeat(AGENT_SUMMARY_LENGTH.last)
                 readme = "a".repeat(AGENT_README_MAX_SIZE.last)
-                license = "a".repeat(AGENT_LICENSE_LENGTH.last)
+                license = RegistryAgentLicense.Text("a".repeat(AGENT_LICENSE_TEXT_MAX_SIZE.inWholeBytes.toInt()))
             }.validate()
         }
 
@@ -331,8 +331,44 @@ class RegistryAgentTest : CoralTest({
                 runtime(FunctionRuntime())
                 summary = "ok"
                 readme = "ok"
-                license = "a".repeat(AGENT_LICENSE_LENGTH.last + 1)
+                license = RegistryAgentLicense.Text("a".repeat(AGENT_LICENSE_TEXT_MAX_SIZE.inWholeBytes.toInt() + 1))
             }.validate()
+        }
+    }
+
+
+    test("testValidateKeywords") {
+        fun agentWithKeywords(keywords: Set<String>): RegistryAgent {
+            return registryAgent("valid") {
+                runtime(FunctionRuntime())
+                keywords.forEach(::keyword)
+            }
+        }
+
+        shouldNotThrowAny {
+            agentWithKeywords(
+                setOf("valid", "keywords", "👍👍👍")
+            ).validate()
+        }
+
+        shouldNotThrowAny {
+            agentWithKeywords(List(AGENT_KEYWORDS_MAX_ENTRIES) { idx ->
+                "keyword-$idx"
+            }.toSet()).validate()
+        }
+
+        // too many entries
+        shouldThrow<RegistryException> {
+            agentWithKeywords(List(AGENT_KEYWORDS_MAX_ENTRIES + 1) { idx ->
+                "keyword-$idx"
+            }.toSet()).validate()
+        }
+
+        // an entry is (eventually) too long
+        shouldThrow<RegistryException> {
+            agentWithKeywords(List(AGENT_KEYWORDS_MAX_ENTRIES) { idx ->
+                "a".repeat(idx)
+            }.toSet()).validate()
         }
     }
 
