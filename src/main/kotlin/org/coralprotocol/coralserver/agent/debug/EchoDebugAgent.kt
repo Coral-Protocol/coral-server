@@ -53,6 +53,12 @@ class EchoDebugAgent(client: HttpClient) : DebugAgent(client) {
     override val description: String
         get() = "For each iteration this agent will wait for a message that matches the specified options and respond to it.  Exits when the iteration count is exhausted."
 
+    override val readme: String
+        get() = "TODO"
+
+    override val summary: String
+        get() = "TODO"
+
     override val exportSettings: Map<RuntimeId, UnresolvedAgentExportSettings>
         get() = genericExportSettings
 

@@ -9,12 +9,8 @@ data class RegistryAgentInfo(
     val description: String?,
     val capabilities: Set<AgentCapability>,
     val identifier: RegistryAgentIdentifier,
-
-    @Optional
-    val readme: String? = null,
-
-    @Optional
-    val summary: String? = null,
+    val readme: String,
+    val summary: String,
 
     /**
      * The default license here applies only to debug agents and tests.  The license field must be specified in real

@@ -182,16 +182,14 @@ data class RegistryAgent(
     }
 
     private fun validateOptionalAgentInfo() {
-        if (summary != null)
-            validateStringLength("agent.summary", summary, AGENT_SUMMARY_LENGTH)
-
-        if (readme != null)
-            validateStringLength("agent.readme", readme, AGENT_README_MAX_SIZE)
+        validateStringLength("agent.summary", summary, AGENT_SUMMARY_LENGTH)
+        validateStringLength("agent.readme", readme, AGENT_README_MAX_SIZE)
 
         when (license) {
             is RegistryAgentLicense.Spdx -> {
                 // TODO
             }
+
             is RegistryAgentLicense.Text -> {
                 val size = BinaryByteSize(license.text.toByteArray().size)
                 if (size > AGENT_LICENSE_TEXT_MAX_SIZE) {

@@ -20,12 +20,10 @@ data class UnresolvedRegistryAgentInfo(
     val capabilities: Set<AgentCapability> = setOf(),
 
     @Description("A markdown readme for this agent")
-    @Optional
-    val readme: String? = null,
+    val readme: String,
 
     @Description("A short markdown summary for this agent")
-    @Optional
-    val summary: String? = null,
+    val summary: String,
 
     @Optional
     @Description("The license name as a SDPX expression or the full license text for this agent")
