@@ -1,0 +1,12 @@
+edition = 3
+
+[agent]
+name = "string-file-reference"
+version = "0.0.1"
+description = "test"
+summary = { type = "file", path = "test.txt" }
+readme = "test"
+license = { type = "sdpx", expression = "MIT" }
+
+[runtimes.docker]
+image = "ubuntu"
