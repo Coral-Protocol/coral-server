@@ -1,7 +1,7 @@
 package org.coralprotocol.coralserver.agent.registry
 
 import io.ktor.client.HttpClient
-import net.peanuuutz.tomlkt.Toml
+import dev.eav.tomlkt.Toml
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
 import org.koin.core.component.KoinComponent

@@ -58,7 +58,7 @@ open class SessionEventsTest : CoralTest({
                     },
                     graphAgentPair(agent2Name) {
                         registryAgent {
-                            runtime(ExecutableRuntime(listOf("doesn't exist")))
+                            runtime(ExecutableRuntime("doesn't exist"))
                         }
                         provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
                     }

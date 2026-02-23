@@ -24,7 +24,9 @@ class LocalRegistryTest : CoralTest({
         info = RegistryAgentInfo(
             description = "test agent",
             capabilities = setOf(),
-            identifier = RegistryAgentIdentifier(testAgentName, testAgentVersion, AgentRegistrySourceIdentifier.Local)
+            identifier = RegistryAgentIdentifier(testAgentName, testAgentVersion, AgentRegistrySourceIdentifier.Local),
+            readme = "test readme",
+            summary = "test summary"
         ),
         runtimes = LocalAgentRuntimes(),
     )
@@ -37,7 +39,9 @@ class LocalRegistryTest : CoralTest({
                 testExportedAgentName,
                 testExportAgentVersion,
                 AgentRegistrySourceIdentifier.Local
-            )
+            ),
+            readme = "test readme",
+            summary = "test summary"
         ),
         runtimes = LocalAgentRuntimes(
             functionRuntime = FunctionRuntime { _, _ ->

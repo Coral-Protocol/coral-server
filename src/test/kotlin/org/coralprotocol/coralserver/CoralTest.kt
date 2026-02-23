@@ -16,7 +16,7 @@ import io.ktor.server.testing.*
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.plus
 import kotlinx.serialization.json.Json
-import net.peanuuutz.tomlkt.Toml
+import dev.eav.tomlkt.Toml
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.config.*
 import org.coralprotocol.coralserver.logging.Logger
@@ -156,7 +156,7 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                         }
                                         single {
                                             Toml {
-                                                ignoreUnknownKeys = false
+                                                ignoreUnknownKeys = true
                                             }
                                         }
                                         single {

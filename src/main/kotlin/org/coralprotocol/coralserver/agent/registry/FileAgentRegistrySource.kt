@@ -2,13 +2,12 @@
 
 package org.coralprotocol.coralserver.agent.registry
 
+import dev.eav.tomlkt.Toml
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import net.peanuuutz.tomlkt.Toml
-import net.peanuuutz.tomlkt.decodeFromNativeReader
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
 import org.coralprotocol.coralserver.util.isWindows
@@ -463,13 +462,7 @@ class FileAgentRegistrySource(
         }
     }
 
-    private fun readAgent(agentFile: File) =
-        toml.decodeFromNativeReader<UnresolvedRegistryAgent>(agentFile.reader()).resolve(
-            AgentResolutionContext(
-                registrySourceIdentifier = AgentRegistrySourceIdentifier.Local,
-                path = agentFile.parentFile.toPath()
-            )
-        )
+    private fun readAgent(agentFile: File) = UnresolvedRegistryAgent.resolveFromFile(agentFile)
 }
 
 private fun normalizedPathString(path: String) =

@@ -48,6 +48,12 @@ class ToolDebugAgent(client: HttpClient) : DebugAgent(client) {
     override val description: String
         get() = "After an optional delay, this agent will execute a single tool and then exit"
 
+    override val readme: String
+        get() = "TODO"
+
+    override val summary: String
+        get() = "TODO"
+
     override val exportSettings: Map<RuntimeId, UnresolvedAgentExportSettings>
         get() = genericExportSettings
 
