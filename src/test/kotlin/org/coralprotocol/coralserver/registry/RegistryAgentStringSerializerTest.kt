@@ -1,4 +1,102 @@
 package org.coralprotocol.coralserver.registry
 
-class RegistryAgentStringSerializerTest {
-}
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.equals.shouldBeEqual
+import io.ktor.server.application.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import io.ktor.utils.io.charsets.isSupported
+import org.coralprotocol.coralserver.CoralTest
+import org.coralprotocol.coralserver.agent.registry.UnresolvedRegistryAgent
+import org.koin.test.inject
+import java.io.File
+import java.util.*
+import kotlin.text.Charsets
+
+class RegistryAgentStringSerializerTest : CoralTest({
+    val urlPath = "string"
+    fun serveString(text: String) {
+        val application by inject<Application>()
+
+        application.routing {
+            get(urlPath) {
+                call.respondText(text)
+            }
+        }
+    }
+
+    test("testStringUrlReference") {
+        val uuid = UUID.randomUUID().toString()
+        serveString(uuid)
+
+        val agent = UnresolvedRegistryAgent.resolveFromString(
+            """
+                edition = 3
+                
+                [agent]
+                name = "string-url-reference"
+                version = "0.0.1"
+                description = "test"
+                summary = "test"
+                license = { type = "sdpx", expression = "MIT" }
+                
+                readme = { type = "url", url = "$urlPath" }
+                
+                [runtimes.docker]
+                image = "ubuntu"
+            """.trimIndent()
+        )
+
+        agent.readme.shouldBeEqual(uuid)
+    }
+
+    test("testDisabledUrlReferences").config(enabled = Charsets.isSupported("UTF-8")) {
+        val uuid = UUID.randomUUID().toString()
+        serveString(uuid)
+
+        shouldThrow<IllegalStateException> {
+            UnresolvedRegistryAgent.resolveFromString(
+                """
+                edition = 3
+                
+                [agent]
+                name = "string-url-reference"
+                version = "0.0.1"
+                description = "test"
+                summary = "test"
+                license = { type = "sdpx", expression = "MIT" }
+                
+                readme = { type = "url", url = "$urlPath" }
+                
+                [runtimes.docker]
+                image = "ubuntu"
+            """.trimIndent(), enableUrlReferences = false
+            )
+        }
+    }
+
+    test("testStringFileReferenceUtf8").config(enabled = Charsets.isSupported("UTF-8")) {
+        val agent = UnresolvedRegistryAgent.resolveFromFile(
+            File("src/test/resources/string-file-reference/utf8/coral-agent.toml")
+        )
+
+        agent.readme.shouldBeEqual(File("src/test/resources/string-file-reference/utf8/README.MD").readText())
+    }
+
+    test("testStringFileReferenceWindows1251").config(enabled = Charsets.isSupported("Windows-1251")) {
+        val agent = UnresolvedRegistryAgent.resolveFromFile(
+            File("src/test/resources/string-file-reference/windows-1251/coral-agent.toml")
+        )
+
+        agent.readme.shouldBeEqual(File("src/test/resources/string-file-reference/windows-1251/README.MD").readText())
+    }
+
+    test("testDisabledFileReferences").config(enabled = Charsets.isSupported("UTF-8")) {
+        shouldThrow<IllegalStateException> {
+            UnresolvedRegistryAgent.resolveFromFile(
+                File("src/test/resources/string-file-reference/utf8/coral-agent.toml"),
+                enableFileReferences = false
+            )
+        }
+    }
+})

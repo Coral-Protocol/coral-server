@@ -4,9 +4,10 @@ edition = 3
 name = "string-file-reference"
 version = "0.0.1"
 description = "test"
-summary = { type = "file", path = "README.MD" }
-readme = "test"
+summary = "test"
 license = { type = "sdpx", expression = "MIT" }
+
+readme = { type = "file", path = "README.MD" }
 
 [runtimes.docker]
 image = "ubuntu"
