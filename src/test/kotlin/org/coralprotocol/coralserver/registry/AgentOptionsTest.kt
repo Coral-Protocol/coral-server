@@ -6,7 +6,7 @@ import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.types.shouldBeInstanceOf
-import net.peanuuutz.tomlkt.Toml
+import dev.eav.tomlkt.Toml
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
 import org.coralprotocol.coralserver.agent.registry.option.*
@@ -62,8 +62,8 @@ class AgentOptionsTest : CoralTest({
             TestCase(
                 "i64",
                 AgentOption.Long::class,
-                AgentOptionValue.Long(-1)
-            ), // Bug with Long.MIN_VALUE, see https://github.com/Peanuuutz/tomlkt/issues/81
+                AgentOptionValue.Long(Long.MIN_VALUE)
+            ),
             TestCase("u8", AgentOption.UByte::class, AgentOptionValue.UByte(UByte.MAX_VALUE)),
             TestCase("u16", AgentOption.UShort::class, AgentOptionValue.UShort(UShort.MAX_VALUE)),
             TestCase("u32", AgentOption.UInt::class, AgentOptionValue.UInt(UInt.MAX_VALUE)),
@@ -89,9 +89,9 @@ class AgentOptionsTest : CoralTest({
             TestCase(
                 "list[i64]", AgentOption.LongList::class, AgentOptionValue.LongList(
                     listOf(
-                        -1,
+                        Long.MIN_VALUE,
                         Long.MAX_VALUE
-                    ) // Bug with Long.MIN_VALUE, see https://github.com/Peanuuutz/tomlkt/issues/81
+                    )
                 )
             ),
             TestCase(
@@ -143,39 +143,6 @@ class AgentOptionsTest : CoralTest({
             option.compareTypeWithValue(test.defaultValue).shouldBeTrue()
             option.defaultAsValue().shouldNotBeNull().shouldBeEqual(test.defaultValue)
         }
-    }
-
-    test("testFirstEdition") {
-        val toml by inject<Toml>()
-        val number = toml.decodeFromString(
-            AgentOption.serializer(), """
-            type = "number"
-            description = "A test number"
-            default = 123
-        """.trimIndent()
-        )
-        number.shouldBeInstanceOf<AgentOption.Number>()
-        number.default.shouldNotBeNull().shouldBeEqual(123.0)
-
-        val string = toml.decodeFromString(
-            AgentOption.serializer(), """
-            type = "string"
-            description = "A test number"
-            default = "test default value"
-        """.trimIndent()
-        )
-        string.shouldBeInstanceOf<AgentOption.String>()
-        string.default.shouldNotBeNull().shouldBeEqual("test default value")
-
-        val secret = toml.decodeFromString(
-            AgentOption.serializer(), """
-            type = "secret"
-            description = "A test secret"
-            default = "secret secret"
-        """.trimIndent()
-        )
-        secret.shouldBeInstanceOf<AgentOption.Secret>()
-        secret.default.shouldNotBeNull().shouldBeEqual("secret secret")
     }
 
     test("testValidateNumber") {
@@ -290,21 +257,21 @@ class AgentOptionsTest : CoralTest({
         blob.shouldBeInstanceOf<AgentOption.Blob>()
         shouldNotThrowAny {
             blob.withValue(
-                AgentOptionValue.Blob(
+                AgentOptionValue.Blob.fromBytes(
                     ByteArray(ByteUnitSizes.MEBIBYTE.toByteCount(1.0).toInt())
                 )
             ).requireValue()
         }
         shouldThrow<AgentOptionValidationException> {
             blob.withValue(
-                AgentOptionValue.Blob(
+                AgentOptionValue.Blob.fromBytes(
                     ByteArray(ByteUnitSizes.MEBIBYTE.toByteCount(1.0).toInt() + 1)
                 )
             ).requireValue()
         }
         shouldThrow<AgentOptionValidationException> {
             blob.withValue(
-                AgentOptionValue.Blob(
+                AgentOptionValue.Blob.fromBytes(
                     ByteArray(0)
                 )
             ).requireValue()

@@ -47,6 +47,12 @@ class SocketDebugAgent(client: HttpClient) : DebugAgent(client) {
     override val description: String
         get() = "This agent provides a 'socket' for another agent runtime to connect to the session with.  This agent will make no MCP connection."
 
+    override val readme: String
+        get() = "TODO"
+
+    override val summary: String
+        get() = "TODO"
+
     override val exportSettings: Map<RuntimeId, UnresolvedAgentExportSettings>
         get() = genericExportSettings
 

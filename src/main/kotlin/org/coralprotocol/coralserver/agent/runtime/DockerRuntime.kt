@@ -27,8 +27,9 @@ import kotlin.time.measureTime
 @SerialName("docker")
 data class DockerRuntime(
     val image: String,
+    override val transport: AgentRuntimeTransport = DEFAULT_AGENT_RUNTIME_TRANSPORT,
     @Optional val command: List<String>? = null
-) : AgentRuntime() {
+) : AgentRuntime {
     override suspend fun execute(
         executionContext: SessionAgentExecutionContext,
         applicationRuntimeContext: ApplicationRuntimeContext
@@ -57,7 +58,7 @@ data class DockerRuntime(
 
             // This call populates executionContext.disposableResources and must be called before the Docker volumes are
             // created
-            val environment = executionContext.buildEnvironment()
+            val environment = executionContext.buildEnvironment(transport)
 
             val volumes = executionContext.disposableResources
                 .filterIsInstance<SessionAgentDisposableResource.TemporaryFile>()

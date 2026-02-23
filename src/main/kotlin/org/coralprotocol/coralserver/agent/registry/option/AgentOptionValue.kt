@@ -2,10 +2,11 @@
 
 package org.coralprotocol.coralserver.agent.registry.option
 
-import io.ktor.util.encodeBase64
+import io.ktor.util.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.json.JsonClassDiscriminator
 import java.nio.ByteBuffer
 
@@ -22,11 +23,25 @@ sealed interface AgentOptionValue {
 
     @Serializable
     @SerialName("blob")
-    data class Blob(@Suppress("ArrayInDataClass") val value: ByteArray) : AgentOptionValue
+    data class Blob(val value: kotlin.String) : AgentOptionValue {
+        companion object {
+            fun fromBytes(bytes: ByteArray) = Blob(bytes.encodeBase64())
+        }
+
+        @Transient
+        val bytes = value.decodeBase64Bytes()
+    }
 
     @Serializable
     @SerialName("list[blob]")
-    data class BlobList(val value: List<ByteArray>) : AgentOptionValue
+    data class BlobList(val value: List<kotlin.String>) : AgentOptionValue {
+        companion object {
+            fun fromByteList(byteList: List<ByteArray>) = BlobList(byteList.map { it.encodeBase64() })
+        }
+
+        @Transient
+        val bytes = value.map { it.decodeBase64Bytes() }
+    }
 
     @Serializable
     @SerialName("bool")
@@ -127,8 +142,8 @@ sealed interface AgentOptionValue {
  * `base64 = true` if it is at all possible a given value contains a comma.
  */
 fun AgentOptionValue.asEnvVarValue(base64: Boolean = false): String = when (this) {
-    is AgentOptionValue.Blob -> value.encodeBase64()
-    is AgentOptionValue.BlobList -> value.joinToString(",") { it.encodeBase64() }
+    is AgentOptionValue.Blob -> value // base64
+    is AgentOptionValue.BlobList -> value.joinToString(",") { it } // base64
     is AgentOptionValue.Boolean -> if (value) "1" else "0"
     is AgentOptionValue.Byte -> value.toString()
     is AgentOptionValue.ByteList -> value.joinToString(",")
@@ -146,11 +161,12 @@ fun AgentOptionValue.asEnvVarValue(base64: Boolean = false): String = when (this
     is AgentOptionValue.StringList -> value.joinToString(",") {
         if (base64) it.encodeBase64() else it
     }
+
     is AgentOptionValue.UByte -> value.toString()
     is AgentOptionValue.UByteList -> value.joinToString(",")
     is AgentOptionValue.UInt -> value.toString()
     is AgentOptionValue.UIntList -> value.joinToString(",")
-    is AgentOptionValue.ULong -> value.toString()
+    is AgentOptionValue.ULong -> value
     is AgentOptionValue.ULongList -> value.joinToString(",")
     is AgentOptionValue.UShort -> value.toString()
     is AgentOptionValue.UShortList -> value.joinToString(",")
@@ -168,8 +184,8 @@ fun AgentOptionValue.asEnvVarValue(base64: Boolean = false): String = when (this
  * - Numeric types are written in binary, in big-endian order.
  */
 fun AgentOptionValue.toFileSystemValue(): List<ByteArray> = when (this) {
-    is AgentOptionValue.Blob -> listOf(value)
-    is AgentOptionValue.BlobList -> value
+    is AgentOptionValue.Blob -> listOf(bytes)
+    is AgentOptionValue.BlobList -> bytes
     is AgentOptionValue.Boolean -> listOf(ByteBuffer.allocate(Byte.SIZE_BYTES).put(if (value) 1 else 0).array())
     is AgentOptionValue.Byte -> listOf(ByteBuffer.allocate(Byte.SIZE_BYTES).put(value).array())
     is AgentOptionValue.ByteList -> value.map { ByteBuffer.allocate(Byte.SIZE_BYTES).put(it).array() }

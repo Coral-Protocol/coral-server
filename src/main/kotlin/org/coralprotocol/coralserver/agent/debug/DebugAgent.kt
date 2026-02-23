@@ -25,6 +25,8 @@ abstract class DebugAgent(protected val client: HttpClient) : KoinComponent {
     abstract val companion: DebugAgentIdHolder
     abstract val options: Map<String, AgentOption>
     abstract val description: String
+    abstract val readme: String
+    abstract val summary: String
     abstract val exportSettings: Map<RuntimeId, UnresolvedAgentExportSettings>
     val genericExportSettings = mapOf(
         RuntimeId.FUNCTION to UnresolvedAgentExportSettings(
@@ -80,7 +82,9 @@ abstract class DebugAgent(protected val client: HttpClient) : KoinComponent {
             info = RegistryAgentInfo(
                 description = description,
                 capabilities = setOf(),
-                identifier = companion.identifier
+                identifier = companion.identifier,
+                readme = readme,
+                summary = summary,
             ),
             runtimes = LocalAgentRuntimes(
                 functionRuntime = FunctionRuntime { executionContext, runtimeContext ->
@@ -88,7 +92,8 @@ abstract class DebugAgent(protected val client: HttpClient) : KoinComponent {
                 }
             ),
             options = options,
-            unresolvedExportSettings = if (export) exportSettings else mapOf()
+            unresolvedExportSettings = if (export) exportSettings else mapOf(),
+            edition = MAXIMUM_SUPPORTED_AGENT_VERSION,
         )
     }
 }
