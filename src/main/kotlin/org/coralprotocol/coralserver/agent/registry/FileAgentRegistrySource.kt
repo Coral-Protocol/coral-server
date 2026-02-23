@@ -14,15 +14,13 @@ import org.coralprotocol.coralserver.util.isWindows
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import java.io.File
-import java.nio.file.FileSystems
-import java.nio.file.NoSuchFileException
-import java.nio.file.Path
+import java.nio.file.*
 import java.nio.file.StandardWatchEventKinds.*
-import java.nio.file.WatchEvent
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.io.path.*
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * A toml based agent registry source, matching toml files based on a given pattern.
@@ -88,6 +86,26 @@ class FileAgentRegistrySource(
     private val deletionWatchers = ConcurrentHashMap.newKeySet<String>()
     private val watchJobs = ConcurrentHashMap<WatchJobKey, Job>()
 
+    private var sharedWatchService: WatchService? = null
+    private data class HandlerRegistration(
+        val kinds: Set<WatchEvent.Kind<*>>,
+        val channel: kotlinx.coroutines.channels.Channel<WatchEvent<*>>,
+        val job: Job
+    )
+    private val watchHandlers = ConcurrentHashMap<WatchKey, MutableMap<WatchJobKey, HandlerRegistration>>()
+    private val watchKeysByPath = ConcurrentHashMap<Path, WatchKey>()
+    private val uniqueWatchPaths = ConcurrentHashMap.newKeySet<Path>()
+    private var isScanOnIntervalFallbackActive = false
+
+    private val sensitivityModifier: WatchEvent.Modifier? by lazy {
+        try {
+            val modifierClass = Class.forName("com.sun.nio.file.SensitivityWatchEventModifier")
+            modifierClass.getField("HIGH").get(null) as? WatchEvent.Modifier
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     private var parentPattern: String
     private var remainingPattern: String
 
@@ -99,14 +117,68 @@ class FileAgentRegistrySource(
         scan()
     }
 
+    private fun isExcluded(name: String): Boolean {
+        return name.startsWith(".") || EXCLUDED_DIRECTORIES.contains(name)
+    }
+
     fun scan() {
         loadedAgentFiles.clear()
         deletionWatchers.clear()
         clearAgents()
+
         watchJobs.forEach { (_, job) -> job.cancel() }
         watchJobs.clear()
+        watchHandlers.clear()
+        watchKeysByPath.clear()
+        uniqueWatchPaths.clear()
+
+        sharedWatchService?.close()
+        if (watch) {
+            val ws = FileSystems.getDefault().newWatchService()
+            sharedWatchService = ws
+            startPolling(ws)
+        }
 
         addAgentsFromPattern(remainingPattern, parentPattern)
+    }
+
+    private fun startPolling(ws: WatchService) {
+        watchCoroutineScope.launch(Dispatchers.IO) {
+            while (isActive) {
+                try {
+                    val key = runInterruptible { ws.take() }
+                    val registrations = watchHandlers[key]?.values?.toList()
+                    if (registrations != null) {
+                        val events = key.pollEvents()
+                        for (event in events) {
+                            registrations.forEach { reg ->
+                                if (reg.kinds.contains(event.kind())) {
+                                    reg.channel.trySend(event).isSuccess
+                                }
+                            }
+                        }
+                    }
+                    if (!key.reset()) {
+                        val removed = watchHandlers.remove(key)
+                        if (removed != null) {
+                            val path = key.watchable() as? Path
+                            if (path != null) {
+                                watchKeysByPath.remove(path)
+                                uniqueWatchPaths.remove(path)
+                            }
+                        }
+                    }
+                } catch (_: ClosedWatchServiceException) {
+                    break
+                } catch (_: InterruptedException) {
+                    break
+                } catch (e: Exception) {
+                    if (isActive) {
+                        logger.error(e) { "Error in watch polling loop" }
+                    }
+                }
+            }
+        }
     }
 
     fun scanOnInterval(interval: Duration) {
@@ -119,6 +191,8 @@ class FileAgentRegistrySource(
     private fun addAgentsFromPattern(pathPattern: String, parent: String) {
         val parts = pathPattern.split("/").filter { it.isNotEmpty() }
         var current = Path.of(parent).absolute()
+
+        println("Scanning for agents matching pattern \"$pathPattern\" in \"${normalizedPathString(current)}\"...")
         parts.forEachIndexed { index, part ->
             val remainingParts = parts.slice(index..<parts.size)
 
@@ -129,7 +203,8 @@ class FileAgentRegistrySource(
 
                 // Scan existing subdirectories. Note that the recursion will handle deeper directories,
                 // ensuring we don't scan too deep unless the pattern demands it
-                current.toFile().listFiles { it.isDirectory && !it.name.startsWith(".") }?.forEach {
+                current.toFile().listFiles { it.isDirectory && !isExcluded(it.name) }?.forEach {
+                    println("Found directory \"${normalizedPathString(it.toPath())}\" matching wildcard in pattern \"$pathPattern\"")
                     addAgentsFromPattern(
                         if (index == parts.lastIndex) {
                             it.name
@@ -228,40 +303,78 @@ class FileAgentRegistrySource(
         pattern: String = "",
         handler: suspend CoroutineScope.(WatchEvent<*>) -> Unit
     ): Job {
+        if (!watch) return Job().apply { complete() }
+
         val watchJobKey = WatchJobKey(path, kinds.toList(), pattern)
-        if (watchJobs.containsKey(watchJobKey)) {
-            watchJobs[watchJobKey]?.cancel()
+        watchJobs[watchJobKey]?.cancel()
+
+        val needNewKey = !watchKeysByPath.containsKey(path)
+        if (needNewKey && uniqueWatchPaths.size >= WATCH_CAP) {
+            logger.warn { "Watch cap ($WATCH_CAP) exceeded while trying to watch \"${normalizedPathString(path)}\". Falling back to scanOnInterval." }
+            if (!isScanOnIntervalFallbackActive) {
+                isScanOnIntervalFallbackActive = true
+                scanOnInterval(30.seconds)
+            }
+            return Job().apply { complete() }
         }
 
-        val watchService = FileSystems.getDefault().newWatchService()
-        path.register(watchService, *kinds)
+        val ws = sharedWatchService ?: return Job().apply { complete() }
 
-        return watchCoroutineScope.launch(Dispatchers.IO) {
-            while (true) {
+        return try {
+            val key = if (needNewKey) {
+                val kindsArray = arrayOf(ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY)
+                val k = sensitivityModifier?.let { path.register(ws, kindsArray, it) } ?: path.register(ws, *kindsArray)
+                watchKeysByPath[path] = k
+                uniqueWatchPaths.add(path)
+                k
+            } else {
+                watchKeysByPath[path]!!
+            }
+
+            val handlersMap = watchHandlers.getOrPut(key) { ConcurrentHashMap() }
+            val desiredKinds = kinds.toSet()
+
+            val channel = kotlinx.coroutines.channels.Channel<WatchEvent<*>>(capacity = 64)
+            val consumerJob = CoroutineScope(Dispatchers.IO + watchCoroutineScope.coroutineContext).launch {
                 try {
-                    val key = runInterruptible { watchService.take() }
-                    for (event in key.pollEvents()) {
-                        handler(event)
+                    for (event in channel) {
+                        try {
+                            // Receiver scope is this coroutine; cancel() inside handler will cancel this job
+                            @Suppress("DeferredResultUnused")
+                            handler(this, event)
+                        } catch (_: CancellationException) {
+                            break
+                        } catch (e: Exception) {
+                            logger.error(e) { "Error in watch handler for path ${normalizedPathString(path)}" }
+                        }
                     }
-
-                    if (!key.reset())
-                        break
-                } catch (e: InterruptedException) {
-                    throw e
-                } catch (_: NoSuchFileException) {
-                    break
-                } catch (_: CancellationException) {
-                    break
-                } catch (e: Exception) {
-                    logger.error(e) { "Error watching path \"${normalizedPathString(path)}\"" }
+                } finally {
+                    channel.close()
                 }
             }
-        }.apply {
-            watchJobs[watchJobKey] = this
-            invokeOnCompletion {
+
+            handlersMap[watchJobKey] = HandlerRegistration(desiredKinds, channel, consumerJob)
+
+            consumerJob.invokeOnCompletion {
+                channel.close()
+                handlersMap.remove(watchJobKey)
+                if (handlersMap.isEmpty()) {
+                    watchHandlers.remove(key)
+                    key.cancel()
+                    val p = key.watchable() as? Path
+                    if (p != null) {
+                        watchKeysByPath.remove(p)
+                        uniqueWatchPaths.remove(p)
+                    }
+                }
                 watchJobs.remove(watchJobKey)
-                watchService.close()
             }
+
+            watchJobs[watchJobKey] = consumerJob
+            consumerJob
+        } catch (e: Exception) {
+            logger.error(e) { "Error registering watch for path \"${normalizedPathString(path)}\"" }
+            Job().apply { complete() }
         }
     }
 
@@ -388,7 +501,7 @@ class FileAgentRegistrySource(
         eventStreamForPath(directory, ENTRY_CREATE, pattern = remainingStr) {
             val fileName = (it.context() as Path).name
             val isWildcard = nextPart == "*"
-            if (nextPart.equals(fileName, ignoreCase = isWindows()) || (isWildcard && !fileName.startsWith("."))) {
+            if (nextPart.equals(fileName, ignoreCase = isWindows()) || (isWildcard && !isExcluded(fileName))) {
                 val fullPatternLog = if (nextPart != remainingStr) {
                     " from full pattern \"$remainingStr\""
                 } else {
@@ -476,6 +589,15 @@ class FileAgentRegistrySource(
     }
 
     private fun readAgent(agentFile: File) = UnresolvedRegistryAgent.resolveFromFile(agentFile)
+
+
+
+    companion object {
+        private val EXCLUDED_DIRECTORIES = setOf(
+            "node_modules", "__pycache__", ".venv", "venv", "build", "target", "dist", ".gradle", ".cache"
+        )
+        private const val WATCH_CAP = 256
+    }
 }
 
 private fun normalizedPathString(path: String) =
