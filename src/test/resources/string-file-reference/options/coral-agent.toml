@@ -5,9 +5,40 @@ name = "string-file-reference"
 version = "0.0.1"
 description = "test"
 summary = "test"
+readme = "test"
 license = { type = "sdpx", expression = "MIT" }
-
-readme = { type = "file", path = "README.MD" }
 
 [runtimes.docker]
 image = "ubuntu"
+
+[options.STRING]
+type = "string"
+default = { type = "file", path = "string.txt" }
+
+[options.STRING_BASE64]
+type = "string"
+default = { type = "file", path = "string.txt", base64 = true }
+
+[options.BLOB]
+type = "blob"
+default = { type = "file", path = "blob.txt" }
+
+[options.STRING_LIST]
+type = "list[string]"
+default = [
+    { type = "file", path = "string.txt" },
+    { type = "file", path = "string.txt" }
+]
+
+[options.BLOB_LIST]
+type = "list[blob]"
+default = [
+    { type = "file", path = "blob.txt" },
+    { type = "file", path = "blob.txt" }
+]
+
+[options.STRING_NO_DEFAULT]
+type = "string"
+
+[options.BLOB_NO_DEFAULT]
+type = "blob"
