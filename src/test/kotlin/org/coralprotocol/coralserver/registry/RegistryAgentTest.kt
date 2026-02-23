@@ -1,7 +1,5 @@
 package org.coralprotocol.coralserver.registry
 
-import dev.eav.tomlkt.Toml
-import dev.eav.tomlkt.decodeFromNativeReader
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.booleans.shouldBeTrue
@@ -28,15 +26,9 @@ import org.coralprotocol.coralserver.utils.dsl.RegistryAgentMarketplaceIdentityE
 import org.coralprotocol.coralserver.utils.dsl.RegistryAgentMarketplacePricingBuilder
 import org.coralprotocol.coralserver.utils.dsl.registryAgent
 import org.koin.test.inject
+import java.io.File
 
 class RegistryAgentTest : CoralTest({
-    fun loadRegistryAgentFromResource(resourceName: String): RegistryAgent {
-        val toml by inject<Toml>()
-        val resource = javaClass.getResourceAsStream(resourceName).shouldNotBeNull()
-        val registryAgent = toml.decodeFromNativeReader<UnresolvedRegistryAgent>(resource.reader())
-        return registryAgent.resolve(AgentResolutionContext(AgentRegistrySourceIdentifier.Local))
-    }
-
     fun testJsonRecode(agent: RegistryAgent) {
         val json by inject<Json>()
         val jsonString = json.encodeToString(agent)
@@ -242,7 +234,10 @@ class RegistryAgentTest : CoralTest({
     }
 
     test("testRegistryAgentFile") {
-        val agent = loadRegistryAgentFromResource("/agent/coral-agent.toml")
+        // note: reading from a string here is required so that the path of the RegistryAgent is not set, if it is set
+        // then the json recoding test will fail as it is a transient field
+        val agent =
+            UnresolvedRegistryAgent.resolveFromString(File("src/test/resources/agent/coral-agent.toml").readText())
 
         testAgentHeader(agent)
         testAgentRuntimes(agent)

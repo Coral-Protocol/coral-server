@@ -16,5 +16,8 @@ sealed interface RegistryAgentLicense {
 
     @Serializable
     @SerialName("text")
-    data class Text(val text: String) : RegistryAgentLicense
+    data class Text(
+        @Serializable(with = RegistryAgentStringSerializer::class)
+        val text: String
+    ) : RegistryAgentLicense
 }

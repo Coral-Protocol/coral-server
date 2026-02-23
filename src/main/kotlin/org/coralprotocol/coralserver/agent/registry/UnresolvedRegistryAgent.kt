@@ -1,14 +1,31 @@
 package org.coralprotocol.coralserver.agent.registry
 
+import dev.eav.tomlkt.Toml
+import dev.eav.tomlkt.decodeFromNativeReader
+import dev.eav.tomlkt.decodeFromString
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import io.github.smiley4.schemakenerator.core.annotations.Optional
+import io.ktor.client.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import java.io.File
+import java.nio.file.Path
 
 const val AGENT_FILE = "coral-agent.toml"
+
+data class RegistryAgentSerializationContext(
+    val agentFilePath: Path?,
+    val httpClient: HttpClient,
+    val enableFileReferences: Boolean,
+    val enableUrlReferences: Boolean
+)
+
+val registryAgentSerializationContext: ThreadLocal<RegistryAgentSerializationContext?> =
+    ThreadLocal.withInitial { null }
 
 @Serializable
 data class UnresolvedRegistryAgent(
@@ -30,6 +47,60 @@ data class UnresolvedRegistryAgent(
     @Optional
     val marketplace: RegistryAgentMarketplaceSettings? = null
 ) : KoinComponent {
+    companion object : KoinComponent {
+        val toml by inject<Toml>()
+        val client by inject<HttpClient>()
+
+        fun resolveFromFile(
+            file: File,
+            enableFileReferences: Boolean = true,
+            enableUrlReferences: Boolean = true
+        ): RegistryAgent {
+            val path = file.parentFile.toPath()
+            registryAgentSerializationContext.set(
+                RegistryAgentSerializationContext(
+                    path,
+                    client,
+                    enableFileReferences,
+                    enableUrlReferences
+                )
+            )
+
+            val agent = toml.decodeFromNativeReader<UnresolvedRegistryAgent>(file.reader()).resolve(
+                AgentResolutionContext(
+                    registrySourceIdentifier = AgentRegistrySourceIdentifier.Local,
+                    path = path
+                )
+            )
+
+            registryAgentSerializationContext.remove()
+
+            return agent
+        }
+
+        fun resolveFromString(
+            string: String,
+            enableFileReferences: Boolean = true,
+            enableUrlReferences: Boolean = true
+        ): RegistryAgent {
+            registryAgentSerializationContext.set(
+                RegistryAgentSerializationContext(
+                    null,
+                    client,
+                    enableFileReferences,
+                    enableUrlReferences
+                )
+            )
+
+            val agent = toml.decodeFromString<UnresolvedRegistryAgent>(string)
+                .resolve(AgentResolutionContext(registrySourceIdentifier = AgentRegistrySourceIdentifier.Local))
+
+            registryAgentSerializationContext.remove()
+
+            return agent
+        }
+    }
+
     fun resolve(context: AgentResolutionContext): RegistryAgent {
         if (edition < MINIMUM_SUPPORTED_AGENT_EDITION) {
             throw RegistryException("Agent ${context.path} has invalid edition '$edition', must be at least $MINIMUM_SUPPORTED_AGENT_EDITION")
