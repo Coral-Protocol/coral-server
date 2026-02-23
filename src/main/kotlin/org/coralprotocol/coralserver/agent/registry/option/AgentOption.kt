@@ -9,7 +9,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.json.JsonClassDiscriminator
-import org.coralprotocol.coralserver.agent.registry.AgentResolutionContext
+import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
 import org.koin.core.component.KoinComponent
@@ -77,7 +77,9 @@ sealed class AgentOption : KoinComponent {
     @Serializable
     @SerialName("string")
     data class String(
+        @Serializable(with = RegistryAgentStringSerializer::class)
         val default: kotlin.String? = null,
+
         val validation: StringAgentOptionValidation? = null,
         @Optional val base64: kotlin.Boolean = false,
         @Optional val secret: kotlin.Boolean = false,
@@ -86,7 +88,9 @@ sealed class AgentOption : KoinComponent {
     @Serializable
     @SerialName("list[string]")
     data class StringList(
+        @Serializable(with = RegistryAgentStringListSerializer::class)
         @Optional val default: List<kotlin.String> = listOf(),
+
         val validation: StringAgentOptionValidation? = null,
         @Optional val base64: kotlin.Boolean = false,
         @Optional val secret: kotlin.Boolean = false
@@ -95,7 +99,9 @@ sealed class AgentOption : KoinComponent {
     @Serializable
     @SerialName("blob")
     data class Blob(
+        @Serializable(with = RegistryAgentBase64StringSerializer::class)
         val default: kotlin.String? = null,
+
         val validation: BlobAgentOptionValidation? = null
     ) : AgentOption() {
         @Transient
@@ -105,7 +111,9 @@ sealed class AgentOption : KoinComponent {
     @Serializable
     @SerialName("list[blob]")
     data class BlobList(
+        @Serializable(with = RegistryAgentBase64StringListSerializer::class)
         @Optional val default: List<kotlin.String> = listOf(),
+
         val validation: BlobAgentOptionValidation? = null
     ) : AgentOption() {
         @Transient
