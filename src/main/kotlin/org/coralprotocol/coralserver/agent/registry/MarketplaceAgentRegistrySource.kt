@@ -7,6 +7,8 @@ import io.ktor.client.request.*
 import io.ktor.http.*
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import kotlin.time.measureTimedValue
@@ -14,13 +16,13 @@ import kotlin.time.measureTimedValue
 class MarketplaceAgentRegistrySource(marketplaceCatalog: List<RegistryAgentCatalog>) :
     AgentRegistrySource(AgentRegistrySourceIdentifier.Marketplace) {
 
-    companion object {
+    companion object : KoinComponent {
         private const val BASE_URL = "https://marketplace.coralprotocol.ai/api/v1"
 
-        suspend fun initialiseMarketplaceAgentRegistrySource(
-            logger: Logger,
-            client: HttpClient
-        ): MarketplaceAgentRegistrySource {
+        suspend fun initialiseMarketplaceAgentRegistrySource(): MarketplaceAgentRegistrySource {
+            val logger = get<Logger>(named(LOGGER_CONFIG))
+            val client = get<HttpClient>()
+
             val url = URLBuilder(urlString = BASE_URL).appendPathSegments("agents").build()
             logger.info { "fetching marketplace agents" }
 

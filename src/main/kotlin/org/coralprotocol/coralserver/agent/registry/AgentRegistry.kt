@@ -1,7 +1,5 @@
 package org.coralprotocol.coralserver.agent.registry
 
-import io.ktor.client.HttpClient
-import dev.eav.tomlkt.Toml
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
 import org.koin.core.component.KoinComponent
@@ -11,8 +9,6 @@ import kotlin.time.Duration
 
 class AgentRegistrySourceBuilder(private val registry: AgentRegistry) : KoinComponent {
     val logger by inject<Logger>(named(LOGGER_CONFIG))
-    val toml by inject<Toml>()
-    val client by inject<HttpClient>()
     val sources = mutableListOf<AgentRegistrySource>()
 
     fun addSource(source: AgentRegistrySource) {
@@ -21,9 +17,8 @@ class AgentRegistrySourceBuilder(private val registry: AgentRegistry) : KoinComp
 
     suspend fun addMarketplaceSource() {
         try {
-            sources.add(MarketplaceAgentRegistrySource.initialiseMarketplaceAgentRegistrySource(logger, client))
-        }
-        catch (e: Exception) {
+            sources.add(MarketplaceAgentRegistrySource.initialiseMarketplaceAgentRegistrySource())
+        } catch (e: Exception) {
             logger.error(e) { "Error adding marketplace agent registry source" }
         }
     }
