@@ -21,12 +21,12 @@ data class ConsoleConfig(
     /**
      * The version of the console to download, will be appended to [consoleReleaseUrl]
      */
-    val consoleReleaseVersion: String = "0.3.0",
+    val consoleReleaseVersion: String = "0.3.1",
 
     /**
      * The name of the zip bundle in the release
      */
-    val bundleName: String = "bundle.zip",
+    val bundleName: String = "coral-console_$consoleReleaseVersion.zip",
 
     /**
      * If this is true, other folders in [cachePath] that are not relevant to the [consoleReleaseVersion] will be
