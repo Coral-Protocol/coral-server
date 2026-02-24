@@ -11,7 +11,7 @@ import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
+import org.koin.core.component.get
 import java.io.File
 import java.nio.file.Path
 
@@ -48,9 +48,6 @@ data class UnresolvedRegistryAgent(
     val marketplace: RegistryAgentMarketplaceSettings? = null
 ) : KoinComponent {
     companion object : KoinComponent {
-        val toml by inject<Toml>()
-        val client by inject<HttpClient>()
-
         fun resolveFromFile(
             file: File,
             enableFileReferences: Boolean = true,
@@ -60,13 +57,13 @@ data class UnresolvedRegistryAgent(
             registryAgentSerializationContext.set(
                 RegistryAgentSerializationContext(
                     path,
-                    client,
+                    get(),
                     enableFileReferences,
                     enableUrlReferences
                 )
             )
 
-            val agent = toml.decodeFromNativeReader<UnresolvedRegistryAgent>(file.reader()).resolve(
+            val agent = get<Toml>().decodeFromNativeReader<UnresolvedRegistryAgent>(file.reader()).resolve(
                 AgentResolutionContext(
                     registrySourceIdentifier = AgentRegistrySourceIdentifier.Local,
                     path = path
@@ -86,13 +83,13 @@ data class UnresolvedRegistryAgent(
             registryAgentSerializationContext.set(
                 RegistryAgentSerializationContext(
                     null,
-                    client,
+                    get(),
                     enableFileReferences,
                     enableUrlReferences
                 )
             )
 
-            val agent = toml.decodeFromString<UnresolvedRegistryAgent>(string)
+            val agent = get<Toml>().decodeFromString<UnresolvedRegistryAgent>(string)
                 .resolve(AgentResolutionContext(registrySourceIdentifier = AgentRegistrySourceIdentifier.Local))
 
             registryAgentSerializationContext.remove()
