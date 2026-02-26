@@ -59,7 +59,7 @@ class PuppetApiTest : CoralTest({
         )
     }
 
-    test("testPuppetFunctions").config(timeout = 10.seconds) {
+    test("testPuppetFunctions").config(invocationTimeout = 10.seconds) {
         val localSessionManager by inject<LocalSessionManager>()
         val client by inject<HttpClient>()
 
