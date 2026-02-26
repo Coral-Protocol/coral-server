@@ -97,11 +97,11 @@ open class SessionEventsTest : CoralTest({
         session.joinAgents()
     }
 
-    test("testSseSessionEvents").config(timeout = 30.seconds) {
+    test("testSseSessionEvents").config(invocationTimeout = 30.seconds) {
         testSessionEvents(HttpClient::sseFunctionRuntime)
     }
 
-    test("testStreamableHttpSessionEvents").config(timeout = 30.seconds) {
+    test("testStreamableHttpSessionEvents").config(invocationTimeout = 30.seconds) {
         testSessionEvents(HttpClient::streamableHttpFunctionRuntime)
     }
 })

@@ -206,7 +206,7 @@ class SessionApiTest : CoralTest({
         localSessionManager.waitAllSessions()
     }
 
-    test("testSessionTtl").config(timeout = 10.seconds) {
+    test("testSessionTtl").config(invocationTimeout = 10.seconds) {
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
 
@@ -305,7 +305,7 @@ class SessionApiTest : CoralTest({
         ).shouldBeOK().body<SessionStateBase>().status.shouldBeInstanceOf<SessionStatus.Closing>()
     }
 
-    test("testSessionWebhook").config(timeout = 30.seconds) {
+    test("testSessionWebhook").config(invocationTimeout = 30.seconds) {
         val client by inject<HttpClient>()
         val application by inject<Application>()
         val config by inject<NetworkConfig>()
@@ -377,7 +377,7 @@ class SessionApiTest : CoralTest({
         agentStat.annotations.shouldBeEqual(mapOf("agentAnnotation" to "123"))
     }
 
-    test("testCustomTools").config(timeout = 30.seconds) {
+    test("testCustomTools").config(invocationTimeout = 30.seconds) {
         val client by inject<HttpClient>()
         val application by inject<Application>()
         val config by inject<NetworkConfig>()
@@ -509,7 +509,7 @@ class SessionApiTest : CoralTest({
         shouldThrow<SessionException.InvalidNamespace> { localSessionManager.getNamespace(ns1Name) }
     }
 
-    test("testNamespacesWithSessions").config(timeout = 5.seconds) {
+    test("testNamespacesWithSessions").config(invocationTimeout = 5.seconds) {
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
 

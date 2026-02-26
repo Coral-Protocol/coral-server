@@ -19,7 +19,7 @@ import org.koin.core.component.inject
 import kotlin.time.Duration.Companion.seconds
 
 class DebugAgentsTest : CoralTest({
-    test("testSeedDebugAgent").config(timeout = 60.seconds, tags = setOf(NamedTag("noisy"))) {
+    test("testSeedDebugAgent").config(invocationTimeout = 60.seconds, tags = setOf(NamedTag("noisy"))) {
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
 
@@ -50,7 +50,7 @@ class DebugAgentsTest : CoralTest({
         }
     }
 
-    test("testEchoDebugAgent").config(timeout = 30.seconds, tags = setOf(NamedTag("noisy"))) {
+    test("testEchoDebugAgent").config(invocationTimeout = 30.seconds, tags = setOf(NamedTag("noisy"))) {
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
 

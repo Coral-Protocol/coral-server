@@ -76,7 +76,7 @@ class DockerRuntimeTest : CoralTest({
     /**
      * The timeouts for other tests do not account for pull time, so this test must be run first.
      */
-    test("testDockerPull").config(timeout = 60.seconds, enabledIf = ::isDockerAvailable) {
+    test("testDockerPull").config(invocationTimeout = 60.seconds, enabledIf = ::isDockerAvailable) {
         val applicationRuntimeContext by inject<ApplicationRuntimeContext>()
 
         shouldNotThrowAny {
@@ -106,7 +106,7 @@ class DockerRuntimeTest : CoralTest({
         }
     }
 
-    test("testDockerRuntime").config(timeout = 180.seconds, enabledIf = ::isDockerAvailable) {
+    test("testDockerRuntime").config(invocationTimeout = 180.seconds, enabledIf = ::isDockerAvailable) {
         val localSessionManager by inject<LocalSessionManager>()
         val logger by inject<Logger>(named(LOGGER_LOCAL_SESSION))
 
@@ -173,7 +173,7 @@ class DockerRuntimeTest : CoralTest({
         }
     }
 
-    test("testDockerRuntimeCleanup").config(timeout = 30.seconds, enabledIf = ::isDockerAvailable) {
+    test("testDockerRuntimeCleanup").config(invocationTimeout = 30.seconds, enabledIf = ::isDockerAvailable) {
         val localSessionManager by inject<LocalSessionManager>()
         val (session1, _) = localSessionManager.createSession(
             "test", AgentGraph(
