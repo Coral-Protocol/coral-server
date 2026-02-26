@@ -528,7 +528,9 @@ class SessionApiTest : CoralTest({
                     sessionRequest {
                         agentGraphRequest {
                             agent(SeedDebugAgent.identifier) {
-                                option("START_DELAY", AgentOptionValue.UInt(10000u))
+                                option("SEED_THREAD_COUNT", AgentOptionValue.UInt(1u))
+                                option("SEED_MESSAGE_COUNT", AgentOptionValue.UInt(10u))
+                                option("OPERATION_DELAY", AgentOptionValue.UInt(100u))
                             }
                             isolateAllAgents()
                         }
@@ -538,7 +540,16 @@ class SessionApiTest : CoralTest({
             }.shouldBeOK()
         }
 
-        localSessionManager.getNamespace(ns1Name).shouldNotBeNull().sessions.shouldHaveSize(numSessions)
+        val sessions = localSessionManager.getNamespace(ns1Name).shouldNotBeNull().sessions
+        sessions.shouldHaveSize(numSessions)
+
+        // wait for all agents to create a thread in their respect sessions before killing the sessions, avoids
+        // cancelling agents that were mid-connection
+        eventually(1.seconds) {
+            sessions.forAll {
+                it.value.threads.shouldHaveSize(1)
+            }
+        }
 
         // delete should only return after all sessions exit
         client.authenticatedDelete(LocalSessions.Namespace.Existing(namespace = ns1Name)).shouldBeOK()
@@ -569,6 +580,7 @@ class SessionApiTest : CoralTest({
 
     test("testGetNamespaceSessions") {
         val client by inject<HttpClient>()
+        val localSessionManager by inject<LocalSessionManager>()
 
         val nsName = UUID.randomUUID().toString()
         client.authenticatedPost(LocalSessions.Namespace()) {
@@ -585,7 +597,7 @@ class SessionApiTest : CoralTest({
                         sessionRequest {
                             agentGraphRequest {
                                 agent(SeedDebugAgent.identifier) {
-                                    option("START_DELAY", AgentOptionValue.UInt(10000u))
+                                    option("START_DELAY", AgentOptionValue.UInt(200u))
                                 }
                                 isolateAllAgents()
                             }
@@ -620,6 +632,8 @@ class SessionApiTest : CoralTest({
             it.threads.shouldBeEmpty()
             it.agents.shouldHaveSize(1)
         }
+
+        localSessionManager.waitAllSessions()
     }
 
     test("testNamespaceDeleteOnLastSessionExit") {
