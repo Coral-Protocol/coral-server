@@ -60,10 +60,9 @@ data class ExecutableRuntime(
         }
 
         val path = if (existingExecutable.size > 1) {
-            val selectedExecutable = existingExecutable.first()
             executionContext.logger.warn { "\"$path\" matches multiple files: \n" +
-                    " - ${existingExecutable.joinToString("\n - ")}. Selecting first listed." }
-            selectedExecutable.absolutePathString()
+                    " - ${existingExecutable.joinToString("\n - ")}. Selecting first in list." }
+            existingExecutable.first().absolutePathString()
         } else {
             existingExecutable.first().absolutePathString()
         }
