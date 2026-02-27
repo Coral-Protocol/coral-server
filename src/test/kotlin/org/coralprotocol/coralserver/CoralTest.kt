@@ -198,8 +198,10 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                 createEagerInstances()
                             }
 
-
-                            application.coralServerModule(true)
+                            application {
+                                coralServerModule(true)
+                            }
+                            startApplication()
 
                             loadKoinModules(module { single { application } })
 
