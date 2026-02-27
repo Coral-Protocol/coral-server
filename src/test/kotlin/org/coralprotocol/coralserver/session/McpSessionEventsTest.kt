@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.session
 
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.ktor.client.*
 import io.modelcontextprotocol.kotlin.sdk.client.Client
@@ -57,6 +58,8 @@ class McpSessionEventsTest : CoralTest({
                                 ) {
                                     mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput)
                                 }
+
+                                session.getAgent(agent1Name).waiters.value.shouldBeEmpty()
                             })
                         }
                         provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
