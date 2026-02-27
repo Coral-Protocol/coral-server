@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.session
 
+import io.kotest.core.NamedTag
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldNotBeEmpty
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -47,6 +48,7 @@ class McpToolsTest : CoralTest({
                     graphAgentPair(agent1Name) {
                         registryAgent {
                             runtime(client.runtimeProvider(name, version) { client, session ->
+                                val agent1 = session.getAgent(agent1Name)
                                 val agent2 = session.getAgent(agent2Name)
                                 val agent3 = session.getAgent(agent3Name)
 
@@ -110,6 +112,8 @@ class McpToolsTest : CoralTest({
                                         SendMessageInput(createThreadResult.thread.id, mentionText, listOf(agent3Name))
                                     ).message.id
                                 }
+
+                                agent1.waiters.value.shouldBeEmpty()
                             })
                         }
                         provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
@@ -118,6 +122,8 @@ class McpToolsTest : CoralTest({
                     graphAgentPair(agent2Name) {
                         registryAgent {
                             runtime(client.runtimeProvider(name, version) { client, session ->
+                                val agent2 = session.getAgent(agent2Name)
+
                                 val singleMessageResult =
                                     mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput)
                                 singleMessageResult.message?.text shouldBe singleMessageText
@@ -132,6 +138,8 @@ class McpToolsTest : CoralTest({
                                 val mentionResult =
                                     mcpToolManager.waitForMentionTool.executeOn(client, WaitForMentioningMessageInput)
                                 mentionResult.message?.text shouldBe mentionText
+
+                                agent2.waiters.value.shouldBeEmpty()
                             })
                         }
                         provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
@@ -171,6 +179,7 @@ class McpToolsTest : CoralTest({
 
                                 // and now agent3 should have no threads
                                 agent3.getThreads().shouldBeEmpty()
+                                agent3.waiters.value.shouldBeEmpty()
                             })
                         }
                         provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
