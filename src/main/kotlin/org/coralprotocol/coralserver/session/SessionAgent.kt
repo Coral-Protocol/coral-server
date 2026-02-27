@@ -27,7 +27,6 @@ import org.coralprotocol.coralserver.mcp.McpResourceName
 import org.coralprotocol.coralserver.mcp.McpTool
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.session.state.SessionAgentState
-import org.coralprotocol.coralserver.util.ConcurrentMutableList
 import org.coralprotocol.coralserver.x402.X402BudgetedResource
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
@@ -96,10 +95,9 @@ class SessionAgent(
     val links = mutableSetOf<SessionAgent>()
 
     /**
-     * A list of all ongoing waits this agent is performing.  Usually, this will never be more than one at a time.
-     * @see ConcurrentMutableList
+     * A list of all ongoing waits this agent is performing
      */
-    val waiters = ConcurrentMutableList<SessionAgentWaiter>()
+    val waiters = MutableStateFlow<List<SessionAgentWaiter>>(listOf())
 
     /**
      * The full status of this agent.  This is a nested status type: runtime -> connection -> waiting/sleeping/thinking.
@@ -357,7 +355,7 @@ class SessionAgent(
     ): SessionThreadMessage? {
         val msg = withTimeoutOrNull(timeoutMs) {
             val waiter = SessionAgentWaiter(filters)
-            waiters.add(waiter)
+            waiters.update { it + waiter }
 
             logger.info { "waiting for message that matches: ${filters.joinToString(", ")}" }
             session.events.emit(SessionEvent.AgentWaitStart(name, filters))
@@ -439,10 +437,18 @@ class SessionAgent(
     }
 
     /**
-     * Called when a message was posted to a thread that mentioned this agent.
+     * Called when a message was posted in a thread that this agent participates in
      */
-    suspend fun notifyMessage(message: SessionThreadMessage) {
-        waiters.forEach { it.tryMessage(message) }
+    fun notifyMessage(message: SessionThreadMessage) {
+        val matching = mutableListOf<SessionAgentWaiter>()
+        waiters.update { waiters ->
+            val (a, b) = waiters.partition { it.matches(message) }
+            matching.addAll(a)
+
+            b
+        }
+
+        matching.forEach { it.deferred.complete(message) }
     }
 
     /**

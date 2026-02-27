@@ -5,8 +5,5 @@ import kotlinx.coroutines.CompletableDeferred
 class SessionAgentWaiter(val filters: Set<SessionThreadMessageFilter>){
     val deferred = CompletableDeferred<SessionThreadMessage>()
 
-    fun tryMessage(message: SessionThreadMessage) {
-        if (filters.all { it.matches(message) })
-            deferred.complete(message)
-    }
+    fun matches(message: SessionThreadMessage) = filters.all { it.matches(message) }
 }
