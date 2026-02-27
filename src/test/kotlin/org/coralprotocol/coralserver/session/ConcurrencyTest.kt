@@ -54,6 +54,7 @@ class ConcurrencyTest : CoralTest({
 
         // will throw ConcurrentModificationException if participants allow iteration at the same time as writing
         joinAll(participantsWrite, participantsRead)
+        println("participants write/read")
 
         val messagesWrite = launch {
             repeat(iterations) {
@@ -77,5 +78,9 @@ class ConcurrencyTest : CoralTest({
 
         // will throw ConcurrentModificationException if messages allow iteration at the same time as writing
         joinAll(messagesWrite, messagesRead)
+        println("messages write/read")
+
+        // dangling sessions must be canceled for the test coroutine scope to exit
+        session.sessionScope.cancel()
     }
 })

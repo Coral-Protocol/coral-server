@@ -20,6 +20,7 @@ import io.modelcontextprotocol.kotlin.sdk.client.Client
 import io.modelcontextprotocol.kotlin.sdk.client.SseClientTransport
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.ListToolsResult
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -110,6 +111,9 @@ class SessionTest : CoralTest({
         session2.agents["agentA"].shouldNotBeNull().links.shouldNotBeNull().shouldHaveSize(2)
         session2.agents["agentB"].shouldNotBeNull().links.shouldNotBeNull().shouldHaveSize(2)
         session2.agents["agentC"].shouldNotBeNull().links.shouldNotBeNull().shouldHaveSize(2)
+
+        session1.sessionScope.cancel()
+        session2.sessionScope.cancel()
     }
 
     test("testThreads") {
@@ -146,7 +150,7 @@ class SessionTest : CoralTest({
         }
 
         session.threads.shouldHaveSize(2)
-
+        session.sessionScope.cancel()
     }
 
     test("testMessages") {
@@ -200,6 +204,7 @@ class SessionTest : CoralTest({
             agent1.sendMessage("Hello from agent 1", thread2.id)
         }
 
+        session.sessionScope.cancel()
     }
 
     test("testMentions").config(coroutineTestScope = true, tags = setOf(NamedTag("noisy"))) {
@@ -262,6 +267,7 @@ class SessionTest : CoralTest({
             agent1.sendMessage(messageText, thread.id, mentions = setOf("agent2")).id
         }
 
+        session.sessionScope.cancel()
     }
 
     test("testBadSecret") {
@@ -293,6 +299,8 @@ class SessionTest : CoralTest({
                 client.sseHandshake(agent1.secret)
             }.shouldBeNull()
         }
+
+        session1.sessionScope.cancel()
     }
 
     test("testSseChainBlockingTimeout") {
@@ -323,6 +331,8 @@ class SessionTest : CoralTest({
                 client.sseHandshake(agent1.secret)
             }.shouldBeNull()
         }
+
+        session1.sessionScope.cancel()
     }
 
     test("testSseBrokenChainBlockingTimeout") {
@@ -354,6 +364,7 @@ class SessionTest : CoralTest({
             }.shouldNotBeNull()
         }
 
+        session1.sessionScope.cancel()
     }
 
     test("testSseNonBlocking") {
@@ -384,6 +395,8 @@ class SessionTest : CoralTest({
                 client.sseHandshake(agent2.secret)
             }.shouldNotBeNull()
         }
+
+        session1.sessionScope.cancel()
     }
 
     test("testSseMcpTools") {
@@ -439,5 +452,7 @@ class SessionTest : CoralTest({
                     it.name == McpToolName.CLOSE_SESSION.toString()
                 }
         }
+
+        session1.sessionScope.cancel()
     }
 })

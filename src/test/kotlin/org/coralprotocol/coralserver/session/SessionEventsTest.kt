@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.session
 
 import io.ktor.client.*
 import io.modelcontextprotocol.kotlin.sdk.client.Client
+import kotlinx.coroutines.cancel
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
@@ -95,6 +96,7 @@ open class SessionEventsTest : CoralTest({
         }
 
         session.joinAgents()
+        session.sessionScope.cancel()
     }
 
     test("testSseSessionEvents").config(invocationTimeout = 30.seconds) {

@@ -3,6 +3,7 @@
 package org.coralprotocol.coralserver.session
 
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -270,5 +271,7 @@ class LocalSession(
     suspend fun fullLifeCycle() {
         launchAgents()
         joinAgents()
+
+        sessionScope.cancel()
     }
 }
