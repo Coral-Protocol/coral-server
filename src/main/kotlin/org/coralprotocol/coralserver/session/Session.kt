@@ -28,7 +28,7 @@ abstract class Session(parentScope: CoroutineScope, supervisedSessions: Boolean 
     val sessionScope = if (supervisedSessions) {
         CoroutineScope(parentScope.coroutineContext + SupervisorJob(parentScope.coroutineContext[Job]))
     } else {
-        CoroutineScope(parentScope.coroutineContext + Job())
+        CoroutineScope(parentScope.coroutineContext + Job(parentScope.coroutineContext[Job]))
     }
 
     var status: MutableStateFlow<SessionStatus> = MutableStateFlow(SessionStatus.PendingExecution)

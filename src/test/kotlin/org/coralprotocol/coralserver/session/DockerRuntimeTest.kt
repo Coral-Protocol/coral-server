@@ -11,6 +11,7 @@ import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.core.test.TestCase
 import io.kotest.matchers.nulls.shouldNotBeNull
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.withContext
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
@@ -213,5 +214,7 @@ class DockerRuntimeTest : CoralTest({
         ) {
             session1.cancelAndJoinAgents()
         }
+
+        session1.sessionScope.cancel()
     }
 })
