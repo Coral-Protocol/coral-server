@@ -12,6 +12,7 @@ import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.exists
+import kotlin.io.path.extension
 
 @Serializable
 @SerialName("executable")
@@ -26,10 +27,10 @@ data class ExecutableRuntime(
     ) {
         val potentialPaths = buildList {
             // on Windows, if given a path without an extension, try .exe, .cmd and .bat files
-            // on Linux it is expected that a marks files as executables and uses the appropriate shebang to achieve
+            // on Linux it is expected that file is marked as executables and uses the appropriate shebang to achieve
             // this
             val variations = if (isWindows()) {
-                listOf(path, "$path.exe", "$path.cmd", "$path.bat")
+                listOf("$path.exe", "$path.cmd", "$path.bat", path)  // Ordered to prefer more windows-y options
             } else {
                 listOf(path)
             }
@@ -59,8 +60,10 @@ data class ExecutableRuntime(
         }
 
         val path = if (existingExecutable.size > 1) {
-            executionContext.logger.warn { "\"$path\" matches multiple files: \n - ${existingExecutable.joinToString("\n - ")}" }
-            existingExecutable.first().absolutePathString()
+            val selectedExecutable = existingExecutable.first()
+            executionContext.logger.warn { "\"$path\" matches multiple files: \n" +
+                    " - ${existingExecutable.joinToString("\n - ")}. Selecting first listed." }
+            selectedExecutable.absolutePathString()
         } else {
             existingExecutable.first().absolutePathString()
         }
