@@ -1,17 +1,17 @@
 package org.coralprotocol.coralserver.session
 
-import io.kotest.core.NamedTag
-import io.kotest.matchers.collections.shouldHaveSize
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.resources.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.client.request.*
 import io.ktor.websocket.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.consumeEach
-import kotlinx.coroutines.channels.toList
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.debug.SeedDebugAgent
@@ -28,7 +28,6 @@ import org.coralprotocol.coralserver.util.fromWsFrame
 import org.coralprotocol.coralserver.util.map
 import org.coralprotocol.coralserver.utils.TestEvent
 import org.coralprotocol.coralserver.utils.dsl.sessionRequest
-import org.coralprotocol.coralserver.utils.shouldHaveEvents
 import org.coralprotocol.coralserver.utils.shouldPostEventsFromBody
 import org.koin.core.qualifier.named
 import org.koin.test.inject
@@ -36,7 +35,7 @@ import java.util.*
 import kotlin.time.Duration.Companion.seconds
 
 class WebSocketEventTest : CoralTest({
-    test("testSessionEvents").config(tags = setOf(NamedTag("noisy"))) {
+    test("testSessionEvents") {
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
         val json by inject<Json>()
@@ -63,41 +62,47 @@ class WebSocketEventTest : CoralTest({
             )
         }.body()
 
-        val eventsDeferred = CompletableDeferred<List<SessionEvent>>()
-        launch {
-            val url = client.href(
-                Events.WithToken.SessionEvents(
-                    Events.WithToken(token = authToken),
-                    id.namespace,
-                    id.sessionId
-                )
-            )
+        val webSocketJob = this.shouldPostEventsFromBody(
+            timeout = 3.seconds,
+            allowUnexpectedEvents = true,
+            events = buildList<TestEvent<SessionEvent>> {
+                repeat(threadCount.toInt()) { index ->
+                    add(TestEvent("thread $index created") { it is SessionEvent.ThreadCreated })
+                }
 
-            client.webSocket(url) {
-                eventsDeferred.complete(
+                repeat(threadCount.toInt() * messageCount.toInt()) { index ->
+                    add(TestEvent("message $index sent") { it is SessionEvent.ThreadMessageSent })
+                }
+
+                add(TestEvent("runtime stopped") { it is SessionEvent.RuntimeStopped })
+            }.toMutableList()
+        ) { flow ->
+            val wsJob = launch {
+                val url = client.href(
+                    Events.WithToken.SessionEvents(
+                        Events.WithToken(token = authToken),
+                        id.namespace,
+                        id.sessionId
+                    )
+                )
+                client.webSocket(url) {
                     incoming
                         .filterIsInstance<Frame.Text>(this@webSocket)
                         .map(this@webSocket) {
                             it.fromWsFrame<SessionEvent>(json)
                         }
-                        .toList())
+                        .consumeEach {
+                            flow.emit(it)
+                        }
+                }
             }
+
+            wsJob
         }
 
+        webSocketJob.cancelAndJoin()
         localSessionManager.waitAllSessions()
         websocketCoroutineScope.cancel()
-
-        val events = eventsDeferred.await()
-        val threadEvents = events.filterIsInstance<SessionEvent.ThreadCreated>()
-        val messageEvents = events.filterIsInstance<SessionEvent.ThreadMessageSent>()
-        threadEvents.shouldHaveSize(threadCount.toInt())
-        messageEvents.shouldHaveSize(threadCount.toInt() * messageCount.toInt())
-
-        events.shouldHaveEvents(
-            mutableListOf(
-                TestEvent("runtime stopped") { it is SessionEvent.RuntimeStopped },
-            )
-        )
     }
 
     test("testLsmEvents") {
@@ -212,8 +217,7 @@ class WebSocketEventTest : CoralTest({
                 expectedEvents.add(TestEvent("$namespaceName closing") { it is LocalSessionManagerEvent.NamespaceClosed && it.finalState.name == namespaceName })
             }
         }
-
-
+        
         val webSocketJob = this.shouldPostEventsFromBody(
             timeout = 3.seconds,
             events = expectedEvents
