@@ -1,8 +1,10 @@
 package org.coralprotocol.coralserver
 
+import dev.eav.tomlkt.Toml
 import io.kotest.core.NamedTag
 import io.kotest.core.spec.RootTest
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.core.test.config.DefaultTestConfig
 import io.ktor.client.*
 import io.ktor.client.plugins.cookies.*
 import io.ktor.client.plugins.resources.*
@@ -16,7 +18,6 @@ import io.ktor.server.testing.*
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.plus
 import kotlinx.serialization.json.Json
-import dev.eav.tomlkt.Toml
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.config.*
 import org.coralprotocol.coralserver.logging.Logger
@@ -34,10 +35,25 @@ import org.koin.test.KoinTest
 import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
 import java.util.*
+import kotlin.time.Duration.Companion.minutes
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 
 @Suppress("UNCHECKED_CAST")
 abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as FunSpec.() -> Unit) {
+    init {
+        val invocations = 1
+        val invocationTimeout = 10.minutes
+
+        defaultTestConfig = DefaultTestConfig(
+            invocations = invocations,
+            invocationTimeout = invocationTimeout,
+
+            // the default max timeout is 10 minutes, for stress tests this should be increased to a number large
+            // enough to encompass all invocations
+            timeout = invocationTimeout * invocations
+        )
+    }
+
     val authToken = UUID.randomUUID().toString()
     val unitTestSecret = UUID.randomUUID().toString()
     val logBufferSize = 1024

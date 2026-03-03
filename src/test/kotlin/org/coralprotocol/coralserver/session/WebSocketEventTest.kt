@@ -217,7 +217,7 @@ class WebSocketEventTest : CoralTest({
                 expectedEvents.add(TestEvent("$namespaceName closing") { it is LocalSessionManagerEvent.NamespaceClosed && it.finalState.name == namespaceName })
             }
         }
-        
+
         val webSocketJob = this.shouldPostEventsFromBody(
             timeout = 3.seconds,
             events = expectedEvents
