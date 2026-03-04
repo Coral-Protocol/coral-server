@@ -42,7 +42,7 @@ data class StringAgentOptionValidation(
         if (regex != null && !value.matches(Regex(regex)))
             throw AgentOptionValidationException("Value $value does not match the regex pattern '$regex'")
 
-        if (variants != null && !variants.isEmpty() && !variants.contains(value))
+        if (!variants.isNullOrEmpty() && !variants.contains(value))
             throw AgentOptionValidationException("Value $value is not a valid variant.  Valid variants are: ${variants.joinToString(",")})")
     }
 }
@@ -79,77 +79,77 @@ abstract class NumericAgentOptionValidation<T: Comparable<T>> {
             throw AgentOptionValidationException("Value $value is greater than the maximum value $max")
 
         val variants = variants
-        if (variants != null && !variants.isEmpty() && !variants.contains(value))
+        if (!variants.isNullOrEmpty() && !variants.contains(value))
             throw AgentOptionValidationException("Value $value is not a valid variant.  Valid variants are: ${variants.joinToString(",")})")
     }
 }
 
 @Serializable
 data class ByteAgentOptionValidation(
-    override val variants: List<Byte>?,
-    override val min: Byte?,
-    override val max: Byte?
+    override val variants: List<Byte>? = null,
+    override val min: Byte? = null,
+    override val max: Byte? = null
 ) : NumericAgentOptionValidation<Byte>()
 
 @Serializable
 data class ShortAgentOptionValidation(
-    override val variants: List<Short>?,
-    override val min: Short?,
-    override val max: Short?
+    override val variants: List<Short>? = null,
+    override val min: Short? = null,
+    override val max: Short? = null
 ) : NumericAgentOptionValidation<Short>()
 
 @Serializable
 data class IntAgentOptionValidation(
-    override val variants: List<Int>?,
-    override val min: Int?,
-    override val max: Int?
+    override val variants: List<Int>? = null,
+    override val min: Int? = null,
+    override val max: Int? = null
 ) : NumericAgentOptionValidation<Int>()
 
 @Serializable
 data class LongAgentOptionValidation(
-    override val variants: List<Long>?,
-    override val min: Long?,
-    override val max: Long?
+    override val variants: List<Long>? = null,
+    override val min: Long? = null,
+    override val max: Long? = null
 ) : NumericAgentOptionValidation<Long>()
 
 @Serializable
 data class UByteAgentOptionValidation(
-    override val variants: List<UByte>?,
-    override val min: UByte?,
-    override val max: UByte?
+    override val variants: List<UByte>? = null,
+    override val min: UByte? = null,
+    override val max: UByte? = null
 ) : NumericAgentOptionValidation<UByte>()
 
 @Serializable
 data class UShortAgentOptionValidation(
-    override val variants: List<UShort>?,
-    override val min: UShort?,
-    override val max: UShort?
+    override val variants: List<UShort>? = null,
+    override val min: UShort? = null,
+    override val max: UShort? = null
 ) : NumericAgentOptionValidation<UShort>()
 
 @Serializable
 data class UIntAgentOptionValidation(
-    override val variants: List<UInt>?,
-    override val min: UInt?,
-    override val max: UInt?
+    override val variants: List<UInt>? = null,
+    override val min: UInt? = null,
+    override val max: UInt? = null
 ) : NumericAgentOptionValidation<UInt>()
 
 @Serializable
 data class ULongAgentOptionValidation(
-    override val variants: List<ULong>?,
-    override val min: ULong?,
-    override val max: ULong?
+    override val variants: List<ULong>? = null,
+    override val min: ULong? = null,
+    override val max: ULong? = null
 ) : NumericAgentOptionValidation<ULong>()
 
 @Serializable
 data class FloatAgentOptionValidation(
-    override val variants: List<Float>?,
-    override val min: Float?,
-    override val max: Float?
+    override val variants: List<Float>? = null,
+    override val min: Float? = null,
+    override val max: Float? = null
 ) : NumericAgentOptionValidation<Float>()
 
 @Serializable
 data class DoubleAgentOptionValidation(
-    override val variants: List<Double>?,
-    override val min: Double?,
-    override val max: Double?
+    override val variants: List<Double>? = null,
+    override val min: Double? = null,
+    override val max: Double? = null
 ) : NumericAgentOptionValidation<Double>()

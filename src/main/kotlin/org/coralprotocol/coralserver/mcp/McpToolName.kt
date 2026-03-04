@@ -9,17 +9,14 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 enum class McpToolName {
-    @SerialName("coral_add_participant")
-    ADD_PARTICIPANT,
+    @SerialName("coral_create_thread")
+    CREATE_THREAD,
 
     @SerialName("coral_close_thread")
     CLOSE_THREAD,
 
-    @SerialName("coral_create_thread")
-    CREATE_THREAD,
-
-    @SerialName("coral_list_agents")
-    LIST_AGENTS,
+    @SerialName("coral_add_participant")
+    ADD_PARTICIPANT,
 
     @SerialName("coral_remove_participant")
     REMOVE_PARTICIPANT,
@@ -27,8 +24,14 @@ enum class McpToolName {
     @SerialName("coral_send_message")
     SEND_MESSAGE,
 
-    @SerialName("coral_wait_for_mentions")
-    WAIT_FOR_MENTIONS,
+    @SerialName("coral_wait_for_message")
+    WAIT_FOR_MESSAGE,
+
+    @SerialName("coral_wait_for_mention")
+    WAIT_FOR_MENTION,
+
+    @SerialName("coral_wait_for_agent")
+    WAIT_FOR_AGENT,
 
     @SerialName("coral_close_session")
     CLOSE_SESSION;

@@ -1,21 +1,28 @@
 package org.coralprotocol.coralserver.agent.registry
 
-import io.github.smiley4.schemakenerator.core.annotations.Description
+import io.github.smiley4.schemakenerator.core.annotations.Optional
+import io.github.smiley4.schemakenerator.core.annotations.Required
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class RegistryAgentInfo(
-    @Description("The name of the agent, this should be as unique as possible")
-    val name: String,
+    val capabilities: Set<AgentCapability>,
+    val identifier: RegistryAgentIdentifier,
 
-    @Description("The version of the agent, try to follow semantic versioning")
-    val version: String,
+    val description: String,
+    val readme: String,
+    val summary: String,
 
-    @Description("A full description of the agent, this description will be given to other agents to describe this agent's responsibilities, abilities and behaviours")
-    val description: String? = null,
+    /**
+     * The default license here applies only to debug agents and tests.  The license field must be specified in real
+     * agents.
+     */
+    @Required
+    val license: RegistryAgentLicense = RegistryAgentLicense.Spdx("MIT"),
 
-    @Description("A list of agent capabilities, for example the ability to refresh MCP resources")
-    val capabilities: Set<AgentCapability> = setOf(),
-) {
-    val identifier: AgentRegistryIdentifier = AgentRegistryIdentifier(name, version)
-}
+    @Optional
+    val keywords: Set<String> = setOf(),
+
+    @Optional
+    val links: Map<String, String> = mapOf(),
+)

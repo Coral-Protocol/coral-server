@@ -47,17 +47,16 @@ class RemoteSession(
     /**
      * The wallet address of the client in this transaction (they are paying for the agent in this remote session)
      */
-    val clientWalletAddress: String
-): Session() {
+    val clientWalletAddress: String,
+
+    remoteSessionManager: RemoteSessionManager,
+
+    override val annotations: Map<String, String>
+) : Session(remoteSessionManager.managementScope) {
     private val lifecycle = CompletableDeferred<SessionCloseMode>()
 
     suspend fun connectMcpTransport(transport: SseServerTransport): SessionCloseMode {
         deferredMcpTransport.complete(transport)
         return lifecycle.await()
-    }
-
-    override suspend fun destroy(sessionCloseMode: SessionCloseMode) {
-        super.destroy(sessionCloseMode)
-        lifecycle.complete(sessionCloseMode)
     }
 }

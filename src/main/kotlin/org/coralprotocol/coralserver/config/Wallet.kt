@@ -6,6 +6,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
+import org.coralprotocol.payment.blockchain.models.SignerConfig
 
 enum class SolanaCluster(val rpcUrl: String) {
     MAIN_NET("https://api.mainnet-beta.solana.com"),
@@ -26,6 +27,8 @@ sealed interface Wallet {
     val rpcUrl: String
     val name: String
 
+    val signerConfig: SignerConfig
+
     @Serializable
     @Suppress("SpellCheckingInspection")
     @SerialName("crossmint-solana")
@@ -43,6 +46,13 @@ sealed interface Wallet {
         override val walletAddress: String,
     ) : Wallet {
         override val rpcUrl: String = cluster.rpcUrl
+        override val signerConfig: SignerConfig
+            get() = SignerConfig.Crossmint(
+                apiKey = apiKey,
+                walletAddress = walletAddress,
+                useStaging = cluster != SolanaCluster.MAIN_NET,
+                deviceKeypairPath = keypairPath
+            )
     }
 
     @Serializable
@@ -58,5 +68,9 @@ sealed interface Wallet {
         override val walletAddress: String,
     ) : Wallet {
         override val rpcUrl: String = cluster.rpcUrl
+        override val signerConfig: SignerConfig
+            get() = SignerConfig.File(
+                path = keypairPath
+            )
     }
 }

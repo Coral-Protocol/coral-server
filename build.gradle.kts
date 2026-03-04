@@ -1,3 +1,4 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.kotlin.dsl.invoke
 
 plugins {
@@ -26,8 +27,6 @@ repositories {
     }
 
     maven("https://github.com/CaelumF/koog/raw/master/maven-repo")
-
-    maven("https://repo.repsy.io/mvn/chrynan/public")
     maven("https://github.com/CaelumF/schema-kenerator/raw/develop/maven-repo")
     maven {
         url = uri("https://coral-protocol.github.io/coral-escrow-distribution/")
@@ -37,59 +36,44 @@ repositories {
 dependencies {
     testImplementation(kotlin("test"))
     implementation("org.coralprotocol.payment:blockchain:0.1.1:all")
-    implementation("io.modelcontextprotocol:kotlin-sdk:0.6.0") {}
-    implementation("io.github.oshai:kotlin-logging-jvm:7.0.3")
+    implementation("io.modelcontextprotocol:kotlin-sdk:0.8.3") {}
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
-    implementation("com.charleskorn.kaml:kaml:0.78.0") // YAML serialization
-    implementation("io.github.pdvrieze.xmlutil:core:0.91.0") // XML serialization
-    implementation("io.github.pdvrieze.xmlutil:serialization:0.91.0")
-    implementation("io.github.pdvrieze.xmlutil:core-jdk:0.91.0")
-    implementation("io.github.pdvrieze.xmlutil:serialization-jvm:0.91.0")
-    implementation("ch.qos.logback:logback-classic:1.5.18")
+    implementation("ch.qos.logback:logback-classic:1.5.24")
     implementation("org.fusesource.jansi:jansi:2.4.2")
     implementation("com.github.sya-ri:kgit:1.1.0")
+    implementation("com.github.pgreze:kotlin-process:1.5.1")
+    implementation("io.github.z4kn4fein:semver:3.0.0")
+    implementation("me.saket.bytesize:bytesize:2.1.0")
 
-    val dockerVersion = "3.6.0"
+    val dockerVersion = "3.7.0"
     implementation("com.github.docker-java:docker-java:$dockerVersion")
     implementation("com.github.docker-java:docker-java-transport-httpclient5:$dockerVersion")
 
-    // Hoplite for configuration
-    implementation("com.sksamuel.hoplite:hoplite-core:2.9.0")
-    implementation("com.sksamuel.hoplite:hoplite-yaml:2.9.0")
-
-    val ktorVersion = "3.0.2"
+    val ktorVersion = "3.3.3"
     implementation(enforcedPlatform("io.ktor:ktor-bom:$ktorVersion"))
     implementation("io.ktor:ktor-server-status-pages:${ktorVersion}")
-
-    val uriVersion = "0.5.0"
-    implementation("com.chrynan.uri.core:uri-core:$uriVersion")
-    implementation("com.chrynan.uri.core:uri-ktor-client:$uriVersion")
-
-    // Ktor testing dependencies
+    implementation("io.ktor:ktor-server-auth:${ktorVersion}")
+    implementation("io.ktor:ktor-server-call-logging:${ktorVersion}")
     testImplementation("io.ktor:ktor-server-test-host")
-    testImplementation("io.ktor:ktor-client-mock")
-    val arcVersion = "0.126.0"
-    // Arc agents for E2E tests
-    testImplementation("io.mockk:mockk:1.14.2")
 
     // kotest
-    val kotestVersion = "6.0.1"
+    val kotestVersion = "6.0.7"
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
     testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
+    testImplementation("io.kotest:kotest-assertions-ktor:${kotestVersion}")
     testImplementation("io.kotest:kotest-property:$kotestVersion")
 
     // Ktor client dependencies
+    implementation("io.ktor:ktor-client-core:$ktorVersion")
     implementation("io.ktor:ktor-client-logging")
     implementation("io.ktor:ktor-client-content-negotiation")
     implementation("io.ktor:ktor-client-cio-jvm")
     implementation("io.ktor:ktor-client-websockets")
     implementation("io.ktor:ktor-serialization-kotlinx-json")
-    implementation("io.ktor:ktor-client-plugins")
-    implementation("io.ktor:ktor-client-resources")
-
-    implementation("net.pwall.json:json-kotlin-schema:0.56")
+    implementation("io.ktor:ktor-client-resources:$ktorVersion")
 
     // Ktor server dependencies
     implementation("io.ktor:ktor-server-core")
@@ -100,15 +84,14 @@ dependencies {
     implementation("io.ktor:ktor-server-content-negotiation")
     implementation("io.ktor:ktor-server-resources")
     implementation("io.ktor:ktor-serialization-kotlinx-json")
+    implementation("io.ktor:ktor-server-websockets:${ktorVersion}")
     testImplementation("io.ktor:ktor-server-core")
     testImplementation("io.ktor:ktor-server-cio")
     testImplementation("io.ktor:ktor-server-sse")
     testImplementation("io.ktor:ktor-server-test-host")
 
-    implementation("com.eygraber:uri-kmp:0.0.20")
-
     // TOML serialization
-    implementation("net.peanuuutz.tomlkt:tomlkt:0.5.0")
+    implementation("dev.eav.tomlkt:tomlkt:0.6.0")
 
     // OpenAPI
     val ktorToolsVersion = "5.2.0"
@@ -116,21 +99,30 @@ dependencies {
     implementation("io.github.smiley4:ktor-redoc:${ktorToolsVersion}")
 
     val schemaVersion = "2.4.0.1"
-    implementation("io.github.smiley4:schema-kenerator-core:${schemaVersion}")
-    implementation("io.github.smiley4:schema-kenerator-serialization:${schemaVersion}")
-    implementation("io.github.smiley4:schema-kenerator-swagger:${schemaVersion}")
+    implementation("io.github.smiley4:schema-kenerator-core:$schemaVersion")
+    implementation("io.github.smiley4:schema-kenerator-serialization:$schemaVersion")
+    implementation("io.github.smiley4:schema-kenerator-swagger:$schemaVersion")
+    implementation("io.github.smiley4:schema-kenerator-jsonschema:$schemaVersion")
 
-    val koogVersion = "0.3.0.4" // Custom temp version from fork on CaelumF/koog
-    testImplementation("ai.koog:koog-agents:$koogVersion") {
-        exclude("io.modelcontextprotocol")
-    }
-    testImplementation("ai.koog:agents-mcp:$koogVersion") {
-        exclude("io.modelcontextprotocol")
-    }
-}
+    // koin
+    val koinVersion = "4.2.0-beta2"
+    implementation(platform("io.insert-koin:koin-bom:$koinVersion"))
+    implementation("io.insert-koin:koin-core")
+    implementation("io.insert-koin:koin-ktor")
+    implementation("io.insert-koin:koin-test")
+
+    // hoplite
+    val hopliteVersion = "2.9.0"
+    implementation("com.sksamuel.hoplite:hoplite-core:${hopliteVersion}")
+    implementation("com.sksamuel.hoplite:hoplite-toml:${hopliteVersion}")}
 
 tasks.test {
     useJUnitPlatform()
+    testLogging {
+        exceptionFormat = TestExceptionFormat.FULL
+        showExceptions = true
+        showStandardStreams = true
+    }
 }
 
 tasks.jar {

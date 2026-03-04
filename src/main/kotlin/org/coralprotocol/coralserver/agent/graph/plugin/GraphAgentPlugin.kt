@@ -6,21 +6,24 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
-import org.coralprotocol.coralserver.mcp.addMcpTool
-import org.coralprotocol.coralserver.server.CoralAgentIndividualMcp
-import org.coralprotocol.coralserver.mcp.tools.optional.CloseSessionTool as CloseSessionMcpTool
+import org.coralprotocol.coralserver.mcp.McpToolManager
+import org.coralprotocol.coralserver.session.SessionAgent
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 @Serializable
 @JsonClassDiscriminator("type")
-sealed interface GraphAgentPlugin {
-    fun install(mcpServer: CoralAgentIndividualMcp)
+sealed interface GraphAgentPlugin : KoinComponent {
+    fun install(agent: SessionAgent)
 
     @Serializable
     @SerialName("close_session_tool")
     @Suppress("unused")
     object CloseSessionTool : GraphAgentPlugin {
-        override fun install(mcpServer: CoralAgentIndividualMcp) {
-            mcpServer.addMcpTool(CloseSessionMcpTool())
+        private val mcpToolManager by inject<McpToolManager>()
+
+        override fun install(agent: SessionAgent) {
+            agent.addMcpTool(mcpToolManager.closeSessionTool)
         }
     }
 }

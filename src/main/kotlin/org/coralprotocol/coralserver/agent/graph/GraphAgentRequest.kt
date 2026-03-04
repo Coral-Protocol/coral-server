@@ -1,54 +1,60 @@
 package org.coralprotocol.coralserver.agent.graph
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
-import kotlinx.serialization.SerialName
+import io.github.smiley4.schemakenerator.core.annotations.Optional
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
 import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
-import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
-import org.coralprotocol.coralserver.agent.registry.RegistryException
+import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.compareTypeWithValue
 import org.coralprotocol.coralserver.agent.registry.option.requireValue
 import org.coralprotocol.coralserver.agent.registry.option.withValue
+import org.coralprotocol.coralserver.session.SessionResource
 import org.coralprotocol.coralserver.x402.X402BudgetedResource
 
 @Serializable
 @Description("A request for an agent.  GraphAgentRequest -> GraphAgent")
 data class GraphAgentRequest(
     @Description("The ID of this agent in the registry")
-    val id: AgentRegistryIdentifier,
+    val id: RegistryAgentIdentifier,
 
     @Description("A given name for this agent in the session/group")
     val name: String,
 
     @Description("An optional override for the description of this agent")
-    val description: String?,
+    val description: String? = null,
 
     @Description("The arguments to pass to the agent")
-    val options: Map<String, AgentOptionValue>,
+    @Optional
+    val options: Map<String, AgentOptionValue> = mapOf(),
 
     @Description("The system prompt/developer text/preamble passed to the agent")
-    val systemPrompt: String?,
+    val systemPrompt: String? = null,
 
     @Description("All blocking agents in a group must be instantiated before the group can communicate.  Non-blocking agents' contributions to groups are optional")
-    val blocking: Boolean?,
+    val blocking: Boolean? = null,
 
     @Description("A list of custom tools that this agent can access.  The custom tools must be defined in the parent AgentGraphRequest object")
-    val customToolAccess: Set<String>,
+    @Optional
+    val customToolAccess: Set<String> = setOf(),
 
-    @Description("Optional Coral features that this agent should have access to")
-    @SerialName("coralPlugins")
-    val plugins: Set<GraphAgentPlugin>,
+    @Description("Plugins that should be installed on this agent.  See GraphAgentPlugin for more information")
+    @Optional
+    val plugins: Set<GraphAgentPlugin> = setOf(),
 
     @Description("The server that should provide this agent and the runtime to use")
     val provider: GraphAgentProvider,
 
     @Description("An optional list of resources and an accompanied budget that this agent may spend on services that accept x402 payments")
+    @Optional
     val x402Budgets: List<X402BudgetedResource> = listOf(),
-) {
+
+    @Optional
+    override val annotations: Map<String, String> = mapOf(),
+) : SessionResource {
     /**
      * Given a reference to the agent registry [AgentRegistry], this function will attempt to convert this request into
      * a [GraphAgent].  If [isRemote] is true, this function will ensure the [provider] is [GraphAgentProvider.Local]
@@ -56,9 +62,15 @@ data class GraphAgentRequest(
      *
      * @throws IllegalArgumentException if the agent registry cannot be resolved.
      */
-    fun toGraphAgent(registry: AgentRegistry, isRemote: Boolean = false): GraphAgent {
-        val registryAgent = registry.findAgent(id)
-            ?: throw AgentRequestException("Agent $id not found in registry")
+    suspend fun toGraphAgent(
+        registry: AgentRegistry,
+        isRemote: Boolean = false,
+        customTools: Map<String, GraphAgentTool> = mapOf()
+    ): GraphAgent {
+        val restrictedRegistryAgent = registry.resolveAgent(id)
+        restrictedRegistryAgent.restrictions.forEach { it.requireNotRestricted(this) }
+
+        val registryAgent = restrictedRegistryAgent.registryAgent
 
         // It is an error to specify unknown options
         val unknownOptions = options.filter { !registryAgent.options.containsKey(it.key) }
@@ -78,8 +90,7 @@ data class GraphAgentRequest(
         allOptions.forEach { (optionName, optionValue) ->
             try {
                 optionValue.requireValue()
-            }
-            catch (e: AgentOptionValidationException) {
+            } catch (e: AgentOptionValidationException) {
                 throw AgentRequestException("Value given for option \"$optionName\" is invalid: ${e.message}")
             }
         }
@@ -89,6 +100,7 @@ data class GraphAgentRequest(
         allOptions += if (isRemote) {
             val runtime = when (provider) {
                 is GraphAgentProvider.Local -> provider.runtime
+                is GraphAgentProvider.Linked -> provider.runtime
 
                 // Don't allow a remote request that requests another remote request
                 is GraphAgentProvider.RemoteRequest, is GraphAgentProvider.Remote -> {
@@ -103,8 +115,7 @@ data class GraphAgentRequest(
                     registryAgent.options[it.key]!!.withValue(it.value)
                 }
                 ?: throw AgentRequestException("Runtime $runtime is not exported by agent $id")
-        }
-        else {
+        } else {
             mapOf()
         }
 
@@ -120,10 +131,11 @@ data class GraphAgentRequest(
             options = allOptions,
             systemPrompt = systemPrompt,
             blocking = blocking,
-            customToolAccess = customToolAccess,
+            customTools = customTools.filterKeys { customToolAccess.contains(it) },
             plugins = plugins,
             provider = provider,
             x402Budgets = x402Budgets,
+            annotations = annotations
         )
     }
 }
