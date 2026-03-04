@@ -2,7 +2,6 @@
 
 package org.coralprotocol.coralserver.agent.registry
 
-import dev.eav.tomlkt.Toml
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.debounce
@@ -81,7 +80,6 @@ class FileAgentRegistrySource(
     )
 
     private val logger by inject<Logger>(named(LOGGER_CONFIG))
-    private val toml by inject<Toml>()
     private val loadedAgentFiles = ConcurrentHashMap.newKeySet<String>()
     private val deletionWatchers = ConcurrentHashMap.newKeySet<String>()
     private val watchJobs = ConcurrentHashMap<WatchJobKey, Job>()
