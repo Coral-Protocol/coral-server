@@ -29,7 +29,7 @@ data class ExecutableRuntime(
             // on Linux it is expected that a marks files as executables and uses the appropriate shebang to achieve
             // this
             val variations = if (isWindows()) {
-                listOf(path, "$path.exe", "$path.cmd", "$path.bat")
+                listOf("$path.exe", "$path.cmd", "$path.bat", path)
             } else {
                 listOf(path)
             }
