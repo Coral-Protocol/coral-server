@@ -21,7 +21,7 @@ data class ConsoleConfig(
     /**
      * The version of the console to download, will be appended to [consoleReleaseUrl]
      */
-    val consoleReleaseVersion: String = "0.3.1",
+    val consoleReleaseVersion: String = "0.3.2",
 
     /**
      * The name of the zip bundle in the release
