@@ -1,129 +1,93 @@
 package org.coralprotocol.coralserver.agent.runtime
 
-import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.newFixedThreadPoolContext
-import kotlinx.coroutines.withContext
+import com.github.pgreze.process.Redirect
+import com.github.pgreze.process.process
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import org.coralprotocol.coralserver.EventBus
-import org.coralprotocol.coralserver.agent.registry.option.*
-import org.coralprotocol.coralserver.config.AddressConsumer
-import org.coralprotocol.coralserver.session.models.SessionAgentState
+import org.coralprotocol.coralserver.logging.LoggingTag
+import org.coralprotocol.coralserver.logging.LoggingTagIo
+import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
+import org.coralprotocol.coralserver.util.isWindows
 import java.io.File
 import java.nio.file.Path
-import java.util.concurrent.TimeUnit
-import kotlin.collections.set
-import kotlin.concurrent.thread
-import kotlin.io.path.writeText
-
-private val logger = KotlinLogging.logger {}
+import kotlin.io.path.absolutePathString
+import kotlin.io.path.exists
 
 @Serializable
 @SerialName("executable")
 data class ExecutableRuntime(
-    val command: List<String>
-) : Orchestrate {
-    override fun spawn(
-        params: RuntimeParams,
-        bus: EventBus<RuntimeEvent>,
+    val path: String,
+    val arguments: List<String> = listOf(),
+    override val transport: AgentRuntimeTransport = DEFAULT_AGENT_RUNTIME_TRANSPORT,
+) : AgentRuntime {
+    override suspend fun execute(
+        executionContext: SessionAgentExecutionContext,
         applicationRuntimeContext: ApplicationRuntimeContext
-    ): OrchestratorHandle {
-        val agentLogger = KotlinLogging.logger("ExecutableRuntime:${params.agentName}")
+    ) {
+        val potentialPaths = buildList {
+            // on Windows, if given a path without an extension, try .exe, .cmd and .bat files
+            // on Linux it is expected that a marks files as executables and uses the appropriate shebang to achieve
+            // this
+            val variations = if (isWindows()) {
+                listOf("$path.exe", "$path.cmd", "$path.bat", path)
+            } else {
+                listOf(path)
+            }
 
-        val processBuilder = ProcessBuilder()
-        processBuilder.directory(params.path.toFile())
-        val processEnvironment = processBuilder.environment()
+            for (variation in variations) {
+                val path = Path.of(variation)
 
-        val apiUrl = applicationRuntimeContext.getApiUrl(AddressConsumer.LOCAL)
-        val mcpUrl = applicationRuntimeContext.getMcpUrl(params, AddressConsumer.LOCAL)
+                // specifying an absolute path has the highest priority
+                if (path.isAbsolute)
+                    add(path)
 
-        val coralEnvs = getCoralSystemEnvs(
-            params = params,
-            apiUrl = apiUrl,
-            mcpUrl = mcpUrl,
-            orchestrationRuntime = "executable"
+                // relative to coral-agent.toml comes next
+                if (executionContext.path != null)
+                    add(executionContext.path.resolve(path))
+
+                // then on PATH
+                System.getenv("PATH").split(File.pathSeparator).forEach {
+                    add(Path.of(it).resolve(path))
+                }
+            }
+        }
+
+        val existingExecutable = potentialPaths.filter { it.exists() && it.toFile().canExecute() }
+        if (existingExecutable.isEmpty()) {
+            executionContext.logger.error { "no executables found with given path \"$path\"" }
+            return
+        }
+
+        val path = if (existingExecutable.size > 1) {
+            executionContext.logger.warn { "\"$path\" matches multiple files: \n - ${existingExecutable.joinToString("\n - ")}" }
+            existingExecutable.first().absolutePathString()
+        } else {
+            existingExecutable.first().absolutePathString()
+        }
+
+        val argumentString = if (arguments.isNotEmpty()) {
+            " with arguments: \"${arguments.joinToString(" ")}\""
+        } else {
+            ""
+        }
+
+        executionContext.logger.info { "Executing \"$path\"$argumentString" }
+
+        val result = process(
+            command = (listOf(path) + arguments).toTypedArray(),
+            directory = executionContext.path?.toFile(),
+            stdout = Redirect.Consume {
+                it.collect { line -> executionContext.logger.info(LoggingTag.Io(LoggingTagIo.OUT)) { line } }
+            },
+            stderr = Redirect.Consume {
+                it.collect { line -> executionContext.logger.warn(LoggingTag.Io(LoggingTagIo.ERROR)) { line } }
+            },
+            env = executionContext.buildEnvironment(transport)
         )
 
-        // Send options to executable BEFORE setting Coral environment variables.  If a user erroneously created options
-        // for their agent that use the same name as Coral envs and used the "env" transport, they should not override
-        // real Coral envs ...
-        val tempFiles = mutableListOf<Path>()
-        params.options.forEach { (name, value) ->
-            @Suppress("DuplicatedCode")
-            when (value.option().transport) {
-                AgentOptionTransport.ENVIRONMENT_VARIABLE -> {
-                    processEnvironment[name] = value.asEnvVarValue()
-                    logger.info { "Setting option \"$name\" = \"${value.toDisplayString()}\" for agent ${params.agentName}" }
-                }
-                AgentOptionTransport.FILE_SYSTEM -> {
-                    val files = value.asFileSystemValue()
-                    val env = files.joinToString(File.pathSeparator) { it.toAbsolutePath().toString() }
-                    processEnvironment[name] = env
-                    tempFiles.addAll(files)
-
-                    logger.info { "Setting option \"$name\" = \"$env\" for agent ${params.agentName}" }
-                }
-            }
-        }
-
-        // ... which are set here
-        for (env in coralEnvs) {
-            processEnvironment[env.key] = env.value
-        }
-
-        processBuilder.command(command)
-
-        logger.info { "spawning process..." }
-        val process = processBuilder.start()
-
-        // TODO (alan): re-evaluate this when it becomes a bottleneck
-
-        thread(isDaemon = true) {
-            process.waitFor()
-            bus.emit(RuntimeEvent.Stopped())
-            logger.warn {"Process exited for Agent ${params.agentName}"};
-
-            when (params) {
-                is RuntimeParams.Local -> params.session.setAgentState(params.agentName, SessionAgentState.Dead)
-                is RuntimeParams.Remote -> {
-                    // we don't have the responsibility of marking remote agennt's states
-                }
-            }
-        }
-
-        thread(isDaemon = true) {
-            val reader = process.inputStream.bufferedReader()
-            reader.forEachLine { line ->
-                run {
-                    bus.emit(RuntimeEvent.Log(kind = LogKind.STDOUT, message = line))
-                    agentLogger.info { line }
-                }
-            }
-        }
-        thread(isDaemon = true) {
-            val reader = process.errorStream.bufferedReader()
-            reader.forEachLine { line ->
-                run {
-                    bus.emit(RuntimeEvent.Log(kind = LogKind.STDERR, message = line))
-                    agentLogger.warn { line }
-                }
-            }
-        }
-
-        return object : OrchestratorHandle(tempFiles) {
-            override suspend fun cleanup() {
-                withContext(processContext) {
-                    process.destroy()
-                    process.waitFor(30, TimeUnit.SECONDS)
-                    process.destroyForcibly()
-                    logger.info { "Process exited" }
-                }
-            }
-        }
-
+        if (result.resultCode != 0) {
+            executionContext.logger.warn { "exited with code ${result.resultCode}" }
+        } else
+            executionContext.logger.info { "exited with code 0" }
     }
 }
-
-@OptIn(DelicateCoroutinesApi::class)
-val processContext = newFixedThreadPoolContext(10, "processContext")

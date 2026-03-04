@@ -7,9 +7,9 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
-import org.coralprotocol.coralserver.server.RouteException
-import org.coralprotocol.coralserver.server.apiJsonConfig
+import org.coralprotocol.coralserver.routes.RouteException
 
 @Serializable
 private class Price(
@@ -24,7 +24,7 @@ private class Price(
     val priceChange24h: Double? = null
 )
 
-class JupiterService {
+class JupiterService(private val json: Json) {
     private var lastUpdate: Long? = null
     private var lastPrice: Price? = null
 
@@ -43,8 +43,11 @@ class JupiterService {
             throw RouteException(response.status, "Unexpected response from Jupiter API")
         }
 
-        val price = apiJsonConfig.decodeFromString<Map<String, Price>>(response.bodyAsText())[CORAL_MAINNET_MINT]
-            ?: throw RouteException(HttpStatusCode.BadRequest, "Jupiter did not provide a conversion for $CORAL_MAINNET_MINT")
+        val price = json.decodeFromString<Map<String, Price>>(response.bodyAsText())[CORAL_MAINNET_MINT]
+            ?: throw RouteException(
+                HttpStatusCode.BadRequest,
+                "Jupiter did not provide a conversion for $CORAL_MAINNET_MINT"
+            )
 
         lastPrice = price
         lastUpdate = System.currentTimeMillis()
@@ -57,12 +60,10 @@ class JupiterService {
         val lastUpdate = this.lastUpdate
         return if (lastPrice == null) {
             fetchPrice()
-        }
-        else {
+        } else {
             if (lastUpdate == null || lastUpdate + 6000 < System.currentTimeMillis()) {
                 fetchPrice()
-            }
-            else {
+            } else {
                 lastPrice
             }
         }

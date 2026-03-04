@@ -1,13 +1,17 @@
 package org.coralprotocol.coralserver.session
 
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.coralprotocol.coralserver.payment.PaymentSessionId
+import org.koin.core.component.KoinComponent
 
 typealias SessionId = String
 
-abstract class Session {
+
+abstract class Session(parentScope: CoroutineScope, supervisedSessions: Boolean = true) : KoinComponent,
+    SessionResource {
     /**
      * Unique ID for this session, passed to agents
      */
@@ -21,17 +25,11 @@ abstract class Session {
     /**
      * Coroutine scope for this session
      */
-    val coroutineScope = CoroutineScope(Dispatchers.IO)
-
-    /**
-     * Called by the destroy function.  Should be listened to by managers to clean up any related context
-     */
-    val sessionClosedFlow: MutableSharedFlow<SessionCloseMode> = MutableSharedFlow()
-
-    /**
-     * Kill all the agents involved in this session / clean up payment stuff etc.
-     */
-    open suspend fun destroy(sessionCloseMode: SessionCloseMode = SessionCloseMode.CLEAN) {
-        sessionClosedFlow.emit(sessionCloseMode)
+    val sessionScope = if (supervisedSessions) {
+        CoroutineScope(parentScope.coroutineContext + SupervisorJob(parentScope.coroutineContext[Job]))
+    } else {
+        CoroutineScope(parentScope.coroutineContext + Job(parentScope.coroutineContext[Job]))
     }
+
+    var status: MutableStateFlow<SessionStatus> = MutableStateFlow(SessionStatus.PendingExecution)
 }

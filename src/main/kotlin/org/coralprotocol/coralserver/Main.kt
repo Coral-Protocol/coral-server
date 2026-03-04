@@ -1,62 +1,53 @@
+@file:OptIn(ExperimentalHoplite::class)
+
 package org.coralprotocol.coralserver
 
-import io.github.oshai.kotlinlogging.KotlinLogging
-import kotlinx.coroutines.runBlocking
-import org.coralprotocol.coralserver.agent.registry.AgentRegistry
-import org.coralprotocol.coralserver.agent.runtime.Orchestrator
-import org.coralprotocol.coralserver.config.BlockchainServiceProvider
-import org.coralprotocol.coralserver.config.Config
-import org.coralprotocol.coralserver.config.loadFromFile
-import org.coralprotocol.coralserver.server.CoralServer
+import com.sksamuel.hoplite.ExperimentalHoplite
+import io.ktor.server.cio.*
+import io.ktor.server.engine.*
+import kotlinx.serialization.json.Json
+import dev.eav.tomlkt.Toml
+import org.coralprotocol.coralserver.modules.*
+import org.koin.core.context.startKoin
+import org.koin.dsl.module
+import org.koin.environmentProperties
 
-private val logger = KotlinLogging.logger {}
-
-// Reference to resources in main
-class Main
-
-/**
- * Start sse-server mcp on port 5555.
- *
- * @param args
- * - "--sse-server": Runs an SSE MCP server with a plain configuration.
- */
 fun main(args: Array<String>) {
-//    System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "TRACE");
-//    System.setProperty("io.ktor.development", "true")
-
-    val command = args.firstOrNull() ?: "--sse-server"
-    val devMode = args.contains("--dev")
-    val config = Config.loadFromFile()
-
-    when (command) {
-        "--sse-server" -> {
-            val blockchainServiceProvider = BlockchainServiceProvider(config.paymentConfig)
-            val registry = AgentRegistry.loadFromFile(config)
-
-            val orchestrator = Orchestrator(config, registry)
-            val server = CoralServer(
-                devmode = devMode,
-                config = config,
-                registry = registry,
-                orchestrator = orchestrator,
-                blockchainService = blockchainServiceProvider.blockchainService,
-                x402Service = blockchainServiceProvider.x402Service
-            )
-
-            // Add a shutdown hook to stop the server gracefully
-            Runtime.getRuntime().addShutdownHook(Thread {
-                logger.info { "Shutting down server..." }
-                server.stop()
-                runBlocking {
-                    orchestrator.destroy()
+    val app = startKoin {
+        environmentProperties()
+        modules(
+            configModule,
+            configModuleParts,
+            loggingModule,
+            namedLoggingModule,
+            blockchainModule,
+            networkModule,
+            agentModule,
+            sessionModule,
+            module {
+                single {
+                    Json {
+                        encodeDefaults = true
+                        prettyPrint = true
+                        explicitNulls = false
+                    }
                 }
-            })
-
-            server.start(wait = true)
-        }
-
-        else -> {
-            logger.error { "Unknown command: $command" }
-        }
+                single {
+                    Toml {
+                        // currently only used for loading coral-agent.toml files, to allow as many newer coral-agent.toml files
+                        // as possible on earlier versions of the server, this must be set to true
+                        ignoreUnknownKeys = true
+                    }
+                }
+            }
+        )
+        createEagerInstances()
     }
+
+    val server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> = app.koin.get()
+    Runtime.getRuntime().addShutdownHook(Thread {
+        server.stop()
+    })
+
+    server.start(wait = true)
 }

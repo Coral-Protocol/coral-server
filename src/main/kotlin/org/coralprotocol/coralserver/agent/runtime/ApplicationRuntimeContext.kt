@@ -6,59 +6,61 @@ import com.github.dockerjava.core.DockerClientImpl
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
 import com.github.dockerjava.transport.DockerHttpClient
 import io.ktor.http.*
+import io.ktor.resources.*
+import io.ktor.resources.serialization.*
 import org.coralprotocol.coralserver.config.AddressConsumer
-import org.coralprotocol.coralserver.config.Config
+import org.coralprotocol.coralserver.config.RootConfig
+import org.coralprotocol.coralserver.logging.Logger
+import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
+import org.coralprotocol.coralserver.routes.mcp.v1.Sse
+import org.coralprotocol.coralserver.routes.mcp.v1.StreamableHttp
+import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import org.koin.core.qualifier.named
 import java.time.Duration
 
 class ApplicationRuntimeContext(
-    val config: Config
-) {
-    private val dockerClientConfig: DockerClientConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
-        .withDockerHost(config.dockerConfig.socket)
-        .build()
+    private val config: RootConfig,
+) : KoinComponent {
+    private val logger by inject<Logger>(named(LOGGER_CONFIG))
 
-    var httpClient: DockerHttpClient = ApacheDockerHttpClient.Builder()
-        .dockerHost(dockerClientConfig.dockerHost)
-        .sslConfig(dockerClientConfig.sslConfig)
-        .responseTimeout(Duration.ofSeconds(config.dockerConfig.responseTimeout))
-        .connectionTimeout(Duration.ofSeconds(config.dockerConfig.connectionTimeout))
-        .maxConnections(config.dockerConfig.maxConnections)
-        .build()
+    val dockerClient = run {
+        try {
+            val dockerClientConfig: DockerClientConfig = DefaultDockerClientConfig.createDefaultConfigBuilder()
+                .withDockerHost(config.dockerConfig.socket)
+                .build()
 
-    val dockerClient = DockerClientImpl.getInstance(dockerClientConfig, httpClient) ?:
-        throw IllegalStateException("Failed to initialize Docker client")
+            val httpClient: DockerHttpClient = ApacheDockerHttpClient.Builder()
+                .dockerHost(dockerClientConfig.dockerHost)
+                .sslConfig(dockerClientConfig.sslConfig)
+                .responseTimeout(Duration.ofSeconds(config.dockerConfig.responseTimeout))
+                .connectionTimeout(Duration.ofSeconds(config.dockerConfig.connectionTimeout))
+                .maxConnections(config.dockerConfig.maxConnections)
+                .build()
+
+            DockerClientImpl.getInstance(dockerClientConfig, httpClient)
+        } catch (e: Exception) {
+            logger.error(e) { "Failed to create Docker client" }
+            logger.warn { "Docker runtime will not be available" }
+            null
+        }
+    }
 
     fun getApiUrl(addressConsumer: AddressConsumer): Url {
-        // todo: remote!
         return config.resolveBaseUrl(addressConsumer)
     }
 
-    fun getMcpUrl(params: RuntimeParams, addressConsumer: AddressConsumer): Url {
+    fun getSseUrl(executionContext: SessionAgentExecutionContext, addressConsumer: AddressConsumer): Url {
         val builder = URLBuilder(getApiUrl(addressConsumer))
-        builder.parameters.append("agentId", params.agentName)
+        href(ResourcesFormat(), Sse(agentSecret = executionContext.agent.secret), builder)
 
-        // some libraries identify SSE by the presence of this path segment at the end :(
-        when (params) {
-            is RuntimeParams.Local -> {
-                builder.pathSegments = listOf(
-                    "sse",
-                    "v1",
-                    params.applicationId,
-                    params.privacyKey,
-                    params.session.id,
-                    "sse"
-                )
-            }
-            is RuntimeParams.Remote -> {
-                builder.pathSegments = listOf(
-                    "sse",
-                    "v1",
-                    "export",
-                    params.session.id,
-                    "sse"
-                )
-            }
-        }
+        return builder.build()
+    }
+
+    fun getStreamableHttpUrl(executionContext: SessionAgentExecutionContext, addressConsumer: AddressConsumer): Url {
+        val builder = URLBuilder(getApiUrl(addressConsumer))
+        href(ResourcesFormat(), StreamableHttp(agentSecret = executionContext.agent.secret), builder)
 
         return builder.build()
     }

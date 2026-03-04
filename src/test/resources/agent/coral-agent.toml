@@ -1,0 +1,182 @@
+# NOTE: The values in this file are asserted in tests!
+edition = 3
+
+# should not throw errors
+unknown_key = false
+
+[agent]
+capabilities = ["resources", "tool_refreshing"]
+
+# len 1 - 32
+# pattern: ^[a-z0-9]([a-z0-9]*(-[a-z0-9]+)*)?$
+name = "edition-3"
+
+# len 1 - 32
+# must be a valid semver version: https://semver.org/
+version = "0.3.0"
+
+# len 1 - 1024
+# pattern: none
+description = "A description of this agent, designed for LLM consumption"
+
+# len: 1 - 256
+# pattern: none
+summary = "A short NON-markdown summary of the agent on the marketplace"
+
+# len: 1 - 4096
+# pattern: none
+readme = "A full markdown markdown readme for the agent on the marketplace"
+
+[agent.license]
+type = "text"
+
+# len: 2MiB
+# pattern: none
+text = "an example license"
+
+# max entries 16
+[agent.links]
+
+# key:
+#   len: 1 - 32
+#   pattern: ^[a-zA-Z][a-zA-Z_\-0-9]*$
+# value:
+#   len: 1 - 256
+#   pattern: valid URI, https, tel or mailto schema
+github = "https://github.com/coral-Protocol/coral-server"
+website = "https://www.coralos.ai/"
+
+# must have at least one runtime
+[runtimes.docker]
+transport = "streamable_http"
+# len: 1 - 512
+# pattern: none
+image = "myuser/myimage"
+
+# combined total size of 2KiB (UTF-8)
+# max entries 1024
+command = ["/bin/sh", "-c", "echo hello world"]
+
+[runtimes.executable]
+transport = "sse"
+# len: 1 - 4096
+# pattern: none
+path = "my-agent"
+
+# combined total size 2KiB (UTF-8)
+# max entries 1024
+arguments = ["--some-argument"]
+
+# option key:
+#   len: 1 - 256
+#   pattern: ^[a-zA-Z_][a-zA-Z_$0-9]*$
+#
+# combined total size for all defaults 6MiB (strings measured in UTF-8 bytes)
+# max entries 512
+[options]
+DEFAULT_I8 = { type = "i8", default = -42 }
+DEFAULT_I16 = { type = "i16", default = 1024 }
+DEFAULT_I32 = { type = "i32", default = 123456 }
+DEFAULT_I64 = { type = "i64", default = 9876543210 }
+DEFAULT_U8 = { type = "u8", default = 200 }
+DEFAULT_U16 = { type = "u16", default = 5000 }
+DEFAULT_U32 = { type = "u32", default = 1000000 }
+DEFAULT_U64 = { type = "u64", default = "18446744073709" }
+DEFAULT_F32 = { type = "f32", default = 3.14 }
+DEFAULT_F64 = { type = "f64", default = 2.718281828 }
+DEFAULT_BOOL = { type = "bool", default = true }
+DEFAULT_STRING = { type = "string", default = "hello world" }
+DEFAULT_BLOB = { type = "blob", default = "aGVsbG8gd29ybGQ=" }
+
+DEFAULT_LIST_I8 = { type = "list[i8]", default = [-1, 0, 1, 127] }
+DEFAULT_LIST_I16 = { type = "list[i16]", default = [100, 200, 300] }
+DEFAULT_LIST_I32 = { type = "list[i32]", default = [1000, 2000, 3000] }
+DEFAULT_LIST_I64 = { type = "list[i64]", default = [1000000, 2000000] }
+DEFAULT_LIST_U8 = { type = "list[u8]", default = [1, 2, 3, 255] }
+DEFAULT_LIST_U16 = { type = "list[u16]", default = [500, 1000, 1500] }
+DEFAULT_LIST_U32 = { type = "list[u32]", default = [10000, 20000] }
+DEFAULT_LIST_U64 = { type = "list[u64]", default = ["100000", "200000", "300000"] }
+DEFAULT_LIST_F32 = { type = "list[f32]", default = [1.1, 2.2, 3.3] }
+DEFAULT_LIST_F64 = { type = "list[f64]", default = [1.414, 1.732, 2.236] }
+DEFAULT_LIST_STRING = { type = "list[string]", default = ["foo", "bar", "baz"] }
+DEFAULT_LIST_BLOB = { type = "list[blob]", default = ["aGVsbG8=", "d29ybGQ="] }
+
+OPTIONAL_I8 = { type = "i8" }
+OPTIONAL_I16 = { type = "i16" }
+OPTIONAL_I32 = { type = "i32" }
+OPTIONAL_I64 = { type = "i64" }
+OPTIONAL_U8 = { type = "u8" }
+OPTIONAL_U16 = { type = "u16" }
+OPTIONAL_U32 = { type = "u32" }
+OPTIONAL_U64 = { type = "u64" }
+OPTIONAL_F32 = { type = "f32" }
+OPTIONAL_F64 = { type = "f64" }
+OPTIONAL_BOOL = { type = "bool" }
+OPTIONAL_STRING = { type = "string" }
+OPTIONAL_BLOB = { type = "blob" }
+OPTIONAL_LIST_I8 = { type = "list[i8]" }
+OPTIONAL_LIST_I16 = { type = "list[i16]" }
+OPTIONAL_LIST_I32 = { type = "list[i32]" }
+OPTIONAL_LIST_I64 = { type = "list[i64]" }
+OPTIONAL_LIST_U8 = { type = "list[u8]" }
+OPTIONAL_LIST_U16 = { type = "list[u16]" }
+OPTIONAL_LIST_U32 = { type = "list[u32]" }
+OPTIONAL_LIST_U64 = { type = "list[u64]" }
+OPTIONAL_LIST_F32 = { type = "list[f32]" }
+OPTIONAL_LIST_F64 = { type = "list[f64]" }
+OPTIONAL_LIST_STRING = { type = "list[string]" }
+OPTIONAL_LIST_BLOB = { type = "list[blob]" }
+
+[options.FULL_STRING_OPTION]
+type = "string"
+required = true
+transport = "fs"
+
+# len: 1 - 64
+# pattern: none
+display.label = "Full string option"
+
+# len: 1 - 1024
+# can be empty
+# pattern: none
+display.description = "An example of a string type option with every field configured"
+
+# len: 1 - 64
+# pattern: none
+display.group = "Full options"
+
+display.multiline = true
+
+[marketplace.pricing]
+# len: 1 - 256
+# pattern: none
+description = "A full markdown description of how the agent is priced"
+
+# currently USD only
+currency = "USD"
+
+[marketplace.pricing.recommendations]
+# min 0, max 20
+min = 0.01
+
+# must be > min
+max = 1.50
+
+[marketplace.identities.erc8004]
+# pattern: valid base58, decoded key length of 32
+wallet = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+
+# max entries 32
+[[marketplace.identities.erc8004.endpoints]]
+
+# len: 1 - 32
+# pattern: ^[a-zA-Z][a-zA-Z_\-0-9]*$
+name = "first_endpoint"
+
+# len: 1 - 256
+# pattern: valid URI, https scheme
+endpoint = "https://api.my-server.com/first"
+
+[[marketplace.identities.erc8004.endpoints]]
+name = "second-endpoint"
+endpoint = "https://api.my-server.com/second"

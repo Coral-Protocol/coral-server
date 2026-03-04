@@ -1,10 +1,10 @@
 package org.coralprotocol.coralserver.agent.graph
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
+import io.github.smiley4.schemakenerator.core.annotations.Optional
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
-import org.coralprotocol.coralserver.session.CustomTool
 
 @Serializable
 class AgentGraphRequest(
@@ -12,10 +12,12 @@ class AgentGraphRequest(
     val agents: List<GraphAgentRequest>,
 
     @Description("A set, containing sets that define the agent groups by name")
-    val groups: Set<Set<String>>,
+    @Optional
+    val groups: Set<Set<String>> = setOf(),
 
     @Description("A map of custom tools to provide to the agents in this graph")
-    val customTools: Map<String, CustomTool>,
+    @Optional
+    val customTools: Map<String, GraphAgentTool> = mapOf(),
 ) {
     /**
      * Converts this request into an [AgentGraph] using the provided [AgentRegistry].  Most of the work done by this
@@ -26,7 +28,7 @@ class AgentGraphRequest(
      * @throws AgentRequestException if any of the [groups] contain references to agents not in [agents]
      * @throws AgentRequestException if any of the [agents] reference custom tools that don't exist inside of [customTools]
      */
-    fun toAgentGraph(registry: AgentRegistry): AgentGraph {
+    suspend fun toAgentGraph(registry: AgentRegistry): AgentGraph {
         val duplicateAgentNames = agents.groupingBy { it.name }.eachCount().filter { it.value > 1 }
         if (duplicateAgentNames.isNotEmpty()) {
             throw AgentRequestException("Agent graph contains duplicate agent names: $duplicateAgentNames")
@@ -50,7 +52,7 @@ class AgentGraphRequest(
 
         return AgentGraph(
             agents = agents.associate {
-                it.name to it.toGraphAgent(registry)
+                it.name to it.toGraphAgent(registry, customTools = customTools)
             },
             customTools = customTools,
             groups = groups

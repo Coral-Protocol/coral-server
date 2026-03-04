@@ -1,8 +1,0 @@
-[[local-agent]]
-path = "examples/camel-search-maths/interface"
-
-[[local-agent]]
-path = "examples/camel-search-maths/math"
-
-[[local-agent]]
-path = "examples/camel-search-maths/search"

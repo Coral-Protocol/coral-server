@@ -1,10 +1,10 @@
 package org.coralprotocol.coralserver.session.remote
 
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
-import org.coralprotocol.coralserver.agent.runtime.Orchestrator
 import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
 import org.coralprotocol.coralserver.session.SessionCloseMode
@@ -21,9 +21,10 @@ data class Claim(
 )
 
 class RemoteSessionManager(
-    val orchestrator: Orchestrator,
     private val aggregatedPaymentClaimManager: AggregatedPaymentClaimManager
-){
+) {
+    val managementScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
     @VisibleForTesting
     val claims = mutableMapOf<String, Claim>()
     private val sessions = mutableMapOf<String, RemoteSession>()
@@ -71,18 +72,20 @@ class RemoteSessionManager(
             deferredMcpTransport = CompletableDeferred(),
             maxCost = claim.maxCost,
             paymentSessionId = claim.paymentSessionId,
-            clientWalletAddress = claim.clientWalletAddress
+            clientWalletAddress = claim.clientWalletAddress,
+            remoteSessionManager = this,
+            annotations = mapOf()
         )
 
-        remoteSession.sessionClosedFlow.onEach {
-            cleanupSession(remoteSession, it)
-        }.launchIn(remoteSession.coroutineScope)
+//        remoteSession.sessionClosedFlow.onEach {
+//            cleanupSession(remoteSession, it)
+//        }.launchIn(remoteSession.sessionScope)
 
-        orchestrator.spawnRemote(
-            session = remoteSession,
-            graphAgent = claim.agent,
-            agentName = claim.agent.name
-        )
+//        orchestrator.spawnRemote(
+//            session = remoteSession,
+//            graphAgent = claim.agent,
+//            agentName = claim.agent.name
+//        )
 
         sessions[id] = remoteSession
         return remoteSession
@@ -101,8 +104,7 @@ class RemoteSessionManager(
             if (paymentSessionCount == 1u) {
                 aggregatedPaymentClaimManager.notifyPaymentSessionCosed(paymentSessionId)
                 paymentSessionCounts.remove(paymentSessionId)
-            }
-            else {
+            } else {
                 paymentSessionCounts[paymentSessionId] = paymentSessionCount - 1u
             }
         }

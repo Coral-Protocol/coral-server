@@ -14,13 +14,14 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
-import org.coralprotocol.coralserver.agent.registry.AgentRegistryIdentifier
 import org.coralprotocol.coralserver.agent.registry.PublicAgentExportSettingsMap
-import org.coralprotocol.coralserver.routes.api.v1.Agents
-import org.coralprotocol.coralserver.routes.api.v1.PublicWallet
-import org.coralprotocol.coralserver.server.RouteException
-import org.coralprotocol.coralserver.server.apiJsonConfig
+import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
+import org.coralprotocol.coralserver.routes.RouteException
+import org.coralprotocol.coralserver.routes.api.v1.AgentRental
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 /**
  * This class represents another Coral server, or any server capable of providing remote agents... which is for right
@@ -32,12 +33,14 @@ class GraphAgentServer (
     val port: UShort,
     val secure: Boolean, // true = https, false = http
     val attributes: List<GraphAgentServerAttribute>
-)  {
+) : KoinComponent {
+    private val json by inject<Json>()
+
     @Transient
     private val client = HttpClient(CIO) {
         install(Resources)
         install(ContentNegotiation) {
-            json(apiJsonConfig)
+            json(json)
         }
         install(HttpTimeout) {
             requestTimeoutMillis = 30_000
@@ -57,7 +60,7 @@ class GraphAgentServer (
      * @throws RouteException if the request fails.
      */
     suspend fun getWallet(): String {
-        val resource = PublicWallet()
+        val resource = AgentRental.Wallet()
         val response = client.get(resource)
 
         val body = response.bodyAsText()
@@ -65,7 +68,7 @@ class GraphAgentServer (
             return body
         }
         else {
-            throw apiJsonConfig.decodeFromString<RouteException>(body)
+            throw json.decodeFromString<RouteException>(body)
         }
     }
 
@@ -74,21 +77,22 @@ class GraphAgentServer (
      * @throws RouteException if the request fails.
      * @see Agents.ExportedAgent
      */
-    suspend fun getAgentExportSettings(id: AgentRegistryIdentifier): PublicAgentExportSettingsMap {
-        val resource = Agents.ExportedAgent(
-            name = id.name,
-            version = id.version
-        )
-        val response = client.get(resource)
-        println("Getting export settings from $this for agent $id")
-
-        val body = response.bodyAsText()
-        if (response.status == HttpStatusCode.OK) {
-            return apiJsonConfig.decodeFromString<PublicAgentExportSettingsMap>(body)
-        }
-        else {
-            throw apiJsonConfig.decodeFromString<RouteException>(body)
-        }
+    suspend fun getAgentExportSettings(id: RegistryAgentIdentifier): PublicAgentExportSettingsMap {
+        TODO()
+//        val resource = AgentRental.Catalog.Details(
+//            agentName = id.name,
+//            agentVersion = id.version,
+//        )
+//        val response = client.get(resource)
+//        println("Getting export settings from $this for agent $id")
+//
+//        val body = response.bodyAsText()
+//        if (response.status == HttpStatusCode.OK) {
+//            return apiJsonConfig.decodeFromString<PublicAgentExportSettingsMap>(body)
+//        }
+//        else {
+//            throw apiJsonConfig.decodeFromString<RouteException>(body)
+//        }
     }
 
     override fun toString(): String {
@@ -101,7 +105,7 @@ class GraphAgentServer (
      * @see Agents.ExportedAgent
      */
     suspend fun createClaim(paidGraphAgentRequest: PaidGraphAgentRequest): String {
-        val response = client.post(Agents.Claim()) {
+        val response = client.post(AgentRental.Reserve) {
             contentType(ContentType.Application.Json)
             setBody(paidGraphAgentRequest)
         }
@@ -111,7 +115,7 @@ class GraphAgentServer (
             return body // claim ID
         }
         else {
-            throw apiJsonConfig.decodeFromString<RouteException>(body)
+            throw json.decodeFromString<RouteException>(body)
         }
     }
 }
