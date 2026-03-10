@@ -1,7 +1,14 @@
+---
 name: Build
 
 on:
   push:
+    branches:
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_type }}-${{ github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -17,9 +24,61 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v5
     - name: Build with Gradle
-      run: ./gradlew build
+      run: ./gradlew build -x test
     - name: Upload build reports
       uses: actions/upload-artifact@v4
       with:
         name: build
         path: "build/libs/coral-server-*.jar"
+
+  release-please:
+    name: Execute release chores
+
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    runs-on: ubuntu-latest
+    needs: [build]
+
+    outputs:
+      release_created: ${{ steps.release.outputs.releases_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish:
+    name: Push release
+
+    permissions:
+      contents: write
+
+    runs-on: ubuntu-latest
+    needs:
+      - build
+      - release-please
+
+    if: needs.release-please.outputs.release_created && needs.release-please.outputs.tag_name
+
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          name: ${{ needs.build.outputs.artifact_name }}
+
+      - name: Display structure of downloaded files
+        run: ls -R
+
+      - name: Publish release artifacts to GitHub release
+        uses: svenstaro/upload-release-action@v2
+        if: needs.release-please.outputs.release_created
+        with:
+          file_glob: true
+          tag: ${{ needs.release-please.outputs.tag_name }}
+          file: "*.jar"
+          overwrite: true

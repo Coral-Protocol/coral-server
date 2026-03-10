@@ -25,7 +25,12 @@ jobs:
         id: meta
         shell: bash
         run: |
-          VERSION=$(grep -E "^version=" gradle.properties | head -n1 | cut -d'=' -f2 | tr -d '\r' )
+          VERSION=$(grep -E "^version=" gradle.properties \
+            | head -n1 \
+            | cut -d'=' -f2 \
+            | cut -d'#' -f1 \
+            | tr -d '\r' \
+            | xargs)
           if [ -z "$VERSION" ]; then
             echo "Version not found in gradle.properties" >&2
             exit 1
