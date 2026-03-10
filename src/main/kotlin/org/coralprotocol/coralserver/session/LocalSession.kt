@@ -7,6 +7,9 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.joinAll
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
@@ -93,7 +96,7 @@ class LocalSession(
     /**
      * Agent jobs associated with this session.  Populated by [launchAgents].
      */
-    private val agentJobs = mutableMapOf<UniqueAgentName, Job>()
+    private val agentJobs = MutableStateFlow(mapOf<UniqueAgentName, Job>())
 
     /**
      * @see SessionEvent
@@ -201,25 +204,22 @@ class LocalSession(
      * @throws SessionException.AlreadyLaunchedException if this session's agents have already been launched
      */
     fun launchAgents() {
-        if (agentJobs.isNotEmpty())
+        if (agentJobs.value.isNotEmpty())
             throw SessionException.AlreadyLaunchedException("This session's agents have already been launched")
 
-        agentJobs.putAll(agents.map { (name, agent) ->
-            name to agent.launch()
-        })
+        agentJobs.update {
+            agents.map { (name, agent) ->
+                name to agent.launch()
+            }.toMap()
+        }
     }
 
     /**
-     * Waits for all agents in [agentJobs] to finish.  [launchAgents] must have been called before this function is
-     * called.
-     *
-     * @throws SessionException.NotLaunchedException if [launchAgents] has not been called yet.
+     * Waits for all agents in [agentJobs] to finish.  Note that if this is called before [launchAgents] is, this
+     * function will block until [launchAgents] is called and the agents followingly exit.
      */
     suspend fun joinAgents() {
-        if (agentJobs.isEmpty())
-            throw SessionException.NotLaunchedException("This session's agents have not been launched yet")
-
-        agentJobs.values.joinAll()
+        agentJobs.first { it.isNotEmpty() }.values.joinAll()
     }
 
 
@@ -230,10 +230,10 @@ class LocalSession(
      * @throws SessionException.NotLaunchedException if [launchAgents] has not been called yet.
      */
     fun cancelAgents() {
-        if (agentJobs.isEmpty())
+        if (agentJobs.value.isEmpty())
             throw SessionException.NotLaunchedException("This session's agents have not been launched yet")
 
-        agentJobs.values.forEach { it.cancel() }
+        agentJobs.value.values.forEach { it.cancel() }
     }
 
     /**
@@ -243,10 +243,10 @@ class LocalSession(
      * @throws SessionException.NotLaunchedException if [launchAgents] has not been called yet.
      */
     suspend fun cancelAndJoinAgents() {
-        if (agentJobs.isEmpty())
+        if (agentJobs.value.isEmpty())
             throw SessionException.NotLaunchedException("This session's agents have not been launched yet")
 
-        agentJobs.values.forEach { it.cancelAndJoin() }
+        agentJobs.value.values.forEach { it.cancelAndJoin() }
     }
 
     /**
@@ -259,7 +259,7 @@ class LocalSession(
         if (!agents.containsKey(agentName))
             throw SessionException.MissingAgentException("No agent named $agentName")
 
-        val job = agentJobs[agentName]
+        val job = agentJobs.value[agentName]
             ?: throw SessionException.NotLaunchedException("Agent $agentName has not been launched yet")
 
         job.cancelAndJoin()
