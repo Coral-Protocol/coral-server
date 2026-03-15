@@ -85,11 +85,13 @@ class FileAgentRegistrySource(
     private val watchJobs = ConcurrentHashMap<WatchJobKey, Job>()
 
     private var sharedWatchService: WatchService? = null
+
     private data class HandlerRegistration(
         val kinds: Set<WatchEvent.Kind<*>>,
         val channel: kotlinx.coroutines.channels.Channel<WatchEvent<*>>,
         val job: Job
     )
+
     private val watchHandlers = ConcurrentHashMap<WatchKey, MutableMap<WatchJobKey, HandlerRegistration>>()
     private val watchKeysByPath = ConcurrentHashMap<Path, WatchKey>()
     private val uniqueWatchPaths = ConcurrentHashMap.newKeySet<Path>()
@@ -190,7 +192,7 @@ class FileAgentRegistrySource(
         val parts = pathPattern.split("/").filter { it.isNotEmpty() }
         var current = Path.of(parent).absolute()
 
-        println("Scanning for agents matching pattern \"$pathPattern\" in \"${normalizedPathString(current)}\"...")
+        logger.debug { "Scanning for agents matching pattern \"$pathPattern\" in \"${normalizedPathString(current)}\"..." }
         parts.forEachIndexed { index, part ->
             val remainingParts = parts.slice(index..<parts.size)
 
@@ -202,7 +204,7 @@ class FileAgentRegistrySource(
                 // Scan existing subdirectories. Note that the recursion will handle deeper directories,
                 // ensuring we don't scan too deep unless the pattern demands it
                 current.toFile().listFiles { it.isDirectory && !isExcluded(it.name) }?.forEach {
-                    println("Found directory \"${normalizedPathString(it.toPath())}\" matching wildcard in pattern \"$pathPattern\"")
+                    logger.debug { "Found directory \"${normalizedPathString(it.toPath())}\" matching wildcard in pattern \"$pathPattern\"" }
                     addAgentsFromPattern(
                         if (index == parts.lastIndex) {
                             it.name
@@ -269,7 +271,8 @@ class FileAgentRegistrySource(
             val agent = readAgent(agentFile)
             val existing = agentCache[agent.identifier]
             if (existing != null) {
-                val sameSource = existing.path?.toAbsolutePath()?.normalize() == agent.path?.toAbsolutePath()?.normalize()
+                val sameSource =
+                    existing.path?.toAbsolutePath()?.normalize() == agent.path?.toAbsolutePath()?.normalize()
                 if (sameSource) {
                     removeAgent(existing)
                     addAgent(agent)
@@ -407,7 +410,9 @@ class FileAgentRegistrySource(
                         null -> {
                             val existing = agentCache[newAgent.identifier]
                             if (existing != null) {
-                                val sameSource = existing.path?.toAbsolutePath()?.normalize() == newAgent.path?.toAbsolutePath()?.normalize()
+                                val sameSource =
+                                    existing.path?.toAbsolutePath()?.normalize() == newAgent.path?.toAbsolutePath()
+                                        ?.normalize()
                                 if (!sameSource) {
                                     logger.warn { "cannot add agent from file \"${normalizedPathString(agentFile)}\" because the identifier \"${newAgent.identifier}\" is already taken" }
                                     return@onEach
@@ -423,7 +428,9 @@ class FileAgentRegistrySource(
                         else -> {
                             val existing = agentCache[newAgent.identifier]
                             if (existing != null) {
-                                val sameSource = existing.path?.toAbsolutePath()?.normalize() == newAgent.path?.toAbsolutePath()?.normalize()
+                                val sameSource =
+                                    existing.path?.toAbsolutePath()?.normalize() == newAgent.path?.toAbsolutePath()
+                                        ?.normalize()
                                 if (!sameSource) {
                                     logger.warn { "cannot update agent from file \"${normalizedPathString(agentFile)}\" because the new identifier \"${newAgent.identifier}\" is already taken" }
                                     return@onEach
@@ -587,7 +594,6 @@ class FileAgentRegistrySource(
     }
 
     private fun readAgent(agentFile: File) = UnresolvedRegistryAgent.resolveFromFile(agentFile)
-
 
 
     companion object {
