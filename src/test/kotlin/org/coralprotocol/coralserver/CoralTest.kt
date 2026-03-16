@@ -229,9 +229,9 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                 },
                 type = test.type,
                 source = test.source,
-                disabled = test.disabled,
                 config = test.config,
-                factoryId = test.factoryId
+                factoryId = test.factoryId,
+                xmethod = test.xmethod
             )
         )
     }

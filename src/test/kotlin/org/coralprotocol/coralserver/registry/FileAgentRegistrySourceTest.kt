@@ -6,7 +6,9 @@ import io.kotest.assertions.nondeterministic.continually
 import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.collections.shouldContainAll
+import io.kotest.matchers.collections.shouldNotContain
 import io.kotest.matchers.collections.shouldHaveSingleElement
 import io.kotest.matchers.collections.shouldHaveSize
 import kotlinx.coroutines.CoroutineScope
@@ -359,6 +361,58 @@ class FileAgentRegistrySourceTest : CoralTest({
 
             eventually(3.seconds) {
                 registrySource.agents.map { agent -> agent.name }.shouldContainAll(agentNames)
+            }
+        }
+    }
+
+    test("testIgnoreHiddenDirectoriesDuringScan") {
+        val registry by inject<AgentRegistry>()
+        val agentNames = listOf("agent1", "agent2")
+        val hiddenAgentName = ".hidden_agent"
+
+        withTempDir {
+            resolve("agents").apply {
+                agentNames.forEach { writeAgent(it) }
+                writeAgent(hiddenAgentName)
+            }
+
+            val source = FileAgentRegistrySource(registry, toString() + "/agents/*")
+            source.agents.map { it.name }.shouldContainAll(agentNames)
+            source.agents.map { it.name }.shouldNotContain(hiddenAgentName)
+        }
+    }
+
+    test("testExplicitHiddenDirectory") {
+        val registry by inject<AgentRegistry>()
+        val agentName = "agent1"
+
+        withTempDir {
+            val hiddenDir = resolve(".hidden")
+            hiddenDir.createDirectory()
+            hiddenDir.writeAgent(agentName)
+
+            val source = FileAgentRegistrySource(registry, hiddenDir.toString() + "/*")
+            source.agents.map { it.name }.shouldContain(agentName)
+        }
+    }
+
+    test("testWatchIgnoreHiddenDirectories") {
+        val registry by inject<AgentRegistry>()
+        val agentName = "agent1"
+        val hiddenAgentName = ".hidden_agent"
+
+        withTempDir {
+            val registrySource = FileAgentRegistrySource(registry, "$this/agents/*", true, it)
+
+            val agentsDir = resolve("agents")
+            agentsDir.createDirectory()
+
+            agentsDir.writeAgent(hiddenAgentName, delay = humanActionTime)
+            agentsDir.writeAgent(agentName, delay = humanActionTime)
+
+            eventually(5.seconds) {
+                registrySource.agents.map { it.name }.shouldContain(agentName)
+                registrySource.agents.map { it.name }.shouldNotContain(hiddenAgentName)
             }
         }
     }

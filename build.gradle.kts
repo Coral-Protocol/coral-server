@@ -60,7 +60,7 @@ dependencies {
     testImplementation("io.ktor:ktor-server-test-host")
 
     // kotest
-    val kotestVersion = "6.0.7"
+    val kotestVersion = "6.1.7"
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
     testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
     testImplementation("io.kotest:kotest-assertions-ktor:${kotestVersion}")
