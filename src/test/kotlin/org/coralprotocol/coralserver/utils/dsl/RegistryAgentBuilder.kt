@@ -54,7 +54,8 @@ class RegistryAgentBuilder(
         runtimes = LocalAgentRuntimes(
             executableRuntime = runtimes.executableRuntime,
             dockerRuntime = runtimes.dockerRuntime,
-            functionRuntime = functionRuntime
+            functionRuntime = functionRuntime,
+            prototypeRuntime = runtimes.prototypeRuntime
         )
     }
 
@@ -62,7 +63,8 @@ class RegistryAgentBuilder(
         runtimes = LocalAgentRuntimes(
             executableRuntime = runtimes.executableRuntime,
             dockerRuntime = dockerRuntime,
-            functionRuntime = runtimes.functionRuntime
+            functionRuntime = runtimes.functionRuntime,
+            prototypeRuntime = runtimes.prototypeRuntime
         )
     }
 
@@ -70,7 +72,17 @@ class RegistryAgentBuilder(
         runtimes = LocalAgentRuntimes(
             executableRuntime = executableRuntime,
             dockerRuntime = runtimes.dockerRuntime,
-            functionRuntime = runtimes.functionRuntime
+            functionRuntime = runtimes.functionRuntime,
+            prototypeRuntime = runtimes.prototypeRuntime
+        )
+    }
+
+    fun runtime(prototypeRuntime: PrototypeRuntime) {
+        runtimes = LocalAgentRuntimes(
+            executableRuntime = runtimes.executableRuntime,
+            dockerRuntime = runtimes.dockerRuntime,
+            functionRuntime = runtimes.functionRuntime,
+            prototypeRuntime = prototypeRuntime
         )
     }
 

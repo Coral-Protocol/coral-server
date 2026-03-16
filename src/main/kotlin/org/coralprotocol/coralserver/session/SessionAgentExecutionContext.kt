@@ -67,6 +67,7 @@ class SessionAgentExecutionContext(
                 RuntimeId.EXECUTABLE -> AddressConsumer.LOCAL
                 RuntimeId.DOCKER -> AddressConsumer.CONTAINER
                 RuntimeId.FUNCTION -> AddressConsumer.LOCAL
+                RuntimeId.PROTOTYPE -> AddressConsumer.LOCAL
             }
 
             val isContainer = provider.runtime == RuntimeId.DOCKER
