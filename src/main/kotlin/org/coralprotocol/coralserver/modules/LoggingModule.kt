@@ -45,6 +45,9 @@ val loggingModule = module {
         logCtx.getLogger("FeatureRegistry[Tool]").level = Level.OFF
         logCtx.getLogger("FeatureRegistry[Resource]").level = Level.OFF
 
+        // koog
+        logCtx.getLogger("ai.koog.agents.core.agent.FunctionalAIAgent").level = Level.OFF
+
         logCtx.putObject(
             CoreConstants.PATTERN_RULE_REGISTRY, mapOf(
                 "msgHighlight" to NativeLoggingMessageHighlighter::class.java.name,
@@ -55,7 +58,7 @@ val loggingModule = module {
 
         val consoleEncoder = PatternLayoutEncoder()
         consoleEncoder.setContext(logCtx)
-        consoleEncoder.setPattern("%highlight(%5level) {%green(%d{yyyy-MM-dd HH:mm:ss.SSS})}%mdc{ns, sid, agent, io} %msgHighlight(%msg%n)")
+        consoleEncoder.setPattern("%highlight(%5level) %logger {%green(%d{yyyy-MM-dd HH:mm:ss.SSS})}%mdc{ns, sid, agent, io} %msgHighlight(%msg%n)")
         consoleEncoder.charset = StandardCharsets.UTF_8
         consoleEncoder.start()
 
