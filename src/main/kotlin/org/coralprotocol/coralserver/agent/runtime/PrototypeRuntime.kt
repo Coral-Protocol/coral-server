@@ -40,6 +40,7 @@ import org.coralprotocol.coralserver.logging.LoggingInterface
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
@@ -111,7 +112,11 @@ data class PrototypeRuntime(
         return toolCalls.map {
             try {
                 environment.executeTool(it)
-            } catch (e: Exception) {
+            }
+            catch (e: CancellationException) {
+                throw e
+            }
+            catch (e: Exception) {
                 val result = e.javaClass.name + ": ${e.message}"
                 logger.error(e) { "Got exception while executing tool ${it.tool}: Result is being set as: $result" }
 
@@ -230,7 +235,11 @@ data class PrototypeRuntime(
                         totalTokens += iterationTokenUsage
                         executionContext.logger.debug { "Iteration $iteration completed in $iterationTime.  This iteration used $iterationTokenUsage tokens.  Total cumulative token usage is $totalTokens" }
 
-                    } catch (e: Exception) {
+                    }
+                    catch (e: CancellationException) {
+                        throw e
+                    }
+                    catch (e: Exception) {
                         executionContext.logger.error(e) { "Agent iteration error" }
                     }
                 }
