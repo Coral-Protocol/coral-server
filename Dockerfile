@@ -1,4 +1,4 @@
-FROM gradle:8.14.2-jdk21-jammy AS build
+FROM gradle:8.14.2-jdk21-noble AS build
 COPY --chown=gradle:gradle . /home/gradle/src
 WORKDIR /home/gradle/src
 
@@ -10,7 +10,7 @@ RUN jlink \
 
 RUN gradle build --no-daemon -x test
 
-FROM ubuntu:jammy
+FROM ubuntu:noble
 
 # Install runtime dependencies following apt best practices: update, install with no recommends, and clean apt lists in one layer
 RUN apt-get update \
@@ -19,9 +19,6 @@ RUN apt-get update \
 
 ENV JAVA_HOME=/opt/minimal-java
 ENV PATH="$JAVA_HOME/bin:$PATH"
-
-ENV REGISTRY_FILE_PATH="/config/registry.toml"
-ENV CONFIG_FILE_PATH="/config/config.toml"
 
 RUN mkdir /app
 # Copy the custom minimal JRE from the builder stage
