@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0](https://github.com/Coral-Protocol/coral-server/compare/v1.1.0...v1.2.0) (2026-03-18)
+
+
+### Features
+
+* update gradle to 9.0.0, kotlin to 2.3.20 and jvm version to 24 ([#264](https://github.com/Coral-Protocol/coral-server/issues/264)) ([9486783](https://github.com/Coral-Protocol/coral-server/commit/948678348a64a00419486a63688c3836934a8d75))
+
+
+### Bug Fixes
+
+* update build files and dockerfile for java 24 and gradle 9.0.0 ([c832be9](https://github.com/Coral-Protocol/coral-server/commit/c832be99923884605ba904f99b65315f0a1a5dcb))
+
 ## [1.1.0](https://github.com/Coral-Protocol/coral-server/compare/v1.0.0...v1.1.0) (2026-03-10)
 
 
