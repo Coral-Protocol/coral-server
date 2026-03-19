@@ -27,7 +27,6 @@ import io.ktor.server.application.*
 import io.ktor.server.resources.post
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
 import kotlinx.serialization.Serializable
@@ -429,8 +428,7 @@ class SessionApiTest : CoralTest({
                             toolName, GraphAgentTool(
                                 transport = GraphAgentToolTransport.Http(
                                     url = toolUrl,
-                                ),
-                                schema = ToolSchema()
+                                )
                             )
                         )
                         isolateAllAgents()

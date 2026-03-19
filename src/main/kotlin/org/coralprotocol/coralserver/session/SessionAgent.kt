@@ -174,7 +174,16 @@ class SessionAgent(
 
         graphAgent.plugins.forEach { it.install(this) }
         graphAgent.customTools.forEach { (name, tool) ->
-            addTool(Tool(name, tool.schema)) {
+            addTool(
+                Tool(
+                    name = name,
+                    description = tool.description,
+                    inputSchema = tool.inputSchema,
+                    outputSchema = tool.outputSchema,
+                    title = tool.title,
+                    annotations = tool.annotations,
+                )
+            ) {
                 tool.transport.execute(name, this, it)
             }
         }
