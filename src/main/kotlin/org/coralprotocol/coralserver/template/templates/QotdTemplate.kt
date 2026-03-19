@@ -59,8 +59,8 @@ object QotdTemplate : SessionTemplate {
         3. Call the coral_close_session tool to end the entire session. This is critical — use coral_close_session, NOT coral_close_thread.
     """.trimIndent()
 
-    private fun agentOptions(parameters: Map<String, String>) =
-        buildCommonAgentOptions(parameters, maxIterations = "3")
+    private fun agentOptions(parameters: Map<String, String>, agentMode: String = "initiator") =
+        buildCommonAgentOptions(parameters, maxIterations = "3", agentMode = agentMode)
 
     override fun buildSessionRequest(
         parameters: Map<String, String>,
@@ -87,7 +87,7 @@ object QotdTemplate : SessionTemplate {
                 instanceName = "quote-researcher",
                 description = "Finds and proposes quotes matching the theme",
                 systemPrompt = quoteResearcherPrompt,
-                options = agentOptions(parameters),
+                options = agentOptions(parameters, agentMode = "responder"),
                 runtime = runtime,
             ),
             sessionTemplateAgent(
@@ -97,7 +97,7 @@ object QotdTemplate : SessionTemplate {
                 instanceName = "quote-presenter",
                 description = "Selects the best quote, formats the final presentation, and closes the session",
                 systemPrompt = quotePresenterPrompt,
-                options = agentOptions(parameters),
+                options = agentOptions(parameters, agentMode = "responder"),
                 runtime = runtime,
                 plugins = setOf(GraphAgentPlugin.CloseSessionTool),
             ),

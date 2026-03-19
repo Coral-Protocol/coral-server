@@ -129,11 +129,13 @@ val COMMON_LLM_PARAMETERS = listOf(
 fun buildCommonAgentOptions(
     parameters: Map<String, String>,
     maxIterations: String,
+    agentMode: String = "initiator",
 ): Map<String, AgentOptionValue> = mapOf(
     "MODEL_API_KEY" to AgentOptionValue.String(parameters["MODEL_API_KEY"] ?: ""),
     "MODEL_PROVIDER" to AgentOptionValue.String(parameters.getOrDefault("MODEL_PROVIDER", "openai")),
     "MODEL_NAME" to AgentOptionValue.String(parameters.getOrDefault("MODEL_NAME", "gpt-5-mini")),
     "MAX_ITERATIONS" to AgentOptionValue.String(maxIterations),
+    "AGENT_MODE" to AgentOptionValue.String(agentMode),
 )
 
 fun sessionTemplateRequest(
