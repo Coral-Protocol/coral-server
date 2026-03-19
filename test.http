@@ -1,0 +1,190 @@
+###
+# curl 'http://localhost:5555/api/v1/local/session'
+#  -H 'Accept: */*'
+#  -H 'Accept-Language: zh-CN,zh;q=0.9,en;q=0.8'
+#  -H 'Connection: keep-alive'
+#  -b 'authSessionToken=da88b4d0aacf702c7dde17621ac300a4'
+#  -H 'Origin: http://localhost:5555'
+#  -H 'Referer: http://localhost:5555/ui/console/templates/create'
+#  -H 'Sec-Fetch-Dest: empty'
+#  -H 'Sec-Fetch-Mode: cors'
+#  -H 'Sec-Fetch-Site: same-origin'
+#  -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36'
+#  -H 'content-type: application/json'
+#  -H 'sec-ch-ua: "Chromium";v="146", "Not-A.Brand";v="24", "Google Chrome";v="146"'
+#  -H 'sec-ch-ua-mobile: ?0'
+#  -H 'sec-ch-ua-platform: "macOS"'
+#  --data-raw '{"agentGraphRequest":{"agents":[{"id":{"name":"coral-pep-agent","version":"0.1.0","registrySourceId":{"type":"local"}},"name":"coral-pep-agent","description":"","provider":{"type":"local","runtime":"executable"},"blocking":false,"customToolAccess":[],"plugins":[],"x402Budgets":[],"options":{"EXTRA_INITIAL_USER_PROMPT":{"type":"string","value":"Manuel Salvador Quevedo Fernández "},"MODEL_API_KEY":{"type":"string","value":"REDACTED_OPENAI_API_KEY"},"DILISENSE_API_KEY":{"type":"string","value":"REDACTED_DILISENSE_API_KEY"}}},{"id":{"name":"coral-am-agent","version":"0.1.0","registrySourceId":{"type":"local"}},"name":"coral-am-agent","description":"","provider":{"type":"local","runtime":"executable"},"blocking":false,"customToolAccess":[],"plugins":[],"x402Budgets":[],"options":{"EXTRA_INITIAL_USER_PROMPT":{"type":"string","value":"Manuel Salvador Quevedo Fernández "},"MODEL_API_KEY":{"type":"string","value":"REDACTED_OPENAI_API_KEY"},"TAVILY_API_KEY":{"type":"string","value":"REDACTED_TAVILY_API_KEY"}}},{"id":{"name":"coral-sanctions-agent","version":"0.1.0","registrySourceId":{"type":"local"}},"name":"coral-sanctions-agent","description":"","provider":{"type":"local","runtime":"executable"},"blocking":false,"customToolAccess":[],"plugins":[],"x402Budgets":[],"options":{"EXTRA_INITIAL_USER_PROMPT":{"type":"string","value":"Manuel Salvador Quevedo Fernández "},"MODEL_API_KEY":{"type":"string","value":"REDACTED_OPENAI_API_KEY"},"DILISENSE_API_KEY":{"type":"string","value":"REDACTED_DILISENSE_API_KEY"},"TAVILY_API_KEY":{"type":"string","value":"REDACTED_TAVILY_API_KEY"}}},{"id":{"name":"coral-rs-agent","version":"0.1.0","registrySourceId":{"type":"local"}},"name":"coral-rs-agent","description":"","provider":{"type":"local","runtime":"executable"},"blocking":false,"customToolAccess":[],"plugins":[],"x402Budgets":[],"options":{"EXTRA_INITIAL_USER_PROMPT":{"type":"string","value":"get information from other agents and provide a comprehensive final compliance decision"},"MODEL_API_KEY":{"type":"string","value":"REDACTED_OPENAI_API_KEY"}}}],"groups":[],"customTools":{}},"namespaceProvider":{"type":"create_if_not_exists","namespaceRequest":{"name":"default","annotations":{},"deleteOnLastSessionExit":false}},"execution":{"mode":"immediate","runtimeSettings":{"extendedEndReport":false,"ttl":50000000}}}'
+POST http://localhost:5555/api/v1/local/session
+Accept: */*
+Accept-Language: zh-CN,zh;q=0.9,en;q=0.8
+Connection: keep-alive
+Origin: http://localhost:5555
+Referer: http://localhost:5555/ui/console/templates/create
+Sec-Fetch-Dest: empty
+Sec-Fetch-Mode: cors
+Sec-Fetch-Site: same-origin
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36
+sec-ch-ua: "Chromium";v="146", "Not-A.Brand";v="24", "Google Chrome";v="146"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "macOS"
+Content-Type: application/json
+Authorization: Bearer test
+
+{
+  "agentGraphRequest": {
+    "agents": [
+      {
+        "id": {
+          "name": "coral-pep-agent",
+          "version": "0.1.0",
+          "registrySourceId": {
+            "type": "local"
+          }
+        },
+        "name": "coral-pep-agent",
+        "description": "",
+        "provider": {
+          "type": "local",
+          "runtime": "executable"
+        },
+        "blocking": false,
+        "customToolAccess": [],
+        "plugins": [],
+        "x402Budgets": [],
+        "options": {
+          "EXTRA_INITIAL_USER_PROMPT": {
+            "type": "string",
+            "value": "Caelum Jayd Gorman Forder"
+          },
+          "MODEL_API_KEY": {
+            "type": "string",
+            "value": "REDACTED_OPENAI_API_KEY"
+          },
+          "DILISENSE_API_KEY": {
+            "type": "string",
+            "value": "REDACTED_DILISENSE_API_KEY"
+          }
+        }
+      },
+      {
+        "id": {
+          "name": "coral-am-agent",
+          "version": "0.1.0",
+          "registrySourceId": {
+            "type": "local"
+          }
+        },
+        "name": "coral-am-agent",
+        "description": "",
+        "provider": {
+          "type": "local",
+          "runtime": "executable"
+        },
+        "blocking": false,
+        "customToolAccess": [],
+        "plugins": [],
+        "x402Budgets": [],
+        "options": {
+          "EXTRA_INITIAL_USER_PROMPT": {
+            "type": "string",
+            "value": "Caelum Jayd Gorman Forder"
+          },
+          "MODEL_API_KEY": {
+            "type": "string",
+            "value": "REDACTED_OPENAI_API_KEY"
+          },
+          "TAVILY_API_KEY": {
+            "type": "string",
+            "value": "REDACTED_TAVILY_API_KEY"
+          }
+        }
+      },
+      {
+        "id": {
+          "name": "coral-sanctions-agent",
+          "version": "0.1.0",
+          "registrySourceId": {
+            "type": "local"
+          }
+        },
+        "name": "coral-sanctions-agent",
+        "description": "",
+        "provider": {
+          "type": "local",
+          "runtime": "executable"
+        },
+        "blocking": false,
+        "customToolAccess": [],
+        "plugins": [],
+        "x402Budgets": [],
+        "options": {
+          "EXTRA_INITIAL_USER_PROMPT": {
+            "type": "string",
+            "value": "Caelum Jayd Gorman Forder"
+          },
+          "MODEL_API_KEY": {
+            "type": "string",
+            "value": "REDACTED_OPENAI_API_KEY"
+          },
+          "DILISENSE_API_KEY": {
+            "type": "string",
+            "value": "REDACTED_DILISENSE_API_KEY"
+          },
+          "TAVILY_API_KEY": {
+            "type": "string",
+            "value": "REDACTED_TAVILY_API_KEY"
+          }
+        }
+      },
+      {
+        "id": {
+          "name": "coral-rs-agent",
+          "version": "0.1.0",
+          "registrySourceId": {
+            "type": "local"
+          }
+        },
+        "name": "coral-rs-agent",
+        "description": "",
+        "provider": {
+          "type": "local",
+          "runtime": "executable"
+        },
+        "blocking": false,
+        "customToolAccess": [],
+        "plugins": [],
+        "x402Budgets": [],
+        "options": {
+          "EXTRA_INITIAL_USER_PROMPT": {
+            "type": "string",
+            "value": "get information from other agents and provide a comprehensive final compliance decision"
+          },
+          "MODEL_API_KEY": {
+            "type": "string",
+            "value": "REDACTED_OPENAI_API_KEY"
+          }
+        }
+      }
+    ],
+    "groups": [],
+    "customTools": {}
+  },
+  "namespaceProvider": {
+    "type": "create_if_not_exists",
+    "namespaceRequest": {
+      "name": "default",
+      "annotations": {},
+      "deleteOnLastSessionExit": false
+    }
+  },
+  "execution": {
+    "mode": "immediate",
+    "runtimeSettings": {
+      "extendedEndReport": false,
+      "ttl": 50000000
+    }
+  }
+}
+
+###
