@@ -32,7 +32,9 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.component.inject
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Instant
 import kotlin.time.measureTimedValue
 
 typealias SessionAgentSecret = String
@@ -357,8 +359,13 @@ class SessionAgent(
     /**
      * Suspends until this agent receives a message that matches all specified [filters].  Returns null if the wait
      * channel closes or timeout is reached.
+     *
+     * @param replayAfter This can be used to replay messages that have already been received.  Replayed messages will
+     * be evaluated against [filters].  If there are no messages that came after [replayAfter] or if no messages that
+     * came after [replayAfter] match [filters] then this function will wait normally.
      */
     suspend fun waitForMessage(
+        replayAfter: Instant = Clock.System.now(),
         filters: Set<SessionThreadMessageFilter> = setOf(),
         timeoutMs: Long = sessionConfig.defaultWaitTimeout
     ): SessionThreadMessage? {
@@ -366,16 +373,44 @@ class SessionAgent(
             val waiter = SessionAgentWaiter(filters)
             waiters.update { it + waiter }
 
-            logger.info { "waiting for message that matches: ${filters.joinToString(", ")}" }
+            val replayMessages = mutableListOf<SessionThreadMessage>()
+            getThreads().forEach { thread ->
+                replayMessages.addAll(thread.withMessageLock { messages ->
+                    messages.filter { it.timestamp >= replayAfter }
+                })
+            }
+
+            if (filters.isEmpty()) {
+                logger.info { "attempting to wait for any message from any agent, replaying messages after $replayAfter" }
+            } else
+                logger.info { "attempting to wait for a message that matches filters [${filters.joinToString(", ")}], replaying messages after $replayAfter" }
+
             session.events.emit(SessionEvent.AgentWaitStart(name, filters))
             setCommunicationStatus(SessionAgentCommunicationStatus.WaitingMessage)
+
+            var foundInReplay = false
+            if (replayMessages.isNotEmpty()) {
+                val matching = replayMessages.firstOrNull { waiter.matches(it) }
+                if (matching != null) {
+                    logger.info { "found a matching message in ${replayMessages.size} replayed messages" }
+                    foundInReplay = true
+
+                    waiters.update { it - waiter }
+                    waiter.deferred.complete(matching)
+                } else {
+                    logger.info { "no matching messages found in ${replayMessages.size} replayed messages, waiting..." }
+                }
+            } else
+                logger.info { "no messages to replay, waiting for new messages..." }
 
             val wait = measureTimedValue {
                 waiter.deferred.await()
             }
 
+            if (!foundInReplay)
+                logger.info { "found matching message: ${wait.value.id} in ${wait.duration}" }
+
             session.events.emit(SessionEvent.AgentWaitStop(name, wait.value))
-            logger.info { "found matching message: ${wait.value.id} in ${wait.duration}" }
             setCommunicationStatus(SessionAgentCommunicationStatus.Thinking)
 
             wait.value

@@ -5,15 +5,21 @@ import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.session.SessionAgent
 import org.coralprotocol.coralserver.session.SessionThreadMessage
 import org.coralprotocol.coralserver.session.SessionThreadMessageFilter
+import kotlin.time.Instant
 
 @Serializable
-object WaitForSingleMessageInput
+data class WaitForSingleMessageInput(
+    val currentUnixTime: Long = System.currentTimeMillis(),
+)
 
 @Serializable
-object WaitForMentioningMessageInput
+data class WaitForMentioningMessageInput(
+    val currentUnixTime: Long = System.currentTimeMillis(),
+)
 
 @Serializable
 data class WaitForAgentMessageInput(
+    val currentUnixTime: Long = System.currentTimeMillis(),
     val agentName: UniqueAgentName
 )
 
@@ -30,7 +36,7 @@ suspend fun waitForSingleMessageExecutor(
     @Suppress("UNUSED_PARAMETER")
     arguments: WaitForSingleMessageInput
 ): WaitForMessageOutput {
-    return WaitForMessageOutput(agent.waitForMessage())
+    return WaitForMessageOutput(agent.waitForMessage(Instant.fromEpochMilliseconds(arguments.currentUnixTime)))
 }
 
 suspend fun waitForMentioningMessageExecutor(
@@ -41,6 +47,7 @@ suspend fun waitForMentioningMessageExecutor(
 ): WaitForMessageOutput {
     return WaitForMessageOutput(
         agent.waitForMessage(
+            Instant.fromEpochMilliseconds(arguments.currentUnixTime),
             setOf(
                 SessionThreadMessageFilter.Mentions(
                     name = agent.name
@@ -56,6 +63,7 @@ suspend fun waitForAgentMessageExecutor(
 ): WaitForMessageOutput {
     return WaitForMessageOutput(
         agent.waitForMessage(
+            Instant.fromEpochMilliseconds(arguments.currentUnixTime),
             setOf(
                 SessionThreadMessageFilter.From(
                     name = arguments.agentName

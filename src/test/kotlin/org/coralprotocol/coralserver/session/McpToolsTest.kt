@@ -125,18 +125,18 @@ class McpToolsTest : CoralTest({
                                 val agent2 = session.getAgent(agent2Name)
 
                                 val singleMessageResult =
-                                    mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput)
+                                    mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput())
                                 singleMessageResult.message?.text shouldBe singleMessageText
 
                                 val agentMessageResult =
                                     mcpToolManager.waitForAgentMessageTool.executeOn(
                                         client,
-                                        WaitForAgentMessageInput(agent1Name)
+                                        WaitForAgentMessageInput(agentName = agent1Name)
                                     )
                                 agentMessageResult.message?.text shouldBe agentMessageText
 
                                 val mentionResult =
-                                    mcpToolManager.waitForMentionTool.executeOn(client, WaitForMentioningMessageInput)
+                                    mcpToolManager.waitForMentionTool.executeOn(client, WaitForMentioningMessageInput())
                                 mentionResult.message?.text shouldBe mentionText
 
                                 agent2.waiters.value.shouldBeEmpty()
@@ -152,7 +152,7 @@ class McpToolsTest : CoralTest({
                                 val mentionMessageResult =
                                     mcpToolManager.waitForMentionTool.executeOn(
                                         client,
-                                        WaitForMentioningMessageInput
+                                        WaitForMentioningMessageInput()
                                     ).message.shouldNotBeNull()
 
                                 // the first message that this agent should receive is the first message sent by agent1, but only
