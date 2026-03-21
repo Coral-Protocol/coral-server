@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package org.coralprotocol.coralserver.utils
 
 import io.kotest.matchers.concurrent.suspension.shouldCompleteWithin
@@ -11,6 +13,7 @@ import io.ktor.server.routing.routing
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
@@ -21,7 +24,9 @@ import org.coralprotocol.coralserver.agent.runtime.PrototypeRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.agent.runtime.prototype.*
 import org.coralprotocol.coralserver.config.NetworkConfig
+import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.mcp.buildToolSchema
+import org.coralprotocol.coralserver.modules.LOGGER_TEST
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.MessageId
 import org.coralprotocol.coralserver.session.SessionAgent
@@ -29,6 +34,7 @@ import org.coralprotocol.coralserver.util.signatureVerifiedBody
 import org.coralprotocol.coralserver.utils.dsl.graphAgentPair
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import org.koin.core.qualifier.named
 import java.util.*
 import kotlin.time.Duration.Companion.minutes
 
@@ -43,6 +49,17 @@ suspend fun SessionAgent.synchronizedMessageTransaction(sendMessageFn: suspend (
         throw IllegalStateException("$name's active waiter returned message ${returnedMsg.id} instead of expected $msgId")
 }
 
+@Serializable
+private data class MultiAgentTestPayloadResponse(val message: String)
+
+@Serializable
+private data class MultiAgentTestPayload(val payloadVerbatim: String)
+
+@Serializable
+@Resource("payload/{sessionId}/{agentId}")
+@Suppress("unused")
+class MultiAgentTestPayloadPath(val sessionId: String, val agentId: String)
+
 /**
  * This performs a basic test where one agent is tasked to ask another to be given a piece of data that only that agent
  * possesses. The agents are not given any explicit instruction on what tools to use or in what order to do things.
@@ -56,27 +73,32 @@ suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelPro
     val application by inject<Application>()
     val json by inject<Json>()
     val config by inject<NetworkConfig>()
+    val logger by inject<Logger>(named(LOGGER_TEST))
     val payloadData = UUID.randomUUID().toString()
 
     val receiveAgentName = "rob"
     val senderAgentName = "steve"
-    val resultToolName = "post_result"
-
-    @Serializable
-    class Payload(val payloadVerbatim: String)
-
-    @Serializable
-    @Resource("post-result/{sessionId}/{agentId}")
-    @Suppress("unused")
-    class PostResultPath(val sessionId: String, val agentId: String)
+    val resultToolName = "post_payload"
 
     val deferredPayload = CompletableDeferred<String>()
 
     application.routing {
-        post<PostResultPath> { _ ->
+        post<MultiAgentTestPayloadPath> { _ ->
             try {
-                deferredPayload.complete(signatureVerifiedBody<Payload>(json, config.customToolSecret).payloadVerbatim)
-                call.respond(HttpStatusCode.OK)
+                val payload = signatureVerifiedBody<MultiAgentTestPayload>(json, config.customToolSecret).payload
+                if (payload != payloadData) {
+                    logger.warn { "Received unexpected payload: $payload" }
+                    call.respond(
+                        HttpStatusCode.OK,
+                        MultiAgentTestPayloadResponse("The given payload '$payload' does not match the expected payload, please try again")
+                    )
+                } else {
+                    deferredPayload.complete(payload)
+                    call.respond(
+                        HttpStatusCode.OK,
+                        MultiAgentTestPayloadResponse("Successfully received payload!")
+                    )
+                }
             } catch (e: Exception) {
                 deferredPayload.completeExceptionally(e)
                 throw e
@@ -112,9 +134,10 @@ suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelPro
                     tool(
                         resultToolName, GraphAgentTool(
                             transport = GraphAgentToolTransport.Http(
-                                url = "post-result",
+                                url = "payload",
                             ),
-                            inputSchema = buildToolSchema<Payload>()
+                            inputSchema = buildToolSchema<MultiAgentTestPayload>(),
+                            outputSchema = buildToolSchema<MultiAgentTestPayloadResponse>()
                         )
                     )
                     provider = GraphAgentProvider.Local(RuntimeId.PROTOTYPE)
