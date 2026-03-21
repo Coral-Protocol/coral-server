@@ -5,15 +5,13 @@ package org.coralprotocol.coralserver.agent.runtime
 import ai.koog.agents.core.agent.AIAgent
 import ai.koog.agents.core.agent.context.AIAgentFunctionalContext
 import ai.koog.agents.core.agent.functionalStrategy
-import ai.koog.agents.core.dsl.extension.extractToolCalls
-import ai.koog.agents.core.dsl.extension.latestTokenUsage
-import ai.koog.agents.core.dsl.extension.requestLLMOnlyCallingTools
 import ai.koog.agents.core.environment.ReceivedToolResult
 import ai.koog.agents.core.environment.ToolResultKind
 import ai.koog.agents.core.environment.result
 import ai.koog.agents.core.feature.model.AIAgentError
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.mcp.McpToolRegistryProvider
+import ai.koog.agents.mcp.metadata.McpServerInfo
 import ai.koog.prompt.message.Message
 import ai.koog.prompt.message.RequestMetaInfo
 import dev.eav.tomlkt.TomlClassDiscriminator
@@ -21,6 +19,7 @@ import io.ktor.client.*
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import io.modelcontextprotocol.kotlin.sdk.client.SseClientTransport
 import io.modelcontextprotocol.kotlin.sdk.client.StreamableHttpClientTransport
+import io.modelcontextprotocol.kotlin.sdk.shared.AbstractTransport
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.ReadResourceRequest
 import io.modelcontextprotocol.kotlin.sdk.types.ReadResourceRequestParams
@@ -69,29 +68,22 @@ data class PrototypeRuntime(
 
     val prompts: PrototypePrompts = PrototypePrompts()
 ) : AgentRuntime, KoinComponent {
+
+    // TODO: change this back to default when koog fixes streamable http, current latest version 0.7.2 is broken
     @Transient
-    override val transport: AgentRuntimeTransport = DEFAULT_AGENT_RUNTIME_TRANSPORT
+    override val transport: AgentRuntimeTransport = AgentRuntimeTransport.SSE
 
     val httpClient by inject<HttpClient>()
     val json by inject<Json>()
 
     private suspend fun createCoralMcpClient(
-        executionContext: SessionAgentExecutionContext,
-        applicationRuntimeContext: ApplicationRuntimeContext
+        transport: AbstractTransport,
+        executionContext: SessionAgentExecutionContext
     ): Client {
-        val transport = when (transport) {
-            AgentRuntimeTransport.SSE -> SseClientTransport(
-                client = httpClient,
-                urlString = applicationRuntimeContext.getSseUrl(executionContext, AddressConsumer.LOCAL).toString()
-            )
 
-            AgentRuntimeTransport.STREAMABLE_HTTP -> StreamableHttpClientTransport(
-                client = httpClient,
-                url = applicationRuntimeContext.getStreamableHttpUrl(executionContext, AddressConsumer.LOCAL).toString()
-            )
-        }
         transport.onError { e ->
-            executionContext.logger.error(e) { "Coral MCP error" }
+            if (e !is CancellationException)
+                executionContext.logger.error(e) { "Coral MCP error" }
         }
 
         val client = Client(
@@ -112,11 +104,9 @@ data class PrototypeRuntime(
         return toolCalls.map {
             try {
                 environment.executeTool(it)
-            }
-            catch (e: CancellationException) {
+            } catch (e: CancellationException) {
                 throw e
-            }
-            catch (e: Exception) {
+            } catch (e: Exception) {
                 val result = e.javaClass.name + ": ${e.message}"
                 logger.error(e) { "Got exception while executing tool ${it.tool}: Result is being set as: $result" }
 
@@ -171,8 +161,31 @@ data class PrototypeRuntime(
         executionContext: SessionAgentExecutionContext,
         applicationRuntimeContext: ApplicationRuntimeContext
     ) {
-        val coralMcpClient = createCoralMcpClient(executionContext, applicationRuntimeContext)
-        val coralToolRegistry = McpToolRegistryProvider.fromClient(coralMcpClient)
+        val mcpUrl = when (transport) {
+            AgentRuntimeTransport.SSE -> applicationRuntimeContext.getSseUrl(executionContext, AddressConsumer.LOCAL)
+            AgentRuntimeTransport.STREAMABLE_HTTP -> applicationRuntimeContext.getStreamableHttpUrl(
+                executionContext,
+                AddressConsumer.LOCAL
+            )
+        }
+
+        val coralMcpTransport = when (transport) {
+            AgentRuntimeTransport.SSE -> SseClientTransport(
+                client = httpClient,
+                urlString = mcpUrl.toString()
+            )
+
+            AgentRuntimeTransport.STREAMABLE_HTTP -> StreamableHttpClientTransport(
+                client = httpClient,
+                url = mcpUrl.toString()
+            )
+        }
+
+        val coralMcpClient = createCoralMcpClient(coralMcpTransport, executionContext)
+        val coralToolRegistry = McpToolRegistryProvider.fromClient(
+            mcpClient = coralMcpClient,
+            serverInfo = McpServerInfo(url = mcpUrl.toString())
+        )
 
         val modelIdentifier = modelProvider.getModelIdentifier(executionContext)
         var totalTokens = 0L
@@ -235,11 +248,9 @@ data class PrototypeRuntime(
                         totalTokens += iterationTokenUsage
                         executionContext.logger.debug { "Iteration $iteration completed in $iterationTime.  This iteration used $iterationTokenUsage tokens.  Total cumulative token usage is $totalTokens" }
 
-                    }
-                    catch (e: CancellationException) {
+                    } catch (e: CancellationException) {
                         throw e
-                    }
-                    catch (e: Exception) {
+                    } catch (e: Exception) {
                         executionContext.logger.error(e) { "Agent iteration error" }
                     }
                 }

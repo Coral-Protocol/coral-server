@@ -110,7 +110,7 @@ dependencies {
     implementation("com.sksamuel.hoplite:hoplite-core:${hopliteVersion}")
     implementation("com.sksamuel.hoplite:hoplite-toml:${hopliteVersion}")
 
-    val koogVersion = "0.6.4"
+    val koogVersion = "0.7.2"
     api("ai.koog:koog-agents:$koogVersion")
     api("ai.koog:agents-mcp:$koogVersion")
 }

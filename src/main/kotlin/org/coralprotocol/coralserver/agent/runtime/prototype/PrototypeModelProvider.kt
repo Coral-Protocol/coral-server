@@ -35,7 +35,7 @@ sealed class PrototypeModelProvider {
     fun getModel(executionContext: SessionAgentExecutionContext): LLModel {
         val models = modelClass::class.members
             .filter { member -> member.returnType.classifier == LLModel::class }
-            .mapNotNull { member -> member.call(modelClass) as? LLModel }
+            .mapNotNull { member -> member.call() as? LLModel }
 
         val modelName = name.resolve(executionContext)
         return models.firstOrNull { it.id == modelName }
