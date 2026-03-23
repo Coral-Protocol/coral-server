@@ -18,10 +18,10 @@ import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionDisplay
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
-import org.coralprotocol.coralserver.agent.runtime.AgentRuntimeTransport
 import org.coralprotocol.coralserver.agent.runtime.DockerRuntime
 import org.coralprotocol.coralserver.agent.runtime.ExecutableRuntime
 import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
+import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.utils.dsl.RegistryAgentMarketplaceIdentityErc8004Builder
 import org.coralprotocol.coralserver.utils.dsl.RegistryAgentMarketplacePricingBuilder
 import org.coralprotocol.coralserver.utils.dsl.registryAgent
@@ -61,11 +61,11 @@ class RegistryAgentTest : CoralTest({
         val executableRuntime = agent.runtimes.executableRuntime.shouldNotBeNull()
 
         dockerRuntime.image.shouldBeEqual("myuser/myimage")
-        dockerRuntime.transport.shouldBe(AgentRuntimeTransport.STREAMABLE_HTTP)
+        dockerRuntime.transport.shouldBe(McpTransportType.STREAMABLE_HTTP)
 
         executableRuntime.path.shouldBeEqual("my-agent")
         executableRuntime.arguments.shouldContainExactly("--some-argument")
-        executableRuntime.transport.shouldBe(AgentRuntimeTransport.SSE)
+        executableRuntime.transport.shouldBe(McpTransportType.SSE)
     }
 
     fun testOptions(agent: RegistryAgent) {
