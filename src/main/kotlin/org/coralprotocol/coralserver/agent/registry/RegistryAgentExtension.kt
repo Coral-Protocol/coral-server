@@ -24,5 +24,5 @@ sealed interface RegistryAgentExtension {
 
         @Serializable(with = InstantSerializer::class)
         val publishedAt: Instant
-    )
+    ) : RegistryAgentExtension
 }
