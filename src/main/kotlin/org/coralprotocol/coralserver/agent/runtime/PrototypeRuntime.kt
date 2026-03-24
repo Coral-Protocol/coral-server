@@ -5,6 +5,7 @@ package org.coralprotocol.coralserver.agent.runtime
 import ai.koog.agents.core.agent.AIAgent
 import ai.koog.agents.core.agent.context.AIAgentFunctionalContext
 import ai.koog.agents.core.agent.functionalStrategy
+import ai.koog.agents.core.agent.session.AIAgentLLMReadSession
 import ai.koog.agents.core.environment.ReceivedToolResult
 import ai.koog.agents.core.environment.ToolResultKind
 import ai.koog.agents.core.environment.result
@@ -66,7 +67,12 @@ data class PrototypeRuntime(
     @SerialName("delay")
     val iterationDelay: Int = 0,
 
-    val prompts: PrototypePrompts = PrototypePrompts()
+    val prompts: PrototypePrompts = PrototypePrompts(),
+    @Transient
+    /**
+     * Debugging convenience callback that gets called immediately after each inference request to the LLM.
+     */
+    val postRequestToLLMCallback: (context: AIAgentLLMReadSession) -> Unit = { }
 ) : AgentRuntime, KoinComponent {
 
     // TODO: change this back to default when koog fixes streamable http, current latest version 0.7.2 is broken
@@ -220,6 +226,8 @@ data class PrototypeRuntime(
                             val (response, llmResponseTime) = measureTimedValue {
                                 requestLLMOnlyCallingTools(if (iteration == 0) initialUserMessage else followupUserMessage)
                             }
+                            //
+                            llm.readSession { readSession -> postRequestToLLMCallback(readSession) }
                             executionContext.logger.debug { "$modelIdentifier responded in $llmResponseTime, with: ${response.content}" }
 
                             val toolCalls = extractToolCalls(listOf(response))

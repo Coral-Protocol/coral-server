@@ -97,12 +97,15 @@ suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelPro
                                     loop = PrototypeLoopPrompt(
                                         initial = PrototypeLoopInitialPrompt(
                                             extra = PrototypeString.Inline(
-                                                "You require special data, named 'payload' which $senderAgentName possesses exclusively.  Request this data immediately, then post it to me using the $resultToolName tool."
+                                                "You require special data, named 'payload' which $senderAgentName possesses exclusively.  Request this data immediately, then submit it using the $resultToolName tool verbatim with no quotes"
                                             )
                                         )
                                     )
                                 ),
-                                iterationCount = 10
+                                iterationCount = 10,
+                                postRequestToLLMCallback = {
+                                    // breakpoint here for debugging agent behaviour
+                                }
                             )
                         )
                     }
