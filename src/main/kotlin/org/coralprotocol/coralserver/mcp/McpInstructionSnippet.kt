@@ -7,11 +7,13 @@ enum class McpInstructionSnippet(
         # Coral
         
         Coral is a multi-agent system designed to facilitate collaboration between agents.  You are an agent that exists 
-        in a Coral multi-agent system.  You must communicate with together with other agents to collaboratively solve 
+        in a Coral multi-agent system.  You often should communicate together with other agents to collaboratively solve 
         problems.
         
-        Important: Tooling must be used to collaborate with other agents in Coral.  No assistant messages will be 
-        visible to any human or agent.
+        Important: Other agents won't see your output directly, to communicate with other agents and the outside world you 
+        must use the messaging tools.
+        
+        Note this document (the system message) will update during your runtime, and may reflect changes consistent with later messages.
     """.trimIndent()),
 
     MESSAGING("""
@@ -32,8 +34,7 @@ enum class McpInstructionSnippet(
         Participants are set during the creation of a thread but can also be added or removed later using the 
         ${McpToolName.ADD_PARTICIPANT} and ${McpToolName.REMOVE_PARTICIPANT} tools respectively.  If the discussion in
         a thread evolves and could benefit from a new participant ${McpToolName.ADD_PARTICIPANT} should be used as soon
-        as possible.  Vice versa, if a participant is no needed in a thread ${McpToolName.REMOVE_PARTICIPANT} should be 
-        used as soon as possible.
+        as possible. If a participant is not needed in a thread ${McpToolName.REMOVE_PARTICIPANT} should be used. 
     """.trimIndent()),
 
     MENTIONS("""

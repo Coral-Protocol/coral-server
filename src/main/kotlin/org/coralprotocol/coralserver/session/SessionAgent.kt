@@ -398,10 +398,10 @@ class SessionAgent(
                     waiters.update { it - waiter }
                     waiter.deferred.complete(matching)
                 } else {
-                    logger.info { "no matching messages found in ${replayMessages.size} replayed messages, waiting..." }
+                    logger.info { "no matching messages found in ${replayMessages.size} replayed messages, waiting for ${timeoutMs}ms..." }
                 }
             } else
-                logger.info { "no messages to replay, waiting for new messages..." }
+                logger.info { "no messages to replay, waiting for new messages for ${timeoutMs}ms..." }
 
             val wait = measureTimedValue {
                 waiter.deferred.await()
@@ -581,10 +581,11 @@ class SessionAgent(
         val agentsText = """
         # Agents
         You collaborate with ${links.size} other agents, described below:
-        
+        Consider that they have different contexts and instructions and don't necessarily know what you know unless you tell them.
         ```json
         [${agents.joinToString(",")}]
         ```
+        Since you are in close contact with these agents, you will immediately see messages they post to shared threads even without explicitly waiting. It may be better to skip waiting, or call coral wait tools with much lower timeouts (e.g. 2-5 seconds) in order to collaborate in a timely manner with them. 
         """
 
         val threadsText = """
