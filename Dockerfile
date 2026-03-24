@@ -1,4 +1,4 @@
-FROM gradle:8.14.2-jdk21-noble AS build
+FROM gradle:9.0.0-jdk24-noble AS build
 COPY --chown=gradle:gradle . /home/gradle/src
 WORKDIR /home/gradle/src
 
