@@ -25,6 +25,7 @@ fun main(args: Array<String>) {
             blockchainModule,
             networkModule,
             agentModule,
+            llmProxyModule,
             sessionModule,
             module {
                 single {

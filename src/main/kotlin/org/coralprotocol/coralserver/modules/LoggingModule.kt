@@ -125,4 +125,5 @@ val namedLoggingModule = module {
     single<Logger>(named(LOGGER_CONFIG)) { get() }
     single<Logger>(named(LOGGER_LOG_API)) { get() }
     single<Logger>(named(LOGGER_LOCAL_SESSION)) { get() }
+    single<Logger>(named(LOGGER_LLM_PROXY)) { get() }
 }
