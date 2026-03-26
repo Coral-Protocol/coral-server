@@ -18,8 +18,6 @@ import ai.koog.prompt.message.RequestMetaInfo
 import dev.eav.tomlkt.TomlClassDiscriminator
 import io.ktor.client.*
 import io.modelcontextprotocol.kotlin.sdk.client.Client
-import io.modelcontextprotocol.kotlin.sdk.client.SseClientTransport
-import io.modelcontextprotocol.kotlin.sdk.client.StreamableHttpClientTransport
 import io.modelcontextprotocol.kotlin.sdk.shared.AbstractTransport
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.ReadResourceRequest
@@ -35,8 +33,10 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonObject
 import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeModelProvider
 import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypePrompts
+import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeToolServer
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.logging.LoggingInterface
+import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -46,13 +46,6 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
 import kotlin.time.measureTime
 import kotlin.time.measureTimedValue
-
-/*
-    todo:
-        other mcp
-        other mcp auth
- */
-
 
 @Serializable
 @JsonClassDiscriminator("prototype")
@@ -68,6 +61,10 @@ data class PrototypeRuntime(
     val iterationDelay: Int = 0,
 
     val prompts: PrototypePrompts = PrototypePrompts(),
+
+    @SerialName("tools")
+    val toolServers: List<PrototypeToolServer> = listOf(),
+
     @Transient
     /**
      * Debugging convenience callback that gets called immediately after each inference request to the LLM.
@@ -77,7 +74,7 @@ data class PrototypeRuntime(
 
     // TODO: change this back to default when koog fixes streamable http, current latest version 0.7.2 is broken
     @Transient
-    override val transport: AgentRuntimeTransport = AgentRuntimeTransport.SSE
+    override val transport: McpTransportType = McpTransportType.SSE
 
     val httpClient by inject<HttpClient>()
     val json by inject<Json>()
@@ -167,31 +164,18 @@ data class PrototypeRuntime(
         executionContext: SessionAgentExecutionContext,
         applicationRuntimeContext: ApplicationRuntimeContext
     ) {
-        val mcpUrl = when (transport) {
-            AgentRuntimeTransport.SSE -> applicationRuntimeContext.getSseUrl(executionContext, AddressConsumer.LOCAL)
-            AgentRuntimeTransport.STREAMABLE_HTTP -> applicationRuntimeContext.getStreamableHttpUrl(
-                executionContext,
-                AddressConsumer.LOCAL
-            )
-        }
-
-        val coralMcpTransport = when (transport) {
-            AgentRuntimeTransport.SSE -> SseClientTransport(
-                client = httpClient,
-                urlString = mcpUrl.toString()
-            )
-
-            AgentRuntimeTransport.STREAMABLE_HTTP -> StreamableHttpClientTransport(
-                client = httpClient,
-                url = mcpUrl.toString()
-            )
-        }
+        val mcpUrl = applicationRuntimeContext.getMcpUrl(transport, executionContext, AddressConsumer.LOCAL)
+        val coralMcpTransport = transport.getAbstractTransport(httpClient, mcpUrl.toString())
 
         val coralMcpClient = createCoralMcpClient(coralMcpTransport, executionContext)
         val coralToolRegistry = McpToolRegistryProvider.fromClient(
             mcpClient = coralMcpClient,
             serverInfo = McpServerInfo(url = mcpUrl.toString())
         )
+
+        val additionalTools = toolServers.flatMap { toolServer -> toolServer.resolve(executionContext) }
+        if (toolServers.isNotEmpty())
+            executionContext.logger.debug { "Resolved ${additionalTools.size} additional tools from ${toolServers.size} tool servers" }
 
         val modelIdentifier = modelProvider.getModelIdentifier(executionContext)
         var totalTokens = 0L
@@ -206,6 +190,7 @@ data class PrototypeRuntime(
             llmModel = modelProvider.getModel(executionContext),
             toolRegistry = ToolRegistry {
                 tools(coralToolRegistry.tools)
+                tools(additionalTools)
             },
             strategy = functionalStrategy { _: Nothing? ->
                 repeat(iterationCount) { iteration ->
