@@ -6,6 +6,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
+import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 
 @Serializable
@@ -15,9 +16,11 @@ sealed interface PrototypeApiUrl {
 
     @Serializable
     @SerialName("proxy")
-    object Proxy : PrototypeApiUrl {
+    data object Proxy : PrototypeApiUrl {
         override fun resolve(executionContext: SessionAgentExecutionContext): String {
-            TODO("Not yet implemented")
+            return executionContext.applicationRuntimeContext
+                .getLlmProxyUrl(executionContext, AddressConsumer.LOCAL)
+                .toString()
         }
     }
 

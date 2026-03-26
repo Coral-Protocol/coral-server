@@ -77,4 +77,18 @@ sealed class SessionEvent {
     @Serializable
     @SerialName("docker_container_removed")
     data class DockerContainerRemoved(val containerId: String) : SessionEvent()
+
+    @Serializable
+    @SerialName("llm_proxy_call")
+    data class LlmProxyCall(
+        val agentName: UniqueAgentName,
+        val provider: String,
+        val model: String?,
+        val inputTokens: Long?,
+        val outputTokens: Long?,
+        val durationMs: Long,
+        val streaming: Boolean,
+        val success: Boolean,
+        val errorKind: String? = null
+    ) : SessionEvent()
 }

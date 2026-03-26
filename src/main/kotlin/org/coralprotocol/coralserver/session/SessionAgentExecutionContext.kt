@@ -13,6 +13,7 @@ import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.DebugConfig
 import org.coralprotocol.coralserver.config.DockerConfig
+import org.coralprotocol.coralserver.config.LlmProxyConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.session.reporting.SessionAgentUsageReport
 import org.coralprotocol.coralserver.util.utcTimeNow
@@ -132,6 +133,12 @@ class SessionAgentExecutionContext(
 
             if (agent.graphAgent.provider is GraphAgentProvider.Remote)
                 this["CORAL_REMOTE_AGENT"] = "1"
+
+            val llmProxyConfig by inject<LlmProxyConfig>()
+            if (llmProxyConfig.enabled) {
+                this["CORAL_LLM_PROXY_URL"] = applicationRuntimeContext
+                    .getLlmProxyUrl(this@SessionAgentExecutionContext, addressConsumer).toString()
+            }
         }
     }
 
