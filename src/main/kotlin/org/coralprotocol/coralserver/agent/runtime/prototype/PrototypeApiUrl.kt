@@ -2,6 +2,7 @@
 
 package org.coralprotocol.coralserver.agent.runtime.prototype
 
+import dev.eav.tomlkt.TomlClassDiscriminator
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -10,6 +11,7 @@ import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 
 @Serializable
 @JsonClassDiscriminator("type")
+@TomlClassDiscriminator("type")
 sealed interface PrototypeApiUrl {
     fun resolve(executionContext: SessionAgentExecutionContext): String
 

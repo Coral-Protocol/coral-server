@@ -14,6 +14,7 @@ import ai.koog.prompt.executor.clients.openrouter.OpenRouterModels
 import ai.koog.prompt.executor.llms.SingleLLMPromptExecutor
 import ai.koog.prompt.executor.model.PromptExecutor
 import ai.koog.prompt.llm.LLModel
+import dev.eav.tomlkt.TomlClassDiscriminator
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -24,6 +25,7 @@ import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 
 @Serializable
 @JsonClassDiscriminator("provider")
+@TomlClassDiscriminator("provider")
 sealed class PrototypeModelProvider {
     abstract val key: PrototypeString
     abstract val name: PrototypeString
