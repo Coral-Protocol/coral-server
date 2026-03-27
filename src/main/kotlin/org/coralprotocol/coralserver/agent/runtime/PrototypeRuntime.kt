@@ -51,6 +51,8 @@ import kotlin.time.measureTimedValue
 @JsonClassDiscriminator("prototype")
 @TomlClassDiscriminator("prototype")
 data class PrototypeRuntime(
+    val volatile: Boolean = false,
+
     @SerialName("model")
     val modelProvider: PrototypeModelProvider,
 
@@ -242,6 +244,9 @@ data class PrototypeRuntime(
                     } catch (e: CancellationException) {
                         throw e
                     } catch (e: Exception) {
+                        if (volatile)
+                            throw e
+
                         executionContext.logger.error(e) { "Agent iteration error" }
                     }
                 }

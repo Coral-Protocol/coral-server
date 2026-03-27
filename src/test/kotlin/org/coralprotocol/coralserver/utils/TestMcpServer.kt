@@ -251,6 +251,7 @@ suspend fun KoinComponent.runTestServerTest(
                     registryAgent {
                         runtime(
                             PrototypeRuntime(
+                                true,
                                 modelProvider,
                                 prompts = PrototypePrompts(
                                     loop = PrototypeLoopPrompt(

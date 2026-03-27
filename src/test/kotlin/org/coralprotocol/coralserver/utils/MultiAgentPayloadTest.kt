@@ -1,7 +1,6 @@
 package org.coralprotocol.coralserver.utils
 
 import io.kotest.matchers.concurrent.suspension.shouldCompleteWithin
-import io.kotest.matchers.equals.shouldBeEqual
 import io.ktor.http.*
 import io.ktor.resources.*
 import io.ktor.server.application.Application
@@ -10,6 +9,8 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.selects.select
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
@@ -64,7 +65,7 @@ suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelPro
     val senderAgentName = "steve"
     val resultToolName = "post_payload"
 
-    val deferredPayload = CompletableDeferred<String>()
+    val deferredPayload = CompletableDeferred<Unit>()
 
     application.routing {
         post<MultiAgentTestPayloadPath> { _ ->
@@ -77,7 +78,7 @@ suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelPro
                         MultiAgentTestPayloadResponse("The given payload '$payload' does not match the expected payload, please try again")
                     )
                 } else {
-                    deferredPayload.complete(payload)
+                    deferredPayload.complete(Unit)
                     call.respond(
                         HttpStatusCode.OK,
                         MultiAgentTestPayloadResponse("Successfully received payload!")
@@ -98,6 +99,7 @@ suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelPro
                     registryAgent {
                         runtime(
                             PrototypeRuntime(
+                                true,
                                 modelProvider,
                                 prompts = PrototypePrompts(
                                     loop = PrototypeLoopPrompt(
@@ -108,10 +110,7 @@ suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelPro
                                         )
                                     )
                                 ),
-                                iterationCount = 10,
-                                postRequestToLLMCallback = {
-                                    // breakpoint here for debugging agent behaviour
-                                }
+                                iterationCount = 10
                             )
                         )
                     }
@@ -130,6 +129,7 @@ suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelPro
                     registryAgent {
                         runtime(
                             PrototypeRuntime(
+                                true,
                                 modelProvider,
                                 prompts = PrototypePrompts(
                                     system = PrototypeSystemPrompt(extra = PrototypeString.Inline("payload = $payloadData")),
@@ -147,9 +147,18 @@ suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelPro
     session.launchAgents()
 
     shouldCompleteWithin(1.minutes) {
-        deferredPayload.await().shouldBeEqual(payloadData)
+        select {
+            session.sessionScope.launch {
+                session.joinAgents()
+            }.onJoin {
+                throw AssertionError("Agent runtime exited before receiving the payload")
+            }
+
+            session.sessionScope.launch {
+                deferredPayload.await()
+            }.onJoin { }
+        }
     }
 
-    session.cancelAndJoinAgents()
     session.sessionScope.cancel()
 }
