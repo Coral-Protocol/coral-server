@@ -71,10 +71,8 @@ data class PrototypeRuntime(
      */
     val postRequestToLLMCallback: (context: AIAgentLLMReadSession) -> Unit = { }
 ) : AgentRuntime, KoinComponent {
-
-    // TODO: change this back to default when koog fixes streamable http, current latest version 0.7.2 is broken
     @Transient
-    override val transport: McpTransportType = McpTransportType.SSE
+    override val transport: McpTransportType = McpTransportType.STREAMABLE_HTTP
 
     val httpClient by inject<HttpClient>()
     val json by inject<Json>()

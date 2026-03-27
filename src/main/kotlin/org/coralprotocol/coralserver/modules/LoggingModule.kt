@@ -47,6 +47,7 @@ val loggingModule = module {
 
         // koog
         logCtx.getLogger("ai.koog.agents.core.agent.FunctionalAIAgent").level = Level.OFF
+        logCtx.getLogger("ai.koog.agents.mcp.McpToolRegistryProvider").level = Level.OFF
 
         logCtx.putObject(
             CoreConstants.PATTERN_RULE_REGISTRY, mapOf(
