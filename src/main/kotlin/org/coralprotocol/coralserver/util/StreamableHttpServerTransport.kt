@@ -187,6 +187,6 @@ class StreamableHttpServerTransport(
         logger.debug { "Closing streamable HTTP transport with ID: $transportSessionId" }
         messageQueue.close()
         pendingResponses.clear()
-        _onClose.invoke()
+        invokeOnCloseCallback()
     }
 }

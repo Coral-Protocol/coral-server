@@ -163,7 +163,7 @@ class SessionAgent(
             description = "Instructions resource",
             uri = McpResourceName.INSTRUCTION_RESOURCE_URI.toString(),
             mimeType = "text/markdown",
-            readHandler = ::handleInstructionResource
+            readHandler = { handleInstructionResource(it) }
         )
 
         addResource(
@@ -171,7 +171,7 @@ class SessionAgent(
             description = "State resource",
             uri = McpResourceName.STATE_RESOURCE_URI.toString(),
             mimeType = "text/markdown",
-            readHandler = ::handleStateResource
+            readHandler = { handleStateResource(it) }
         )
 
         graphAgent.plugins.forEach { it.install(this) }
@@ -186,7 +186,7 @@ class SessionAgent(
                     annotations = tool.annotations,
                 )
             ) {
-                tool.transport.execute(name, this, it)
+                tool.transport.execute(name, this@SessionAgent, it)
             }
         }
     }
@@ -443,7 +443,7 @@ class SessionAgent(
             description = tool.description,
             inputSchema = tool.inputSchema
         ) { request ->
-            tool.execute(this, request.arguments ?: EmptyJsonObject)
+            tool.execute(this@SessionAgent, request.arguments ?: EmptyJsonObject)
         }
 
         requiredInstructionSnippets += tool.requiredSnippets
