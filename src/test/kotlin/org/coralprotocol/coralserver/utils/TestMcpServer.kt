@@ -126,7 +126,7 @@ class TestMcpServer(
         return transport
     }
 
-    fun asPrototypeToolServer(application: Application): PrototypeToolServer {
+    fun asPrototypeToolServer(application: Application): PrototypeToolServer.McpStreamableHttp {
         var transport: StreamableHttpServerTransport? = null
         application.routing {
             post<TestMcpResource.NoAuth.Mcp> {
@@ -147,7 +147,7 @@ class TestMcpServer(
         return PrototypeToolServer.McpStreamableHttp(application.href(TestMcpResource.NoAuth.Mcp()))
     }
 
-    fun asPrototypeToolServerParamAuth(application: Application): PrototypeToolServer {
+    fun asPrototypeToolServerParamAuth(application: Application): PrototypeToolServer.McpStreamableHttp {
         val authToken = UUID.randomUUID().toString()
 
         var transport: StreamableHttpServerTransport? = null
@@ -196,7 +196,7 @@ class TestMcpServer(
         )
     }
 
-    fun asPrototypeToolServerBearerAuth(application: Application): PrototypeToolServer {
+    fun asPrototypeToolServerBearerAuth(application: Application): PrototypeToolServer.McpStreamableHttp {
         val authToken = UUID.randomUUID().toString()
 
         var transport: StreamableHttpServerTransport? = null
