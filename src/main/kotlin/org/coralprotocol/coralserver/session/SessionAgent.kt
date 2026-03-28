@@ -204,7 +204,10 @@ class SessionAgent(
             } else {
                 //todo: when sleeping is implemented this should not default to the thinking state, but the default
                 //      sleep state
-                SessionAgentStatus.Running(SessionAgentConnectionStatus.Connected(SessionAgentCommunicationStatus.Thinking))
+                SessionAgentStatus.Running(
+                    SessionAgentConnectionStatus.Connected(SessionAgentCommunicationStatus.Thinking),
+                    it.startTime
+                )
             }
         }
     }
@@ -227,7 +230,7 @@ class SessionAgent(
             }
 
             logger.info { "communication status ${it.connectionStatus.communicationStatus} -> $communicationStatus" }
-            SessionAgentStatus.Running(SessionAgentConnectionStatus.Connected(communicationStatus))
+            SessionAgentStatus.Running(SessionAgentConnectionStatus.Connected(communicationStatus), it.startTime)
         }
     }
 
@@ -528,33 +531,26 @@ class SessionAgent(
      */
     fun asJsonState(): JsonObject =
         buildJsonObject {
+            val currentStatus = status.value
             put("agentName", name)
             put("agentDescription", description)
             put("agentConnected", mcpSessionCount.value != 0)
             put(
-                "agentWaiting", status == SessionAgentStatus.Running(
-                    SessionAgentConnectionStatus.Connected(
-                        SessionAgentCommunicationStatus.WaitingMessage
-                    )
-                )
+                "agentWaiting", currentStatus is SessionAgentStatus.Running &&
+                        currentStatus.connectionStatus is SessionAgentConnectionStatus.Connected &&
+                        currentStatus.connectionStatus.communicationStatus is SessionAgentCommunicationStatus.WaitingMessage
             )
             put(
-                "agentSleeping", status == SessionAgentStatus.Running(
-                    SessionAgentConnectionStatus.Connected(
-                        SessionAgentCommunicationStatus.Sleeping
-                    )
-                )
+                "agentSleeping", currentStatus is SessionAgentStatus.Running &&
+                        currentStatus.connectionStatus is SessionAgentConnectionStatus.Connected &&
+                        currentStatus.connectionStatus.communicationStatus is SessionAgentCommunicationStatus.Sleeping
             )
-            put(
-                "agentConnected", when (val status = status.value) {
-                    is SessionAgentStatus.Running -> {
-                        status.connectionStatus is SessionAgentConnectionStatus.Connected
-                    }
-
-                    else -> false
-                }
-            )
-            put("agentRunning", status.value is SessionAgentStatus.Running)
+            put("agentRunning", currentStatus is SessionAgentStatus.Running)
+            if (currentStatus is SessionAgentStatus.Running) {
+                put("agentStartTime", currentStatus.startTime.toString())
+            } else if (currentStatus is SessionAgentStatus.Stopped) {
+                put("agentStartTime", currentStatus.startTime.toString())
+            }
         }
 
     /**
@@ -585,7 +581,7 @@ class SessionAgent(
         ```json
         [${agents.joinToString(",")}]
         ```
-        Since you are in close contact with these agents, you will immediately see messages they post to shared threads even without explicitly waiting. It may be better to skip waiting, or call coral wait tools with much lower timeouts (e.g. 2-5 seconds) in order to collaborate in a timely manner with them. 
+        Since you are in close contact with these agents, you will immediately see messages they post to shared threads even without explicitly waiting. 
         """
 
         val threadsText = """
@@ -599,7 +595,7 @@ class SessionAgent(
 
         var composed = """
         # General
-        You are an agent named $name.  The current UNIX time is ${System.currentTimeMillis()}.
+        You are an agent named $name. The current UNIX time is ${System.currentTimeMillis()} (ISO-8601: ${Clock.System.now()}).
         """
 
         if (agents.isNotEmpty())

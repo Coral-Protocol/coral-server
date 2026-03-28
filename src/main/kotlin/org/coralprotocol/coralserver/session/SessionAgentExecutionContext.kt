@@ -183,8 +183,9 @@ class SessionAgentExecutionContext(
      * Called immediately before the runtime starts.
      */
     private suspend fun handleRuntimeStarted() {
-        lastLaunchTime = utcTimeNow()
-        agent.status.update { SessionAgentStatus.Running(SessionAgentConnectionStatus.NotConnected) }
+        val startTime = utcTimeNow()
+        lastLaunchTime = startTime
+        agent.status.update { SessionAgentStatus.Running(SessionAgentConnectionStatus.NotConnected, startTime) }
         session.events.emit((SessionEvent.RuntimeStarted(name)))
     }
 
@@ -192,7 +193,7 @@ class SessionAgentExecutionContext(
      * Called immediately after the runtime stops, for any reason.
      */
     private suspend fun handleRuntimeStopped() {
-        agent.status.update { SessionAgentStatus.Stopped }
+        agent.status.update { SessionAgentStatus.Stopped(lastLaunchTime) }
         val startTime = lastLaunchTime
         if (startTime != null) {
             usageReports.add(

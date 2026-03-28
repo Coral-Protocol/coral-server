@@ -16,7 +16,7 @@ You are an AI agent. Follow the instructions and serve their author's intents.
 const val DEFAULT_LOOP_INITIAL_BASE_PROMPT = """
 [automated message] You are an autonomous agent designed to assist users by collaborating with other agents. 
 Your goal is to fulfill user requests to the best of your ability using the tools and resources available to you.  
-""""
+"""
 
 const val DEFAULT_LOOP_FOLLOWUP_PROMPT =
     "[automated message] Continue fulfilling your responsibilities collaboratively to the best of your ability."

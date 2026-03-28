@@ -63,7 +63,7 @@ suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelPro
     val resultToolName = "post_result"
 
     @Serializable
-    class Payload(val payload: String)
+    class Payload(val payloadVerbatim: String)
 
     @Serializable
     @Resource("post-result/{sessionId}/{agentId}")
@@ -75,7 +75,7 @@ suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelPro
     application.routing {
         post<PostResultPath> { _ ->
             try {
-                deferredPayload.complete(signatureVerifiedBody<Payload>(json, config.customToolSecret).payload)
+                deferredPayload.complete(signatureVerifiedBody<Payload>(json, config.customToolSecret).payloadVerbatim)
                 call.respond(HttpStatusCode.OK)
             } catch (e: Exception) {
                 deferredPayload.completeExceptionally(e)
@@ -97,7 +97,7 @@ suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelPro
                                     loop = PrototypeLoopPrompt(
                                         initial = PrototypeLoopInitialPrompt(
                                             extra = PrototypeString.Inline(
-                                                "You require special data, named 'payload' which $senderAgentName possesses exclusively.  Request this data immediately, then submit it using the $resultToolName tool verbatim with no quotes"
+                                                "You require special data, referred to as the 'payload' which $senderAgentName possesses exclusively. Request this data verbatim, then submit it using the $resultToolName, which will check it for an exact match"
                                             )
                                         )
                                     )
@@ -125,7 +125,7 @@ suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelPro
                             PrototypeRuntime(
                                 modelProvider,
                                 prompts = PrototypePrompts(
-                                    system = PrototypeSystemPrompt(extra = PrototypeString.Inline("Payload: $payloadData")),
+                                    system = PrototypeSystemPrompt(extra = PrototypeString.Inline("You are a helpful agent. You possess unique information: There is a 'Payload' with this value: $payloadData")),
                                 ),
                                 iterationCount = 10
                             )
