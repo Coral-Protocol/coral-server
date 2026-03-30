@@ -342,10 +342,10 @@ data class RegistryAgent(
         model.key.validatePrototypeString("runtimes.prototype.model.key", AGENT_PROTOTYPE_MODEL_KEY_LENGTH)
 
 
-        val customUrl = (model.url as? PrototypeApiUrl.Custom)?.url
+        val customUrl = (model.url as? PrototypeApiUrl.Custom)?.value
         if (customUrl != null) {
             validateUri(
-                "runtimes.prototype.model.url.url",
+                "runtimes.prototype.model.url.value",
                 customUrl,
                 AGENT_PROTOTYPE_MODEL_API_URL_LENGTH,
                 "https"

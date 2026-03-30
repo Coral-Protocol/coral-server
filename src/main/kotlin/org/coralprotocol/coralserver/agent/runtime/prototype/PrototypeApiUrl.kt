@@ -26,8 +26,8 @@ sealed interface PrototypeApiUrl {
     @Serializable
     @SerialName("custom")
     data class Custom(
-        val url: String
+        val value: String
     ) : PrototypeApiUrl {
-        override fun resolve(executionContext: SessionAgentExecutionContext) = url
+        override fun resolve(executionContext: SessionAgentExecutionContext) = value
     }
 }

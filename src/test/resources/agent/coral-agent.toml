@@ -87,7 +87,7 @@ type = "custom"
 
 # pattern: valid URI, https scheme
 # len: 1 - 256
-url = "https://api.custom-model-provider.com"
+value = "https://api.custom-model-provider.com"
 
 [runtimes.prototype.prompts]
 # inline: 6KiB
