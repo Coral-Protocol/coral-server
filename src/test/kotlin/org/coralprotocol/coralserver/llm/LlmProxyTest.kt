@@ -109,21 +109,25 @@ class LlmProxyTest : CoralTest({
         val localSessionManager by inject<LocalSessionManager>()
         enableMockProxy()
 
-        val (secret, _) = createPuppetSession(client, localSessionManager)
+        val (secret, session) = createPuppetSession(client, localSessionManager)
 
-        val response = client.post("/llm-proxy/$secret/mock/v1/chat/completions") {
-            contentType(ContentType.Application.Json)
-            setBody("""{"model":"test-model","messages":[{"role":"user","content":"hi"}]}""")
+        try {
+            val response = client.post("/llm-proxy/$secret/mock/v1/chat/completions") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"model":"test-model","messages":[{"role":"user","content":"hi"}]}""")
+            }
+
+            response.status shouldBe HttpStatusCode.OK
+            response.headers["x-coral-mock"] shouldBe "true"
+
+            val body = response.bodyAsText()
+            val json = Json.decodeFromString<JsonObject>(body)
+            json["model"]?.jsonPrimitive?.content shouldBe "test-model"
+            json["choices"].shouldNotBeNull()
+            json["usage"].shouldNotBeNull()
+        } finally {
+            session.cancelAndJoinAgents()
         }
-
-        response.status shouldBe HttpStatusCode.OK
-        response.headers["x-coral-mock"] shouldBe "true"
-
-        val body = response.bodyAsText()
-        val json = Json.decodeFromString<JsonObject>(body)
-        json["model"]?.jsonPrimitive?.content shouldBe "test-model"
-        json["choices"].shouldNotBeNull()
-        json["usage"].shouldNotBeNull()
     }
 
     test("mock provider returns streaming response").config(invocationTimeout = 10.seconds) {
@@ -131,21 +135,25 @@ class LlmProxyTest : CoralTest({
         val localSessionManager by inject<LocalSessionManager>()
         enableMockProxy()
 
-        val (secret, _) = createPuppetSession(client, localSessionManager)
+        val (secret, session) = createPuppetSession(client, localSessionManager)
 
-        val response = client.post("/llm-proxy/$secret/mock/v1/chat/completions") {
-            contentType(ContentType.Application.Json)
-            setBody("""{"model":"test-model","messages":[{"role":"user","content":"hi"}],"stream":true}""")
+        try {
+            val response = client.post("/llm-proxy/$secret/mock/v1/chat/completions") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"model":"test-model","messages":[{"role":"user","content":"hi"}],"stream":true}""")
+            }
+
+            response.status shouldBe HttpStatusCode.OK
+            response.headers["x-coral-mock"] shouldBe "true"
+
+            val body = response.bodyAsText()
+            body shouldContain "data: "
+            body shouldContain "[DONE]"
+            body shouldContain "Hello"
+            body shouldContain "mock"
+        } finally {
+            session.cancelAndJoinAgents()
         }
-
-        response.status shouldBe HttpStatusCode.OK
-        response.headers["x-coral-mock"] shouldBe "true"
-
-        val body = response.bodyAsText()
-        body shouldContain "data: "
-        body shouldContain "[DONE]"
-        body shouldContain "Hello"
-        body shouldContain "mock"
     }
 
     test("invalid agent secret returns 401").config(invocationTimeout = 10.seconds) {
@@ -165,28 +173,39 @@ class LlmProxyTest : CoralTest({
         val localSessionManager by inject<LocalSessionManager>()
         enableMockProxy()
 
-        val (secret, _) = createPuppetSession(client, localSessionManager)
+        val (secret, session) = createPuppetSession(client, localSessionManager)
 
-        val response = client.post("/llm-proxy/$secret/nonexistent/v1/chat/completions") {
-            contentType(ContentType.Application.Json)
-            setBody("""{"model":"test","messages":[]}""")
+        try {
+            val response = client.post("/llm-proxy/$secret/nonexistent/v1/chat/completions") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"model":"test","messages":[]}""")
+            }
+
+            response.status shouldBe HttpStatusCode.BadRequest
+        } finally {
+            session.cancelAndJoinAgents()
         }
-
-        response.status shouldBe HttpStatusCode.BadRequest
     }
 
     test("disabled proxy returns 503").config(invocationTimeout = 10.seconds) {
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
+        loadKoinModules(module {
+            single<LlmProxyConfig> { LlmProxyConfig(enabled = false) }
+        })
 
-        val (secret, _) = createPuppetSession(client, localSessionManager)
+        val (secret, session) = createPuppetSession(client, localSessionManager)
 
-        val response = client.post("/llm-proxy/$secret/mock/v1/chat/completions") {
-            contentType(ContentType.Application.Json)
-            setBody("""{"model":"test","messages":[]}""")
+        try {
+            val response = client.post("/llm-proxy/$secret/mock/v1/chat/completions") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"model":"test","messages":[]}""")
+            }
+
+            response.status shouldBe HttpStatusCode.ServiceUnavailable
+        } finally {
+            session.cancelAndJoinAgents()
         }
-
-        response.status shouldBe HttpStatusCode.ServiceUnavailable
     }
 
     test("telemetry event emitted on mock request").config(invocationTimeout = 10.seconds) {
@@ -196,41 +215,49 @@ class LlmProxyTest : CoralTest({
 
         val (secret, session) = createPuppetSession(client, localSessionManager)
 
-        val eventDeferred = async {
-            withTimeout(5.seconds) {
-                session.events.first { it is SessionEvent.LlmProxyCall }
+        try {
+            val eventDeferred = async {
+                withTimeout(5.seconds) {
+                    session.events.first { it is SessionEvent.LlmProxyCall }
+                }
             }
-        }
 
-        client.post("/llm-proxy/$secret/mock/v1/chat/completions") {
-            contentType(ContentType.Application.Json)
-            setBody("""{"model":"gpt-test","messages":[{"role":"user","content":"hi"}]}""")
-        }
+            client.post("/llm-proxy/$secret/mock/v1/chat/completions") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"model":"gpt-test","messages":[{"role":"user","content":"hi"}]}""")
+            }
 
-        val event = eventDeferred.await() as SessionEvent.LlmProxyCall
-        event.provider shouldBe "mock"
-        event.model shouldBe "gpt-test"
-        event.success shouldBe true
-        event.streaming shouldBe false
-        event.inputTokens shouldBe 10
-        event.outputTokens shouldBe 3
-        event.errorKind shouldBe null
+            val event = eventDeferred.await() as SessionEvent.LlmProxyCall
+            event.provider shouldBe "mock"
+            event.model shouldBe "gpt-test"
+            event.success shouldBe true
+            event.streaming shouldBe false
+            event.inputTokens shouldBe 10
+            event.outputTokens shouldBe 3
+            event.errorKind shouldBe null
+        } finally {
+            session.cancelAndJoinAgents()
+        }
     }
 
-    test("unconfigured provider returns 400").config(invocationTimeout = 10.seconds) {
+    test("no key from either source returns 401").config(invocationTimeout = 10.seconds) {
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
         enableMockProxy()
 
-        val (secret, _) = createPuppetSession(client, localSessionManager)
+        val (secret, session) = createPuppetSession(client, localSessionManager)
 
-        val response = client.post("/llm-proxy/$secret/openai/v1/chat/completions") {
-            contentType(ContentType.Application.Json)
-            setBody("""{"model":"gpt-4","messages":[]}""")
+        try {
+            val response = client.post("/llm-proxy/$secret/openai/v1/chat/completions") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"model":"gpt-4","messages":[]}""")
+            }
+
+            response.status shouldBe HttpStatusCode.Unauthorized
+            response.bodyAsText() shouldContain "No API key available"
+        } finally {
+            session.cancelAndJoinAgents()
         }
-
-        response.status shouldBe HttpStatusCode.BadRequest
-        response.bodyAsText() shouldContain "No API key configured"
     }
 
     // ─── Real proxy forwarding tests (mock upstream server) ──────────────────────
@@ -324,6 +351,169 @@ class LlmProxyTest : CoralTest({
 
             response.status shouldBe HttpStatusCode.TooManyRequests
             response.bodyAsText() shouldContain "Rate limit exceeded"
+        } finally {
+            session.cancelAndJoinAgents()
+        }
+    }
+
+    test("proxy forwards response headers from upstream (minus stripped)").config(invocationTimeout = 15.seconds) {
+        val client by inject<HttpClient>()
+        val localSessionManager by inject<LocalSessionManager>()
+        val application by inject<Application>()
+
+        val upstreamPath = "/mock-upstream-headers-${UUID.randomUUID()}"
+
+        application.routing {
+            post("$upstreamPath/v1/chat/completions") {
+                call.response.header("X-Custom-Header", "custom-value")
+                call.response.header("X-Request-Id", "req-123")
+                call.respondText(MOCK_OPENAI_RESPONSE, ContentType.Application.Json)
+            }
+        }
+
+        enableProxyWithUpstream("openai", "sk-test-key", upstreamPath)
+
+        val (secret, session) = createPuppetSession(client, localSessionManager)
+
+        try {
+            val response = client.post("/llm-proxy/$secret/openai/v1/chat/completions") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"model":"gpt-test","messages":[{"role":"user","content":"hi"}]}""")
+            }
+
+            response.status shouldBe HttpStatusCode.OK
+            response.headers["X-Custom-Header"] shouldBe "custom-value"
+            response.headers["X-Request-Id"] shouldBe "req-123"
+            response.headers[HttpHeaders.SetCookie] shouldBe null
+        } finally {
+            session.cancelAndJoinAgents()
+        }
+    }
+
+    // ─── Pass-through auth tests ──────────────────────────────────────────────────
+
+    test("agent key passed through when no server key configured").config(invocationTimeout = 15.seconds) {
+        val client by inject<HttpClient>()
+        val localSessionManager by inject<LocalSessionManager>()
+        val application by inject<Application>()
+
+        val upstreamPath = "/mock-upstream-passthrough-${UUID.randomUUID()}"
+        val capturedHeaders = CompletableDeferred<Map<String, List<String>>>()
+
+        application.routing {
+            post("$upstreamPath/v1/chat/completions") {
+                capturedHeaders.complete(
+                    call.request.headers.entries().associate { (k, v) -> k.lowercase() to v }
+                )
+                call.respondText(MOCK_OPENAI_RESPONSE, ContentType.Application.Json)
+            }
+        }
+
+        // Configure provider with NO apiKey, only baseUrl
+        loadKoinModules(module {
+            single<LlmProxyConfig> {
+                LlmProxyConfig(
+                    enabled = true,
+                    providers = mapOf("openai" to LlmProxyProviderConfig(baseUrl = upstreamPath))
+                )
+            }
+        })
+
+        val (secret, session) = createPuppetSession(client, localSessionManager)
+
+        try {
+            val response = client.post("/llm-proxy/$secret/openai/v1/chat/completions") {
+                contentType(ContentType.Application.Json)
+                header(HttpHeaders.Authorization, "Bearer agent-test-key-123")
+                setBody("""{"model":"gpt-test","messages":[{"role":"user","content":"hi"}]}""")
+            }
+
+            response.status shouldBe HttpStatusCode.OK
+
+            val headers = capturedHeaders.await()
+            headers["authorization"]?.first() shouldBe "Bearer agent-test-key-123"
+        } finally {
+            session.cancelAndJoinAgents()
+        }
+    }
+
+    test("server key overrides agent key").config(invocationTimeout = 15.seconds) {
+        val client by inject<HttpClient>()
+        val localSessionManager by inject<LocalSessionManager>()
+        val application by inject<Application>()
+
+        val upstreamPath = "/mock-upstream-override-${UUID.randomUUID()}"
+        val capturedHeaders = CompletableDeferred<Map<String, List<String>>>()
+
+        application.routing {
+            post("$upstreamPath/v1/chat/completions") {
+                capturedHeaders.complete(
+                    call.request.headers.entries().associate { (k, v) -> k.lowercase() to v }
+                )
+                call.respondText(MOCK_OPENAI_RESPONSE, ContentType.Application.Json)
+            }
+        }
+
+        enableProxyWithUpstream("openai", "sk-server-override-key", upstreamPath)
+
+        val (secret, session) = createPuppetSession(client, localSessionManager)
+
+        try {
+            val response = client.post("/llm-proxy/$secret/openai/v1/chat/completions") {
+                contentType(ContentType.Application.Json)
+                header(HttpHeaders.Authorization, "Bearer agent-original-key")
+                setBody("""{"model":"gpt-test","messages":[{"role":"user","content":"hi"}]}""")
+            }
+
+            response.status shouldBe HttpStatusCode.OK
+
+            val headers = capturedHeaders.await()
+            headers["authorization"]?.first() shouldBe "Bearer sk-server-override-key"
+        } finally {
+            session.cancelAndJoinAgents()
+        }
+    }
+
+    test("anthropic x-api-key pass-through").config(invocationTimeout = 15.seconds) {
+        val client by inject<HttpClient>()
+        val localSessionManager by inject<LocalSessionManager>()
+        val application by inject<Application>()
+
+        val upstreamPath = "/mock-upstream-anthropic-${UUID.randomUUID()}"
+        val capturedHeaders = CompletableDeferred<Map<String, List<String>>>()
+
+        application.routing {
+            post("$upstreamPath/v1/messages") {
+                capturedHeaders.complete(
+                    call.request.headers.entries().associate { (k, v) -> k.lowercase() to v }
+                )
+                call.respondText(MOCK_OPENAI_RESPONSE, ContentType.Application.Json)
+            }
+        }
+
+        // Configure anthropic with NO apiKey, only baseUrl
+        loadKoinModules(module {
+            single<LlmProxyConfig> {
+                LlmProxyConfig(
+                    enabled = true,
+                    providers = mapOf("anthropic" to LlmProxyProviderConfig(baseUrl = upstreamPath))
+                )
+            }
+        })
+
+        val (secret, session) = createPuppetSession(client, localSessionManager)
+
+        try {
+            val response = client.post("/llm-proxy/$secret/anthropic/v1/messages") {
+                contentType(ContentType.Application.Json)
+                header("x-api-key", "sk-ant-agent-key-123")
+                setBody("""{"model":"claude-sonnet-4-20250514","messages":[{"role":"user","content":"hi"}]}""")
+            }
+
+            response.status shouldBe HttpStatusCode.OK
+
+            val headers = capturedHeaders.await()
+            headers["x-api-key"]?.first() shouldBe "sk-ant-agent-key-123"
         } finally {
             session.cancelAndJoinAgents()
         }

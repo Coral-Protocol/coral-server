@@ -64,7 +64,7 @@ sealed class PrototypeModelProvider {
             val resolvedUrl = resolveUrlWithProvider(url, executionContext, "openai")
             return SingleLLMPromptExecutor(
                 OpenAILLMClient(
-                    apiKey = if (url is PrototypeApiUrl.Proxy) "proxy-managed" else key.resolve(executionContext),
+                    apiKey = key.resolve(executionContext),
                     settings = if (resolvedUrl == null) OpenAIClientSettings() else OpenAIClientSettings(
                         baseUrl = resolvedUrl
                     )
@@ -87,7 +87,7 @@ sealed class PrototypeModelProvider {
             val resolvedUrl = resolveUrlWithProvider(url, executionContext, "anthropic")
             return SingleLLMPromptExecutor(
                 AnthropicLLMClient(
-                    apiKey = if (url is PrototypeApiUrl.Proxy) "proxy-managed" else key.resolve(executionContext),
+                    apiKey = key.resolve(executionContext),
                     settings = if (resolvedUrl == null) AnthropicClientSettings() else AnthropicClientSettings(
                         baseUrl = resolvedUrl
                     )
@@ -110,7 +110,7 @@ sealed class PrototypeModelProvider {
             val resolvedUrl = resolveUrlWithProvider(url, executionContext, "openrouter")
             return SingleLLMPromptExecutor(
                 OpenRouterLLMClient(
-                    apiKey = if (url is PrototypeApiUrl.Proxy) "proxy-managed" else key.resolve(executionContext),
+                    apiKey = key.resolve(executionContext),
                     settings = if (resolvedUrl == null) OpenRouterClientSettings() else OpenRouterClientSettings(
                         baseUrl = resolvedUrl
                     )

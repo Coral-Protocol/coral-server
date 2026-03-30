@@ -1,7 +1,7 @@
 package org.coralprotocol.coralserver.config
 
 data class LlmProxyConfig(
-    val enabled: Boolean = false,
+    val enabled: Boolean = true,
     val requestTimeoutSeconds: Long = 300,
     val providers: Map<String, LlmProxyProviderConfig> = emptyMap()
 )
