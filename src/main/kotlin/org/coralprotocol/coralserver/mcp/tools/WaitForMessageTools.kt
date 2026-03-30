@@ -10,17 +10,20 @@ import kotlin.time.Instant
 @Serializable
 data class WaitForSingleMessageInput(
     val currentUnixTime: Long = System.currentTimeMillis(),
+    val maxWaitMs: Long = 60000
 )
 
 @Serializable
 data class WaitForMentioningMessageInput(
     val currentUnixTime: Long = System.currentTimeMillis(),
+    val maxWaitMs: Long = 60000
 )
 
 @Serializable
 data class WaitForAgentMessageInput(
     val currentUnixTime: Long = System.currentTimeMillis(),
-    val agentName: UniqueAgentName
+    val agentName: UniqueAgentName,
+    val maxWaitMs: Long = 60000
 )
 
 @Serializable
@@ -32,11 +35,14 @@ data class WaitForMessageOutput(
 
 suspend fun waitForSingleMessageExecutor(
     agent: SessionAgent,
-
-    @Suppress("UNUSED_PARAMETER")
     arguments: WaitForSingleMessageInput
 ): WaitForMessageOutput {
-    return WaitForMessageOutput(agent.waitForMessage(Instant.fromEpochMilliseconds(arguments.currentUnixTime)))
+    return WaitForMessageOutput(
+        agent.waitForMessage(
+            replayAfter = Instant.fromEpochMilliseconds(arguments.currentUnixTime),
+            timeoutMs = arguments.maxWaitMs.coerceAtMost(60000)
+        )
+    )
 }
 
 suspend fun waitForMentioningMessageExecutor(
@@ -47,12 +53,13 @@ suspend fun waitForMentioningMessageExecutor(
 ): WaitForMessageOutput {
     return WaitForMessageOutput(
         agent.waitForMessage(
-            Instant.fromEpochMilliseconds(arguments.currentUnixTime),
-            setOf(
+            replayAfter = Instant.fromEpochMilliseconds(arguments.currentUnixTime),
+            filters = setOf(
                 SessionThreadMessageFilter.Mentions(
                     name = agent.name
                 )
-            )
+            ),
+            timeoutMs = arguments.maxWaitMs.coerceAtMost(60000)
         )
     )
 }
@@ -63,12 +70,13 @@ suspend fun waitForAgentMessageExecutor(
 ): WaitForMessageOutput {
     return WaitForMessageOutput(
         agent.waitForMessage(
-            Instant.fromEpochMilliseconds(arguments.currentUnixTime),
-            setOf(
+            replayAfter = Instant.fromEpochMilliseconds(arguments.currentUnixTime),
+            filters = setOf(
                 SessionThreadMessageFilter.From(
                     name = arguments.agentName
                 )
-            )
+            ),
+            timeoutMs = arguments.maxWaitMs.coerceAtMost(60000)
         )
     )
 }

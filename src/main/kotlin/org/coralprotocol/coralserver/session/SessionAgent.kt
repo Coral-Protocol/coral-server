@@ -581,7 +581,7 @@ class SessionAgent(
         ```json
         [${agents.joinToString(",")}]
         ```
-        Since you are in close contact with these agents, you will immediately see messages they post to shared threads even without explicitly waiting. 
+        Since you are in close contact with these agents, you will immediately see messages they post to shared threads even without explicitly waiting. It may be better to skip waiting, or call coral wait tools with much lower timeouts (e.g. 2-5 seconds) in order to collaborate in a timely manner with them. 
         """
 
         val threadsText = """
