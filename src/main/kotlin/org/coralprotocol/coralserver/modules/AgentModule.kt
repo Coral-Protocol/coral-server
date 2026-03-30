@@ -28,10 +28,12 @@ val agentModule = module {
 
             val allAgentSources = (config.localAgents + if (config.includeCoralHomeAgents) {
                 listOf(
-                    // Agents added with coralizer link are separated by agent version at the time of linking
+                    // Support separation by agent version
                     "${Path.of(System.getProperty("user.home"), ".coral", "agents")}/*/*",
                     // For agents manually added it's more natural that they aren't separated by version
                     "${Path.of(System.getProperty("user.home"), ".coral", "agents")}/*",
+                    // Specific directory that the coralizer should put links in to clearly separate manually managed
+                    "${Path.of(System.getProperty("user.home"), ".coral", "agents")}/locallinked/*/*",
                 )
             } else {
                 emptyList()
