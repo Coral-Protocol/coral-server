@@ -15,9 +15,9 @@ import org.coralprotocol.coralserver.agent.registry.option.defaultAsValue
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.PrototypeRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
-import org.coralprotocol.coralserver.agent.runtime.prototype.McpResolver
 import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeApiUrl
 import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeString
+import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeToolServer
 import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeToolServerAuth
 import java.net.URI
 import java.net.URISyntaxException
@@ -297,7 +297,7 @@ data class RegistryAgent(
     }
 
     private fun validateRuntimes() {
-        if (runtimes.functionRuntime == null && runtimes.dockerRuntime == null && runtimes.executableRuntime == null)
+        if (runtimes.functionRuntime == null && runtimes.dockerRuntime == null && runtimes.executableRuntime == null && runtimes.prototypeRuntime == null)
             throw RegistryException("Must have at least one defined runtime")
 
         val docker = runtimes.dockerRuntime
@@ -378,42 +378,45 @@ data class RegistryAgent(
         )
 
         for ((toolIndex, toolServer) in runtime.toolServers.withIndex()) {
-            if (toolServer is McpResolver) {
-                validateUri(
-                    "runtimes.prototype.tools[$toolIndex].url",
-                    toolServer.url,
-                    AGENT_PROTOTYPE_MCP_TOOL_SERVER_URL_LENGTH,
-                    "https"
-                )
+            val (url, auth) = when (toolServer) {
+                is PrototypeToolServer.McpSse -> Pair(toolServer.url, toolServer.auth)
+                is PrototypeToolServer.McpStreamableHttp -> Pair(toolServer.url, toolServer.auth)
+                else -> throw RegistryException("no tool server validation implemented for ${toolServer::class.serializer().descriptor.serialName}")
+            }
 
-                when (toolServer.auth) {
-                    is PrototypeToolServerAuth.Bearer -> {
-                        toolServer.auth.token.validatePrototypeString(
-                            "runtimes.prototype.tools[$toolIndex].auth.token",
-                            AGENT_PROTOTYPE_MCP_AUTH_BEARER_LENGTH
+            validateStringLength(
+                "runtimes.prototype.tools[$toolIndex].url",
+                url,
+                AGENT_PROTOTYPE_MCP_TOOL_SERVER_URL_LENGTH
+            )
+
+            when (auth) {
+                is PrototypeToolServerAuth.Bearer -> {
+                    auth.token.validatePrototypeString(
+                        "runtimes.prototype.tools[$toolIndex].auth.token",
+                        AGENT_PROTOTYPE_MCP_AUTH_BEARER_LENGTH
+                    )
+                }
+
+                is PrototypeToolServerAuth.UrlTransformation -> {
+                    if (auth.transformations.size > AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_MAX_ENTRIES)
+                        throw RegistryException("runtimes.prototype.tools[$toolIndex].auth.transformations cannot exceed $AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_MAX_ENTRIES, was ${auth.transformations.size}")
+
+                    auth.transformations.withIndex().forEach { (index, transform) ->
+                        validateStringLength(
+                            "runtimes.prototype.tools[$toolIndex].auth.transformations[$index].pattern",
+                            transform.pattern,
+                            AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_PATTERN_LENGTH
+                        )
+
+                        transform.replacement.validatePrototypeString(
+                            "runtimes.prototype.tools[$toolIndex].auth.transformations[$index].replacement",
+                            AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_REPLACEMENT_LENGTH
                         )
                     }
-
-                    is PrototypeToolServerAuth.UrlTransformation -> {
-                        if (toolServer.auth.transformations.size > AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_MAX_ENTRIES)
-                            throw RegistryException("runtimes.prototype.tools[$toolIndex].auth.transformations cannot exceed $AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_MAX_ENTRIES, was ${toolServer.auth.transformations.size}")
-
-                        toolServer.auth.transformations.withIndex().forEach { (index, transform) ->
-                            validateStringLength(
-                                "runtimes.prototype.tools[$toolIndex].auth.transformations[$index].pattern",
-                                transform.pattern,
-                                AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_PATTERN_LENGTH
-                            )
-
-                            transform.replacement.validatePrototypeString(
-                                "runtimes.prototype.tools[$toolIndex].auth.transformations[$index].replacement",
-                                AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_REPLACEMENT_LENGTH
-                            )
-                        }
-                    }
-
-                    PrototypeToolServerAuth.None -> {}
                 }
+
+                PrototypeToolServerAuth.None -> {}
             }
         }
     }

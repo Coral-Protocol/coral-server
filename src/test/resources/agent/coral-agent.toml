@@ -128,7 +128,6 @@ auth.token = { type = "option", name = "FULL_STRING_OPTION" }
 [[runtimes.prototype.tools]]
 type = "mcp_streamable_http"
 
-# pattern: valid URI, https scheme
 # len: 1 - 256
 url = "https://my-authenticated-mcp-server.com/mcp?token={TOKEN}"
 auth.type = "url_transformation"
