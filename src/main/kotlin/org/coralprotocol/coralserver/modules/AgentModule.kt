@@ -26,7 +26,7 @@ val agentModule = module {
                 }
             }
 
-            val allAgentSources = config.localAgents + if (config.includeCoralHomeAgents) {
+            val allAgentSources = (config.localAgents + if (config.includeCoralHomeAgents) {
                 listOf(
                     // Agents added with coralizer link are separated by agent version at the time of linking
                     "${Path.of(System.getProperty("user.home"), ".coral", "agents")}/*/*",
@@ -35,7 +35,7 @@ val agentModule = module {
                 )
             } else {
                 emptyList()
-            }.distinct()
+            }).distinct()
 
             allAgentSources.forEach {
                 logger.trace { "watching for agents matching pattern: $it" }
