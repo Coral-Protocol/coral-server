@@ -13,6 +13,7 @@ import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.DebugConfig
 import org.coralprotocol.coralserver.config.DockerConfig
 import org.coralprotocol.coralserver.config.LlmProxyConfig
+import org.coralprotocol.coralserver.llm.LlmProviderProfile
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.session.reporting.SessionAgentUsageReport
@@ -129,8 +130,15 @@ class SessionAgentExecutionContext(
 
             val llmProxyConfig by inject<LlmProxyConfig>()
             if (llmProxyConfig.enabled) {
-                this["CORAL_LLM_PROXY_URL"] = applicationRuntimeContext
+                val proxyBaseUrl = applicationRuntimeContext
                     .getLlmProxyUrl(this@SessionAgentExecutionContext, addressConsumer).toString()
+
+                this["CORAL_LLM_PROXY_URL"] = proxyBaseUrl
+
+                for (profile in LlmProviderProfile.entries) {
+                    val envVar = profile.sdkBaseUrlEnvVar ?: continue
+                    this[envVar] = "$proxyBaseUrl/${profile.providerId}${profile.sdkPathSuffix}"
+                }
             }
         }
     }
