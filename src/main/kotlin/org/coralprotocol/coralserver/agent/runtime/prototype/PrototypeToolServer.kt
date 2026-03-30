@@ -28,6 +28,7 @@ sealed interface PrototypeToolServerAuth {
     fun resolveClient(executionContext: SessionAgentExecutionContext, client: HttpClient): HttpClient
     fun resolveUrl(executionContext: SessionAgentExecutionContext, url: String): String
 
+    @Serializable
     @SerialName("none")
     object None : PrototypeToolServerAuth {
         override fun resolveClient(executionContext: SessionAgentExecutionContext, client: HttpClient): HttpClient =
@@ -36,6 +37,7 @@ sealed interface PrototypeToolServerAuth {
         override fun resolveUrl(executionContext: SessionAgentExecutionContext, url: String): String = url
     }
 
+    @Serializable
     @SerialName("bearer")
     data class Bearer(val token: PrototypeString) : PrototypeToolServerAuth {
         override fun resolveClient(executionContext: SessionAgentExecutionContext, client: HttpClient): HttpClient =
@@ -48,6 +50,7 @@ sealed interface PrototypeToolServerAuth {
         override fun resolveUrl(executionContext: SessionAgentExecutionContext, url: String): String = url
     }
 
+    @Serializable
     @SerialName("url_transformation")
     data class UrlTransformation(val transformations: List<PrototypeUrlTransformation>) : PrototypeToolServerAuth {
         override fun resolveClient(executionContext: SessionAgentExecutionContext, client: HttpClient): HttpClient =
