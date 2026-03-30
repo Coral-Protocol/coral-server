@@ -1,12 +1,10 @@
-@file:OptIn(ExperimentalSerializationApi::class)
+@file:OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
 
 package org.coralprotocol.coralserver.agent.registry
 
 import io.github.z4kn4fein.semver.Version
 import io.github.z4kn4fein.semver.VersionFormatException
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
+import kotlinx.serialization.*
 import me.saket.bytesize.BinaryByteSize
 import me.saket.bytesize.kibibytes
 import me.saket.bytesize.mebibytes
@@ -15,7 +13,12 @@ import org.bitcoinj.core.Base58
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.defaultAsValue
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
+import org.coralprotocol.coralserver.agent.runtime.PrototypeRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.agent.runtime.prototype.McpResolver
+import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeApiUrl
+import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeString
+import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeToolServerAuth
 import java.net.URI
 import java.net.URISyntaxException
 import java.nio.file.Path
@@ -56,6 +59,21 @@ val AGENT_DOCKER_COMMAND_MAX_SIZE = 2.kibibytes
 val AGENT_EXECUTABLE_PATH_LENGTH = 1..4096
 val AGENT_EXECUTABLE_ARGUMENTS_ENTRIES = 0..1024
 val AGENT_EXECUTABLE_ARGUMENTS_SIZE = 2.kibibytes
+
+// [runtimes.prototype]
+val AGENT_PROTOTYPE_MODEL_NAME_LENGTH = 1..128
+val AGENT_PROTOTYPE_MODEL_KEY_LENGTH = 1..1024
+val AGENT_PROTOTYPE_MODEL_API_URL_LENGTH = 1..256
+val AGENT_PROTOTYPE_MCP_TOOL_SERVER_URL_LENGTH = 1..256
+val AGENT_PROTOTYPE_MCP_AUTH_BEARER_LENGTH = 1..1024
+const val AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_MAX_ENTRIES = 8
+val AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_PATTERN_LENGTH = 1..32
+val AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_REPLACEMENT_LENGTH = 1..1024
+val AGENT_PROTOTYPE_PROMPT_SYSTEM_BASE_SIZE = 6.kibibytes
+val AGENT_PROTOTYPE_PROMPT_SYSTEM_EXTRA_SIZE = 3.kibibytes
+val AGENT_PROTOTYPE_PROMPT_LOOP_INITIAL_BASE_SIZE = 6.kibibytes
+val AGENT_PROTOTYPE_PROMPT_LOOP_INITIAL_EXTRA_SIZE = 3.kibibytes
+val AGENT_PROTOTYPE_PROMPT_LOOP_FOLLOWUP_SIZE = 4.kibibytes
 
 // [options]
 const val AGENT_OPTION_MAX_ENTRIES = 512
@@ -165,6 +183,55 @@ data class RegistryAgent(
             throw RegistryException("total size for \"$name\" must be at most $maxTotalSize, was $size")
     }
 
+    private fun validateUri(
+        name: String,
+        value: String,
+        lengthRange: IntRange,
+        vararg allowedSchemes: String
+    ) {
+        validateStringLength(name, value, lengthRange)
+
+        try {
+            val uri = URI(value)
+            if (uri.scheme !in allowedSchemes) {
+                throw RegistryException(
+                    "\"$name\" has invalid schema \"${uri.scheme}\", must be: ${
+                        allowedSchemes.joinToString(
+                            ", "
+                        )
+                    }"
+                )
+            }
+        } catch (e: URISyntaxException) {
+            throw RegistryException("\"$name\" is not a valid URL: ${e.message}")
+        }
+    }
+
+    private fun PrototypeString.validatePrototypeString(name: String, inlineLength: IntRange) {
+        when (this) {
+            is PrototypeString.Inline -> validateStringLength(name, value, inlineLength)
+            is PrototypeString.Option -> {
+                val option = options[this.name]
+                    ?: throw RegistryException("\"$name\" references option \"${this.name}\" which is not defined")
+
+                if (option !is AgentOption.String)
+                    throw RegistryException("\"$name\" references option \"${this.name}\" which must be a string type, was ${option::class.serializer().descriptor.serialName}")
+            }
+        }
+    }
+
+    private fun PrototypeString.validatePrototypeString(name: String, maxSize: BinaryByteSize) {
+        when (this) {
+            is PrototypeString.Inline -> {
+                val byteSize = BinaryByteSize(value.toByteArray().size)
+                if (byteSize > maxSize)
+                    throw RegistryException("\"$name\" cannot exceed ${maxSize}, was $byteSize")
+            }
+
+            is PrototypeString.Option -> validatePrototypeString(name, 0..0)
+        }
+    }
+
     private fun validateName() {
         validateStringLength("agent.name", name, AGENT_NAME_LENGTH)
 
@@ -220,14 +287,12 @@ data class RegistryAgent(
             if (!name.matches(AGENT_LINKS_NAME_PATTERN))
                 throw RegistryException("agent link \"$name\" is not valid.  Agent link names must start with an alphabetic character and contain only alphanumeric characters or underscores")
 
-            try {
-                validateStringLength("agent.links[\"$name\"] (value)", link, AGENT_LINK_VALUE_LENGTH)
-                val uri = URI(link)
-                if (uri.scheme != "https" && uri.scheme != "mailto" && uri.scheme != "tel")
-                    throw RegistryException("agent link \"$name\" must use a HTTPS, mailto, or tel scheme")
-            } catch (e: URISyntaxException) {
-                throw RegistryException("agent link \"$name\" is not a valid URL: ${e.message}")
-            }
+            validateUri(
+                "agent.links[\"$name\"] (value)",
+                link,
+                AGENT_LINK_VALUE_LENGTH,
+                "https", "mailto", "tel"
+            )
         }
     }
 
@@ -259,6 +324,97 @@ data class RegistryAgent(
                 AGENT_EXECUTABLE_ARGUMENTS_ENTRIES,
                 AGENT_EXECUTABLE_ARGUMENTS_SIZE
             )
+        }
+
+        if (runtimes.prototypeRuntime != null)
+            validatePrototypeRuntime(runtimes.prototypeRuntime)
+    }
+
+    private fun validatePrototypeRuntime(runtime: PrototypeRuntime) {
+        if (runtime.iterationCount <= 0)
+            throw RegistryException("\"runtimes.prototype.iterations\" must be at least 1")
+
+        if (runtime.iterationDelay < 0)
+            throw RegistryException("\"runtimes.prototype.delay\" cannot be negative")
+
+        val model = runtime.modelProvider
+        model.name.validatePrototypeString("runtimes.prototype.model.name", AGENT_PROTOTYPE_MODEL_NAME_LENGTH)
+        model.key.validatePrototypeString("runtimes.prototype.model.key", AGENT_PROTOTYPE_MODEL_KEY_LENGTH)
+
+
+        val customUrl = (model.url as? PrototypeApiUrl.Custom)?.url
+        if (customUrl != null) {
+            validateUri(
+                "runtimes.prototype.model.url.url",
+                customUrl,
+                AGENT_PROTOTYPE_MODEL_API_URL_LENGTH,
+                "https"
+            )
+        }
+
+        runtime.prompts.system.base.validatePrototypeString(
+            "runtimes.prototype.prompts.system.base",
+            AGENT_PROTOTYPE_PROMPT_SYSTEM_BASE_SIZE
+        )
+
+        runtime.prompts.system.extra?.validatePrototypeString(
+            "runtimes.prototype.prompts.system.extra",
+            AGENT_PROTOTYPE_PROMPT_SYSTEM_EXTRA_SIZE
+        )
+
+        runtime.prompts.loop.initial.base.validatePrototypeString(
+            "runtimes.prototype.prompts.loop.initial.base",
+            AGENT_PROTOTYPE_PROMPT_LOOP_INITIAL_BASE_SIZE
+        )
+
+        runtime.prompts.loop.initial.extra?.validatePrototypeString(
+            "runtimes.prototype.prompts.loop.initial.base",
+            AGENT_PROTOTYPE_PROMPT_LOOP_INITIAL_EXTRA_SIZE
+        )
+
+        runtime.prompts.loop.followup.validatePrototypeString(
+            "runtimes.prototype.prompts.loop.followup",
+            AGENT_PROTOTYPE_PROMPT_LOOP_FOLLOWUP_SIZE
+        )
+
+        for ((toolIndex, toolServer) in runtime.toolServers.withIndex()) {
+            if (toolServer is McpResolver) {
+                validateUri(
+                    "runtimes.prototype.tools[$toolIndex].url",
+                    toolServer.url,
+                    AGENT_PROTOTYPE_MCP_TOOL_SERVER_URL_LENGTH,
+                    "https"
+                )
+
+                when (toolServer.auth) {
+                    is PrototypeToolServerAuth.Bearer -> {
+                        toolServer.auth.token.validatePrototypeString(
+                            "runtimes.prototype.tools[$toolIndex].auth.token",
+                            AGENT_PROTOTYPE_MCP_AUTH_BEARER_LENGTH
+                        )
+                    }
+
+                    is PrototypeToolServerAuth.UrlTransformation -> {
+                        if (toolServer.auth.transformations.size > AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_MAX_ENTRIES)
+                            throw RegistryException("runtimes.prototype.tools[$toolIndex].auth.transformations cannot exceed $AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_MAX_ENTRIES, was ${toolServer.auth.transformations.size}")
+
+                        toolServer.auth.transformations.withIndex().forEach { (index, transform) ->
+                            validateStringLength(
+                                "runtimes.prototype.tools[$toolIndex].auth.transformations[$index].pattern",
+                                transform.pattern,
+                                AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_PATTERN_LENGTH
+                            )
+
+                            transform.replacement.validatePrototypeString(
+                                "runtimes.prototype.tools[$toolIndex].auth.transformations[$index].replacement",
+                                AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_REPLACEMENT_LENGTH
+                            )
+                        }
+                    }
+
+                    PrototypeToolServerAuth.None -> {}
+                }
+            }
         }
     }
 
@@ -372,19 +528,12 @@ data class RegistryAgent(
                 if (!endpoint.name.matches(AGENT_MARKETPLACE_ERC8004_ENDPOINTS_NAME_PATTERN))
                     throw RegistryException("marketplace.identities.erc8004.endpoints[$index].name is not valid.  Marketplace endpoint names must start with an alphabetic character and contain only alphanumeric characters or, underscores or '-'s ")
 
-                validateStringLength(
+                validateUri(
                     "marketplace.identities.erc8004.endpoints[$index].endpoint",
                     endpoint.endpoint,
-                    AGENT_MARKETPLACE_ERC8004_ENDPOINTS_ENDPOINT_LENGTH
+                    AGENT_MARKETPLACE_ERC8004_ENDPOINTS_ENDPOINT_LENGTH,
+                    "https"
                 )
-
-                try {
-                    val uri = URI(endpoint.endpoint)
-                    if (uri.scheme != "https")
-                        throw RegistryException("marketplace.identities.erc8004.endpoints[$index].endpoint must use a HTTPS scheme")
-                } catch (e: URISyntaxException) {
-                    throw RegistryException("marketplace.identities.erc8004.endpoints[$index].endpoint is not a valid URL: ${e.message}")
-                }
             }
         }
     }

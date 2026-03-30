@@ -67,6 +67,79 @@ path = "my-agent"
 # max entries 1024
 arguments = ["--some-argument"]
 
+[runtimes.prototype]
+iterations = 20 # > 0
+delay = 0 # >= 0
+
+[runtimes.prototype.model]
+
+# openai, anthropic or openrouter (for now)
+provider = "openai" # openai/anthropic/openrouter
+
+# inline string, len 1 - 128
+name = { type = "inline", value = "gpt-5.1" }
+
+# inline string, len 1 - 1024
+key = { type = "inline", value = "key here" }
+
+[runtimes.prototype.model.url]
+type = "custom"
+
+# pattern: valid URI, https scheme
+# len: 1 - 256
+url = "https://api.custom-model-provider.com"
+
+[runtimes.prototype.prompts]
+# inline: 6KiB
+system.base = { type = "inline", value = "base system prompt" }
+
+# inline: 3KiB
+system.extra = { type = "inline", value = "extra system prompt" }
+
+# inline: 6KiB
+loop.initial.base = { type = "inline", value = "initial loop base prompt" }
+
+# inline: 3KiB
+loop.initial.extra = { type = "inline", value = "initial loop extra prompt" }
+
+# inline: 4KiB
+loop.followup = { type = "inline", value = "followup loop prompt" }
+
+# max entries: 32
+[[runtimes.prototype.tools]]
+type = "mcp_sse"
+
+# pattern: valid URI, https scheme
+# len: 1 - 256
+url = "https://my-unauthenticated-mcp-server.com/sse"
+auth.type = "none"
+
+[[runtimes.prototype.tools]]
+type = "mcp_streamable_http"
+
+# pattern: valid URI, https scheme
+# len: 1 - 256
+url = "https://my-authenticated-mcp-server.com/mcp"
+auth.type = "bearer"
+
+# inline string, len 1 - 1024
+auth.token = { type = "option", name = "FULL_STRING_OPTION" }
+
+[[runtimes.prototype.tools]]
+type = "mcp_streamable_http"
+
+# pattern: valid URI, https scheme
+# len: 1 - 256
+url = "https://my-authenticated-mcp-server.com/mcp?token={TOKEN}"
+auth.type = "url_transformation"
+
+# max entries 8
+auth.transformations = [
+    # pattern: len 1-32
+    # replacement: inline string, len 1 - 1024
+    { pattern = "{TOKEN}", replacement = {type = "option", name = "FULL_STRING_OPTION"} }
+]
+
 # option key:
 #   len: 1 - 256
 #   pattern: ^[a-zA-Z_][a-zA-Z_$0-9]*$
