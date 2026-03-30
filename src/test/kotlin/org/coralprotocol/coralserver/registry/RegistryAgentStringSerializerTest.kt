@@ -12,6 +12,7 @@ import io.ktor.server.routing.*
 import io.ktor.util.*
 import io.ktor.utils.io.charsets.isSupported
 import org.coralprotocol.coralserver.CoralTest
+import org.coralprotocol.coralserver.agent.registry.MAXIMUM_SUPPORTED_AGENT_VERSION
 import org.coralprotocol.coralserver.agent.registry.UnresolvedRegistryAgent
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.koin.test.inject
@@ -37,7 +38,7 @@ class RegistryAgentStringSerializerTest : CoralTest({
 
         val agent = UnresolvedRegistryAgent.resolveFromString(
             """
-                edition = 3
+                edition = $MAXIMUM_SUPPORTED_AGENT_VERSION
                 
                 [agent]
                 name = "string-url-reference"
@@ -63,7 +64,7 @@ class RegistryAgentStringSerializerTest : CoralTest({
         shouldThrow<IllegalStateException> {
             UnresolvedRegistryAgent.resolveFromString(
                 """
-                edition = 3
+                edition = $MAXIMUM_SUPPORTED_AGENT_VERSION
                 
                 [agent]
                 name = "string-url-reference"

@@ -41,9 +41,9 @@ class RegistryAgentTest : CoralTest({
     }
 
     fun testAgentHeader(agent: RegistryAgent) {
-        agent.edition.shouldBeEqual(3)
-        agent.name.shouldBe("edition-3")
-        agent.version.shouldBeEqual("0.3.0")
+        agent.edition.shouldBeEqual(4)
+        agent.name.shouldBe("edition-4")
+        agent.version.shouldBeEqual("0.4.0")
         agent.capabilities.shouldContainAll(AgentCapability.TOOL_REFRESHING, AgentCapability.RESOURCES)
 
         agent.readme.shouldBeEqual("A full markdown markdown readme for the agent on the marketplace")

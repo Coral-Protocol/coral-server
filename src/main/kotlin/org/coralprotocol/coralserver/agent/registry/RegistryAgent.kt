@@ -31,7 +31,7 @@ const val MINIMUM_SUPPORTED_AGENT_EDITION = 3
 /**
  * The maximum (and current) supported agent edition.
  */
-const val MAXIMUM_SUPPORTED_AGENT_VERSION = 3
+const val MAXIMUM_SUPPORTED_AGENT_VERSION = 4
 
 // [agent]
 val AGENT_NAME_LENGTH = 1..32

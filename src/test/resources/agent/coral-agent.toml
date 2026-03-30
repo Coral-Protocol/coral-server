@@ -1,5 +1,5 @@
 # NOTE: The values in this file are asserted in tests!
-edition = 3
+edition = 4
 
 # should not throw errors
 unknown_key = false
@@ -9,11 +9,11 @@ capabilities = ["resources", "tool_refreshing"]
 
 # len 1 - 32
 # pattern: ^[a-z0-9]([a-z0-9]*(-[a-z0-9]+)*)?$
-name = "edition-3"
+name = "edition-4"
 
 # len 1 - 32
 # must be a valid semver version: https://semver.org/
-version = "0.3.0"
+version = "0.4.0"
 
 # len 1 - 1024
 # pattern: none
