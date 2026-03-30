@@ -5,7 +5,9 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.equals.shouldBeEqual
+import io.kotest.matchers.ints.shouldBeZero
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -21,6 +23,7 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
 import org.coralprotocol.coralserver.agent.runtime.DockerRuntime
 import org.coralprotocol.coralserver.agent.runtime.ExecutableRuntime
 import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
+import org.coralprotocol.coralserver.agent.runtime.prototype.*
 import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.utils.dsl.RegistryAgentMarketplaceIdentityErc8004Builder
 import org.coralprotocol.coralserver.utils.dsl.RegistryAgentMarketplacePricingBuilder
@@ -59,6 +62,7 @@ class RegistryAgentTest : CoralTest({
 
         val dockerRuntime = agent.runtimes.dockerRuntime.shouldNotBeNull()
         val executableRuntime = agent.runtimes.executableRuntime.shouldNotBeNull()
+        val prototypeRuntime = agent.runtimes.prototypeRuntime.shouldNotBeNull()
 
         dockerRuntime.image.shouldBeEqual("myuser/myimage")
         dockerRuntime.transport.shouldBe(McpTransportType.STREAMABLE_HTTP)
@@ -66,6 +70,47 @@ class RegistryAgentTest : CoralTest({
         executableRuntime.path.shouldBeEqual("my-agent")
         executableRuntime.arguments.shouldContainExactly("--some-argument")
         executableRuntime.transport.shouldBe(McpTransportType.SSE)
+
+        prototypeRuntime.iterationCount.shouldBeEqual(20)
+        prototypeRuntime.iterationDelay.shouldBeZero()
+
+        val modelProvider = prototypeRuntime.modelProvider.shouldBeInstanceOf<PrototypeModelProvider.OpenAI>()
+        modelProvider.name.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("gpt-5.1")
+        modelProvider.key.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("key here")
+
+        val customUrl = modelProvider.url.shouldBeInstanceOf<PrototypeApiUrl.Custom>()
+        customUrl.url.shouldBeEqual("https://api.custom-model-provider.com")
+
+        prototypeRuntime.prompts.system.base.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("base system prompt")
+        prototypeRuntime.prompts.system.extra.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("extra system prompt")
+        prototypeRuntime.prompts.loop.initial.base.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("initial loop base prompt")
+        prototypeRuntime.prompts.loop.initial.extra.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("initial loop extra prompt")
+        prototypeRuntime.prompts.loop.followup.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("followup loop prompt")
+
+        prototypeRuntime.toolServers.shouldHaveSize(3)
+
+        val prototypeToolServer1 =
+            prototypeRuntime.toolServers[0].shouldBeInstanceOf<PrototypeToolServer.McpSse>()
+
+        val prototypeToolServer2 =
+            prototypeRuntime.toolServers[1].shouldBeInstanceOf<PrototypeToolServer.McpStreamableHttp>()
+
+        val prototypeToolServer3 =
+            prototypeRuntime.toolServers[2].shouldBeInstanceOf<PrototypeToolServer.McpStreamableHttp>()
+
+        prototypeToolServer1.url.shouldBeEqual("https://my-unauthenticated-mcp-server.com/sse")
+        prototypeToolServer1.auth.shouldBeInstanceOf<PrototypeToolServerAuth.None>()
+
+        prototypeToolServer2.url.shouldBeEqual("https://my-authenticated-mcp-server.com/mcp")
+        val bearerAuth = prototypeToolServer2.auth.shouldBeInstanceOf<PrototypeToolServerAuth.Bearer>()
+        bearerAuth.token.shouldBeInstanceOf<PrototypeString.Option>().name.shouldBeEqual("FULL_STRING_OPTION")
+
+        prototypeToolServer3.url.shouldBeEqual("https://my-authenticated-mcp-server.com/mcp?token={TOKEN}")
+        val urlTransformAuth = prototypeToolServer3.auth.shouldBeInstanceOf<PrototypeToolServerAuth.UrlTransformation>()
+        val transform1 = urlTransformAuth.transformations.shouldHaveSize(1)[0]
+
+        transform1.pattern.shouldBeEqual("{TOKEN}")
+        transform1.replacement.shouldBeInstanceOf<PrototypeString.Option>().name.shouldBeEqual("OPTIONAL_STRING")
     }
 
     fun testOptions(agent: RegistryAgent) {

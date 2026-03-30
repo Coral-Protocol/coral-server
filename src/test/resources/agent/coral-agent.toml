@@ -137,7 +137,7 @@ auth.type = "url_transformation"
 auth.transformations = [
     # pattern: len 1-32
     # replacement: inline string, len 1 - 1024
-    { pattern = "{TOKEN}", replacement = {type = "option", name = "FULL_STRING_OPTION"} }
+    { pattern = "{TOKEN}", replacement = { type = "option", name = "OPTIONAL_STRING" } }
 ]
 
 # option key:
