@@ -11,7 +11,7 @@ import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.executor.clients.openrouter.OpenRouterClientSettings
 import ai.koog.prompt.executor.clients.openrouter.OpenRouterLLMClient
 import ai.koog.prompt.executor.clients.openrouter.OpenRouterModels
-import ai.koog.prompt.executor.llms.SingleLLMPromptExecutor
+import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
 import ai.koog.prompt.executor.model.PromptExecutor
 import ai.koog.prompt.llm.LLModel
 import dev.eav.tomlkt.TomlClassDiscriminator
@@ -62,7 +62,7 @@ sealed class PrototypeModelProvider {
     ) : PrototypeModelProvider() {
         override fun getExecutor(executionContext: SessionAgentExecutionContext): PromptExecutor {
             val resolvedUrl = resolveUrlWithProvider(url, executionContext, "openai")
-            return SingleLLMPromptExecutor(
+            return MultiLLMPromptExecutor(
                 OpenAILLMClient(
                     apiKey = key.resolve(executionContext),
                     settings = if (resolvedUrl == null) OpenAIClientSettings() else OpenAIClientSettings(
@@ -85,7 +85,7 @@ sealed class PrototypeModelProvider {
     ) : PrototypeModelProvider() {
         override fun getExecutor(executionContext: SessionAgentExecutionContext): PromptExecutor {
             val resolvedUrl = resolveUrlWithProvider(url, executionContext, "anthropic")
-            return SingleLLMPromptExecutor(
+            return MultiLLMPromptExecutor(
                 AnthropicLLMClient(
                     apiKey = key.resolve(executionContext),
                     settings = if (resolvedUrl == null) AnthropicClientSettings() else AnthropicClientSettings(
@@ -108,7 +108,7 @@ sealed class PrototypeModelProvider {
     ) : PrototypeModelProvider() {
         override fun getExecutor(executionContext: SessionAgentExecutionContext): PromptExecutor {
             val resolvedUrl = resolveUrlWithProvider(url, executionContext, "openrouter")
-            return SingleLLMPromptExecutor(
+            return MultiLLMPromptExecutor(
                 OpenRouterLLMClient(
                     apiKey = key.resolve(executionContext),
                     settings = if (resolvedUrl == null) OpenRouterClientSettings() else OpenRouterClientSettings(
