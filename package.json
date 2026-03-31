@@ -1,0 +1,28 @@
+{
+  "name": "coral-server",
+  "version": "1.1.0",
+  "description": "Coral Server - Open Infrastructure Connecting the Internet of AI Agents",
+  "bin": {
+    "coral-server": "bin/coral-server.js"
+  },
+  "files": [
+    "bin/",
+    "coral-server.jar",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Coral-Protocol/coral-server.git"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "server",
+    "coral"
+  ],
+  "author": "Coral Protocol",
+  "license": "UNLICENSED"
+}

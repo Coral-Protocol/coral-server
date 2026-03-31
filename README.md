@@ -17,6 +17,14 @@
 
 ## How to Run
 
+### Using npx
+
+If you have Node.js installed, you can run the server directly using `npx`:
+```bash
+npx coral-server@1.1.0 start --auth.keys=a,b
+```
+(Replace `1.1.0` with the desired version)
+
 ### Using Gradle
 
 Clone this repository, and in that folder run:
