@@ -53,6 +53,27 @@ keys = ["my-auth-key"]
 ```
 
 The server must be given an environment variable `CONFIG_FILE_PATH` pointing to the location of the config file.
+Alternatively, you can provide configuration via command-line arguments. For example, to set the authentication keys to `["dev"]`, run the server with:
+
+```bash
+./gradlew run --args="--auth.keys=dev"
+```
+
+### Command-line Property Mapping
+
+The server uses [Hoplite](https://github.com/sksamuel/hoplite) for configuration. When using command-line arguments:
+
+- **Nested Properties:** Use dot notation to reach nested configuration blocks. For example, the `[auth]` block's `keys` property becomes `--auth.keys`.
+- **Collections (Lists/Sets):** Provide multiple values separated by commas. For example, `--auth.keys=key1,key2` will be parsed into a set containing both keys.
+- **Data Types:** Simple types (strings, booleans, numbers) are automatically converted. Booleans can be set as `--some.flag=true`.
+
+Examples:
+
+| TOML Config | Command-line Argument |
+| :--- | :--- |
+| `[auth]`<br/>`keys = ["a", "b"]` | `--auth.keys=a,b` |
+| `[network]`<br/>`bindPort = 8080` | `--network.bindPort=8080` |
+| `[registry]`<br/>`includeDebugAgents = true` | `--registry.includeDebugAgents=true` |
 
 ## Contribution Guidelines
 
