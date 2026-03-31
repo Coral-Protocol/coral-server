@@ -5,16 +5,17 @@ enum class LlmProviderProfile(
     val defaultBaseUrl: String,
     val authStyle: AuthStyle,
     val defaultHeaders: Map<String, String>,
+    val strategy: LlmProviderStrategy,
     val sdkBaseUrlEnvVar: String? = null,
     val sdkPathSuffix: String = ""
 ) {
-    OPENAI("openai", "https://api.openai.com", AuthStyle.Bearer, emptyMap(),
+    OPENAI("openai", "https://api.openai.com", AuthStyle.Bearer, emptyMap(), OpenAIStrategy,
         sdkBaseUrlEnvVar = "OPENAI_BASE_URL", sdkPathSuffix = "/v1"),
-    ANTHROPIC("anthropic", "https://api.anthropic.com", AuthStyle.Custom("x-api-key"), mapOf("anthropic-version" to "2023-06-01"),
+    ANTHROPIC("anthropic", "https://api.anthropic.com", AuthStyle.Custom("x-api-key"), mapOf("anthropic-version" to "2023-06-01"), AnthropicStrategy,
         sdkBaseUrlEnvVar = "ANTHROPIC_BASE_URL"),
-    OPENROUTER("openrouter", "https://openrouter.ai", AuthStyle.Bearer, emptyMap(),
+    OPENROUTER("openrouter", "https://openrouter.ai", AuthStyle.Bearer, emptyMap(), OpenAIStrategy,
         sdkBaseUrlEnvVar = "OPENROUTER_BASE_URL"),
-    MOCK("mock", "http://mock", AuthStyle.Bearer, emptyMap());
+    MOCK("mock", "http://mock", AuthStyle.Bearer, emptyMap(), OpenAIStrategy);
 
     companion object {
         private val byId = entries.associateBy { it.providerId }
