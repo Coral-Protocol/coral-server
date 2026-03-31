@@ -21,9 +21,8 @@
 
 If you have Node.js installed, you can run the server directly using `npx`:
 ```bash
-npx coral-server@1.1.0 start --auth.keys=a,b
+npx coral-server@1.1.0 start --auth.keys=dev
 ```
-(Replace `1.1.0` with the desired version)
 
 ### Using Gradle
 
@@ -77,10 +76,10 @@ The server uses [Hoplite](https://github.com/sksamuel/hoplite) for configuration
 
 Examples:
 
-| TOML Config | Command-line Argument |
-| :--- | :--- |
-| `[auth]`<br/>`keys = ["a", "b"]` | `--auth.keys=a,b` |
-| `[network]`<br/>`bindPort = 8080` | `--network.bindPort=8080` |
+| TOML Config                                  | Command-line Argument                |
+|:---------------------------------------------|:-------------------------------------|
+| `[auth]`<br/>`keys = ["a", "b"]`             | `--auth.keys=a,b`                    |
+| `[network]`<br/>`bindPort = 5555`            | `--network.bindPort=5555`            |
 | `[registry]`<br/>`includeDebugAgents = true` | `--registry.includeDebugAgents=true` |
 
 ## Contribution Guidelines
