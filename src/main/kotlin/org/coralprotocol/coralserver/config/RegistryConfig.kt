@@ -6,14 +6,14 @@ import kotlin.time.Duration
 data class RegistryConfig(
     /**
      * A list of agents available on the file system to add as local agents to this server.  This supports basic pattern
-     * matching.
+     * matching. Unless explicitly disabled, agents from the ~/.coral/agents/.. directory will still be included.
      */
-    val localAgents: List<String> = listOf(
-        // Agents added with coralizer link are separated by agent version at the time of linking
-        "${Path.of(System.getProperty("user.home"), ".coral", "agents")}/*/*",
-        // For agents manually added it's more natural that they aren't separated by version
-        "${Path.of(System.getProperty("user.home"), ".coral", "agents")}/*",
-    ),
+    val localAgents: List<String> = listOf(),
+
+    /**
+     * Whether to include agents that are in the user's coral home directory (~/.coral/agents/..).
+     */
+    val includeCoralHomeAgents: Boolean = true,
 
     /**
      * If this is non-zero, [localAgents] will be rescanned every [localAgentRescanTimer].  This must be used for
