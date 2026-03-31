@@ -77,7 +77,7 @@ delay = 0 # >= 0
 provider = "openai" # openai/anthropic/openrouter
 
 # inline string, len 1 - 128
-name = { type = "inline", value = "gpt-5.1" }
+name = "gpt-5.1"
 
 # inline string, len 1 - 1024
 key = "key here"
@@ -91,19 +91,19 @@ value = "https://api.custom-model-provider.com"
 
 [runtimes.prototype.prompts]
 # inline: 6KiB
-system.base = { type = "inline", value = "base system prompt" }
+system.base = "base system prompt"
 
 # inline: 3KiB
-system.extra = { type = "inline", value = "extra system prompt" }
+system.extra = "extra system prompt"
 
 # inline: 6KiB
-loop.initial.base = { type = "inline", value = "initial loop base prompt" }
+loop.initial.base = "initial loop base prompt"
 
 # inline: 3KiB
-loop.initial.extra = { type = "inline", value = "initial loop extra prompt" }
+loop.initial.extra = "initial loop extra prompt"
 
 # inline: 4KiB
-loop.followup = { type = "inline", value = "followup loop prompt" }
+loop.followup = "followup loop prompt"
 
 # max entries: 32
 [[runtimes.prototype.tools]]
