@@ -80,7 +80,7 @@ provider = "openai" # openai/anthropic/openrouter
 name = { type = "inline", value = "gpt-5.1" }
 
 # inline string, len 1 - 1024
-key = { type = "inline", value = "key here" }
+key = "key here"
 
 [runtimes.prototype.model.url]
 type = "custom"
