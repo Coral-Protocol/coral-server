@@ -7,6 +7,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
+import org.coralprotocol.coralserver.llmproxy.LlmErrorKind
 import org.coralprotocol.coralserver.session.*
 import org.coralprotocol.coralserver.util.InstantSerializer
 import org.coralprotocol.coralserver.util.utcTimeNow
@@ -89,6 +90,6 @@ sealed class SessionEvent {
         val durationMs: Long,
         val streaming: Boolean,
         val success: Boolean,
-        val errorKind: String? = null
+        val errorKind: LlmErrorKind? = null
     ) : SessionEvent()
 }

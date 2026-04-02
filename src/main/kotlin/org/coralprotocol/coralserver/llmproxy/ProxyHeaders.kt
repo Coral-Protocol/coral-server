@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.llm
+package org.coralprotocol.coralserver.llmproxy
 
 import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.header
