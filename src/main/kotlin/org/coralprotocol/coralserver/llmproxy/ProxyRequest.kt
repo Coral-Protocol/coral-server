@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.llm
+package org.coralprotocol.coralserver.llmproxy
 
 import org.coralprotocol.coralserver.session.SessionAgent
 
