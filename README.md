@@ -69,11 +69,13 @@ The server uses [Hoplite](https://github.com/sksamuel/hoplite) for configuration
 
 Examples:
 
-| TOML Config | Command-line Argument |
-| :--- | :--- |
-| `[auth]`<br/>`keys = ["a", "b"]` | `--auth.keys=a,b` |
-| `[network]`<br/>`bindPort = 8080` | `--network.bindPort=8080` |
-| `[registry]`<br/>`includeDebugAgents = true` | `--registry.includeDebugAgents=true` |
+| TOML Config | Command-line Argument                  |
+| :--- |:---------------------------------------|
+| `[auth]`<br/>`keys = ["a", "b"]` | `--auth.keys=a,b`                      |
+| `[network]`<br/>`bindPort = 8080` | `--network.bind-port=8080`             |
+| `[registry]`<br/>`includeDebugAgents = true` | `--registry.include-debug-agents=true` |
+
+(camel-case forms for still work for command-line args)
 
 ## Contribution Guidelines
 
