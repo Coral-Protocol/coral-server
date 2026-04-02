@@ -4,7 +4,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpRequestRetry
 import org.coralprotocol.coralserver.config.LlmProxyConfig
-import org.coralprotocol.coralserver.llm.LlmProxyService
+import org.coralprotocol.coralserver.llmproxy.LlmProxyService
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 

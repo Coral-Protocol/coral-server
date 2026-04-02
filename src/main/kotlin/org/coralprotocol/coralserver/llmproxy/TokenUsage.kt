@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.llm
+package org.coralprotocol.coralserver.llmproxy
 
 import kotlinx.serialization.Serializable
 import java.util.concurrent.atomic.AtomicLong

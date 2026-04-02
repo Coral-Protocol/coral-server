@@ -4,7 +4,7 @@ import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.config.LlmProxyConfig
-import org.coralprotocol.coralserver.llm.LlmProxyService
+import org.coralprotocol.coralserver.llmproxy.LlmProxyService
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionException

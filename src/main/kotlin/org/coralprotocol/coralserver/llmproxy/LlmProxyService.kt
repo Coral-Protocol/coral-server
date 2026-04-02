@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.llm
+package org.coralprotocol.coralserver.llmproxy
 
 import io.ktor.client.HttpClient
 import io.ktor.client.network.sockets.ConnectTimeoutException
@@ -70,8 +70,6 @@ class LlmProxyService(
         val requestJson = if (hasBody) tryParseJson(requestBody) else null
         val isStreaming = requestJson?.get("stream")?.jsonPrimitive?.booleanOrNull == true
         val model = requestJson?.get("model")?.jsonPrimitive?.content
-
-        if (mockCheck(profile, agent, model, isStreaming, call)) return
 
         val finalBody = if (isStreaming) profile.strategy.prepareStreamingRequest(requestBody, json) else requestBody
         val req = ProxyRequest(agent, profile, apiKey!!, upstreamUrl, timeoutMs, finalBody, model, hasBody, System.currentTimeMillis())
@@ -186,7 +184,7 @@ class LlmProxyService(
                                 LlmCallResult(
                                     req.profile.providerId, req.model, durationMs = durationMs,
                                     streaming = true, success = false,
-                                    errorKind = "response_too_large",
+                                    errorKind = LlmErrorKind.RESPONSE_TOO_LARGE,
                                     statusCode = response.status.value
                                 )
                             )
@@ -265,48 +263,48 @@ class LlmProxyService(
         return body
     }
 
-    private fun classifyHttpError(status: HttpStatusCode): String = when (status.value) {
-        429 -> "rate_limited"
-        in 401..403 -> "credentials"
-        in 500..599 -> "upstream_health"
-        in 400..499 -> "request_error"
-        else -> "unknown"
+    private fun classifyHttpError(status: HttpStatusCode): LlmErrorKind = when (status.value) {
+        429 -> LlmErrorKind.RATE_LIMITED
+        in 401..403 -> LlmErrorKind.CREDENTIALS
+        in 500..599 -> LlmErrorKind.UPSTREAM_HEALTH
+        in 400..499 -> LlmErrorKind.REQUEST_ERROR
+        else -> LlmErrorKind.UNKNOWN
     }
 
-    private fun classifyError(e: Exception): String = when (e) {
-        is ConnectTimeoutException -> "connectivity"
-        is HttpRequestTimeoutException -> "connectivity"
-        is LlmProxyException -> "response_too_large"
-        else -> if (e.message?.contains("timeout", ignoreCase = true) == true) "connectivity" else "unknown"
+    private fun classifyError(e: Exception): LlmErrorKind = when (e) {
+        is ConnectTimeoutException -> LlmErrorKind.CONNECTIVITY
+        is HttpRequestTimeoutException -> LlmErrorKind.CONNECTIVITY
+        is LlmProxyException -> LlmErrorKind.RESPONSE_TOO_LARGE
+        else -> if (e.message?.contains("timeout", ignoreCase = true) == true) LlmErrorKind.CONNECTIVITY else LlmErrorKind.UNKNOWN
     }
-}
 
-suspend fun emitTelemetry(agent: SessionAgent, result: LlmCallResult) {
-    try {
-        if (result.success) {
-            val chunks = if (result.chunkCount != null) " ${result.chunkCount} chunks" else ""
-            val mode = if (result.streaming) "stream complete" else "${result.statusCode ?: "ok"}"
-            agent.logger.info { "LLM Proxy ← $mode ${result.durationMs}ms$chunks${result.formatTokenInfo()}" }
-        } else {
-            val mode = if (result.streaming) " (stream)" else ""
-            agent.logger.warn { "LLM Proxy ← ${result.statusCode ?: "err"} ${result.durationMs}ms error=${result.errorKind}$mode" }
-        }
+    private suspend fun emitTelemetry(agent: SessionAgent, result: LlmCallResult) {
+        try {
+            if (result.success) {
+                val chunks = if (result.chunkCount != null) " ${result.chunkCount} chunks" else ""
+                val mode = if (result.streaming) "stream complete" else "${result.statusCode ?: "ok"}"
+                agent.logger.info { "LLM Proxy ← $mode ${result.durationMs}ms$chunks${result.formatTokenInfo()}" }
+            } else {
+                val mode = if (result.streaming) " (stream)" else ""
+                agent.logger.warn { "LLM Proxy ← ${result.statusCode ?: "err"} ${result.durationMs}ms error=${result.errorKind}$mode" }
+            }
 
-        agent.accumulateTokens(result.provider, result.model, result.inputTokens, result.outputTokens)
-        agent.session.events.emit(
-            SessionEvent.LlmProxyCall(
-                agentName = agent.name,
-                provider = result.provider,
-                model = result.model,
-                inputTokens = result.inputTokens,
-                outputTokens = result.outputTokens,
-                durationMs = result.durationMs,
-                streaming = result.streaming,
-                success = result.success,
-                errorKind = result.errorKind
+            agent.accumulateTokens(result.provider, result.model, result.inputTokens, result.outputTokens)
+            agent.session.events.emit(
+                SessionEvent.LlmProxyCall(
+                    agentName = agent.name,
+                    provider = result.provider,
+                    model = result.model,
+                    inputTokens = result.inputTokens,
+                    outputTokens = result.outputTokens,
+                    durationMs = result.durationMs,
+                    streaming = result.streaming,
+                    success = result.success,
+                    errorKind = result.errorKind
+                )
             )
-        )
-    } catch (e: Exception) {
-        agent.logger.error(e) { "Failed to emit LLM proxy telemetry event" }
+        } catch (e: Exception) {
+            agent.logger.error(e) { "Failed to emit LLM proxy telemetry event" }
+        }
     }
 }

@@ -21,8 +21,8 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.config.SessionConfig
 import org.coralprotocol.coralserver.events.SessionEvent
-import org.coralprotocol.coralserver.llm.AtomicTokenUsage
-import org.coralprotocol.coralserver.llm.TokenUsage
+import org.coralprotocol.coralserver.llmproxy.AtomicTokenUsage
+import org.coralprotocol.coralserver.llmproxy.TokenUsage
 import org.coralprotocol.coralserver.logging.LoggingTag
 import org.coralprotocol.coralserver.mcp.McpInstructionSnippet
 import org.coralprotocol.coralserver.mcp.McpResourceName
