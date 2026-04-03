@@ -3,6 +3,7 @@
 package org.coralprotocol.coralserver.agent.runtime.prototype
 
 import dev.eav.tomlkt.*
+import io.ktor.http.*
 import kotlinx.serialization.*
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.descriptors.SerialKind
@@ -43,6 +44,48 @@ sealed interface PrototypeString {
             return optionValue.value
         }
     }
+
+    @Serializable
+    @SerialName("composed_string")
+    data class ComposedString(
+        val parts: List<PrototypeString>,
+        val separator: String = ""
+    ) : PrototypeString {
+        override fun resolve(executionContext: SessionAgentExecutionContext): String =
+            parts.joinToString(separator) { it.resolve(executionContext) }
+    }
+
+    @Serializable
+    @SerialName("composed_url")
+    data class ComposedUrl(
+        val base: String,
+        val parts: List<UrlPart>,
+    ) : PrototypeString {
+        override fun resolve(executionContext: SessionAgentExecutionContext): String {
+            val builder = URLBuilder(base)
+            for (part in parts) {
+                when (part) {
+                    is UrlPart.Path -> builder.appendPathSegments(part.value.resolve(executionContext))
+                    is UrlPart.QueryParameter -> builder.appendPathSegments(part.value.resolve(executionContext))
+                }
+            }
+
+            return builder.buildString()
+        }
+    }
+}
+
+@Serializable
+@JsonClassDiscriminator("type")
+@TomlClassDiscriminator("type")
+sealed interface UrlPart {
+    @Serializable
+    @SerialName("query_parameter")
+    data class QueryParameter(val name: String, val value: PrototypeString) : UrlPart
+
+    @Serializable
+    @SerialName("path_segment")
+    data class Path(val value: PrototypeString) : UrlPart
 }
 
 /**
@@ -92,6 +135,8 @@ sealed interface PrototypeString {
 object PrototypeStringSerializer : KSerializer<PrototypeString> {
     private val inlineSerializer = PrototypeString.Inline.serializer()
     private val optionSerializer = PrototypeString.Option.serializer()
+    private val composedStringSerializer = PrototypeString.ComposedString.serializer()
+    private val composedUrlSerializer = PrototypeString.ComposedUrl.serializer()
 
     private val prototypeStringDiscriminator = run {
         val tomlDiscriminator = PrototypeString::class
@@ -116,13 +161,23 @@ object PrototypeStringSerializer : KSerializer<PrototypeString> {
             is JsonEncoder -> {
                 val (type, element) = when (value) {
                     is PrototypeString.Inline -> Pair(
-                        value::class.serializer().descriptor.serialName,
-                        encoder.json.encodeToJsonElement(PrototypeString.Inline.serializer(), value)
+                        inlineSerializer.descriptor.serialName,
+                        encoder.json.encodeToJsonElement(inlineSerializer, value)
                     )
 
                     is PrototypeString.Option -> Pair(
-                        value::class.serializer().descriptor.serialName,
-                        encoder.json.encodeToJsonElement(PrototypeString.Option.serializer(), value)
+                        optionSerializer.descriptor.serialName,
+                        encoder.json.encodeToJsonElement(optionSerializer, value)
+                    )
+
+                    is PrototypeString.ComposedString -> Pair(
+                        composedStringSerializer.descriptor.serialName,
+                        encoder.json.encodeToJsonElement(composedStringSerializer, value)
+                    )
+
+                    is PrototypeString.ComposedUrl -> Pair(
+                        composedUrlSerializer.descriptor.serialName,
+                        encoder.json.encodeToJsonElement(composedUrlSerializer, value)
                     )
                 }
 
@@ -151,6 +206,16 @@ object PrototypeStringSerializer : KSerializer<PrototypeString> {
                         JsonObject(jsonObject.filterKeys { it != prototypeStringDiscriminator })
                     )
 
+                    composedStringSerializer.descriptor.serialName -> decoder.json.decodeFromJsonElement(
+                        composedStringSerializer,
+                        JsonObject(jsonObject.filterKeys { it != prototypeStringDiscriminator })
+                    )
+
+                    composedUrlSerializer.descriptor.serialName -> decoder.json.decodeFromJsonElement(
+                        composedUrlSerializer,
+                        JsonObject(jsonObject.filterKeys { it != prototypeStringDiscriminator })
+                    )
+
                     else -> throw SerializationException("Unknown type: $type")
                 }
             }
@@ -172,6 +237,16 @@ object PrototypeStringSerializer : KSerializer<PrototypeString> {
 
                         optionSerializer.descriptor.serialName -> decoder.toml.decodeFromTomlElement(
                             optionSerializer,
+                            TomlTable(tomlElement.filterKeys { it != prototypeStringDiscriminator })
+                        )
+
+                        composedStringSerializer.descriptor.serialName -> decoder.toml.decodeFromTomlElement(
+                            composedStringSerializer,
+                            TomlTable(tomlElement.filterKeys { it != prototypeStringDiscriminator })
+                        )
+
+                        composedUrlSerializer.descriptor.serialName -> decoder.toml.decodeFromTomlElement(
+                            composedUrlSerializer,
                             TomlTable(tomlElement.filterKeys { it != prototypeStringDiscriminator })
                         )
 
