@@ -7,6 +7,7 @@ import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import kotlinx.serialization.json.Json
 import dev.eav.tomlkt.Toml
+import org.coralprotocol.coralserver.config.CommandLineArgs
 import org.coralprotocol.coralserver.modules.*
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
@@ -16,6 +17,7 @@ fun main(args: Array<String>) {
     val app = startKoin {
         environmentProperties()
         modules(
+            module { single { CommandLineArgs(args) } },
             configModule,
             configModuleParts,
             loggingModule,
