@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.2.0](https://github.com/Coral-Protocol/coral-server/compare/v1.1.0...v1.2.0) (2026-04-03)
+
+
+### Features
+
+* allow config options to be specified using command line arguments ([57182c5](https://github.com/Coral-Protocol/coral-server/commit/57182c554732fe27e231d80ed41f388fab660e67))
+* Let args be specified via command line args ([#269](https://github.com/Coral-Protocol/coral-server/issues/269)) ([57182c5](https://github.com/Coral-Protocol/coral-server/commit/57182c554732fe27e231d80ed41f388fab660e67))
+* update gradle to 9.0.0, kotlin to 2.3.20 and jvm version to 24 ([#264](https://github.com/Coral-Protocol/coral-server/issues/264)) ([9486783](https://github.com/Coral-Protocol/coral-server/commit/948678348a64a00419486a63688c3836934a8d75))
+
+
+### Bug Fixes
+
+* all references to jdk on dockerfile now match 24, gradle version upgraded to version 9 ([28afa08](https://github.com/Coral-Protocol/coral-server/commit/28afa0897b651e97ed0b79e858ca87e55ff5aec6))
+* marketplace extension polymorphic type not inheriting parent class ([1e8252c](https://github.com/Coral-Protocol/coral-server/commit/1e8252c686f64e1c1b0304757aca6901b63c6481))
+* stop implicitly ignoring ~/.coral/agents/* when agents are explicitly defined without including ~/.coral/agents/* ([#267](https://github.com/Coral-Protocol/coral-server/issues/267)) ([3c5a041](https://github.com/Coral-Protocol/coral-server/commit/3c5a041a7749b39e9462a064598f526a6007e2c3))
+* update build files and dockerfile for java 24 and gradle 9.0.0 ([c832be9](https://github.com/Coral-Protocol/coral-server/commit/c832be99923884605ba904f99b65315f0a1a5dcb))
+
 ## [1.1.0](https://github.com/Coral-Protocol/coral-server/compare/v1.0.0...v1.1.0) (2026-03-10)
 
 
