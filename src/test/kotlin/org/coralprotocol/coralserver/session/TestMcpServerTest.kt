@@ -17,6 +17,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.encodeToJsonElement
 import org.coralprotocol.coralserver.CoralTest
+import org.coralprotocol.coralserver.agent.registry.option.AgentOption
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeString
 import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeToolServerAuth
 import org.coralprotocol.coralserver.utils.TestMcpServer
@@ -60,22 +63,27 @@ class TestMcpServerTest : CoralTest({
         val testServer = TestMcpServer()
         val toolServer = testServer.asPrototypeToolServer(get())
 
-        testTransport(testServer, StreamableHttpClientTransport(get(), toolServer.url))
+        testTransport(testServer, StreamableHttpClientTransport(get(), toolServer.url.resolve()))
     }
 
     test("testQueryParamAuth") {
         val testServer = TestMcpServer()
         val toolServer = testServer.asPrototypeToolServerParamAuth(get())
 
-        // manually perform url transformations provided by the auth config
-        val auth = toolServer.auth.shouldBeInstanceOf<PrototypeToolServerAuth.UrlTransformation>()
-        var resolvedUrl = toolServer.url
-        auth.transformations.forEach {
-            val inline = it.replacement.shouldBeInstanceOf<PrototypeString.Inline>()
-            resolvedUrl = resolvedUrl.replace(it.pattern, inline.value)
-        }
-
-        testTransport(testServer, StreamableHttpClientTransport(get(), resolvedUrl))
+        testTransport(
+            testServer,
+            StreamableHttpClientTransport(
+                get(),
+                toolServer.url.resolve(
+                    mapOf(
+                        testServer.authTokenOptionName to AgentOptionWithValue.String(
+                            AgentOption.String(),
+                            AgentOptionValue.String(testServer.authToken)
+                        )
+                    )
+                )
+            )
+        )
     }
 
     test("testQueryParamAuthBadToken") {
@@ -83,22 +91,35 @@ class TestMcpServerTest : CoralTest({
         val toolServer = testServer.asPrototypeToolServerParamAuth(get())
 
         // replacement isn't performed, query param for auth token should be invalid
-        shouldThrow<McpException> { testTransport(testServer, StreamableHttpClientTransport(get(), toolServer.url)) }
+        shouldThrow<McpException> {
+            testTransport(
+                testServer,
+                StreamableHttpClientTransport(
+                    get(),
+                    toolServer.url.resolve(
+                        mapOf(
+                            testServer.authTokenOptionName to AgentOptionWithValue.String(
+                                AgentOption.String(),
+                                AgentOptionValue.String("bad token")
+                            )
+                        )
+                    )
+                )
+            )
+        }
     }
 
     test("testBearerAuth") {
         val testServer = TestMcpServer()
         val toolServer = testServer.asPrototypeToolServerBearerAuth(get())
-        val auth = toolServer.auth.shouldBeInstanceOf<PrototypeToolServerAuth.Bearer>()
-        val token = auth.token.shouldBeInstanceOf<PrototypeString.Inline>().value
 
         val httpClient = get<HttpClient>()
 
         testTransport(testServer, StreamableHttpClientTransport(httpClient.config {
             defaultRequest {
-                headers.append("Authorization", "Bearer $token")
+                headers.append("Authorization", "Bearer ${testServer.authToken}")
             }
-        }, toolServer.url))
+        }, toolServer.url.resolve()))
     }
 
     test("testBearerAuthBadToken") {
@@ -111,7 +132,7 @@ class TestMcpServerTest : CoralTest({
                 defaultRequest {
                     headers.append("Authorization", "Bearer badToken")
                 }
-            }, toolServer.url))
+            }, toolServer.url.resolve()))
         }
     }
 
@@ -120,7 +141,7 @@ class TestMcpServerTest : CoralTest({
         val toolServer = testServer.asPrototypeToolServerBearerAuth(get())
 
         shouldThrow<McpException> {
-            testTransport(testServer, StreamableHttpClientTransport(get(), toolServer.url))
+            testTransport(testServer, StreamableHttpClientTransport(get(), toolServer.url.resolve()))
         }
     }
 })

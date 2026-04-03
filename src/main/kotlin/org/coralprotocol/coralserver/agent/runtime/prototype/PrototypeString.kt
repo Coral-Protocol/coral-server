@@ -14,6 +14,7 @@ import kotlinx.serialization.json.*
 import org.coralprotocol.coralserver.agent.exceptions.PrototypeRuntimeException
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentStringSerializer
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.registry.option.value
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 import kotlin.reflect.full.findAnnotation
@@ -21,20 +22,21 @@ import kotlin.reflect.full.findAnnotation
 @Serializable(with = PrototypeStringSerializer::class)
 @TomlClassDiscriminator("type")
 @JsonClassDiscriminator("type")
-sealed interface PrototypeString {
-    fun resolve(executionContext: SessionAgentExecutionContext): String
+sealed class PrototypeString {
+    fun resolve(executionContext: SessionAgentExecutionContext): String = resolve(executionContext.graphAgent.options)
+    abstract fun resolve(agentOptions: Map<String, AgentOptionWithValue> = mapOf()): String
 
     @Serializable
     @SerialName("inline")
-    data class Inline(val value: String) : PrototypeString {
-        override fun resolve(executionContext: SessionAgentExecutionContext): String = value
+    data class Inline(val value: String) : PrototypeString() {
+        override fun resolve(agentOptions: Map<String, AgentOptionWithValue>): String = value
     }
 
     @Serializable
     @SerialName("option")
-    data class Option(val name: String) : PrototypeString {
-        override fun resolve(executionContext: SessionAgentExecutionContext): String {
-            val option = executionContext.agent.graphAgent.options[name]
+    data class Option(val name: String) : PrototypeString() {
+        override fun resolve(agentOptions: Map<String, AgentOptionWithValue>): String {
+            val option = agentOptions[name]
                 ?: throw PrototypeRuntimeException.BadOption("option \"$name\" wasn't found")
 
             val optionValue = option.value()
@@ -50,23 +52,23 @@ sealed interface PrototypeString {
     data class ComposedString(
         val parts: List<PrototypeString>,
         val separator: String = ""
-    ) : PrototypeString {
-        override fun resolve(executionContext: SessionAgentExecutionContext): String =
-            parts.joinToString(separator) { it.resolve(executionContext) }
+    ) : PrototypeString() {
+        override fun resolve(agentOptions: Map<String, AgentOptionWithValue>): String =
+            parts.joinToString(separator) { it.resolve(agentOptions) }
     }
 
     @Serializable
     @SerialName("composed_url")
     data class ComposedUrl(
         val base: String,
-        val parts: List<UrlPart>,
-    ) : PrototypeString {
-        override fun resolve(executionContext: SessionAgentExecutionContext): String {
+        val parts: List<PrototypeUrlPart>,
+    ) : PrototypeString() {
+        override fun resolve(agentOptions: Map<String, AgentOptionWithValue>): String {
             val builder = URLBuilder(base)
             for (part in parts) {
                 when (part) {
-                    is UrlPart.Path -> builder.appendPathSegments(part.value.resolve(executionContext))
-                    is UrlPart.QueryParameter -> builder.appendPathSegments(part.value.resolve(executionContext))
+                    is PrototypeUrlPart.Path -> builder.appendPathSegments(part.value.resolve(agentOptions))
+                    is PrototypeUrlPart.QueryParameter -> builder.parameters.append(part.name, part.value.resolve(agentOptions))
                 }
             }
 
@@ -78,14 +80,14 @@ sealed interface PrototypeString {
 @Serializable
 @JsonClassDiscriminator("type")
 @TomlClassDiscriminator("type")
-sealed interface UrlPart {
+sealed interface PrototypeUrlPart {
     @Serializable
     @SerialName("query_parameter")
-    data class QueryParameter(val name: String, val value: PrototypeString) : UrlPart
+    data class QueryParameter(val name: String, val value: PrototypeString) : PrototypeUrlPart
 
     @Serializable
     @SerialName("path_segment")
-    data class Path(val value: PrototypeString) : UrlPart
+    data class Path(val value: PrototypeString) : PrototypeUrlPart
 }
 
 /**

@@ -127,16 +127,30 @@ auth.token = { type = "option", name = "FULL_STRING_OPTION" }
 
 [[runtimes.prototype.tools]]
 type = "mcp_streamable_http"
+url.type = "composed_url"
+url.base = "https://my-authenticated-mcp-server.com/mcp"
 
+# max entries: 32
+# total composed string len: 1 - 156
+url.parts = [
+    { type = "query_parameter", name = "authToken", value = { type = "option", name = "OPTIONAL_STRING" } }
+]
+
+[[runtimes.prototype.tools]]
+type = "mcp_streamable_http"
+
+# pattern: valid URI, https scheme
 # len: 1 - 256
-url = "https://my-authenticated-mcp-server.com/mcp?token={TOKEN}"
-auth.type = "url_transformation"
+url = "https://my-authenticated-mcp-server.com/mcp"
+auth.type = "authorization_header"
 
-# max entries 8
-auth.transformations = [
-    # pattern: len 1-32
-    # replacement: inline string, len 1 - 1024
-    { pattern = "{TOKEN}", replacement = { type = "option", name = "OPTIONAL_STRING" } }
+# max entries: 32
+# total composed string len: 1 - 156
+auth.header.type = "composed_string"
+auth.header.separator = " "
+auth.header.parts = [
+    { type = "inline", value = "Bearer" },
+    { type = "option", name = "OPTIONAL_STRING" }
 ]
 
 # option key:

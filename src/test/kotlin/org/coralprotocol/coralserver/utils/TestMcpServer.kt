@@ -27,6 +27,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
+import org.coralprotocol.coralserver.agent.registry.option.AgentOption
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.runtime.PrototypeRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.agent.runtime.prototype.*
@@ -60,7 +63,7 @@ class TestMcpResource {
     @Resource("query-param-auth")
     class QueryParamAuth {
         @Resource("mcp")
-        class Mcp(val parent: QueryParamAuth = QueryParamAuth(), val authToken: String)
+        class Mcp(val parent: QueryParamAuth = QueryParamAuth(), val authToken: String? = null)
     }
 
     @Resource("bearer-auth")
@@ -81,6 +84,8 @@ class TestMcpServer(
 ) : KoinComponent {
     val toolChannel: Channel<String> = Channel()
     val json by inject<Json>()
+    val authToken = UUID.randomUUID().toString()
+    val authTokenOptionName = UUID.randomUUID().toString()
 
     val server = Server(
         serverInfo = Implementation(
@@ -144,12 +149,10 @@ class TestMcpServer(
             }
         }
 
-        return PrototypeToolServer.McpStreamableHttp(application.href(TestMcpResource.NoAuth.Mcp()))
+        return PrototypeToolServer.McpStreamableHttp(PrototypeString.Inline(application.href(TestMcpResource.NoAuth.Mcp())))
     }
 
     fun asPrototypeToolServerParamAuth(application: Application): PrototypeToolServer.McpStreamableHttp {
-        val authToken = UUID.randomUUID().toString()
-
         var transport: StreamableHttpServerTransport? = null
         application.routing {
             post<TestMcpResource.QueryParamAuth.Mcp> {
@@ -182,23 +185,17 @@ class TestMcpServer(
             }
         }
 
-        val replacementIdentifier = UUID.randomUUID().toString()
         return PrototypeToolServer.McpStreamableHttp(
-            application.href(TestMcpResource.QueryParamAuth.Mcp(authToken = replacementIdentifier)),
-            auth = PrototypeToolServerAuth.UrlTransformation(
-                listOf(
-                    PrototypeUrlTransformation(
-                        replacementIdentifier,
-                        PrototypeString.Inline(authToken)
-                    )
+            PrototypeString.ComposedUrl(
+                base = application.href(TestMcpResource.QueryParamAuth.Mcp()),
+                parts = listOf(
+                    PrototypeUrlPart.QueryParameter("authToken", PrototypeString.Option(authTokenOptionName)),
                 )
-            )
+            ),
         )
     }
 
     fun asPrototypeToolServerBearerAuth(application: Application): PrototypeToolServer.McpStreamableHttp {
-        val authToken = UUID.randomUUID().toString()
-
         var transport: StreamableHttpServerTransport? = null
         application.plugin(Authentication).apply {
             configure {
@@ -230,8 +227,8 @@ class TestMcpServer(
         }
 
         return PrototypeToolServer.McpStreamableHttp(
-            application.href(TestMcpResource.BearerAuth.Mcp()),
-            auth = PrototypeToolServerAuth.Bearer(PrototypeString.Inline(authToken))
+            PrototypeString.Inline(application.href(TestMcpResource.BearerAuth.Mcp())),
+            auth = PrototypeToolServerAuth.Bearer(PrototypeString.Option(authTokenOptionName))
         )
     }
 }
@@ -264,6 +261,13 @@ suspend fun KoinComponent.runTestServerTest(
                                 ),
                                 toolServers = listOf(prototypeToolServer),
                                 iterationCount = 5
+                            )
+                        )
+                        this@graphAgentPair.option(
+                            testMcpServer.authTokenOptionName,
+                            AgentOptionWithValue.String(
+                                AgentOption.String(),
+                                AgentOptionValue.String(testMcpServer.authToken)
                             )
                         )
                     }

@@ -26,15 +26,26 @@ data class PrototypeUrlTransformation(val pattern: String, val replacement: Prot
 @TomlClassDiscriminator("type")
 sealed interface PrototypeToolServerAuth {
     fun resolveClient(executionContext: SessionAgentExecutionContext, client: HttpClient): HttpClient
-    fun resolveUrl(executionContext: SessionAgentExecutionContext, url: String): String
 
     @Serializable
     @SerialName("none")
     object None : PrototypeToolServerAuth {
         override fun resolveClient(executionContext: SessionAgentExecutionContext, client: HttpClient): HttpClient =
             client
+    }
 
-        override fun resolveUrl(executionContext: SessionAgentExecutionContext, url: String): String = url
+    @Serializable
+    @SerialName("authorization_header")
+    data class AuthorizationHeader(
+        @SerialName("header")
+        val authorizationHeader: PrototypeString
+    ) : PrototypeToolServerAuth {
+        override fun resolveClient(executionContext: SessionAgentExecutionContext, client: HttpClient): HttpClient =
+            client.config {
+                defaultRequest {
+                    headers.append("Authorization", authorizationHeader.resolve(executionContext))
+                }
+            }
     }
 
     @Serializable
@@ -46,35 +57,17 @@ sealed interface PrototypeToolServerAuth {
                     headers.append("Authorization", "Bearer ${token.resolve(executionContext)}")
                 }
             }
-
-        override fun resolveUrl(executionContext: SessionAgentExecutionContext, url: String): String = url
-    }
-
-    @Serializable
-    @SerialName("url_transformation")
-    data class UrlTransformation(val transformations: List<PrototypeUrlTransformation>) : PrototypeToolServerAuth {
-        override fun resolveClient(executionContext: SessionAgentExecutionContext, client: HttpClient): HttpClient =
-            client
-
-        override fun resolveUrl(executionContext: SessionAgentExecutionContext, url: String): String {
-            var resolvedUrl = url
-            transformations.forEach {
-                resolvedUrl =
-                    resolvedUrl.replace(it.pattern, it.replacement.resolve(executionContext))
-            }
-
-            return resolvedUrl
-        }
     }
 }
 
 class McpResolver(
-    val url: String,
+    val url: PrototypeString,
     val auth: PrototypeToolServerAuth,
     val transport: McpTransportType
 ) : PrototypeToolServer {
     override suspend fun resolve(executionContext: SessionAgentExecutionContext): List<Tool<*, *>> {
         val httpClient = executionContext.get<HttpClient>()
+        val url = url.resolve(executionContext)
         val client = Client(
             clientInfo = Implementation(
                 name = executionContext.registryAgent.name,
@@ -84,7 +77,7 @@ class McpResolver(
         client.connect(
             transport.getAbstractTransport(
                 auth.resolveClient(executionContext, httpClient),
-                auth.resolveUrl(executionContext, url)
+                url
             )
         )
 
@@ -102,14 +95,14 @@ sealed interface PrototypeToolServer {
     @Serializable
     @SerialName("mcp_sse")
     data class McpSse(
-        val url: String,
+        val url: PrototypeString,
         val auth: PrototypeToolServerAuth = PrototypeToolServerAuth.None
     ) : PrototypeToolServer by McpResolver(url, auth, McpTransportType.SSE)
 
     @Serializable
     @SerialName("mcp_streamable_http")
     data class McpStreamableHttp(
-        val url: String,
+        val url: PrototypeString,
         val auth: PrototypeToolServerAuth = PrototypeToolServerAuth.None,
     ) : PrototypeToolServer by McpResolver(url, auth, McpTransportType.STREAMABLE_HTTP)
 }

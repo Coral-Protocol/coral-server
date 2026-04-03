@@ -10,20 +10,6 @@ import java.nio.file.Path
 class PrototypeStringBuilder {
     fun inline(value: String): PrototypeString = PrototypeString.Inline(value)
     fun option(name: String): PrototypeString = PrototypeString.Option(name)
-
-    fun composedString(separator: String = "", block: PrototypeStringListBuilder.() -> Unit): PrototypeString {
-        return PrototypeString.ComposedString(
-            parts = PrototypeStringListBuilder().apply(block).build(),
-            separator = separator
-        )
-    }
-
-    fun composedUrl(base: String, block: UrlPartListBuilder.() -> Unit): PrototypeString {
-        return PrototypeString.ComposedUrl(
-            base = base,
-            parts = UrlPartListBuilder().apply(block).build()
-        )
-    }
 }
 
 @TestDsl
@@ -57,22 +43,22 @@ class PrototypeStringListBuilder {
 
 @TestDsl
 class UrlPartListBuilder {
-    private val parts = mutableListOf<UrlPart>()
+    private val parts = mutableListOf<PrototypeUrlPart>()
 
     fun path(value: String) {
-        parts += UrlPart.Path(PrototypeString.Inline(value))
+        parts += PrototypeUrlPart.Path(PrototypeString.Inline(value))
     }
 
     fun path(block: PrototypeStringBuilder.() -> PrototypeString) {
-        parts += UrlPart.Path(PrototypeStringBuilder().block())
+        parts += PrototypeUrlPart.Path(PrototypeStringBuilder().block())
     }
 
     fun queryParameter(name: String, value: String) {
-        parts += UrlPart.QueryParameter(name, PrototypeString.Inline(value))
+        parts += PrototypeUrlPart.QueryParameter(name, PrototypeString.Inline(value))
     }
 
     fun queryParameter(name: String, block: PrototypeStringBuilder.() -> PrototypeString) {
-        parts += UrlPart.QueryParameter(name, PrototypeStringBuilder().block())
+        parts += PrototypeUrlPart.QueryParameter(name, PrototypeStringBuilder().block())
     }
 
     fun build() = parts.toList()
@@ -255,3 +241,17 @@ class RegistryAgentMarketplaceIdentityErc8004Builder(val wallet: String) {
 
 fun registryAgent(name: String, block: RegistryAgentBuilder.() -> Unit = {}): RegistryAgent =
     RegistryAgentBuilder(name).apply(block).build()
+
+fun composedString(separator: String = "", block: PrototypeStringListBuilder.() -> Unit): PrototypeString {
+    return PrototypeString.ComposedString(
+        parts = PrototypeStringListBuilder().apply(block).build(),
+        separator = separator
+    )
+}
+
+fun composedUrl(base: String, block: UrlPartListBuilder.() -> Unit): PrototypeString {
+    return PrototypeString.ComposedUrl(
+        base = base,
+        parts = UrlPartListBuilder().apply(block).build()
+    )
+}

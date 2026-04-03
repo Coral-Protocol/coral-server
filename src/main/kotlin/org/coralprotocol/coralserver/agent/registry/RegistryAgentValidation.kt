@@ -50,9 +50,7 @@ val AGENT_PROTOTYPE_MODEL_KEY_LENGTH = 1..1024
 val AGENT_PROTOTYPE_MODEL_API_URL_LENGTH = 1..256
 val AGENT_PROTOTYPE_MCP_TOOL_SERVER_URL_LENGTH = 1..256
 val AGENT_PROTOTYPE_MCP_AUTH_BEARER_LENGTH = 1..1024
-const val AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_MAX_ENTRIES = 8
-val AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_PATTERN_LENGTH = 1..32
-val AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_REPLACEMENT_LENGTH = 1..1024
+val AGENT_PROTOTYPE_MCP_AUTH_HEADER_LENGTH = 1..1024
 val AGENT_PROTOTYPE_PROMPT_SYSTEM_BASE_SIZE = 6.kibibytes
 val AGENT_PROTOTYPE_PROMPT_SYSTEM_EXTRA_SIZE = 3.kibibytes
 val AGENT_PROTOTYPE_PROMPT_LOOP_INITIAL_BASE_SIZE = 6.kibibytes
@@ -174,18 +172,26 @@ private fun validateUri(
     }
 }
 
-private fun PrototypeString.calculateComposedPartCount(): Int =
+/**
+ * Returns a pair of the total composed part count and the total option count
+ */
+private fun PrototypeString.calculateComposedPartCount(): Pair<Int, Int> =
     when (this) {
-        is PrototypeString.ComposedString -> parts.size + parts.sumOf { it.calculateComposedPartCount() }
-        is PrototypeString.ComposedUrl -> parts.size + parts.sumOf {
-            when (it) {
-                is UrlPart.Path -> it.value.calculateComposedPartCount()
-                is UrlPart.QueryParameter -> it.value.calculateComposedPartCount()
-            }
+        is PrototypeString.ComposedString -> parts.fold(0 to 0) { acc, part ->
+            val (partCount, optionCount) = part.calculateComposedPartCount()
+            (acc.first + 1 + partCount) to (acc.second + optionCount)
         }
 
-        is PrototypeString.Inline -> 0
-        is PrototypeString.Option -> 0
+        is PrototypeString.ComposedUrl -> parts.fold(0 to 0) { acc, part ->
+            val (partCount, optionCount) = when (part) {
+                is PrototypeUrlPart.Path -> part.value.calculateComposedPartCount()
+                is PrototypeUrlPart.QueryParameter -> part.value.calculateComposedPartCount()
+            }
+            (acc.first + 1 + partCount) to (acc.second + optionCount)
+        }
+
+        is PrototypeString.Inline -> 1 to 0
+        is PrototypeString.Option -> 1 to 1
     }
 
 context(agent: RegistryAgent)
@@ -217,7 +223,7 @@ private fun PrototypeString.validatePrototypeString(
         }
 
         is PrototypeString.ComposedString, is PrototypeString.ComposedUrl -> {
-            val partCount = calculateComposedPartCount()
+            val (partCount, optionCount) = calculateComposedPartCount()
             if (partCount > AGENT_PROTOTYPE_MAX_COMPOSED_PARTS)
                 throw RegistryException("number of composed parts in \"$name\" cannot exceed $AGENT_PROTOTYPE_MAX_COMPOSED_PARTS, was ${calculateComposedPartCount()}")
 
@@ -238,13 +244,13 @@ private fun PrototypeString.validatePrototypeString(
 
                 is PrototypeString.ComposedUrl -> parts.mapIndexed { index, part ->
                     when (part) {
-                        is UrlPart.Path -> part.value.validatePrototypeString(
+                        is PrototypeUrlPart.Path -> part.value.validatePrototypeString(
                             "$name[$index]",
                             validator,
                             validationDepth + 1
                         )
 
-                        is UrlPart.QueryParameter -> part.value.validatePrototypeString(
+                        is PrototypeUrlPart.QueryParameter -> part.value.validatePrototypeString(
                             "$name[$index]",
                             validator,
                             validationDepth + 1
@@ -253,8 +259,9 @@ private fun PrototypeString.validatePrototypeString(
                 }.sum()
             }
 
-            // Validation can finally be performed on the recursive result of the composed item,
-            if (validationDepth == 0)
+            // Validation can finally be performed on the recursive result of the composed item, note that if any of the
+            // parts of the composed strings are options, the length cannot be validated now
+            if (validationDepth == 0 && optionCount == 0)
                 validator.validate(name, totalLength)
 
             totalLength
@@ -426,36 +433,24 @@ private fun RegistryAgent.validatePrototypeRuntime(runtime: PrototypeRuntime) {
             else -> throw RegistryException("no tool server validation implemented for ${toolServer::class.serializer().descriptor.serialName}")
         }
 
-        validateStringLength(
+        url.validatePrototypeString(
             "runtimes.prototype.tools[$toolIndex].url",
-            url,
             AGENT_PROTOTYPE_MCP_TOOL_SERVER_URL_LENGTH
         )
 
         when (auth) {
+            is PrototypeToolServerAuth.AuthorizationHeader -> {
+                auth.authorizationHeader.validatePrototypeString(
+                    "runtimes.prototype.tools[$toolIndex].auth.header",
+                    AGENT_PROTOTYPE_MCP_AUTH_HEADER_LENGTH
+                )
+            }
+
             is PrototypeToolServerAuth.Bearer -> {
                 auth.token.validatePrototypeString(
                     "runtimes.prototype.tools[$toolIndex].auth.token",
                     AGENT_PROTOTYPE_MCP_AUTH_BEARER_LENGTH
                 )
-            }
-
-            is PrototypeToolServerAuth.UrlTransformation -> {
-                if (auth.transformations.size > AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_MAX_ENTRIES)
-                    throw RegistryException("runtimes.prototype.tools[$toolIndex].auth.transformations cannot exceed $AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_MAX_ENTRIES, was ${auth.transformations.size}")
-
-                auth.transformations.withIndex().forEach { (index, transform) ->
-                    validateStringLength(
-                        "runtimes.prototype.tools[$toolIndex].auth.transformations[$index].pattern",
-                        transform.pattern,
-                        AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_PATTERN_LENGTH
-                    )
-
-                    transform.replacement.validatePrototypeString(
-                        "runtimes.prototype.tools[$toolIndex].auth.transformations[$index].replacement",
-                        AGENT_PROTOTYPE_MCP_AUTH_TRANSFORMATION_REPLACEMENT_LENGTH
-                    )
-                }
             }
 
             PrototypeToolServerAuth.None -> {}
