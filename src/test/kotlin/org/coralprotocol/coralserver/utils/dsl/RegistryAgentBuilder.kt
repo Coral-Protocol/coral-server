@@ -3,7 +3,80 @@ package org.coralprotocol.coralserver.utils.dsl
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.runtime.*
+import org.coralprotocol.coralserver.agent.runtime.prototype.*
 import java.nio.file.Path
+
+@TestDsl
+class PrototypeStringBuilder {
+    fun inline(value: String): PrototypeString = PrototypeString.Inline(value)
+    fun option(name: String): PrototypeString = PrototypeString.Option(name)
+
+    fun composedString(separator: String = "", block: PrototypeStringListBuilder.() -> Unit): PrototypeString {
+        return PrototypeString.ComposedString(
+            parts = PrototypeStringListBuilder().apply(block).build(),
+            separator = separator
+        )
+    }
+
+    fun composedUrl(base: String, block: UrlPartListBuilder.() -> Unit): PrototypeString {
+        return PrototypeString.ComposedUrl(
+            base = base,
+            parts = UrlPartListBuilder().apply(block).build()
+        )
+    }
+}
+
+@TestDsl
+class PrototypeStringListBuilder {
+    private val parts = mutableListOf<PrototypeString>()
+
+    fun inline(value: String) {
+        parts += PrototypeString.Inline(value)
+    }
+
+    fun option(name: String) {
+        parts += PrototypeString.Option(name)
+    }
+
+    fun composedString(separator: String = "", block: PrototypeStringListBuilder.() -> Unit) {
+        parts += PrototypeString.ComposedString(
+            parts = PrototypeStringListBuilder().apply(block).build(),
+            separator = separator
+        )
+    }
+
+    fun composedUrl(base: String, block: UrlPartListBuilder.() -> Unit) {
+        parts += PrototypeString.ComposedUrl(
+            base = base,
+            parts = UrlPartListBuilder().apply(block).build()
+        )
+    }
+
+    fun build() = parts.toList()
+}
+
+@TestDsl
+class UrlPartListBuilder {
+    private val parts = mutableListOf<UrlPart>()
+
+    fun path(value: String) {
+        parts += UrlPart.Path(PrototypeString.Inline(value))
+    }
+
+    fun path(block: PrototypeStringBuilder.() -> PrototypeString) {
+        parts += UrlPart.Path(PrototypeStringBuilder().block())
+    }
+
+    fun queryParameter(name: String, value: String) {
+        parts += UrlPart.QueryParameter(name, PrototypeString.Inline(value))
+    }
+
+    fun queryParameter(name: String, block: PrototypeStringBuilder.() -> PrototypeString) {
+        parts += UrlPart.QueryParameter(name, PrototypeStringBuilder().block())
+    }
+
+    fun build() = parts.toList()
+}
 
 @TestDsl
 class RegistryAgentBuilder(
