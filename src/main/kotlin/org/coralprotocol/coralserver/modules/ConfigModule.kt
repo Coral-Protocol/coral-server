@@ -8,6 +8,7 @@ import org.koin.dsl.module
 val configModule = module {
     single(createdAtStart = true) {
         val loader = ConfigLoaderBuilder.default()
+            .addCommandLineSource(getOrNull<CommandLineArgs>()?.values ?: emptyArray())
             .addResourceSource("/config.toml", optional = true)
             .withExplicitSealedTypes("type")
             .addEnvironmentSource()
@@ -16,8 +17,7 @@ val configModule = module {
         if (path != null)
             loader.addFileSource(path)
 
-        val config = loader.build().loadConfigOrThrow<RootConfig>()
-        config
+        loader.build().loadConfigOrThrow<RootConfig>()
     }
 }
 
