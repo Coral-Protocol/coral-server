@@ -66,6 +66,12 @@ class ApplicationRuntimeContext(
         return builder.build()
     }
 
+    fun getLlmProxyUrl(executionContext: SessionAgentExecutionContext, addressConsumer: AddressConsumer): Url {
+        val builder = URLBuilder(getApiUrl(addressConsumer))
+        builder.appendPathSegments("llm-proxy", executionContext.agent.secret)
+        return builder.build()
+    }
+
     fun getMcpUrl(
         transport: McpTransportType,
         executionContext: SessionAgentExecutionContext,

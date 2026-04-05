@@ -161,7 +161,9 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
 
                                         single<Logger>(named(LOGGER_LOG_API)) { testLogger }
                                         single<Logger>(named(LOGGER_TEST)) { testLogger }
+                                        single<Logger>(named(LOGGER_LLM_PROXY)) { prodLogger }
                                     },
+                                    llmProxyModule,
                                     module {
                                         single {
                                             Json {
@@ -185,6 +187,9 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                                     json(get(), contentType = ContentType.Application.Json)
                                                 }
                                             }
+                                        }
+                                        single(named(LLM_PROXY_HTTP_CLIENT)) {
+                                            createClient { }
                                         }
                                     },
                                     blockchainModule,

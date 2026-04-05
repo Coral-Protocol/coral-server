@@ -12,6 +12,8 @@ import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.DebugConfig
 import org.coralprotocol.coralserver.config.DockerConfig
+import org.coralprotocol.coralserver.config.LlmProxyConfig
+import org.coralprotocol.coralserver.llmproxy.LlmProviderProfile
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.session.reporting.SessionAgentUsageReport
@@ -125,6 +127,19 @@ class SessionAgentExecutionContext(
 
             if (agent.graphAgent.provider is GraphAgentProvider.Remote)
                 this["CORAL_REMOTE_AGENT"] = "1"
+
+            val llmProxyConfig by inject<LlmProxyConfig>()
+            if (llmProxyConfig.enabled) {
+                val proxyBaseUrl = applicationRuntimeContext
+                    .getLlmProxyUrl(this@SessionAgentExecutionContext, addressConsumer).toString()
+
+                this["CORAL_LLM_PROXY_URL"] = proxyBaseUrl
+
+                for (profile in LlmProviderProfile.entries) {
+                    val envVar = profile.sdkBaseUrlEnvVar ?: continue
+                    this[envVar] = "$proxyBaseUrl/${profile.providerId}${profile.sdkPathSuffix}"
+                }
+            }
         }
     }
 
