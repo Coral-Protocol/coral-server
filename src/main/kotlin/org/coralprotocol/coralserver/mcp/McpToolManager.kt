@@ -17,6 +17,28 @@ import org.coralprotocol.coralserver.mcp.tools.optional.closeSessionExecutor
 import org.coralprotocol.coralserver.session.SessionAgent
 import org.coralprotocol.coralserver.util.convert
 
+inline fun <reified In> buildToolSchema(): ToolSchema {
+    val generatedJsonSchema =
+        initial<In>()
+            .analyzeTypeUsingKotlinxSerialization()
+            .generateJsonSchema()
+            .compileInlining()
+            .merge()
+            .convert() as? JsonObject
+            ?: throw IllegalArgumentException("Generated json schema for tool input is not a JsonObject")
+
+    val required = generatedJsonSchema.getValue("required") as? JsonArray
+        ?: throw IllegalArgumentException("Generated json schema is missing the 'required' array")
+
+    val properties = generatedJsonSchema.getValue("properties") as? JsonObject
+        ?: throw IllegalArgumentException("Generated json schema is missing the 'properties' object")
+
+    return ToolSchema(
+        required = required.map { it.jsonPrimitive.content },
+        properties = properties
+    )
+}
+
 /**
  * This class should contain every tool that Coral has to offer.  The presence of tools in this manager does not guarantee
  * that they will be available to agents.  Agents can only use tools that are registered in their [SessionAgent.tools]
@@ -95,6 +117,7 @@ class McpToolManager(private val logger: Logger) {
         executor = ::closeSessionExecutor
     )
 
+
     /**
      * Tool builder that primarily is used to generate input schemas for tools.  This function should be used for every
      * tool unless you need to generate a custom input schema.
@@ -112,29 +135,10 @@ class McpToolManager(private val logger: Logger) {
         requiredSnippets: Set<McpInstructionSnippet> = setOf(),
         noinline executor: suspend (agent: SessionAgent, arguments: In) -> Out
     ): McpTool<In, Out> {
-        val generatedJsonSchema =
-            initial<In>()
-                .analyzeTypeUsingKotlinxSerialization()
-                .generateJsonSchema()
-                .compileInlining()
-                .merge()
-                .convert() as? JsonObject
-                ?: throw IllegalArgumentException("Generated json schema for tool input is not a JsonObject")
-
-        val required = generatedJsonSchema.getValue("required") as? JsonArray
-            ?: throw IllegalArgumentException("Generated json schema is missing the 'required' array")
-
-        val properties = generatedJsonSchema.getValue("properties") as? JsonObject
-            ?: throw IllegalArgumentException("Generated json schema is missing the 'properties' object")
-
-        if (required.size != properties.size)
+        val inputSchema = buildToolSchema<In>()
+        if (inputSchema.required?.size != inputSchema.properties?.size)
             logger.warn { "Generated input schema for mcp tool $name contains optional properties, this will cause problems with OpenAI's structured output and potentially other models" }
-
-        val inputSchema = ToolSchema(
-            required = required.map { it.jsonPrimitive.content },
-            properties = properties
-        )
-
+        
         return McpTool(
             name = name,
             description = description,

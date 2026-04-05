@@ -7,7 +7,11 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
+import org.coralprotocol.coralserver.util.InstantSerializer
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
+@OptIn(ExperimentalTime::class)
 @Serializable
 @JsonClassDiscriminator("type")
 sealed interface SessionAgentStatus {
@@ -16,6 +20,10 @@ sealed interface SessionAgentStatus {
     @Description("The agent is running and potentially has a connection with the agent's MCP server")
     data class Running(
         val connectionStatus: SessionAgentConnectionStatus,
+
+        @Serializable(with = InstantSerializer::class)
+        @Description("The time that this agent started")
+        val startTime: Instant,
     ) : SessionAgentStatus
 
     @Serializable
@@ -25,8 +33,12 @@ sealed interface SessionAgentStatus {
 
     @Serializable
     @SerialName("stopped")
-    @Description("The agent's runtime started and then subsequently stopped")
-    object Stopped : SessionAgentStatus
+    @Description("The agent's runtime started and then subsequently stopped") //TODO: Is it true that it necessarily started?
+    data class Stopped(
+        @Serializable(with = InstantSerializer::class)
+        @Description("The time that this agent started")
+        val startTime: Instant?,
+    ) : SessionAgentStatus
 }
 
 @Serializable

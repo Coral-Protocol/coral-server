@@ -133,7 +133,11 @@ class StreamableHttpServerTransport(
                             )
                         }
                     }
-                } catch (e: Exception) {
+                }
+                catch (e: CancellationException) {
+                    throw e
+                }
+                catch (e: Exception) {
                     logger.error(e) { "Error processing JSON-RPC request $id in transport with ID: $transportSessionId" }
 
                     if (!call.response.isCommitted) {
@@ -183,6 +187,6 @@ class StreamableHttpServerTransport(
         logger.debug { "Closing streamable HTTP transport with ID: $transportSessionId" }
         messageQueue.close()
         pendingResponses.clear()
-        _onClose.invoke()
+        invokeOnCloseCallback()
     }
 }
