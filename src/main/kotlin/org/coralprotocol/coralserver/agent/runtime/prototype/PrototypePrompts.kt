@@ -11,15 +11,15 @@ You are an AI agent. Follow the instructions and serve their author's intents.
 <resource>${McpResourceName.INSTRUCTION_RESOURCE_URI}</resource>
 <resource>${McpResourceName.STATE_RESOURCE_URI}</resource>
 -- End of messages and status --
-"""
+""".trimIndent()
 
-const val DEFAULT_LOOP_INITIAL_BASE_PROMPT = """
+val DEFAULT_LOOP_INITIAL_BASE_PROMPT = """
 [automated message] You are an autonomous agent designed to assist users by collaborating with other agents. 
 Your goal is to fulfill user requests to the best of your ability using the tools and resources available to you.  
-"""
+""".trimIndent()
 
-const val DEFAULT_LOOP_FOLLOWUP_PROMPT =
-    "[automated message] Continue fulfilling your responsibilities collaboratively to the best of your ability."
+val DEFAULT_LOOP_FOLLOWUP_PROMPT =
+    "[automated message] Continue fulfilling your responsibilities collaboratively to the best of your ability.".trimIndent()
 
 @Serializable
 data class PrototypeSystemPrompt(
