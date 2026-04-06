@@ -1,4 +1,5 @@
-![Coral Server - Open Infrastructure Connecting the Internet of AI Agents](images/splash.png)
+<img width="3320" height="1788" alt="image" src="https://github.com/user-attachments/assets/193afcea-8065-4549-9220-b5402e42a6dd" />
+
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Coral-Protocol/coral-server)
 
