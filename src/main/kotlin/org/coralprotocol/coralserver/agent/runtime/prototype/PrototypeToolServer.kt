@@ -19,9 +19,6 @@ import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 import org.koin.core.component.get
 
 @Serializable
-data class PrototypeUrlTransformation(val pattern: String, val replacement: PrototypeString)
-
-@Serializable
 @JsonClassDiscriminator("type")
 @TomlClassDiscriminator("type")
 sealed interface PrototypeToolServerAuth {
