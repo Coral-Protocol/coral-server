@@ -3,20 +3,15 @@
 package org.coralprotocol.coralserver.agent.runtime.prototype
 
 import ai.koog.agents.core.tools.Tool
-import ai.koog.agents.mcp.McpToolRegistryProvider
-import ai.koog.agents.mcp.metadata.McpServerInfo
 import dev.eav.tomlkt.TomlClassDiscriminator
 import io.ktor.client.*
 import io.ktor.client.plugins.*
-import io.modelcontextprotocol.kotlin.sdk.client.Client
-import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
-import org.koin.core.component.get
 
 @Serializable
 @JsonClassDiscriminator("type")
@@ -57,37 +52,16 @@ sealed interface PrototypeToolServerAuth {
     }
 }
 
-class McpResolver(
-    val url: PrototypeString,
-    val auth: PrototypeToolServerAuth,
-    val transport: McpTransportType
-) : PrototypeToolServer {
-    override suspend fun resolve(executionContext: SessionAgentExecutionContext): List<Tool<*, *>> {
-        val httpClient = executionContext.get<HttpClient>()
-        val url = url.resolve(executionContext)
-        val client = Client(
-            clientInfo = Implementation(
-                name = executionContext.registryAgent.name,
-                version = executionContext.registryAgent.version
-            )
-        )
-        client.connect(
-            transport.getAbstractTransport(
-                auth.resolveClient(executionContext, httpClient),
-                url
-            )
-        )
-
-        val registry = McpToolRegistryProvider.fromClient(client, McpServerInfo(url = url))
-        return registry.tools
-    }
+interface ResolvedPrototypeToolServer {
+    val resolvedTools: List<Tool<*, *>>
+    suspend fun close()
 }
 
 @Serializable
 @JsonClassDiscriminator("type")
 @TomlClassDiscriminator("type")
 sealed interface PrototypeToolServer {
-    suspend fun resolve(executionContext: SessionAgentExecutionContext): List<Tool<*, *>>
+    suspend fun resolve(executionContext: SessionAgentExecutionContext): ResolvedPrototypeToolServer
 
     @Serializable
     @SerialName("mcp_sse")

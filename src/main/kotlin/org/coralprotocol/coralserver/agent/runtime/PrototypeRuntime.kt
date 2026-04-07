@@ -173,7 +173,8 @@ data class PrototypeRuntime(
             serverInfo = McpServerInfo(url = mcpUrl.toString())
         )
 
-        val additionalTools = toolServers.flatMap { toolServer -> toolServer.resolve(executionContext) }
+        val resolvedServers = toolServers.map { toolServer -> toolServer.resolve(executionContext) }
+        val additionalTools = resolvedServers.flatMap { it.resolvedTools }
         if (toolServers.isNotEmpty())
             executionContext.logger.debug { "Resolved ${additionalTools.size} additional tools from ${toolServers.size} tool servers" }
 
@@ -184,73 +185,78 @@ data class PrototypeRuntime(
         val initialUserMessage = prompts.loop.initial.resolve(executionContext)
         val followupUserMessage = prompts.loop.followup.resolve(executionContext)
 
-        AIAgent.Companion(
-            systemPrompt = "",
-            promptExecutor = modelProvider.getExecutor(executionContext),
-            llmModel = modelProvider.getModel(executionContext),
-            toolRegistry = ToolRegistry {
-                tools(coralToolRegistry.tools)
-                tools(additionalTools)
-            },
-            strategy = functionalStrategy { _: Nothing? ->
-                repeat(iterationCount) { iteration ->
-                    try {
-                        val iterationTime = measureTime {
-                            if (iteration > 0 && iterationDelay > 0) {
-                                executionContext.logger.debug { "Starting iteration $iteration in $iterationDelay ms" }
-                                delay(iterationDelay.milliseconds)
-                            } else {
-                                executionContext.logger.debug { "Starting iteration $iteration" }
-                            }
+        try {
+            AIAgent.Companion(
+                systemPrompt = "",
+                promptExecutor = modelProvider.getExecutor(executionContext),
+                llmModel = modelProvider.getModel(executionContext),
+                toolRegistry = ToolRegistry {
+                    tools(coralToolRegistry.tools)
+                    tools(additionalTools)
+                },
+                strategy = functionalStrategy { _: Nothing? ->
+                    repeat(iterationCount) { iteration ->
+                        try {
+                            val iterationTime = measureTime {
+                                if (iteration > 0 && iterationDelay > 0) {
+                                    executionContext.logger.debug { "Starting iteration $iteration in $iterationDelay ms" }
+                                    delay(iterationDelay.milliseconds)
+                                } else {
+                                    executionContext.logger.debug { "Starting iteration $iteration" }
+                                }
 
-                            val resourceUpdateTime = measureTime {
-                                updateSystemResources(coralMcpClient, systemPrompt)
-                            }
-                            executionContext.logger.debug { "Updated system resources in $resourceUpdateTime" }
+                                val resourceUpdateTime = measureTime {
+                                    updateSystemResources(coralMcpClient, systemPrompt)
+                                }
+                                executionContext.logger.debug { "Updated system resources in $resourceUpdateTime" }
 
-                            val (response, llmResponseTime) = measureTimedValue {
-                                requestLLMOnlyCallingTools(if (iteration == 0) initialUserMessage else followupUserMessage)
-                            }
-                            //
-                            llm.readSession { readSession -> postRequestToLLMCallback(readSession) }
-                            executionContext.logger.debug { "$modelIdentifier responded in $llmResponseTime, with: ${response.content}" }
+                                val (response, llmResponseTime) = measureTimedValue {
+                                    requestLLMOnlyCallingTools(if (iteration == 0) initialUserMessage else followupUserMessage)
+                                }
+                                //
+                                llm.readSession { readSession -> postRequestToLLMCallback(readSession) }
+                                executionContext.logger.debug { "$modelIdentifier responded in $llmResponseTime, with: ${response.content}" }
 
-                            val toolCalls = extractToolCalls(listOf(response))
-                            executionContext.logger.debug { "Extracted tool calls: ${toolCalls.joinToString { it.tool }}" }
+                                val toolCalls = extractToolCalls(listOf(response))
+                                executionContext.logger.debug { "Extracted tool calls: ${toolCalls.joinToString { it.tool }}" }
 
-                            val (toolCallResults, toolCallTime) = measureTimedValue {
-                                executeMultipleToolsCatching(toolCalls, executionContext.logger)
-                            }
-                            executionContext.logger.debug {
-                                "Executed ${toolCallResults.size} tools in $toolCallTime, results: ${
-                                    json.encodeToString(
-                                        toolCallResults.map { it.toMessage() })
-                                }"
-                            }
+                                val (toolCallResults, toolCallTime) = measureTimedValue {
+                                    executeMultipleToolsCatching(toolCalls, executionContext.logger)
+                                }
+                                executionContext.logger.debug {
+                                    "Executed ${toolCallResults.size} tools in $toolCallTime, results: ${
+                                        json.encodeToString(
+                                            toolCallResults.map { it.toMessage() })
+                                    }"
+                                }
 
-                            llm.writeSession {
-                                appendPrompt {
-                                    tool {
-                                        toolCallResults.forEach { toolResult -> this@tool.result(toolResult) }
+                                llm.writeSession {
+                                    appendPrompt {
+                                        tool {
+                                            toolCallResults.forEach { toolResult -> this@tool.result(toolResult) }
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        val iterationTokenUsage = latestTokenUsage()
-                        totalTokens += iterationTokenUsage
-                        executionContext.logger.debug { "Iteration $iteration completed in $iterationTime.  This iteration used $iterationTokenUsage tokens.  Total cumulative token usage is $totalTokens" }
+                            val iterationTokenUsage = latestTokenUsage()
+                            totalTokens += iterationTokenUsage
+                            executionContext.logger.debug { "Iteration $iteration completed in $iterationTime.  This iteration used $iterationTokenUsage tokens.  Total cumulative token usage is $totalTokens" }
 
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        if (volatile)
+                        } catch (e: CancellationException) {
                             throw e
+                        } catch (e: Exception) {
+                            if (volatile)
+                                throw e
 
-                        executionContext.logger.error(e) { "Agent iteration error" }
+                            executionContext.logger.error(e) { "Agent iteration error" }
+                        }
                     }
                 }
-            }
-        ).run(null)
+            ).run(null)
+        } finally {
+            coralMcpClient.close()
+            resolvedServers.forEach { it.close() }
+        }
     }
 }
