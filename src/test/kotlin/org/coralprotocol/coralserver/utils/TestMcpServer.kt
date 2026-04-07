@@ -110,8 +110,9 @@ class TestMcpServer(
                     ).input
                 )
             } catch (e: SerializationException) {
-                request.arguments ?: return@addTool CallToolResult(
-                    content = listOf(TextContent("error: ${e.message}")), isError = true
+                CallToolResult(
+                    content = listOf(TextContent("serialization error${e.message?.let { ": $it" } ?: ""}")),
+                    isError = true
                 )
             }
 
