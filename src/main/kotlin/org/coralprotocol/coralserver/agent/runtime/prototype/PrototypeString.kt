@@ -146,7 +146,7 @@ object PrototypeStringSerializer : KSerializer<PrototypeString> {
             ?: "type"
 
         val jsonDiscriminator = PrototypeString::class
-            .findAnnotation<TomlClassDiscriminator>()?.discriminator
+            .findAnnotation<JsonClassDiscriminator>()?.discriminator
             ?: "type"
 
         require(tomlDiscriminator == jsonDiscriminator)
