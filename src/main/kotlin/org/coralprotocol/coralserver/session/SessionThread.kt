@@ -61,7 +61,16 @@ class SessionThread(
         }
 
         if (mentions.contains(sender)) {
-            sender.logger.warn { "tried to send message into thread $id that mentioned myself" }
+            if (mentions.size == 1) {
+                sender.logger.warn { "tried to send message into thread $id that mentioned myself" }
+            } else {
+                sender.logger.warn {
+                    "tried to send message into thread $id that mentioned myself and: ${
+                        mentions.drop(1).joinToString(", ")
+                    }"
+                }
+            }
+
             throw SessionException.IllegalThreadMentionException("Messages cannot mention the sender")
         }
 
@@ -171,7 +180,7 @@ class SessionThread(
     /**
      * Calls [body] with a list of all messages in this thread.  This function is thread-safe.
      */
-    suspend fun withMessageLock(body: suspend (messages: List<SessionThreadMessage>) -> Unit) =
+    suspend fun <T> withMessageLock(body: suspend (messages: List<SessionThreadMessage>) -> T) =
         messagesMutex.withLock {
             body(messages)
         }
@@ -225,7 +234,7 @@ class SessionThread(
     suspend fun close(requestingAgent: SessionAgent, summary: String) {
         val state = state
         if (state is SessionThreadState.Closed) {
-            requestingAgent.logger.info { "tried to close already closed thread $id, previously closed with summary ${state.summary} (tried closing with new summary \"$summary\")" }
+            requestingAgent.logger.warn { "tried to close already closed thread $id, previously closed with summary ${state.summary} (tried closing with new summary \"$summary\")" }
             throw SessionException.ThreadClosedException("Thread ${this.id} cannot be closed because it is not open")
         }
 

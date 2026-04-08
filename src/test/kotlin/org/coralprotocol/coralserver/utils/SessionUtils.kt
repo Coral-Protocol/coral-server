@@ -1,6 +1,9 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package org.coralprotocol.coralserver.utils
 
 import kotlinx.coroutines.flow.first
+import kotlinx.serialization.ExperimentalSerializationApi
 import org.coralprotocol.coralserver.session.MessageId
 import org.coralprotocol.coralserver.session.SessionAgent
 

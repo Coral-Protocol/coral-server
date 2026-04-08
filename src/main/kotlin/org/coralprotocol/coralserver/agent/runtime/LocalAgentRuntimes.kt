@@ -15,7 +15,10 @@ enum class RuntimeId {
     DOCKER,
 
     @SerialName("function")
-    FUNCTION
+    FUNCTION,
+
+    @SerialName("prototype")
+    PROTOTYPE,
 }
 
 @Serializable
@@ -28,13 +31,17 @@ data class LocalAgentRuntimes(
     val dockerRuntime: DockerRuntime? = null,
 
     @SerialName("function")
-    val functionRuntime: FunctionRuntime? = null
+    val functionRuntime: FunctionRuntime? = null,
+
+    @SerialName("prototype")
+    val prototypeRuntime: PrototypeRuntime? = null,
 ) {
     fun getById(runtimeId: RuntimeId): AgentRuntime? =
         when (runtimeId) {
             RuntimeId.EXECUTABLE -> executableRuntime
             RuntimeId.DOCKER -> dockerRuntime
             RuntimeId.FUNCTION -> functionRuntime
+            RuntimeId.PROTOTYPE -> prototypeRuntime
         }
 
     fun toRuntimeIds(): List<RuntimeId> {
@@ -42,6 +49,7 @@ data class LocalAgentRuntimes(
             executableRuntime?.let { add(RuntimeId.EXECUTABLE) }
             dockerRuntime?.let { add(RuntimeId.DOCKER) }
             functionRuntime?.let { add(RuntimeId.FUNCTION) }
+            prototypeRuntime?.let { add(RuntimeId.PROTOTYPE) }
         }
     }
 }

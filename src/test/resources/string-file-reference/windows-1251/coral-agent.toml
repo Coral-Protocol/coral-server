@@ -1,4 +1,4 @@
-edition = 3
+edition = 4
 
 [agent]
 name = "string-file-reference"

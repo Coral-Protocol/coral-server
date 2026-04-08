@@ -16,6 +16,7 @@ import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.LoggingInterface
 import org.coralprotocol.coralserver.logging.LoggingTag
 import org.coralprotocol.coralserver.logging.LoggingTagIo
+import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.session.SessionAgentDisposableResource
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 import java.time.Instant
@@ -27,7 +28,7 @@ import kotlin.time.measureTime
 @SerialName("docker")
 data class DockerRuntime(
     val image: String,
-    override val transport: AgentRuntimeTransport = DEFAULT_AGENT_RUNTIME_TRANSPORT,
+    override val transport: McpTransportType = DEFAULT_AGENT_RUNTIME_TRANSPORT,
     @Optional val command: List<String>? = null
 ) : AgentRuntime {
     override suspend fun execute(

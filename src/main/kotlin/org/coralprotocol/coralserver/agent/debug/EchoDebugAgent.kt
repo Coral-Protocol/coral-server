@@ -79,7 +79,7 @@ class EchoDebugAgent(client: HttpClient) : DebugAgent(client) {
 
         repeat(iterationCount.toInt()) {
             while (true) {
-                val msg = mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput)
+                val msg = mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput())
                     .message
 
                 if (msg != null && (!mentions || msg.mentionNames.contains(agent.name)) && (fromAgent == null || msg.senderName == fromAgent)) {

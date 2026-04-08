@@ -2,10 +2,13 @@ package org.coralprotocol.coralserver.registry
 
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.inspectors.shouldForOne
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.equals.shouldBeEqual
+import io.kotest.matchers.ints.shouldBeZero
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -18,13 +21,13 @@ import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionDisplay
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
-import org.coralprotocol.coralserver.agent.runtime.AgentRuntimeTransport
 import org.coralprotocol.coralserver.agent.runtime.DockerRuntime
 import org.coralprotocol.coralserver.agent.runtime.ExecutableRuntime
 import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
-import org.coralprotocol.coralserver.utils.dsl.RegistryAgentMarketplaceIdentityErc8004Builder
-import org.coralprotocol.coralserver.utils.dsl.RegistryAgentMarketplacePricingBuilder
-import org.coralprotocol.coralserver.utils.dsl.registryAgent
+import org.coralprotocol.coralserver.agent.runtime.PrototypeRuntime
+import org.coralprotocol.coralserver.agent.runtime.prototype.*
+import org.coralprotocol.coralserver.mcp.McpTransportType
+import org.coralprotocol.coralserver.utils.dsl.*
 import org.koin.test.inject
 import java.io.File
 
@@ -37,9 +40,9 @@ class RegistryAgentTest : CoralTest({
     }
 
     fun testAgentHeader(agent: RegistryAgent) {
-        agent.edition.shouldBeEqual(3)
-        agent.name.shouldBe("edition-3")
-        agent.version.shouldBeEqual("0.3.0")
+        agent.edition.shouldBeEqual(4)
+        agent.name.shouldBe("edition-4")
+        agent.version.shouldBeEqual("0.4.0")
         agent.capabilities.shouldContainAll(AgentCapability.TOOL_REFRESHING, AgentCapability.RESOURCES)
 
         agent.readme.shouldBeEqual("A full markdown markdown readme for the agent on the marketplace")
@@ -59,13 +62,70 @@ class RegistryAgentTest : CoralTest({
 
         val dockerRuntime = agent.runtimes.dockerRuntime.shouldNotBeNull()
         val executableRuntime = agent.runtimes.executableRuntime.shouldNotBeNull()
+        val prototypeRuntime = agent.runtimes.prototypeRuntime.shouldNotBeNull()
 
         dockerRuntime.image.shouldBeEqual("myuser/myimage")
-        dockerRuntime.transport.shouldBe(AgentRuntimeTransport.STREAMABLE_HTTP)
+        dockerRuntime.transport.shouldBe(McpTransportType.STREAMABLE_HTTP)
 
         executableRuntime.path.shouldBeEqual("my-agent")
         executableRuntime.arguments.shouldContainExactly("--some-argument")
-        executableRuntime.transport.shouldBe(AgentRuntimeTransport.SSE)
+        executableRuntime.transport.shouldBe(McpTransportType.SSE)
+
+        prototypeRuntime.iterationCount.shouldBeEqual(20)
+        prototypeRuntime.iterationDelay.shouldBeZero()
+
+        val modelProvider = prototypeRuntime.modelProvider.shouldBeInstanceOf<PrototypeModelProvider.OpenAI>()
+        modelProvider.name.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("gpt-5.1")
+        modelProvider.key.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("key here")
+
+        val customUrl = modelProvider.url.shouldBeInstanceOf<PrototypeApiUrl.Custom>()
+        customUrl.value.shouldBeEqual("https://api.custom-model-provider.com")
+
+        prototypeRuntime.prompts.system.base.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("base system prompt")
+        prototypeRuntime.prompts.system.extra.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("extra system prompt")
+        prototypeRuntime.prompts.loop.initial.base.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("initial loop base prompt")
+        prototypeRuntime.prompts.loop.initial.extra.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("initial loop extra prompt")
+        prototypeRuntime.prompts.loop.followup.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("followup loop prompt")
+
+        prototypeRuntime.toolServers.shouldHaveSize(4)
+
+        val prototypeToolServer1 =
+            prototypeRuntime.toolServers[0].shouldBeInstanceOf<PrototypeToolServer.McpSse>()
+
+        val prototypeToolServer2 =
+            prototypeRuntime.toolServers[1].shouldBeInstanceOf<PrototypeToolServer.McpStreamableHttp>()
+
+        val prototypeToolServer3 =
+            prototypeRuntime.toolServers[2].shouldBeInstanceOf<PrototypeToolServer.McpStreamableHttp>()
+
+        val prototypeToolServer4 =
+            prototypeRuntime.toolServers[3].shouldBeInstanceOf<PrototypeToolServer.McpStreamableHttp>()
+
+        prototypeToolServer1.url.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("https://my-unauthenticated-mcp-server.com/sse")
+        prototypeToolServer1.auth.shouldBeInstanceOf<PrototypeToolServerAuth.None>()
+
+        prototypeToolServer2.url.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("https://my-authenticated-mcp-server.com/mcp")
+        val bearerAuth = prototypeToolServer2.auth.shouldBeInstanceOf<PrototypeToolServerAuth.Bearer>()
+        bearerAuth.token.shouldBeInstanceOf<PrototypeString.Option>().name.shouldBeEqual("FULL_STRING_OPTION")
+
+        val url = prototypeToolServer3.url.shouldBeInstanceOf<PrototypeString.ComposedUrl>()
+        url.base.shouldBeEqual("https://my-authenticated-mcp-server.com/mcp")
+        url.parts.shouldHaveSize(1).shouldForOne {
+            val part = it.shouldBeInstanceOf<PrototypeUrlPart.QueryParameter>()
+            part.name.shouldBeEqual("authToken")
+            part.value.shouldBeInstanceOf<PrototypeString.Option>().name.shouldBeEqual("OPTIONAL_STRING")
+        }
+
+        prototypeToolServer4.url.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("https://my-authenticated-mcp-server.com/mcp")
+        val authorizationHeaderAuth =
+            prototypeToolServer4.auth.shouldBeInstanceOf<PrototypeToolServerAuth.AuthorizationHeader>()
+
+        val authorizationHeader = authorizationHeaderAuth.authorizationHeader.shouldBeInstanceOf<PrototypeString.ComposedString>()
+        authorizationHeader.separator.shouldBeEqual(" ")
+
+        val parts = authorizationHeader.parts.shouldHaveSize(2)
+        parts[0].shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("Bearer")
+        parts[1].shouldBeInstanceOf<PrototypeString.Option>().name.shouldBeEqual("OPTIONAL_STRING")
     }
 
     fun testOptions(agent: RegistryAgent) {
@@ -234,7 +294,7 @@ class RegistryAgentTest : CoralTest({
     }
 
     test("testRegistryAgentFile") {
-        // note: reading from a string here is required so that the path of the RegistryAgent is not set, if it is set
+        // note: reading from a string here is required  so that the path of the RegistryAgent is not set, if it is set
         // then the json recoding test will fail as it is a transient field
         val agent =
             UnresolvedRegistryAgent.resolveFromString(File("src/test/resources/agent/coral-agent.toml").readText())
@@ -690,6 +750,303 @@ class RegistryAgentTest : CoralTest({
         }
     }
 
+    test("testValidatePrototypeRuntimeModelProvider") {
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = PrototypeString.Inline("gpt-5.1"),
+                            key = PrototypeString.Inline("key here"),
+                            url = PrototypeApiUrl.Custom("https://api.custom-model-provider.com")
+                        )
+                    )
+                )
+            }.validate()
+        }
+
+        // model name too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = PrototypeString.Inline("a".repeat(AGENT_PROTOTYPE_MODEL_NAME_LENGTH.last + 1)),
+                            key = PrototypeString.Inline("key")
+                        )
+                    )
+                )
+            }.validate()
+        }
+
+        // model key too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = PrototypeString.Inline("gpt-5.1"),
+                            key = PrototypeString.Inline("a".repeat(AGENT_PROTOTYPE_MODEL_KEY_LENGTH.last + 1))
+                        )
+                    )
+                )
+            }.validate()
+        }
+
+        // custom url too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = PrototypeString.Inline("gpt-5.1"),
+                            key = PrototypeString.Inline("key"),
+                            url = PrototypeApiUrl.Custom(
+                                "https://example.com/" + "a".repeat(
+                                    AGENT_PROTOTYPE_MODEL_API_URL_LENGTH.last
+                                )
+                            )
+                        )
+                    )
+                )
+            }.validate()
+        }
+    }
+
+    test("testValidatePrototypeRuntimePrompts") {
+        // system prompt base too big
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = PrototypeString.Inline("gpt-5.1"),
+                            key = PrototypeString.Inline("key")
+                        ),
+                        prompts = PrototypePrompts(
+                            system = PrototypeSystemPrompt(
+                                base = PrototypeString.Inline("a".repeat(AGENT_PROTOTYPE_PROMPT_SYSTEM_BASE_SIZE.inWholeBytes.toInt() + 1))
+                            )
+                        )
+                    )
+                )
+            }.validate()
+        }
+
+        // extra system prompt too big
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = PrototypeString.Inline("gpt-5.1"),
+                            key = PrototypeString.Inline("key")
+                        ),
+                        prompts = PrototypePrompts(
+                            system = PrototypeSystemPrompt(
+                                extra = PrototypeString.Inline("a".repeat(AGENT_PROTOTYPE_PROMPT_SYSTEM_EXTRA_SIZE.inWholeBytes.toInt() + 1))
+                            )
+                        )
+                    )
+                )
+            }.validate()
+        }
+
+        // base initial loop prompt too big
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = PrototypeString.Inline("gpt-5.1"),
+                            key = PrototypeString.Inline("key")
+                        ),
+                        prompts = PrototypePrompts(
+                            loop = PrototypeLoopPrompt(
+                                initial = PrototypeLoopInitialPrompt(
+                                    base = PrototypeString.Inline(
+                                        "a".repeat(
+                                            AGENT_PROTOTYPE_PROMPT_LOOP_INITIAL_BASE_SIZE.inWholeBytes.toInt() + 1
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            }.validate()
+        }
+
+        // extra initial loop prompt too big
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = PrototypeString.Inline("gpt-5.1"),
+                            key = PrototypeString.Inline("key")
+                        ),
+                        prompts = PrototypePrompts(
+                            loop = PrototypeLoopPrompt(
+                                initial = PrototypeLoopInitialPrompt(
+                                    extra = PrototypeString.Inline(
+                                        "a".repeat(
+                                            AGENT_PROTOTYPE_PROMPT_LOOP_INITIAL_EXTRA_SIZE.inWholeBytes.toInt() + 1
+                                        )
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            }.validate()
+        }
+
+        // followup loop prompt too big
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = PrototypeString.Inline("gpt-5.1"),
+                            key = PrototypeString.Inline("key")
+                        ),
+                        prompts = PrototypePrompts(
+                            loop = PrototypeLoopPrompt(
+                                followup = PrototypeString.Inline("a".repeat(AGENT_PROTOTYPE_PROMPT_LOOP_FOLLOWUP_SIZE.inWholeBytes.toInt() + 1))
+                            )
+                        )
+                    )
+                )
+            }.validate()
+        }
+    }
+
+    test("testValidatePrototypeRuntimeToolServers") {
+        // tool server url too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = PrototypeString.Inline("gpt-5.1"),
+                            key = PrototypeString.Inline("key")
+                        ),
+                        toolServers = listOf(
+                            PrototypeToolServer.McpSse(
+                                url = PrototypeString.Inline(
+                                    "https://example.com/" + "a".repeat(
+                                        AGENT_PROTOTYPE_MCP_TOOL_SERVER_URL_LENGTH.last
+                                    )
+                                )
+                            )
+                        )
+                    )
+                )
+            }.validate()
+        }
+
+        // bearer token too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = PrototypeString.Inline("gpt-5.1"),
+                            key = PrototypeString.Inline("key")
+                        ),
+                        toolServers = listOf(
+                            PrototypeToolServer.McpSse(
+                                url = PrototypeString.Inline("https://example.com"),
+                                auth = PrototypeToolServerAuth.Bearer(
+                                    token = PrototypeString.Inline("a".repeat(AGENT_PROTOTYPE_MCP_AUTH_BEARER_LENGTH.last + 1))
+                                )
+                            )
+                        )
+                    )
+                )
+            }.validate()
+        }
+    }
+
+    test("testValidatePrototypeRuntimeMiscellaneous") {
+        // too few iterations
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = PrototypeString.Inline("gpt-5.1"),
+                            key = PrototypeString.Inline("key here")
+                        ),
+                        iterationCount = 0
+                    )
+                )
+            }.validate()
+        }
+
+        // delay less than zero
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = PrototypeString.Inline("gpt-5.1"),
+                            key = PrototypeString.Inline("key here")
+                        ),
+                        iterationDelay = -1
+                    )
+                )
+            }.validate()
+        }
+
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = PrototypeString.Option("MODEL_NAME"),
+                            key = PrototypeString.Option("MODEL_KEY")
+                        )
+                    )
+                )
+                option("MODEL_NAME", AgentOption.String(default = "gpt-5.1"))
+                option("MODEL_KEY", AgentOption.String(default = "key here"))
+            }.validate()
+        }
+
+        // option MODEL_KEY doesn't exist
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = PrototypeString.Option("MODEL_NAME"),
+                            key = PrototypeString.Option("MODEL_KEY")
+                        )
+                    )
+                )
+                option("MODEL_NAME", AgentOption.String(default = "gpt-5.1"))
+            }.validate()
+        }
+
+        // option MODEL_KEY is the wrong type
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = PrototypeString.Option("MODEL_NAME"),
+                            key = PrototypeString.Option("MODEL_KEY")
+                        )
+                    )
+                )
+                option("MODEL_NAME", AgentOption.String(default = "gpt-5.1"))
+                option("MODEL_KEY", AgentOption.Int())
+            }.validate()
+        }
+    }
+
     test("testValidateMarketplacePricing") {
         fun agentWithPricing(
             description: String,
@@ -849,6 +1206,174 @@ class RegistryAgentTest : CoralTest({
         shouldThrow<RegistryException> {
             agentWithErc8004 {
                 endpoint("endpoint1", "not a url")
+            }.validate()
+        }
+    }
+
+    test("testValidatePrototypeStringComposed") {
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = composedString("-") {
+                                inline("gpt")
+                                inline("4")
+                            },
+                            key = PrototypeString.Inline("key")
+                        )
+                    )
+                )
+            }.validate()
+        }
+
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = PrototypeString.Inline("gpt-4"),
+                            key = PrototypeString.Inline("key"),
+                        ),
+                        toolServers = listOf(
+                            PrototypeToolServer.McpSse(composedUrl("https://my-server.com/mcp") {
+                                queryParameter("token") { option("API_KEY") }
+                            })
+                        )
+                    )
+                )
+                option("API_KEY", AgentOption.String())
+            }.validate()
+        }
+
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = composedString("-") {
+                                inline("gpt")
+                                composedString {
+                                    inline("4")
+                                    inline("o")
+                                }
+                            },
+                            key = PrototypeString.Inline("key")
+                        )
+                    )
+                )
+            }.validate()
+        }
+
+        // name of composed string too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = composedString {
+                                inline("a".repeat(AGENT_PROTOTYPE_MODEL_NAME_LENGTH.last / 2))
+                                inline("a".repeat(AGENT_PROTOTYPE_MODEL_NAME_LENGTH.last / 2 + 2))
+                            },
+                            key = PrototypeString.Inline("key")
+                        )
+                    )
+                )
+            }.validate()
+        }
+
+        // too many composed parts
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = composedString {
+                                repeat(AGENT_PROTOTYPE_MAX_COMPOSED_PARTS + 1) {
+                                    inline("a")
+                                }
+                            },
+                            key = PrototypeString.Inline("key")
+                        )
+                    )
+                )
+            }.validate()
+        }
+
+        // missing option reference in composed string
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = composedString {
+                                inline("gpt-")
+                                option("MISSING_OPTION")
+                            },
+                            key = PrototypeString.Inline("key")
+                        )
+                    )
+                )
+            }.validate()
+        }
+
+        // option is not a string in composed string
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = composedString {
+                                inline("gpt-")
+                                option("INT_OPTION")
+                            },
+                            key = PrototypeString.Inline("key")
+                        )
+                    )
+                )
+                option("INT_OPTION", AgentOption.Int())
+            }.validate()
+        }
+
+        // nested composed string too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = composedString {
+                                inline("a".repeat(AGENT_PROTOTYPE_MODEL_NAME_LENGTH.last / 2))
+                                composedString {
+                                    inline("a".repeat(AGENT_PROTOTYPE_MODEL_NAME_LENGTH.last / 2 + 2))
+                                }
+                            },
+                            key = PrototypeString.Inline("key")
+                        )
+                    )
+                )
+            }.validate()
+        }
+
+        // too many nested composed parts
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        modelProvider = PrototypeModelProvider.OpenAI(
+                            name = composedString {
+                                repeat(AGENT_PROTOTYPE_MAX_COMPOSED_PARTS / 2) {
+                                    inline("a")
+                                }
+                                composedString {
+                                    repeat(AGENT_PROTOTYPE_MAX_COMPOSED_PARTS / 2 + 2) {
+                                        inline("a")
+                                    }
+                                }
+                            },
+                            key = PrototypeString.Inline("key")
+                        )
+                    )
+                )
             }.validate()
         }
     }

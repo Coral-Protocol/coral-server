@@ -56,7 +56,7 @@ class McpSessionEventsTest : CoralTest({
                                         TestEvent("agent wait stopped") { it is SessionEvent.AgentWaitStop }
                                     )
                                 ) {
-                                    mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput)
+                                    mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput())
                                 }
 
                                 session.getAgent(agent1Name).waiters.value.shouldBeEmpty()

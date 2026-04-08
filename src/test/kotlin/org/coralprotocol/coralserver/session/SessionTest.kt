@@ -246,7 +246,7 @@ class SessionTest : CoralTest({
                 SessionThreadMessageFilter.From("agent1"),
             )
 
-            agent2.waitForMessage(filters).shouldNotBeNull().text.shouldBeEqual(messageText)
+            agent2.waitForMessage(filters = filters).shouldNotBeNull().text.shouldBeEqual(messageText)
             agent2.waitForMessage().shouldBeNull() // timeout
         }
 

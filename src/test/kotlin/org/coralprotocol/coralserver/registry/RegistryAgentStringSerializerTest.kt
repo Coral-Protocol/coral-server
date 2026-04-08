@@ -3,6 +3,7 @@ package org.coralprotocol.coralserver.registry
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.equals.shouldBeEqual
+import io.kotest.matchers.maps.shouldHaveKey
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.types.shouldBeInstanceOf
@@ -12,8 +13,10 @@ import io.ktor.server.routing.*
 import io.ktor.util.*
 import io.ktor.utils.io.charsets.isSupported
 import org.coralprotocol.coralserver.CoralTest
+import org.coralprotocol.coralserver.agent.registry.MAXIMUM_SUPPORTED_AGENT_VERSION
 import org.coralprotocol.coralserver.agent.registry.UnresolvedRegistryAgent
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
+import org.coralprotocol.coralserver.agent.registry.stringReferenceConstants
 import org.koin.test.inject
 import java.io.File
 import java.util.*
@@ -37,7 +40,7 @@ class RegistryAgentStringSerializerTest : CoralTest({
 
         val agent = UnresolvedRegistryAgent.resolveFromString(
             """
-                edition = 3
+                edition = $MAXIMUM_SUPPORTED_AGENT_VERSION
                 
                 [agent]
                 name = "string-url-reference"
@@ -63,7 +66,7 @@ class RegistryAgentStringSerializerTest : CoralTest({
         shouldThrow<IllegalStateException> {
             UnresolvedRegistryAgent.resolveFromString(
                 """
-                edition = 3
+                edition = $MAXIMUM_SUPPORTED_AGENT_VERSION
                 
                 [agent]
                 name = "string-url-reference"
@@ -139,5 +142,39 @@ class RegistryAgentStringSerializerTest : CoralTest({
             .shouldBeInstanceOf<AgentOption.Blob>().default.shouldBeNull()
 
         println(agent)
+    }
+
+    test("testStringConstants") {
+        val constants = stringReferenceConstants.map { (name, value) ->
+            """
+                [options.$name]
+                type = "string"
+                default = { type = "constant", name = "$name" }
+            """ to value
+        }
+        
+        val agent = UnresolvedRegistryAgent.resolveFromString(
+            """
+                edition = $MAXIMUM_SUPPORTED_AGENT_VERSION
+                
+                [agent]
+                name = "string-url-reference"
+                version = "0.0.1"
+                description = "test"
+                summary = "test"
+                readme = "test"
+                license = { type = "sdpx", expression = "MIT" }
+                
+                [runtimes.docker]
+                image = "ubuntu"
+                
+                ${constants.joinToString("\n") { it.first }}
+            """.trimIndent()
+        )
+
+        stringReferenceConstants.forEach { (name, value) ->
+            val option = agent.options.shouldHaveKey(name)[name].shouldNotBeNull()
+            option.shouldBeInstanceOf<AgentOption.String>().default.shouldNotBeNull().shouldBeEqual(value)
+        }
     }
 })

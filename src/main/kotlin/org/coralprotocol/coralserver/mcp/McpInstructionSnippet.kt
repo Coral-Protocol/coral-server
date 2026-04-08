@@ -7,11 +7,13 @@ enum class McpInstructionSnippet(
         # Coral
         
         Coral is a multi-agent system designed to facilitate collaboration between agents.  You are an agent that exists 
-        in a Coral multi-agent system.  You must communicate with together with other agents to collaboratively solve 
+        in a Coral multi-agent system.  You often should communicate together with other agents to collaboratively solve 
         problems.
         
-        Important: Tooling must be used to collaborate with other agents in Coral.  No assistant messages will be 
-        visible to any human or agent.
+        Important: Other agents won't see your output directly, to communicate with other agents and the outside world you 
+        must use the messaging tools.
+        
+        Note this document (the system message) will update during your runtime, and may reflect changes consistent with later messages.
     """.trimIndent()),
 
     MESSAGING("""
@@ -32,8 +34,7 @@ enum class McpInstructionSnippet(
         Participants are set during the creation of a thread but can also be added or removed later using the 
         ${McpToolName.ADD_PARTICIPANT} and ${McpToolName.REMOVE_PARTICIPANT} tools respectively.  If the discussion in
         a thread evolves and could benefit from a new participant ${McpToolName.ADD_PARTICIPANT} should be used as soon
-        as possible.  Vice versa, if a participant is no needed in a thread ${McpToolName.REMOVE_PARTICIPANT} should be 
-        used as soon as possible.
+        as possible. If a participant is not needed in a thread ${McpToolName.REMOVE_PARTICIPANT} should be used. 
     """.trimIndent()),
 
     MENTIONS("""
@@ -47,24 +48,20 @@ enum class McpInstructionSnippet(
     WAITING("""
         # Waiting
        
-        To complete your tasks to your best ability, you often need more information than you currently have.  In Coral,
-        each agent is able to act asynchronously so it is important that when you need more input to perform your task 
-        effectively that you call one of the available waiting tools.
+        In Coral, each agent acts asynchronously in autonomous loops. If your responsibility is best served by waiting for another agent's actions, 
+        you should use the appropriate waiting tool. Be aware that all waiting tools will wait for up to 60 seconds or until the specified event occurs, whichever comes first.
+        
+        You will receive messages from other agents even without waiting, so if you have work to do, just do it without waiting.
         
         ## Wait tool 1: ${McpToolName.WAIT_FOR_MESSAGE}
         
-        The ${McpToolName.WAIT_FOR_MESSAGE} tool will wait until one message, from any agent, is received.  This tool 
-        should only be used if it is not clear what agent has information you would benefit from.
-        
+        The ${McpToolName.WAIT_FOR_MESSAGE} tool will wait until one message, from any agent, is received.
         ## Wait tool 2: ${McpToolName.WAIT_FOR_AGENT}
         
         The ${McpToolName.WAIT_FOR_AGENT} tool will wait for one message posted by a specific agent in any thread. 
-        This tool is useful if you know that a specific agent has information you would benefit from.
         
         ## Wait tool 3: ${McpToolName.WAIT_FOR_MENTION}
         
-        The ${McpToolName.WAIT_FOR_MENTION} tool will wait until any message that mentions you is received.  This is the
-        best tool to use if another agent is likely to know how best to utilise your information.  If there exists any
-        agent that plays a managerial role in the conversation, this tool should be used.
+        The ${McpToolName.WAIT_FOR_MENTION} tool will wait until any message that mentions you is received.
     """.trimIndent())
 }

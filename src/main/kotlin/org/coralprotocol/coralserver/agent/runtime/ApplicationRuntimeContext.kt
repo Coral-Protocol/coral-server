@@ -11,6 +11,7 @@ import io.ktor.resources.serialization.*
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.RootConfig
 import org.coralprotocol.coralserver.logging.Logger
+import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
 import org.coralprotocol.coralserver.routes.mcp.v1.Sse
 import org.coralprotocol.coralserver.routes.mcp.v1.StreamableHttp
@@ -64,4 +65,14 @@ class ApplicationRuntimeContext(
 
         return builder.build()
     }
+
+    fun getMcpUrl(
+        transport: McpTransportType,
+        executionContext: SessionAgentExecutionContext,
+        addressConsumer: AddressConsumer
+    ) =
+        when (transport) {
+            McpTransportType.SSE -> getSseUrl(executionContext, addressConsumer)
+            McpTransportType.STREAMABLE_HTTP -> getStreamableHttpUrl(executionContext, addressConsumer)
+        }
 }

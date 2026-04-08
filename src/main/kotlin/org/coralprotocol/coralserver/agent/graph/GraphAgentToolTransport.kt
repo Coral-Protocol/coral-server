@@ -67,7 +67,7 @@ sealed interface GraphAgentToolTransport : KoinComponent {
                 }
 
                 if (response.status != HttpStatusCode.OK) {
-                    agent.logger.warn { "Failed to send custom tool call to $urlWithSessionAndAgentPaths" }
+                    agent.logger.warn { "Failed to send custom tool call to $urlWithSessionAndAgentPaths, got ${response.status}" }
                     return CallToolResult(
                         isError = true,
                         content = listOf(TextContent("Error code ${response.status.value} returned"))
