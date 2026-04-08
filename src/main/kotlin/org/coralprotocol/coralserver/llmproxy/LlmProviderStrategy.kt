@@ -7,6 +7,9 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
+import org.slf4j.LoggerFactory
+
+private val logger = LoggerFactory.getLogger("llm-proxy-strategy")
 
 interface LlmProviderStrategy {
     fun prepareStreamingRequest(requestBody: String, json: Json): String = requestBody
@@ -35,7 +38,8 @@ object OpenAIStrategy : LlmProviderStrategy {
                 putJsonObject("stream_options") { put("include_usage", true) }
             }
             json.encodeToString(JsonObject.serializer(), modified)
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            logger.debug("Failed to inject stream_options into request body", e)
             requestBody
         }
     }
@@ -71,7 +75,9 @@ private class OpenAIStreamParser(private val json: Json) : StreamTokenParser {
             val (inp, out) = extractUsageField(line.removePrefix("data: "), json)
             if (inp != null) inputTokens = inp
             if (out != null) outputTokens = out
-        } catch (_: Exception) { }
+        } catch (e: Exception) {
+            logger.trace("Failed to parse OpenAI stream chunk for token usage", e)
+        }
     }
 }
 
@@ -108,7 +114,9 @@ private class AnthropicStreamParser(private val json: Json) : StreamTokenParser 
                     if (out != null) outputTokens = out
                 }
             }
-        } catch (_: Exception) { }
+        } catch (e: Exception) {
+            logger.trace("Failed to parse Anthropic stream event for token usage", e)
+        }
     }
 }
 
@@ -121,7 +129,8 @@ private fun extractUsageField(body: String, json: Json): Pair<Long?, Long?> {
         val output = usage["completion_tokens"]?.jsonPrimitive?.longOrNull
             ?: usage["output_tokens"]?.jsonPrimitive?.longOrNull
         input to output
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        logger.trace("Failed to extract usage field from response body", e)
         null to null
     }
 }

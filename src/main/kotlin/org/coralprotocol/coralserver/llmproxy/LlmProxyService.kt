@@ -52,14 +52,21 @@ class LlmProxyService(
         subPath: String,
         call: ApplicationCall
     ) {
-        val profile = LlmProviderProfile.fromId(providerName)
-        if (providerCheck(profile, call, providerName)) return
+        val profile = LlmProviderProfile.fromId(providerName) ?: run {
+            call.respond(HttpStatusCode.BadRequest, "Unknown provider: $providerName")
+            return
+        }
 
         val providerConfig = config.providers[providerName]
         val serverKey = providerConfig?.apiKey
-        val agentKey = ProxyHeaders.extractAgentKey(call, profile!!)
-        val apiKey = serverKey ?: agentKey
-        if (apiKeyCheck(apiKey, call, providerName)) return
+        val agentKey = ProxyHeaders.extractAgentKey(call, profile)
+        val apiKey = serverKey ?: agentKey ?: run {
+            call.respond(
+                HttpStatusCode.Unauthorized,
+                "No API key available for provider: $providerName (neither server-configured nor provided by agent)"
+            )
+            return
+        }
 
         val baseUrl = providerConfig?.baseUrl ?: profile.defaultBaseUrl
         val upstreamUrl = "$baseUrl/$subPath"
@@ -72,7 +79,7 @@ class LlmProxyService(
         val model = requestJson?.get("model")?.jsonPrimitive?.content
 
         val finalBody = if (isStreaming) profile.strategy.prepareStreamingRequest(requestBody, json) else requestBody
-        val req = ProxyRequest(agent, profile, apiKey!!, upstreamUrl, timeoutMs, finalBody, model, hasBody, System.currentTimeMillis())
+        val req = ProxyRequest(agent, profile, apiKey, upstreamUrl, timeoutMs, finalBody, model, hasBody, System.currentTimeMillis())
 
         agent.logger.info { "LLM Proxy → $providerName/$subPath model=$model streaming=$isStreaming " +
                 "auth=${if (serverKey != null) "server" else "agent"}" }
@@ -88,33 +95,6 @@ class LlmProxyService(
                 call.respond(HttpStatusCode.BadGateway, "Proxy error: ${e.message}")
             }
         }
-    }
-
-    private suspend fun apiKeyCheck(
-        apiKey: String?,
-        call: ApplicationCall,
-        providerName: String
-    ): Boolean {
-        if (apiKey == null) {
-            call.respond(
-                HttpStatusCode.Unauthorized,
-                "No API key available for provider: $providerName (neither server-configured nor provided by agent)"
-            )
-            return true
-        }
-        return false
-    }
-
-    private suspend fun providerCheck(
-        profile: LlmProviderProfile?,
-        call: ApplicationCall,
-        providerName: String
-    ): Boolean {
-        if (profile == null) {
-            call.respond(HttpStatusCode.BadRequest, "Unknown provider: $providerName")
-            return true
-        }
-        return false
     }
 
     private suspend fun proxyBuffered(req: ProxyRequest, call: ApplicationCall) {
