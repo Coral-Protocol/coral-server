@@ -26,6 +26,7 @@ data class RegistryAgent(
     val edition: Int = MAXIMUM_SUPPORTED_AGENT_VERSION,
     val runtimes: LocalAgentRuntimes,
     val options: Map<String, AgentOption> = mapOf(),
+    val llm: AgentLlmConfig? = null,
     val marketplace: RegistryAgentMarketplaceSettings? = null,
 
     @Transient

@@ -129,15 +129,15 @@ class SessionAgentExecutionContext(
                 this["CORAL_REMOTE_AGENT"] = "1"
 
             val llmProxyConfig by inject<LlmProxyConfig>()
-            if (llmProxyConfig.enabled) {
+            val llmProxies = registryAgent.llm?.proxies
+            if (llmProxyConfig.enabled && !llmProxies.isNullOrEmpty()) {
                 val proxyBaseUrl = applicationRuntimeContext
                     .getLlmProxyUrl(this@SessionAgentExecutionContext, addressConsumer).toString()
 
-                this["CORAL_LLM_PROXY_URL"] = proxyBaseUrl
-
-                for (profile in LlmProviderProfile.entries) {
-                    val envVar = profile.sdkBaseUrlEnvVar ?: continue
-                    this[envVar] = "$proxyBaseUrl/${profile.providerId}${profile.sdkPathSuffix}"
+                for (proxy in llmProxies) {
+                    val profile = LlmProviderProfile.fromId(proxy.format) ?: continue
+                    this["CORAL_PROXY_URL_${proxy.name}"] =
+                        "$proxyBaseUrl/${profile.providerId}${profile.sdkPathSuffix}"
                 }
             }
         }

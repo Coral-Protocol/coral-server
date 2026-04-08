@@ -85,7 +85,7 @@ class LlmProxyTest : CoralTest({
         }
     }
 
-    test("proxy forwards buffered request to upstream and extracts tokens").config(invocationTimeout = 15.seconds) {
+    test("proxyForwardsBufferedRequestToUpstreamAndExtractsTokens").config(invocationTimeout = 15.seconds) {
         val client by inject<HttpClient>()
         val application by inject<Application>()
 
@@ -114,23 +114,23 @@ class LlmProxyTest : CoralTest({
                 setBody("""{"model":"gpt-test","messages":[{"role":"user","content":"hi"}]}""")
             }
 
-            response.status shouldBe HttpStatusCode.OK
-            response.bodyAsText() shouldContain "Hello from upstream"
+            response.status.shouldBe(HttpStatusCode.OK)
+            response.bodyAsText().shouldContain("Hello from upstream")
 
             val headers = capturedHeaders.await()
-            headers["authorization"]?.first() shouldBe "Bearer sk-test-key-123"
+            headers["authorization"]?.first().shouldBe("Bearer sk-test-key-123")
 
             val event = eventDeferred.await() as SessionEvent.LlmProxyCall
-            event.provider shouldBe "openai"
-            event.model shouldBe "gpt-test"
-            event.success shouldBe true
-            event.streaming shouldBe false
-            event.inputTokens shouldBe 15
-            event.outputTokens shouldBe 5
+            event.provider.shouldBe("openai")
+            event.model.shouldBe("gpt-test")
+            event.success.shouldBe(true)
+            event.streaming.shouldBe(false)
+            event.inputTokens.shouldBe(15)
+            event.outputTokens.shouldBe(5)
         }
     }
 
-    test("anthropic x-api-key pass-through").config(invocationTimeout = 15.seconds) {
+    test("anthropicXApiKeyPassThrough").config(invocationTimeout = 15.seconds) {
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
         val application by inject<Application>()
@@ -178,8 +178,8 @@ class LlmProxyTest : CoralTest({
                 setBody("""{"model":"claude-sonnet-4-20250514","messages":[{"role":"user","content":"hi"}]}""")
             }
 
-            response.status shouldBe HttpStatusCode.OK
-            capturedHeaders.await()["x-api-key"]?.first() shouldBe "sk-ant-agent-key-123"
+            response.status.shouldBe(HttpStatusCode.OK)
+            capturedHeaders.await()["x-api-key"]?.first().shouldBe("sk-ant-agent-key-123")
         } finally {
             session.cancelAndJoinAgents()
         }
@@ -187,7 +187,7 @@ class LlmProxyTest : CoralTest({
 
     val openaiApiKey = System.getenv("CORAL_TEST_OPENAI_API_KEY")
 
-    test("e2e proxy with real openai").config(
+    test("e2eProxyWithRealOpenai").config(
         enabled = openaiApiKey != null,
         invocationTimeout = 1.minutes
     ) {

@@ -10,14 +10,14 @@ class LlmProviderStrategyTest : FunSpec({
 
     val json = Json { ignoreUnknownKeys = true }
 
-    test("extracts prompt_tokens and completion_tokens") {
+    test("extractsPromptTokensAndCompletionTokens") {
         val body = """{"usage":{"prompt_tokens":100,"completion_tokens":25,"total_tokens":125}}"""
         val (input, output) = OpenAIStrategy.extractBufferedTokens(body, json)
-        input shouldBe 100
-        output shouldBe 25
+        input.shouldBe(100)
+        output.shouldBe(25)
     }
 
-    test("returns nulls for missing or malformed input") {
+    test("returnsNullsForMissingOrMalformedInput") {
         OpenAIStrategy.extractBufferedTokens("""{"id":"test"}""", json).let { (i, o) ->
             i.shouldBeNull(); o.shouldBeNull()
         }
@@ -26,26 +26,26 @@ class LlmProviderStrategyTest : FunSpec({
         }
     }
 
-    test("injects stream_options when absent, preserves when present") {
+    test("injectsStreamOptionsWhenAbsentPreservesWhenPresent") {
         val without = """{"model":"gpt-4","stream":true,"messages":[]}"""
-        OpenAIStrategy.prepareStreamingRequest(without, json) shouldContain "include_usage"
+        OpenAIStrategy.prepareStreamingRequest(without, json).shouldContain("include_usage")
 
         val with = """{"model":"gpt-4","stream_options":{"include_usage":false}}"""
-        OpenAIStrategy.prepareStreamingRequest(with, json) shouldBe with
+        OpenAIStrategy.prepareStreamingRequest(with, json).shouldBe(with)
     }
 
-    test("openai stream parser extracts tokens from final chunk") {
+    test("openaiStreamParserExtractsTokensFromFinalChunk") {
         val parser = OpenAIStrategy.createStreamParser(json)
         parser.processLine("""data: {"choices":[{"delta":{"content":"Hello"}}]}""")
         parser.processLine("""data: {"choices":[{"delta":{"content":" world"}}],"usage":{"prompt_tokens":10,"completion_tokens":2}}""")
         parser.processLine("data: [DONE]")
 
-        parser.inputTokens shouldBe 10
-        parser.outputTokens shouldBe 2
-        parser.chunkCount shouldBe 2
+        parser.inputTokens.shouldBe(10)
+        parser.outputTokens.shouldBe(2)
+        parser.chunkCount.shouldBe(2)
     }
 
-    test("anthropic stream parser extracts tokens from message_start and message_delta") {
+    test("anthropicStreamParserExtractsTokensFromMessageStartAndDelta") {
         val parser = AnthropicStrategy.createStreamParser(json)
 
         parser.processLine("event: message_start")
@@ -57,8 +57,8 @@ class LlmProviderStrategyTest : FunSpec({
         parser.processLine("event: message_delta")
         parser.processLine("""data: {"type":"message_delta","usage":{"output_tokens":17}}""")
 
-        parser.inputTokens shouldBe 42
-        parser.outputTokens shouldBe 17
-        parser.chunkCount shouldBe 3
+        parser.inputTokens.shouldBe(42)
+        parser.outputTokens.shouldBe(17)
+        parser.chunkCount.shouldBe(3)
     }
 })

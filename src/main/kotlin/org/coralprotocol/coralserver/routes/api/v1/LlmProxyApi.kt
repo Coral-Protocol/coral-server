@@ -19,8 +19,7 @@ fun Route.llmProxyRoutes() {
         route("{path...}") {
             handle {
                 if (!llmProxyConfig.enabled) {
-                    call.respond(HttpStatusCode.ServiceUnavailable, "LLM proxy is disabled")
-                    return@handle
+                    throw RouteException(HttpStatusCode.ServiceUnavailable, "LLM proxy is disabled")
                 }
 
                 val agentSecret = call.parameters["agentSecret"]
@@ -32,8 +31,7 @@ fun Route.llmProxyRoutes() {
                 val agent = try {
                     localSessionManager.locateAgent(agentSecret).agent
                 } catch (_: SessionException.InvalidAgentSecret) {
-                    call.respond(HttpStatusCode.Unauthorized, "Invalid agent secret")
-                    return@handle
+                    throw RouteException(HttpStatusCode.Unauthorized, "Invalid agent secret")
                 }
 
                 llmProxyService.proxyRequest(agent, provider, path, call)
