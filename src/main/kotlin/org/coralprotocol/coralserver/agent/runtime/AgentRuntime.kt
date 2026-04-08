@@ -1,22 +1,12 @@
 package org.coralprotocol.coralserver.agent.runtime
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 
-@Serializable
-enum class AgentRuntimeTransport {
-    @SerialName("sse")
-    SSE,
-
-    @SerialName("streamable_http")
-    STREAMABLE_HTTP
-}
-
-val DEFAULT_AGENT_RUNTIME_TRANSPORT = AgentRuntimeTransport.STREAMABLE_HTTP
+val DEFAULT_AGENT_RUNTIME_TRANSPORT = McpTransportType.STREAMABLE_HTTP
 
 interface AgentRuntime {
-    val transport: AgentRuntimeTransport
+    val transport: McpTransportType
 
     suspend fun execute(
         executionContext: SessionAgentExecutionContext,

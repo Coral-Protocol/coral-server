@@ -6,7 +6,6 @@ import io.ktor.utils.io.*
 import kotlinx.coroutines.flow.update
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.registry.option.*
-import org.coralprotocol.coralserver.agent.runtime.AgentRuntimeTransport
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.agent.runtime.DEFAULT_AGENT_RUNTIME_TRANSPORT
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
@@ -14,6 +13,7 @@ import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.DebugConfig
 import org.coralprotocol.coralserver.config.DockerConfig
 import org.coralprotocol.coralserver.events.SessionEvent
+import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.session.reporting.SessionAgentUsageReport
 import org.coralprotocol.coralserver.util.utcTimeNow
 import org.koin.core.component.KoinComponent
@@ -61,12 +61,13 @@ class SessionAgentExecutionContext(
      *
      * If the [provider] uses a [RuntimeId.DOCKER] runtime, the temporary files path will be translated by
      */
-    fun buildEnvironment(transport: AgentRuntimeTransport = DEFAULT_AGENT_RUNTIME_TRANSPORT): Map<String, String> {
+    fun buildEnvironment(transport: McpTransportType = DEFAULT_AGENT_RUNTIME_TRANSPORT): Map<String, String> {
         return buildMap {
             val addressConsumer = when (provider.runtime) {
                 RuntimeId.EXECUTABLE -> AddressConsumer.LOCAL
                 RuntimeId.DOCKER -> AddressConsumer.CONTAINER
                 RuntimeId.FUNCTION -> AddressConsumer.LOCAL
+                RuntimeId.PROTOTYPE -> AddressConsumer.LOCAL
             }
 
             val isContainer = provider.runtime == RuntimeId.DOCKER
@@ -108,17 +109,10 @@ class SessionAgentExecutionContext(
             }
 
             // Coral environment variables
-            this["CORAL_CONNECTION_URL"] = when (transport) {
-                AgentRuntimeTransport.SSE -> applicationRuntimeContext.getSseUrl(
-                    this@SessionAgentExecutionContext,
-                    addressConsumer
-                ).toString()
+            this["CORAL_CONNECTION_URL"] =
+                applicationRuntimeContext.getMcpUrl(transport, this@SessionAgentExecutionContext, addressConsumer)
+                    .toString()
 
-                AgentRuntimeTransport.STREAMABLE_HTTP -> applicationRuntimeContext.getStreamableHttpUrl(
-                    this@SessionAgentExecutionContext,
-                    addressConsumer
-                ).toString()
-            }
             this["CORAL_AGENT_ID"] = agent.name
             this["CORAL_AGENT_SECRET"] = agent.secret
             this["CORAL_SESSION_ID"] = agent.session.id
@@ -182,8 +176,9 @@ class SessionAgentExecutionContext(
      * Called immediately before the runtime starts.
      */
     private suspend fun handleRuntimeStarted() {
-        lastLaunchTime = utcTimeNow()
-        agent.status.update { SessionAgentStatus.Running(SessionAgentConnectionStatus.NotConnected) }
+        val startTime = utcTimeNow()
+        lastLaunchTime = startTime
+        agent.status.update { SessionAgentStatus.Running(SessionAgentConnectionStatus.NotConnected, startTime) }
         session.events.emit((SessionEvent.RuntimeStarted(name)))
     }
 
@@ -191,7 +186,7 @@ class SessionAgentExecutionContext(
      * Called immediately after the runtime stops, for any reason.
      */
     private suspend fun handleRuntimeStopped() {
-        agent.status.update { SessionAgentStatus.Stopped }
+        agent.status.update { SessionAgentStatus.Stopped(lastLaunchTime) }
         val startTime = lastLaunchTime
         if (startTime != null) {
             usageReports.add(

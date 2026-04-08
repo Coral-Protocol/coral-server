@@ -1,5 +1,5 @@
 # NOTE: The values in this file are asserted in tests!
-edition = 3
+edition = 4
 
 # should not throw errors
 unknown_key = false
@@ -9,11 +9,11 @@ capabilities = ["resources", "tool_refreshing"]
 
 # len 1 - 32
 # pattern: ^[a-z0-9]([a-z0-9]*(-[a-z0-9]+)*)?$
-name = "edition-3"
+name = "edition-4"
 
 # len 1 - 32
 # must be a valid semver version: https://semver.org/
-version = "0.3.0"
+version = "0.4.0"
 
 # len 1 - 1024
 # pattern: none
@@ -66,6 +66,92 @@ path = "my-agent"
 # combined total size 2KiB (UTF-8)
 # max entries 1024
 arguments = ["--some-argument"]
+
+[runtimes.prototype]
+iterations = 20 # > 0
+delay = 0 # >= 0
+
+[runtimes.prototype.model]
+
+# openai, anthropic or openrouter (for now)
+provider = "openai" # openai/anthropic/openrouter
+
+# inline string, len 1 - 128
+name = "gpt-5.1"
+
+# inline string, len 1 - 1024
+key = "key here"
+
+[runtimes.prototype.model.url]
+type = "custom"
+
+# pattern: valid URI, https scheme
+# len: 1 - 256
+value = "https://api.custom-model-provider.com"
+
+[runtimes.prototype.prompts]
+# inline: 6KiB
+system.base = "base system prompt"
+
+# inline: 3KiB
+system.extra = "extra system prompt"
+
+# inline: 6KiB
+loop.initial.base = "initial loop base prompt"
+
+# inline: 3KiB
+loop.initial.extra = "initial loop extra prompt"
+
+# inline: 4KiB
+loop.followup = "followup loop prompt"
+
+# max entries: 32
+[[runtimes.prototype.tools]]
+type = "mcp_sse"
+
+# pattern: valid URI, https scheme
+# len: 1 - 256
+url = "https://my-unauthenticated-mcp-server.com/sse"
+auth.type = "none"
+
+[[runtimes.prototype.tools]]
+type = "mcp_streamable_http"
+
+# pattern: valid URI, https scheme
+# len: 1 - 256
+url = "https://my-authenticated-mcp-server.com/mcp"
+auth.type = "bearer"
+
+# inline string, len 1 - 1024
+auth.token = { type = "option", name = "FULL_STRING_OPTION" }
+
+[[runtimes.prototype.tools]]
+type = "mcp_streamable_http"
+url.type = "composed_url"
+url.base = "https://my-authenticated-mcp-server.com/mcp"
+
+# max entries: 32
+# total composed string len: 1 - 156
+url.parts = [
+    { type = "query_parameter", name = "authToken", value = { type = "option", name = "OPTIONAL_STRING" } }
+]
+
+[[runtimes.prototype.tools]]
+type = "mcp_streamable_http"
+
+# pattern: valid URI, https scheme
+# len: 1 - 256
+url = "https://my-authenticated-mcp-server.com/mcp"
+auth.type = "authorization_header"
+
+# max entries: 32
+# total composed string len: 1 - 156
+auth.header.type = "composed_string"
+auth.header.separator = " "
+auth.header.parts = [
+    { type = "inline", value = "Bearer" },
+    { type = "option", name = "OPTIONAL_STRING" }
+]
 
 # option key:
 #   len: 1 - 256

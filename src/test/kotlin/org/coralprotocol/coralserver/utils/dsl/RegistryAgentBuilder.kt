@@ -3,7 +3,66 @@ package org.coralprotocol.coralserver.utils.dsl
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.runtime.*
+import org.coralprotocol.coralserver.agent.runtime.prototype.*
 import java.nio.file.Path
+
+@TestDsl
+class PrototypeStringBuilder {
+    fun inline(value: String): PrototypeString = PrototypeString.Inline(value)
+    fun option(name: String): PrototypeString = PrototypeString.Option(name)
+}
+
+@TestDsl
+class PrototypeStringListBuilder {
+    private val parts = mutableListOf<PrototypeString>()
+
+    fun inline(value: String) {
+        parts += PrototypeString.Inline(value)
+    }
+
+    fun option(name: String) {
+        parts += PrototypeString.Option(name)
+    }
+
+    fun composedString(separator: String = "", block: PrototypeStringListBuilder.() -> Unit) {
+        parts += PrototypeString.ComposedString(
+            parts = PrototypeStringListBuilder().apply(block).build(),
+            separator = separator
+        )
+    }
+
+    fun composedUrl(base: String, block: UrlPartListBuilder.() -> Unit) {
+        parts += PrototypeString.ComposedUrl(
+            base = base,
+            parts = UrlPartListBuilder().apply(block).build()
+        )
+    }
+
+    fun build() = parts.toList()
+}
+
+@TestDsl
+class UrlPartListBuilder {
+    private val parts = mutableListOf<PrototypeUrlPart>()
+
+    fun path(value: String) {
+        parts += PrototypeUrlPart.Path(PrototypeString.Inline(value))
+    }
+
+    fun path(block: PrototypeStringBuilder.() -> PrototypeString) {
+        parts += PrototypeUrlPart.Path(PrototypeStringBuilder().block())
+    }
+
+    fun queryParameter(name: String, value: String) {
+        parts += PrototypeUrlPart.QueryParameter(name, PrototypeString.Inline(value))
+    }
+
+    fun queryParameter(name: String, block: PrototypeStringBuilder.() -> PrototypeString) {
+        parts += PrototypeUrlPart.QueryParameter(name, PrototypeStringBuilder().block())
+    }
+
+    fun build() = parts.toList()
+}
 
 @TestDsl
 class RegistryAgentBuilder(
@@ -54,7 +113,8 @@ class RegistryAgentBuilder(
         runtimes = LocalAgentRuntimes(
             executableRuntime = runtimes.executableRuntime,
             dockerRuntime = runtimes.dockerRuntime,
-            functionRuntime = functionRuntime
+            functionRuntime = functionRuntime,
+            prototypeRuntime = runtimes.prototypeRuntime
         )
     }
 
@@ -62,7 +122,8 @@ class RegistryAgentBuilder(
         runtimes = LocalAgentRuntimes(
             executableRuntime = runtimes.executableRuntime,
             dockerRuntime = dockerRuntime,
-            functionRuntime = runtimes.functionRuntime
+            functionRuntime = runtimes.functionRuntime,
+            prototypeRuntime = runtimes.prototypeRuntime
         )
     }
 
@@ -70,7 +131,17 @@ class RegistryAgentBuilder(
         runtimes = LocalAgentRuntimes(
             executableRuntime = executableRuntime,
             dockerRuntime = runtimes.dockerRuntime,
-            functionRuntime = runtimes.functionRuntime
+            functionRuntime = runtimes.functionRuntime,
+            prototypeRuntime = runtimes.prototypeRuntime
+        )
+    }
+
+    fun runtime(prototypeRuntime: PrototypeRuntime) {
+        runtimes = LocalAgentRuntimes(
+            executableRuntime = runtimes.executableRuntime,
+            dockerRuntime = runtimes.dockerRuntime,
+            functionRuntime = runtimes.functionRuntime,
+            prototypeRuntime = prototypeRuntime
         )
     }
 
@@ -170,3 +241,17 @@ class RegistryAgentMarketplaceIdentityErc8004Builder(val wallet: String) {
 
 fun registryAgent(name: String, block: RegistryAgentBuilder.() -> Unit = {}): RegistryAgent =
     RegistryAgentBuilder(name).apply(block).build()
+
+fun composedString(separator: String = "", block: PrototypeStringListBuilder.() -> Unit): PrototypeString {
+    return PrototypeString.ComposedString(
+        parts = PrototypeStringListBuilder().apply(block).build(),
+        separator = separator
+    )
+}
+
+fun composedUrl(base: String, block: UrlPartListBuilder.() -> Unit): PrototypeString {
+    return PrototypeString.ComposedUrl(
+        base = base,
+        parts = UrlPartListBuilder().apply(block).build()
+    )
+}
