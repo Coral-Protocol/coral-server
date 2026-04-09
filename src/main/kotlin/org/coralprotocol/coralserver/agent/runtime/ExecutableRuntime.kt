@@ -6,6 +6,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.logging.LoggingTag
 import org.coralprotocol.coralserver.logging.LoggingTagIo
+import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 import org.coralprotocol.coralserver.util.isWindows
 import java.io.File
@@ -18,7 +19,7 @@ import kotlin.io.path.exists
 data class ExecutableRuntime(
     val path: String,
     val arguments: List<String> = listOf(),
-    override val transport: AgentRuntimeTransport = DEFAULT_AGENT_RUNTIME_TRANSPORT,
+    override val transport: McpTransportType = DEFAULT_AGENT_RUNTIME_TRANSPORT,
 ) : AgentRuntime {
     override suspend fun execute(
         executionContext: SessionAgentExecutionContext,

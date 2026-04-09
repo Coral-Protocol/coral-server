@@ -1,4 +1,5 @@
-![Coral Server - Open Infrastructure Connecting the Internet of AI Agents](images/splash.png)
+<img width="3320" height="1788" alt="image" src="https://github.com/user-attachments/assets/193afcea-8065-4549-9220-b5402e42a6dd" />
+
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Coral-Protocol/coral-server)
 
@@ -9,7 +10,10 @@
 
 <br/>
 <div align="center">
-
+  
+# Quickstart
+**See [our docs](https://docs.coralos.ai/welcome)** for a quickstart and introduction to Coral!
+  
 **[How to Run](#how-to-run)** ┃ **[Configuration](#configuration)** ┃ **[Contributing](#contribution-guidelines)**
 
 </div>
@@ -76,11 +80,13 @@ The server uses [Hoplite](https://github.com/sksamuel/hoplite) for configuration
 
 Examples:
 
-| TOML Config                                  | Command-line Argument                |
-|:---------------------------------------------|:-------------------------------------|
-| `[auth]`<br/>`keys = ["a", "b"]`             | `--auth.keys=a,b`                    |
-| `[network]`<br/>`bindPort = 5555`            | `--network.bindPort=5555`            |
-| `[registry]`<br/>`includeDebugAgents = true` | `--registry.includeDebugAgents=true` |
+| TOML Config | Command-line Argument                  |
+| :--- |:---------------------------------------|
+| `[auth]`<br/>`keys = ["a", "b"]` | `--auth.keys=a,b`                      |
+| `[network]`<br/>`bindPort = 8080` | `--network.bind-port=8080`             |
+| `[registry]`<br/>`includeDebugAgents = true` | `--registry.include-debug-agents=true` |
+
+(camel-case forms for still work for command-line args)
 
 ## Contribution Guidelines
 

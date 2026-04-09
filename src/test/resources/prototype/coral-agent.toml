@@ -1,0 +1,25 @@
+edition = 4
+
+[agent]
+name = "prototype"
+version = "0.0.1"
+description = "test"
+summary = "test"
+readme = "test"
+license = { type = "sdpx", expression = "MIT" }
+
+[runtimes.prototype.model]
+provider = "openai"
+name = "gpt-5.1"
+key = "key here" # PrototypeString: string literal
+
+[runtimes.prototype.prompts.system]
+base = { type = "inline", value = "base system prompt" } # PrototypeString: discriminated inline
+extra = { type = "option", name = "EXTRA_SYSTEM_PROMPT" } # PrototypeString: discriminated option
+
+[runtimes.prototype.prompts.loop]
+initial.base = { type = "string", value = "base initial loop prompt" } # PrototypeString -> PotentialStringReference.String
+initial.extra = { type = "file", path = "PROMPT.MD" } # PrototypeString -> PotentialStringReference.File
+
+[options.EXTRA_SYSTEM_PROMPT]
+type = "string"

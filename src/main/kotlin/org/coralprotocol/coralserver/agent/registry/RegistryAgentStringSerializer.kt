@@ -17,9 +17,25 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonClassDiscriminator
+import org.coralprotocol.coralserver.agent.runtime.prototype.DEFAULT_LOOP_FOLLOWUP_PROMPT
+import org.coralprotocol.coralserver.agent.runtime.prototype.DEFAULT_LOOP_INITIAL_BASE_PROMPT
+import org.coralprotocol.coralserver.agent.runtime.prototype.DEFAULT_SYSTEM_PROMPT
+import org.coralprotocol.coralserver.mcp.McpResourceName
 import org.koin.core.component.KoinComponent
 import java.io.File
 import java.nio.charset.Charset
+
+/*
+    NOTE: This list is used in tests, resources/constants/coral-agent.toml must be updated to include any new constants
+    that are added here.
+ */
+val stringReferenceConstants = buildMap {
+    put("PROTOTYPE_DEFAULT_SYSTEM_PROMPT", DEFAULT_SYSTEM_PROMPT)
+    put("PROTOTYPE_DEFAULT_LOOP_INITIAL_BASE_PROMPT", DEFAULT_LOOP_INITIAL_BASE_PROMPT)
+    put("PROTOTYPE_DEFAULT_LOOP_FOLLOWUP_PROMPT", DEFAULT_LOOP_FOLLOWUP_PROMPT)
+    put("CORAL_STATE_RESOURCE_URI", McpResourceName.STATE_RESOURCE_URI.toString())
+    put("CORAL_INSTRUCTION_RESOURCE_URI", McpResourceName.INSTRUCTION_RESOURCE_URI.toString())
+}
 
 @Serializable
 @JsonClassDiscriminator("type")
@@ -46,6 +62,13 @@ sealed interface PotentialStringReference {
     data class Url(
         val url: kotlin.String,
         val encoding: kotlin.String = "UTF-8",
+        override val base64: Boolean? = null
+    ) : PotentialStringReference
+
+    @Serializable
+    @SerialName("constant")
+    data class Constant(
+        val name: kotlin.String,
         override val base64: Boolean? = null
     ) : PotentialStringReference
 }
@@ -87,6 +110,10 @@ open class RegistryAgentStringSerializer : KSerializer<String>, KoinComponent {
                     runBlocking {
                         context.httpClient.get(reference.url).bodyAsText(Charset.forName(reference.encoding))
                     }
+                }
+
+                is PotentialStringReference.Constant -> {
+                    stringReferenceConstants[reference.name] ?: throw IllegalStateException("Constant ${reference.name} not found")
                 }
             }
 

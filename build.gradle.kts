@@ -1,16 +1,12 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.kotlin.dsl.invoke
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "2.3.20"
     kotlin("plugin.serialization") version "2.3.20"
     application
 }
-
-tasks.withType<JavaExec>() {
-    standardInput = System.`in`
-}
-
 
 application {
     mainClass.set("org.coralprotocol.coralserver.MainKt")
@@ -26,7 +22,6 @@ repositories {
         name = "sonatypeSnapshots"
     }
 
-    maven("https://github.com/CaelumF/koog/raw/master/maven-repo")
     maven("https://github.com/CaelumF/schema-kenerator/raw/develop/maven-repo")
     maven {
         url = uri("https://coral-protocol.github.io/coral-escrow-distribution/")
@@ -36,7 +31,7 @@ repositories {
 dependencies {
     testImplementation(kotlin("test"))
     implementation("org.coralprotocol.payment:blockchain:0.1.1:all")
-    implementation("io.modelcontextprotocol:kotlin-sdk:0.8.3") {}
+    implementation("io.modelcontextprotocol:kotlin-sdk:0.9.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1")
@@ -114,7 +109,12 @@ dependencies {
     // hoplite
     val hopliteVersion = "2.9.0"
     implementation("com.sksamuel.hoplite:hoplite-core:${hopliteVersion}")
-    implementation("com.sksamuel.hoplite:hoplite-toml:${hopliteVersion}")}
+    implementation("com.sksamuel.hoplite:hoplite-toml:${hopliteVersion}")
+
+    val koogVersion = "0.7.3"
+    api("ai.koog:koog-agents:$koogVersion")
+    api("ai.koog:agents-mcp:$koogVersion")
+}
 
 tasks.test {
     useJUnitPlatform()
@@ -123,6 +123,10 @@ tasks.test {
         showExceptions = true
         showStandardStreams = true
     }
+}
+
+tasks.withType<JavaExec>() {
+    standardInput = System.`in`
 }
 
 tasks.jar {
@@ -151,4 +155,8 @@ tasks.assemble {
 
 kotlin {
     jvmToolchain(24)
+}
+val compileKotlin: KotlinCompile by tasks
+compileKotlin.compilerOptions {
+    freeCompilerArgs.set(listOf("-Xcontext-parameters"))
 }
