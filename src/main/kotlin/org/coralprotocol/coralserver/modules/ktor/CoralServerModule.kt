@@ -242,6 +242,7 @@ fun Application.coralServerModule(isTest: Boolean = false) {
         // url / custom auth
         authApi()
         mcpRoutes()
+        llmProxyRoutes()
         eventRoutes()
         logRoutes()
 

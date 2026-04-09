@@ -43,6 +43,10 @@ data class UnresolvedRegistryAgent(
     @Optional
     val options: Map<String, AgentOption> = mapOf(),
 
+    @Description("LLM proxy configuration declaring which proxy endpoints this agent needs")
+    @Optional
+    val llm: AgentLlmConfig? = null,
+
     @Description("Information for this agent relevant to it's potential listing on the marketplace")
     @Optional
     val marketplace: RegistryAgentMarketplaceSettings? = null
@@ -114,6 +118,7 @@ data class UnresolvedRegistryAgent(
             info = agentInfo.resolve(context.registrySourceIdentifier),
             runtimes = runtimes,
             options = options,
+            llm = llm,
             path = context.path,
             marketplace = marketplace
         )
