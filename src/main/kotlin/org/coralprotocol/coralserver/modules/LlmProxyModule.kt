@@ -22,7 +22,8 @@ val llmProxyModule = module {
                         response.status.value == 429 || response.status.value in 500..599
                     }
                     exponentialDelay(
-                        base = config.retryInitialDelayMs.toDouble() / 1000.0,
+                        base = 2.0,
+                        baseDelayMs = config.retryInitialDelayMs,
                         maxDelayMs = config.retryMaxDelayMs
                     )
                 }
