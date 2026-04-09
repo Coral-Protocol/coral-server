@@ -10,7 +10,10 @@
 
 <br/>
 <div align="center">
-
+  
+# Quickstart
+**See [our docs](https://docs.coralos.ai/welcome)** for a quickstart and introduction to Coral!
+  
 **[How to Run](#how-to-run)** ┃ **[Configuration](#configuration)** ┃ **[Contributing](#contribution-guidelines)**
 
 </div>
