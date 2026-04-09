@@ -38,6 +38,7 @@ private val METHODS_WITH_BODY = setOf(HttpMethod.Post, HttpMethod.Put, HttpMetho
 
 private const val MAX_REQUEST_BODY_BYTES = 20 * 1024 * 1024 // 20 MB
 private const val MAX_RESPONSE_BODY_BYTES = 80 * 1024 * 1024L // 80 MB
+private const val MAX_STREAM_CHARS = 80 * 1024 * 1024L // 80 M chars (~bytes for ASCII SSE)
 
 class LlmProxyException(message: String) : Exception(message)
 
@@ -92,7 +93,8 @@ class LlmProxyService(
             val durationMs = System.currentTimeMillis() - req.startTime
             emitTelemetry(agent, LlmCallResult(providerName, model, durationMs = durationMs, streaming = isStreaming, success = false, errorKind = classifyError(e)))
             if (!call.response.isCommitted) {
-                call.respond(HttpStatusCode.BadGateway, "Proxy error: ${e.message}")
+                agent.logger.warn { "LLM proxy request failed: ${e::class.simpleName}: ${e.message}" }
+                call.respond(HttpStatusCode.BadGateway, "LLM proxy request failed")
             }
         }
     }
@@ -151,13 +153,13 @@ class LlmProxyService(
             call.respondTextWriter {
                 val channel = response.bodyAsChannel()
                 val parser = req.profile.strategy.createStreamParser(json)
-                var totalBytes = 0L
+                var totalChars = 0L
 
                 try {
                     while (!channel.isClosedForRead) {
                         val line = channel.readUTF8Line() ?: break
-                        totalBytes += line.length + 1
-                        if (totalBytes > MAX_RESPONSE_BODY_BYTES) {
+                        totalChars += line.length + 1
+                        if (totalChars > MAX_STREAM_CHARS) {
                             val durationMs = System.currentTimeMillis() - req.startTime
                             emitTelemetry(
                                 req.agent,
@@ -176,7 +178,7 @@ class LlmProxyService(
                         flush()
                     }
 
-                    if (totalBytes <= MAX_RESPONSE_BODY_BYTES) {
+                    if (totalChars <= MAX_STREAM_CHARS) {
                         val durationMs = System.currentTimeMillis() - req.startTime
                         emitTelemetry(
                             req.agent,
@@ -219,6 +221,11 @@ class LlmProxyService(
 
     private suspend fun readRequestBody(hasBody: Boolean, call: ApplicationCall): String? {
         if (!hasBody) return ""
+        val declaredLength = call.request.headers[HttpHeaders.ContentLength]?.toLongOrNull()
+        if (declaredLength != null && declaredLength > MAX_REQUEST_BODY_BYTES) {
+            call.respond(HttpStatusCode.PayloadTooLarge, "Request body exceeds ${MAX_REQUEST_BODY_BYTES / 1024 / 1024} MB limit")
+            return null
+        }
         val body = call.receiveText()
         if (body.encodeToByteArray().size > MAX_REQUEST_BODY_BYTES) {
             call.respond(HttpStatusCode.PayloadTooLarge, "Request body exceeds ${MAX_REQUEST_BODY_BYTES / 1024 / 1024} MB limit")
@@ -236,8 +243,12 @@ class LlmProxyService(
     }
 
     private suspend fun readBoundedBody(response: HttpResponse): String {
+        val declaredLength = response.headers[HttpHeaders.ContentLength]?.toLongOrNull()
+        if (declaredLength != null && declaredLength > MAX_RESPONSE_BODY_BYTES) {
+            throw LlmProxyException("Upstream response exceeds ${MAX_RESPONSE_BODY_BYTES / 1024 / 1024} MB limit")
+        }
         val body = response.bodyAsText()
-        if (body.length > MAX_RESPONSE_BODY_BYTES) {
+        if (body.encodeToByteArray().size > MAX_RESPONSE_BODY_BYTES) {
             throw LlmProxyException("Upstream response exceeds ${MAX_RESPONSE_BODY_BYTES / 1024 / 1024} MB limit")
         }
         return body
