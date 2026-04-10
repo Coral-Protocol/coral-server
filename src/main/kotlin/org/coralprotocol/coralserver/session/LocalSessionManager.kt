@@ -386,7 +386,7 @@ class LocalSessionManager(
         val delay = when (val mode = settings.persistenceMode) {
             is SessionPersistenceMode.HoldAfterExit -> mode.duration.milliseconds
             is SessionPersistenceMode.MinimumTime -> (session.timestamp + mode.time.milliseconds) - utcTimeNow()
-            SessionPersistenceMode.None -> Duration.ZERO
+            SessionPersistenceMode.None -> Duration.INFINITE
         }
 
         if (delay > 0.milliseconds) {
