@@ -28,6 +28,11 @@ If you have Node.js installed, you can run the server directly using `npx`:
 npx coral-server@1.1.0 start --auth.keys=dev
 ```
 
+You can also force the server to run from source code (cloning/updating the repository in `~/.coral/source`) by using the `--from-source` flag as the first argument:
+```bash
+npx coral-server --from-source start --auth.keys=dev
+```
+
 ### Using Gradle
 
 Clone this repository, and in that folder run:

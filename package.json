@@ -1,21 +1,13 @@
 {
   "name": "coral-server",
-  "version": "1.1.0-SNAPSHOT",
+  "version": "1.1.0",
   "description": "Coral Server - Open Infrastructure Connecting the Internet of AI Agents",
   "bin": {
     "coral-server": "bin/coral-server.js"
   },
   "files": [
-    "bin/",
-    "coral-server.jar",
-    "README.md",
-    "src/",
-    "gradle/",
-    "gradlew",
-    "gradlew.bat",
-    "build.gradle.kts",
-    "settings.gradle.kts",
-    "gradle.properties"
+    "bin/coral-server.js",
+    "coral-server.jar"
   ],
   "engines": {
     "node": ">=18"
