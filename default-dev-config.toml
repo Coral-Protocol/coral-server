@@ -1,0 +1,306 @@
+# ============================================================================
+# Coral Server - Default Development Configuration
+# ============================================================================
+# Full documentation: https://docs.coralos.ai/
+#
+# Many values shown below are the built-in defaults. Every line is commented out
+# so the server runs with defaults out of the box. Uncomment and change only
+# what you need.
+#
+# This file is a reference. The server will read it if you run it with CONFIG_FILE_PATH env var set to the path of this file
+# NOTE: Agent-specific configuration lives in each agent's own
+#       coral-agent.toml.
+# ============================================================================
+
+
+# ========================  Quick-start for development  =====================
+# The most commonly changed settings. See sections below for full details.
+
+[network]
+# Bind to localhost only - keep this for local development.
+# When bound to 127.0.0.1, access the server via `localhost` to avoid CORS issues.
+bindAddress = "127.0.0.1"
+bindPort = 5555
+# Allow any host in CORS settings.
+# Only set this to true if you get CORS errors in local development.
+# allowAnyHost = false
+
+
+# LLM provider credentials used by the built-in proxy.
+# Note that in the future, these will become backup options.
+# [llm-proxy.providers.openai]
+# apiKey = "sk-..."
+#
+# [llm-proxy.providers.anthropic]
+# apiKey = "sk-ant-..."
+
+# Paths to local coral-agent.toml files (supports globs).
+# [registry]
+# localAgents = ["/path/to/agents/*/coral-agent.toml"]
+
+# Enable built-in debug/test agents.
+# [registry]
+# includeDebugAgents = true
+
+# API key(s) this server will accept for authenticating API requests.
+# Feel free to always set this via command line argument instead.
+# [auth]
+# keys = ["some-secure-password"]
+
+
+# ============================================================================
+
+
+# ========================  All configuration options  =======================
+# See also: https://docs.coralos.ai/guides/production/running-in-production
+
+# ----------------------------------------------------------------------------
+# [network]  -  HTTP server & connectivity
+# ----------------------------------------------------------------------------
+# [network]
+#
+# # Address the HTTP server binds to. Use "0.0.0.0" to listen on all interfaces.
+# bindAddress = "0.0.0.0" # Listening on all interfaces
+#
+# # External address (e.g. domain name or public IP) used when the server needs
+# # to tell others how to reach it. Should NOT include a port.
+# externalAddress = "0.0.0.0"
+#
+# # Port the HTTP server binds to.
+# bindPort = 5555
+#
+# # Allow any host in CORS settings. Only enable this for local development.
+# allowAnyHost = false
+#
+# # Secret used to sign webhook call-outs. A random UUID is generated each
+# # launch if not set - set a fixed value if webhooks need a stable secret.
+# # webhookSecret = "some-stable-secret"
+#
+# # Secret used to sign data sent via agents' custom tools. Same random-UUID
+# # behavior as webhookSecret above.
+# # customToolSecret = "some-stable-secret"
+
+
+# ----------------------------------------------------------------------------
+# [auth]  -  API key authentication
+# ----------------------------------------------------------------------------
+# [auth]
+#
+# # List of valid passwords for authenticating requests to the server's API routes.
+# # Agents have a separate authentication mechanism for agent-server communication.
+# # This should always be set for the server to function. If empty, the API is inaccessible.
+# # It should be considered an API key for your application.
+# # keys = ["some-secure-password"]
+# keys = []
+
+
+# ----------------------------------------------------------------------------
+# [security]  -  Security policies
+# ----------------------------------------------------------------------------
+# [security]
+#
+# # When false, coral-agent.toml files imported from Git, agent indexers, or
+# # local paths are NOT allowed to contain an "export" section.
+# # Keep this false unless you understand the risks of referenced exporting.
+# enableReferencedExporting = false
+
+
+# ----------------------------------------------------------------------------
+# [session]  -  Session behavior
+# ----------------------------------------------------------------------------
+# [session]
+#
+# # Default timeout (in milliseconds) for "wait" tool calls before they return.
+# # Some MCP clients enforce their own network timeouts - this value should be
+# # lower than any such client timeout to avoid unexpected errors.
+# defaultWaitTimeout = 60000
+
+
+# ----------------------------------------------------------------------------
+# [registry]  -  Agent registry & discovery
+# ----------------------------------------------------------------------------
+# [registry]
+#
+# # Paths (with basic glob/pattern support) to coral-agent.toml files on the
+# # local file system. These are registered as local agents on this server.
+# # Agents in ~/.coral/agents/ are included separately (see below).
+# # localAgents = ["/path/to/agents/*/coral-agent.toml"]
+# localAgents = []
+#
+# # Whether to automatically include agents found under ~/.coral/agents/.
+# includeCoralHomeAgents = true
+#
+# # If non-zero, re-scan localAgents paths on this interval.
+# # Use Go/Kotlin duration strings, e.g. "30s", "5m".
+# # Recommended when agents are created programmatically.
+# # localAgentRescanTimer = "0s"
+#
+# # Install a file-system watcher on localAgents paths to detect new, changed,
+# # or deleted agents in near-real-time.
+# watchLocalAgents = true
+#
+# # Include built-in debug/test agents in the registry.
+# includeDebugAgents = false
+#
+# # If includeDebugAgents is true, also export those debug agents.
+# exportDebugAgents = false
+#
+# # Use the Coral marketplace as an additional agent registry source.
+# enableMarketplaceAgentRegistrySource = false
+
+
+
+# ----------------------------------------------------------------------------
+# [docker]  -  Docker integration for containerized agents
+# ----------------------------------------------------------------------------
+# [docker]
+#
+# # Path to the Docker socket. Auto-detected by default:
+# #   * Linux default:   unix:///var/run/docker.sock
+# #   * macOS (Colima):  unix://$HOME/.colima/default/docker.sock
+# #   * Windows:         npipe:////./pipe/docker_engine
+# # Can also be set via DOCKER_SOCKET env var or -Ddocker.socket JVM property.
+# # socket = "unix:///var/run/docker.sock"
+#
+# # Address the host machine is reachable at from inside a Docker container.
+# # Default is auto-detected (172.17.0.1 on Linux, host.docker.internal otherwise).
+# # address = "host.docker.internal"
+#
+# # Seconds to wait for a response from a Docker container before timing out.
+# responseTimeout = 30
+#
+# # Seconds to wait when establishing a connection to a Docker container.
+# # On Windows, if the Docker engine is not running, this timeout will be hit.
+# connectionTimeout = 30
+#
+# # Maximum number of concurrent connections to running containers.
+# maxConnections = 1024
+#
+# # Path separator used inside containers (almost always ':' for Linux containers).
+# # containerPathSeparator = ":"
+#
+# # Directory name separator inside containers (almost always '/').
+# # containerNameSeparator = "/"
+#
+# # Temporary directory path inside containers.
+# # containerTemporaryDirectory = "/tmp"
+
+
+# ----------------------------------------------------------------------------
+# [console]  -  Coral Studio / web console
+# ----------------------------------------------------------------------------
+# [console]
+#
+# # Enable or disable the /ui/console route entirely.
+# enabled = true
+#
+# # Local path where console release bundles are downloaded and served from.
+# # cachePath = "~/.coral/console"
+#
+# # Base URL for downloading console releases (version is appended automatically).
+# consoleReleaseUrl = "https://github.com/Coral-Protocol/coral-studio/releases/download"
+#
+# # Version of the console to download.
+# consoleReleaseVersion = "0.3.2"
+#
+# # Name of the zip bundle in the release.
+# # bundleName = "coral-console_0.3.2.zip"
+#
+# # Delete old console versions from the cache directory on startup.
+# deleteOldVersions = false
+#
+# # Re-download the console bundle on every launch (replaces the existing one).
+# alwaysDownload = false
+
+
+# ----------------------------------------------------------------------------
+# [logging]  -  Log output & rotation
+# ----------------------------------------------------------------------------
+# [logging]
+#
+# # Number of log events kept in the in-memory ring buffer.
+# logBufferSize = 32768
+#
+# # Maximum number of past log events replayed to a new log subscriber.
+# maxReplay = 2048
+#
+# # Enable or disable writing logs to files.
+# logToFileEnabled = true
+#
+# # Root directory for log files.
+# # logFilesDirectory = "~/.coral/logs"
+#
+# # Path to the active log file.
+# # logFileName = "~/.coral/logs/server.log"
+#
+# # Logback rolling file-name pattern for archived logs.
+# # See: https://logback.qos.ch/manual/appenders.html#tbrpFileNamePattern
+# # logFileNamePattern = "~/.coral/logs/archive/%d{yyyy/MM, aux}/%d{yyyy-MM-dd}.%i.log.gz"
+#
+# # Number of months of log archives to keep.
+# maxHistory = 12
+#
+# # Total size cap for all archived log files.
+# logTotalSizeCap = "3GB"
+#
+# # Delete old log archives on application start.
+# logClearHistoryOnStart = false
+#
+# # Maximum size of a single log file before rotation.
+# maxFileSize = "10MB"
+#
+# # Minimum severity level printed to the console.
+# # Options: TRACE, DEBUG, INFO, WARN, ERROR
+# consoleLogLevel = "INFO"
+#
+# # Minimum severity level written to log files.
+# # Options: TRACE, DEBUG, INFO, WARN, ERROR
+# fileLogLevel = "INFO"
+
+
+# ----------------------------------------------------------------------------
+# [debug]  -  Debugging helpers
+# ----------------------------------------------------------------------------
+# [debug]
+#
+# # Extra environment variables injected into all Docker-based agent containers.
+# # [debug.additionalDockerEnvironment]
+# # MY_VAR = "my-value"
+#
+# # Extra environment variables injected into all executable-based agents.
+# # [debug.additionalExecutableEnvironment]
+# # MY_VAR = "my-value"
+
+
+# ----------------------------------------------------------------------------
+# [llm-proxy]  -  Built-in LLM proxy for agents
+# ----------------------------------------------------------------------------
+# [llm-proxy]
+#
+# # Enable or disable the LLM proxy.
+# enabled = true
+#
+# # Default request timeout (seconds) for proxied LLM calls.
+# requestTimeoutSeconds = 300
+#
+# # Number of retry attempts on transient failures (0 = no retries).
+# retryMaxAttempts = 0
+#
+# # Initial delay (ms) before the first retry (used with exponential back-off).
+# retryInitialDelayMs = 1000
+#
+# # Maximum delay (ms) between retries.
+# retryMaxDelayMs = 10000
+#
+# # Provider-specific overrides. Add one sub-table per provider.
+# # The key is an arbitrary name you reference when configuring agents.
+# # # Note in future releases, these may become backup credentials unless a license is purchased for the built-in proxy.
+# #
+# # [llm-proxy.providers.openai]
+# # apiKey = "sk-..."                  # API key for this provider
+# # baseUrl = "https://api.openai.com" # Base URL override (useful for proxies / Azure)
+# # timeoutSeconds = 120               # Per-provider timeout override
+# #
+# # [llm-proxy.providers.anthropic]
+# # apiKey = "sk-ant-..."
+# # baseUrl = "https://api.anthropic.com"
