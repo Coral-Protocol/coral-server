@@ -8,11 +8,14 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import org.coralprotocol.coralserver.config.AuthConfig
-import org.coralprotocol.coralserver.config.RootConfig
+import org.coralprotocol.coralserver.logging.Logger
+import org.coralprotocol.coralserver.modules.LOGGER_ROUTES
 import org.coralprotocol.coralserver.routes.ApiV1
 import org.coralprotocol.coralserver.server.AuthSession
 import org.coralprotocol.coralserver.routes.RouteException
+import org.koin.core.qualifier.named
 import org.koin.ktor.ext.inject
+import kotlin.getValue
 
 @Resource("auth")
 class Auth(val parent: ApiV1 = ApiV1()) {
@@ -22,7 +25,18 @@ class Auth(val parent: ApiV1 = ApiV1()) {
 }
 
 fun Route.authApi() {
+    val logger by inject<Logger>(named(LOGGER_ROUTES))
     val config by inject<AuthConfig>()
+
+    if (config.keys.isEmpty()) {
+        logger.warn { "" }
+        logger.warn { "=".repeat(60) }
+        logger.warn { "No auth keys are configured. Authenticated routes will not be accessible." }
+        logger.warn { "(most things will not work)" }
+        logger.warn { "To fix this, set auth.keys via the config file or via --auth.keys=..." }
+        logger.warn { "=".repeat(60) }
+        logger.warn { "" }
+    }
 
     post<Auth.Token>({
         hidden = true
