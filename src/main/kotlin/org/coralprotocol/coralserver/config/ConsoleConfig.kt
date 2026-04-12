@@ -16,12 +16,12 @@ data class ConsoleConfig(
     /**
      * The URL to download console release from.  The version will be appended to the end of this with a / between them
      */
-    val consoleReleaseUrl: String = "https://github.com/Coral-Protocol/coral-studio/releases/download",
+    val consoleReleaseUrl: String = "https://github.com/Coral-Protocol/console/releases/download",
 
     /**
      * The version of the console to download, will be appended to [consoleReleaseUrl]
      */
-    val consoleReleaseVersion: String = "0.3.2",
+    val consoleReleaseVersion: String = "v0.3.8",
 
     /**
      * The name of the zip bundle in the release
