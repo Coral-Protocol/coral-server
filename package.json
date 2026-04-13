@@ -1,13 +1,13 @@
 {
-  "name": "coral-server",
+  "name": "coralos-dev",
   "version": "1.1.0",
   "description": "Coral Server - Open Infrastructure Connecting the Internet of AI Agents",
   "bin": {
-    "coral-server": "bin/coral-server.js"
+    "coralos-dev": "npx/coral-server.js"
   },
   "files": [
-    "bin/coral-server.js",
-    "coral-server.jar"
+    "npx/",
+    "bin/coral-server.jar"
   ],
   "engines": {
     "node": ">=18"
@@ -23,5 +23,8 @@
     "coral"
   ],
   "author": "Coral Protocol",
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "dependencies": {
+    "keytar": "^7.9.0"
+  }
 }
