@@ -4,12 +4,9 @@ import io.ktor.client.*
 import io.ktor.client.network.sockets.*
 import io.ktor.client.plugins.*
 import io.ktor.client.request.*
-import io.ktor.client.request.request
-import io.ktor.client.statement.HttpResponse
-import io.ktor.client.statement.bodyAsChannel
-import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.*
 import io.ktor.http.*
-import io.ktor.server.application.ApplicationCall
+import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.utils.io.*
@@ -39,7 +36,7 @@ class LlmProxyService(
     suspend fun proxyRequest(
         agent: SessionAgent,
         providerName: String,
-        subPath: String,
+        pathParts: List<String>,
         call: ApplicationCall
     ) {
         val profile = LlmProviderProfile.fromId(providerName) ?: throw RouteException(
@@ -56,7 +53,7 @@ class LlmProxyService(
         )
 
         val baseUrl = providerConfig?.baseUrl ?: profile.defaultBaseUrl
-        val upstreamUrl = "$baseUrl/$subPath"
+        val upstreamUrl = URLBuilder(baseUrl).appendEncodedPathSegments(pathParts).buildString()
         val timeoutMs = ((providerConfig?.timeoutSeconds ?: config.requestTimeoutSeconds) * 1000)
         val hasBody = call.request.httpMethod in METHODS_WITH_BODY
         val requestBody = readRequestBody(hasBody, call)
@@ -79,7 +76,9 @@ class LlmProxyService(
         )
 
         agent.logger.info {
-            "LLM Proxy → $providerName/$subPath model=$model streaming=$isStreaming " +
+            "LLM Proxy → $providerName/${
+                URLBuilder().appendPathSegments(pathParts).buildString()
+            } model=$model streaming=$isStreaming " +
                     "auth=${if (serverKey != null) "server" else "agent"}"
         }
 
