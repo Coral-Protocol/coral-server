@@ -199,27 +199,29 @@ class LlmProxyTest : CoralTest({
         }
     }
 
-    val openaiApiKey = System.getenv("CORAL_TEST_OPENAI_API_KEY")
 
-    test("e2eProxyWithRealOpenai").config(
-        enabled = openaiApiKey != null,
-        invocationTimeout = 1.minutes
-    ) {
-        loadKoinModules(module {
-            single<LlmProxyConfig> {
-                LlmProxyConfig(
-                    enabled = true,
-                    providers = mapOf("openai" to LlmProxyProviderConfig(apiKey = openaiApiKey!!))
-                )
-            }
-        })
-
-        multiAgentPayloadTest(
-            PrototypeModelProvider.OpenAI(
-                PrototypeString.Inline("proxy-managed"),
-                PrototypeString.Inline("gpt-4.1-nano"),
-                url = PrototypeApiUrl.Proxy
-            )
-        )
-    }
+    // TODO: prototype runtime will be changed soon so that it will only use the proxy, the interface for that is WIP
+//    val openaiApiKey = System.getenv("CORAL_TEST_OPENAI_API_KEY")
+//
+//    test("e2eProxyWithRealOpenai").config(
+//        enabled = openaiApiKey != null,
+//        invocationTimeout = 1.minutes
+//    ) {
+//        loadKoinModules(module {
+//            single<LlmProxyConfig> {
+//                LlmProxyConfig(
+//                    enabled = true,
+//                    providers = mapOf("openai" to LlmProxyProviderConfig(apiKey = openaiApiKey!!))
+//                )
+//            }
+//        })
+//
+//        multiAgentPayloadTest(
+//            PrototypeModelProvider.OpenAI(
+//                PrototypeString.Inline("proxy-managed"),
+//                PrototypeString.Inline("gpt-4.1-nano"),
+//                url = PrototypeApiUrl.Proxy
+//            )
+//        )
+//    }
 })
