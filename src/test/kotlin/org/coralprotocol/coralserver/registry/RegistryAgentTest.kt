@@ -1377,4 +1377,89 @@ class RegistryAgentTest : CoralTest({
             }.validate()
         }
     }
+
+    test("testLlmProxies") {
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                llm {
+                    proxy("GPT", "openai", "gpt-4o")
+                    proxy("CLAUDE", "anthropic", "claude-3-5-sonnet")
+                }
+            }.validate()
+        }
+
+        // too many llm proxies
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                llm {
+                    repeat(AGENT_LLM_PROXIES_MAX_ENTRIES + 1) {
+                        proxy("P$it", "openai")
+                    }
+                }
+            }.validate()
+        }
+
+        // proxy name too short
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                llm {
+                    proxy("", "openai")
+                }
+            }.validate()
+        }
+
+        // proxy name too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                llm {
+                    proxy("A".repeat(AGENT_LLM_PROXY_NAME_LENGTH.last + 1), "openai")
+                }
+            }.validate()
+        }
+
+        // proxy name invalid pattern
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                llm {
+                    proxy("gpt", "openai")
+                }
+            }.validate()
+        }
+
+        // proxy name not unique
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                llm {
+                    proxy("GPT", "openai")
+                    proxy("GPT", "anthropic")
+                }
+            }.validate()
+        }
+
+        // proxy format unknown
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                llm {
+                    proxy("GPT", "unknown-format")
+                }
+            }.validate()
+        }
+
+        // proxy model too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                llm {
+                    proxy("GPT", "openai", "m".repeat(AGENT_LLM_PROXY_MODEL_LENGTH.last + 1))
+                }
+            }.validate()
+        }
+    }
 })
