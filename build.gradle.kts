@@ -138,19 +138,25 @@ tasks.jar {
     exclude("META-INF/*.RSA", "META-INF/*.SF", "META-INF/*.DSA")
 }
 
-val copyJarToRoot = tasks.register("copyJarToRoot") {
+val copyJar = tasks.register("copyJar") {
     dependsOn(tasks.jar)
     val jarFile = tasks.jar.flatMap { it.archiveFile }
-    val targetFile = layout.projectDirectory.file("coral-server.jar")
+    val rootTarget = layout.projectDirectory.file("coral-server.jar")
+    val binTarget = layout.projectDirectory.file("bin/coral-server.jar")
     inputs.file(jarFile)
-    outputs.file(targetFile)
+    outputs.file(rootTarget)
+    outputs.file(binTarget)
     doLast {
-        jarFile.get().asFile.copyTo(targetFile.asFile, overwrite = true)
+        val srcFile = jarFile.get().asFile
+        srcFile.copyTo(rootTarget.asFile, overwrite = true)
+        val binFile = binTarget.asFile
+        binFile.parentFile.mkdirs()
+        srcFile.copyTo(binFile, overwrite = true)
     }
 }
 
 tasks.assemble {
-    dependsOn(copyJarToRoot)
+    dependsOn(copyJar)
 }
 
 kotlin {

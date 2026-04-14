@@ -14,27 +14,10 @@ async function main() {
   const parsed = parseCliArgs(process.argv);
   const { command, subcommand, subcommandArgs, cliFlags, serverArgs } = parsed;
 
-  // Legacy support: no subcommand, print usage
-  if (!command) {
+  // Help or no subcommand, print usage
+  if (!command || cliFlags['help']) {
     printUsage();
     process.exit(0);
-  }
-
-  // Legacy --from-source=true as first arg (backward compat)
-  if (command === '--from-source=true' || (command && command.startsWith('--'))) {
-    // Legacy mode: treat all args as server args
-    let args = process.argv.slice(2);
-    let forceFromSource = false;
-    if (args[0] === '--from-source=true') {
-      forceFromSource = true;
-      args = args.slice(1);
-    }
-    if (forceFromSource) {
-      await runFromSource(args);
-    } else {
-      await runServer(args, null, false);
-    }
-    return;
   }
 
   if (command !== 'server') {
@@ -44,11 +27,11 @@ async function main() {
   }
 
   const configProfile = cliFlags['config-profile'] || null;
-  const forceFromSource = cliFlags['from-source'] === true || cliFlags['from-source'] === 'true';
+  const fromSource = cliFlags['from-source'];
 
   switch (subcommand) {
     case 'start':
-      await runServer(serverArgs, configProfile, forceFromSource);
+      await runServer(serverArgs, configProfile, fromSource);
       break;
 
     case 'configure': {

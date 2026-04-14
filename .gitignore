@@ -1,9 +1,11 @@
 .gradle
 build/
-coral-server.jar
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
+
+### cli stuff ###
+node_modules
 
 ### IntelliJ IDEA ###
 .idea/AndroidProjectSystem.xml
