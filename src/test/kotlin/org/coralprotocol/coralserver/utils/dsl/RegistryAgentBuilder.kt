@@ -83,6 +83,7 @@ class RegistryAgentBuilder(
     private val options: MutableMap<String, AgentOption> = mutableMapOf()
     private val unresolvedExportSettings: MutableMap<RuntimeId, UnresolvedAgentExportSettings> = mutableMapOf()
     private var marketplace: RegistryAgentMarketplaceSettings? = null
+    private var llm: AgentLlmConfig? = null
 
     fun link(name: String, value: String) {
         links[name] = value
@@ -106,6 +107,10 @@ class RegistryAgentBuilder(
 
     fun marketplace(block: RegistryAgentMarketplaceSettingsBuilder.() -> Unit) {
         marketplace = RegistryAgentMarketplaceSettingsBuilder().apply(block).build()
+    }
+
+    fun llm(block: AgentLlmConfigBuilder.() -> Unit) {
+        llm = AgentLlmConfigBuilder().apply(block).build()
     }
 
 
@@ -165,9 +170,21 @@ class RegistryAgentBuilder(
             options = options,
             path = path,
             unresolvedExportSettings = unresolvedExportSettings,
-            marketplace = marketplace
+            marketplace = marketplace,
+            llm = llm
         )
     }
+}
+
+@TestDsl
+class AgentLlmConfigBuilder {
+    private val proxies = mutableListOf<AgentLlmProxy>()
+
+    fun proxy(name: String, format: String, model: String? = null) {
+        proxies += AgentLlmProxy(name, format, model)
+    }
+
+    fun build() = AgentLlmConfig(proxies = proxies.toList())
 }
 
 @TestDsl
