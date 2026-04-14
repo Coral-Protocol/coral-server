@@ -1,36 +1,25 @@
 package org.coralprotocol.coralserver.llmproxy
 
-import io.ktor.client.HttpClient
-import io.ktor.client.network.sockets.ConnectTimeoutException
-import io.ktor.client.plugins.HttpRequestTimeoutException
-import io.ktor.client.plugins.timeout
-import io.ktor.client.request.HttpRequestBuilder
-import io.ktor.client.request.prepareRequest
+import io.ktor.client.*
+import io.ktor.client.network.sockets.*
+import io.ktor.client.plugins.*
+import io.ktor.client.request.*
 import io.ktor.client.request.request
-import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.client.statement.bodyAsText
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpMethod
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
-import io.ktor.http.isSuccess
+import io.ktor.http.*
 import io.ktor.server.application.ApplicationCall
-import io.ktor.server.request.httpMethod
-import io.ktor.server.request.receiveText
-import io.ktor.server.response.header
-import io.ktor.server.response.respond
-import io.ktor.server.response.respondText
-import io.ktor.server.response.respondTextWriter
-import io.ktor.utils.io.readUTF8Line
+import io.ktor.server.request.*
+import io.ktor.server.response.*
+import io.ktor.utils.io.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import org.coralprotocol.coralserver.config.LlmProxyConfig
 import org.coralprotocol.coralserver.events.SessionEvent
+import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.SessionAgent
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -53,37 +42,46 @@ class LlmProxyService(
         subPath: String,
         call: ApplicationCall
     ) {
-        val profile = LlmProviderProfile.fromId(providerName) ?: run {
-            call.respond(HttpStatusCode.BadRequest, "Unknown provider: $providerName")
-            return
-        }
+        val profile = LlmProviderProfile.fromId(providerName) ?: throw RouteException(
+            HttpStatusCode.BadRequest,
+            "Unknown provider: $providerName"
+        )
 
         val providerConfig = config.providers[providerName]
         val serverKey = providerConfig?.apiKey
         val agentKey = ProxyHeaders.extractAgentKey(call, profile)
-        val apiKey = serverKey ?: agentKey ?: run {
-            call.respond(
-                HttpStatusCode.Unauthorized,
-                "No API key available for provider: $providerName (neither server-configured nor provided by agent)"
-            )
-            return
-        }
+        val apiKey = serverKey ?: agentKey ?: throw RouteException(
+            HttpStatusCode.Unauthorized,
+            "No API key available for provider: $providerName (neither server-configured nor provided by agent)"
+        )
 
         val baseUrl = providerConfig?.baseUrl ?: profile.defaultBaseUrl
         val upstreamUrl = "$baseUrl/$subPath"
         val timeoutMs = ((providerConfig?.timeoutSeconds ?: config.requestTimeoutSeconds) * 1000)
         val hasBody = call.request.httpMethod in METHODS_WITH_BODY
-        val requestBody = readRequestBody(hasBody, call) ?: return
+        val requestBody = readRequestBody(hasBody, call)
 
         val requestJson = if (hasBody) tryParseJson(requestBody) else null
         val isStreaming = requestJson?.get("stream")?.jsonPrimitive?.booleanOrNull == true
         val model = requestJson?.get("model")?.jsonPrimitive?.content
 
         val finalBody = if (isStreaming) profile.strategy.prepareStreamingRequest(requestBody, json) else requestBody
-        val req = ProxyRequest(agent, profile, apiKey, upstreamUrl, timeoutMs, finalBody, model, hasBody, System.currentTimeMillis())
+        val req = ProxyRequest(
+            agent,
+            profile,
+            apiKey,
+            upstreamUrl,
+            timeoutMs,
+            finalBody,
+            model,
+            hasBody,
+            System.currentTimeMillis()
+        )
 
-        agent.logger.info { "LLM Proxy → $providerName/$subPath model=$model streaming=$isStreaming " +
-                "auth=${if (serverKey != null) "server" else "agent"}" }
+        agent.logger.info {
+            "LLM Proxy → $providerName/$subPath model=$model streaming=$isStreaming " +
+                    "auth=${if (serverKey != null) "server" else "agent"}"
+        }
 
         try {
             if (isStreaming) proxyStreaming(req, call) else proxyBuffered(req, call)
@@ -91,10 +89,20 @@ class LlmProxyService(
             throw e
         } catch (e: Exception) {
             val durationMs = System.currentTimeMillis() - req.startTime
-            emitTelemetry(agent, LlmCallResult(providerName, model, durationMs = durationMs, streaming = isStreaming, success = false, errorKind = classifyError(e)))
+            emitTelemetry(
+                agent,
+                LlmCallResult(
+                    providerName,
+                    model,
+                    durationMs = durationMs,
+                    streaming = isStreaming,
+                    success = false,
+                    errorKind = classifyError(e)
+                )
+            )
             if (!call.response.isCommitted) {
                 agent.logger.warn { "LLM proxy request failed: ${e::class.simpleName}: ${e.message}" }
-                call.respond(HttpStatusCode.BadGateway, "LLM proxy request failed")
+                throw RouteException(HttpStatusCode.BadGateway, "LLM proxy request failed")
             }
         }
     }
@@ -219,17 +227,21 @@ class LlmProxyService(
         }
     }
 
-    private suspend fun readRequestBody(hasBody: Boolean, call: ApplicationCall): String? {
+    private suspend fun readRequestBody(hasBody: Boolean, call: ApplicationCall): String {
         if (!hasBody) return ""
         val declaredLength = call.request.headers[HttpHeaders.ContentLength]?.toLongOrNull()
         if (declaredLength != null && declaredLength > MAX_REQUEST_BODY_BYTES) {
-            call.respond(HttpStatusCode.PayloadTooLarge, "Request body exceeds ${MAX_REQUEST_BODY_BYTES / 1024 / 1024} MB limit")
-            return null
+            throw RouteException(
+                HttpStatusCode.PayloadTooLarge,
+                "Request body exceeds ${MAX_REQUEST_BODY_BYTES / 1024 / 1024} MB limit"
+            )
         }
         val body = call.receiveText()
         if (body.encodeToByteArray().size > MAX_REQUEST_BODY_BYTES) {
-            call.respond(HttpStatusCode.PayloadTooLarge, "Request body exceeds ${MAX_REQUEST_BODY_BYTES / 1024 / 1024} MB limit")
-            return null
+            throw RouteException(
+                HttpStatusCode.PayloadTooLarge,
+                "Request body exceeds ${MAX_REQUEST_BODY_BYTES / 1024 / 1024} MB limit"
+            )
         }
         return body
     }
@@ -266,7 +278,11 @@ class LlmProxyService(
         is ConnectTimeoutException -> LlmErrorKind.CONNECTIVITY
         is HttpRequestTimeoutException -> LlmErrorKind.CONNECTIVITY
         is LlmProxyException -> LlmErrorKind.RESPONSE_TOO_LARGE
-        else -> if (e.message?.contains("timeout", ignoreCase = true) == true) LlmErrorKind.CONNECTIVITY else LlmErrorKind.UNKNOWN
+        else -> if (e.message?.contains(
+                "timeout",
+                ignoreCase = true
+            ) == true
+        ) LlmErrorKind.CONNECTIVITY else LlmErrorKind.UNKNOWN
     }
 
     private suspend fun emitTelemetry(agent: SessionAgent, result: LlmCallResult) {
