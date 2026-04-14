@@ -11,7 +11,7 @@ enum class LlmProviderProfile(
 ) {
     OPENAI(
         "openai", "https://api.openai.com", AuthStyle.Bearer, emptyMap(), OpenAIStrategy,
-        sdkBaseUrlEnvVar = "OPENAI_BASE_URL", sdkPathSuffix = "sv1"
+        sdkBaseUrlEnvVar = "OPENAI_BASE_URL", sdkPathSuffix = "v1"
     ),
 
     ANTHROPIC(
