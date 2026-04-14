@@ -76,7 +76,7 @@ const val AGENT_MARKETPLACE_PRICING_MIN_MAX = 20.00
 // [llm.proxies]
 const val AGENT_LLM_PROXIES_MAX_ENTRIES = 16
 val AGENT_LLM_PROXY_NAME_LENGTH = 1..32
-val AGENT_LLM_PROXY_NAME_PATTERN = "^[A-Z][A-Z]*$".toRegex()
+val AGENT_LLM_PROXY_NAME_PATTERN = "^[A-Z_0-9]+$".toRegex()
 val AGENT_LLM_PROXY_MODEL_LENGTH = 1..128
 
 // [marketplace.identities.erc8004]
@@ -601,7 +601,7 @@ private fun RegistryAgent.validateLlm() {
         validateStringLength("llm.proxies[$index].name", proxy.name, AGENT_LLM_PROXY_NAME_LENGTH)
 
         if (!proxy.name.matches(AGENT_LLM_PROXY_NAME_PATTERN))
-            throw RegistryException("llm.proxies[$index].name (\"${proxy.name}\") must be uppercase alphabetic only")
+            throw RegistryException("llm.proxies[$index].name (\"${proxy.name}\") must only contain uppercase alphanumeric or underscore characters")
 
         if (!names.add(proxy.name))
             throw RegistryException("llm.proxies[$index].name (\"${proxy.name}\") is not unique")

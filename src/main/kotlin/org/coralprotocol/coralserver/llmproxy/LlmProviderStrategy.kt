@@ -1,19 +1,30 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package org.coralprotocol.coralserver.llmproxy
 
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonPrimitive
-import kotlinx.serialization.json.longOrNull
-import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonObject
-import org.slf4j.LoggerFactory
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.*
+import org.coralprotocol.coralserver.logging.LoggingInterface
 
-private val logger = LoggerFactory.getLogger("llm-proxy-strategy")
+@Serializable
+@JsonIgnoreUnknownKeys
+data class LlmUsage(
+    @JsonNames("prompt_tokens", "input_tokens")
+    val inputTokens: Long? = null,
+
+    @JsonNames("completion_tokens", "output_tokens")
+    val outputTokens: Long? = null,
+)
+
+@Serializable
+@JsonIgnoreUnknownKeys
+private data class LlmUsageWrapper(val usage: LlmUsage? = null)
 
 interface LlmProviderStrategy {
-    fun prepareStreamingRequest(requestBody: String, json: Json): String = requestBody
-    fun extractBufferedTokens(responseBody: String, json: Json): Pair<Long?, Long?>
+    fun prepareStreamingRequest(requestBody: String, json: Json, logger: LoggingInterface): String = requestBody
+    fun extractBufferedTokens(responseBody: String, json: Json): LlmUsage?
     fun createStreamParser(json: Json): StreamTokenParser
 }
 
@@ -29,7 +40,7 @@ interface StreamTokenParser {
 }
 
 object OpenAIStrategy : LlmProviderStrategy {
-    override fun prepareStreamingRequest(requestBody: String, json: Json): String {
+    override fun prepareStreamingRequest(requestBody: String, json: Json, logger: LoggingInterface): String {
         return try {
             val obj = json.decodeFromString<JsonObject>(requestBody)
             if (obj.containsKey("stream_options")) return requestBody
@@ -39,23 +50,17 @@ object OpenAIStrategy : LlmProviderStrategy {
             }
             json.encodeToString(JsonObject.serializer(), modified)
         } catch (e: Exception) {
-            logger.debug("Failed to inject stream_options into request body", e)
+            logger.error(e) { "Failed to inject stream_options into request body" }
             requestBody
         }
     }
 
-    override fun extractBufferedTokens(responseBody: String, json: Json): Pair<Long?, Long?> {
-        return extractUsageField(responseBody, json)
-    }
-
+    override fun extractBufferedTokens(responseBody: String, json: Json) = extractLlmUsage(responseBody, json)
     override fun createStreamParser(json: Json): StreamTokenParser = OpenAIStreamParser(json)
 }
 
 object AnthropicStrategy : LlmProviderStrategy {
-    override fun extractBufferedTokens(responseBody: String, json: Json): Pair<Long?, Long?> {
-        return extractUsageField(responseBody, json)
-    }
-
+    override fun extractBufferedTokens(responseBody: String, json: Json) = extractLlmUsage(responseBody, json)
     override fun createStreamParser(json: Json): StreamTokenParser = AnthropicStreamParser(json)
 }
 
@@ -72,11 +77,12 @@ private class OpenAIStreamParser(private val json: Json) : StreamTokenParser {
         if (!line.startsWith("data: ") || line.startsWith("data: [DONE]")) return
         chunkCount++
         try {
-            val (inp, out) = extractUsageField(line.removePrefix("data: "), json)
-            if (inp != null) inputTokens = inp
-            if (out != null) outputTokens = out
-        } catch (e: Exception) {
-            logger.trace("Failed to parse OpenAI stream chunk for token usage", e)
+            val usageWrapper = json.decodeFromString<LlmUsageWrapper>(line.removePrefix("data: "))
+
+            inputTokens = usageWrapper.usage?.inputTokens ?: inputTokens
+            outputTokens = usageWrapper.usage?.outputTokens ?: outputTokens
+        } catch (_: SerializationException) {
+            // ignored, not containing usage information is not an error
         }
     }
 }
@@ -104,33 +110,31 @@ private class AnthropicStreamParser(private val json: Json) : StreamTokenParser 
             val obj = json.decodeFromString<JsonObject>(line.removePrefix("data: "))
             when (lastEventType) {
                 "message_start" -> {
-                    val usage = (obj["message"] as? JsonObject)?.get("usage") as? JsonObject
-                    val inp = usage?.get("input_tokens")?.jsonPrimitive?.longOrNull
-                    if (inp != null) inputTokens = inp
+                    val usage = obj["message"]?.jsonObject?.let { extractLlmUsage(it, json) }
+                    inputTokens = usage?.inputTokens ?: inputTokens
                 }
+
                 "message_delta" -> {
-                    val usage = obj["usage"] as? JsonObject
-                    val out = usage?.get("output_tokens")?.jsonPrimitive?.longOrNull
-                    if (out != null) outputTokens = out
+                    val usage = extractLlmUsage(obj, json)
+                    outputTokens = usage?.outputTokens ?: outputTokens
                 }
             }
-        } catch (e: Exception) {
-            logger.trace("Failed to parse Anthropic stream event for token usage", e)
+        } catch (_: SerializationException) {
+            // ignored, not containing usage information is not an error
         }
     }
 }
 
-private fun extractUsageField(body: String, json: Json): Pair<Long?, Long?> {
-    return try {
-        val obj = json.decodeFromString<JsonObject>(body)
-        val usage = obj["usage"] as? JsonObject ?: return null to null
-        val input = usage["prompt_tokens"]?.jsonPrimitive?.longOrNull
-            ?: usage["input_tokens"]?.jsonPrimitive?.longOrNull
-        val output = usage["completion_tokens"]?.jsonPrimitive?.longOrNull
-            ?: usage["output_tokens"]?.jsonPrimitive?.longOrNull
-        input to output
-    } catch (e: Exception) {
-        logger.trace("Failed to extract usage field from response body", e)
-        null to null
+fun extractLlmUsage(body: String, json: Json) =
+    try {
+        json.decodeFromString<LlmUsageWrapper>(body).usage
+    } catch (_: SerializationException) {
+        null
     }
-}
+
+fun extractLlmUsage(body: JsonObject, json: Json) =
+    try {
+        json.decodeFromJsonElement<LlmUsageWrapper>(body).usage
+    } catch (_: SerializationException) {
+        null
+    }
