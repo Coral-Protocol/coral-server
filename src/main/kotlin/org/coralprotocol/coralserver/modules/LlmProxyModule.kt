@@ -3,6 +3,7 @@ package org.coralprotocol.coralserver.modules
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpRequestRetry
+import io.ktor.http.HttpStatusCode
 import org.coralprotocol.coralserver.config.LlmProxyConfig
 import org.coralprotocol.coralserver.llmproxy.LlmProxyService
 import org.koin.core.qualifier.named
@@ -19,7 +20,7 @@ val llmProxyModule = module {
                 install(HttpRequestRetry) {
                     maxRetries = config.retryMaxAttempts
                     retryIf { _, response ->
-                        response.status.value == 429 || response.status.value in 500..599
+                        response.status == HttpStatusCode.Conflict || response.status.value in 500..599
                     }
                     exponentialDelay(
                         base = 2.0,
