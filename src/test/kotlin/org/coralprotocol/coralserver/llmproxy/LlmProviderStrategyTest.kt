@@ -1,12 +1,17 @@
 package org.coralprotocol.coralserver.llmproxy
 
-import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import kotlinx.serialization.json.Json
+import org.coralprotocol.coralserver.CoralTest
+import org.coralprotocol.coralserver.logging.Logger
+import org.coralprotocol.coralserver.modules.LOGGER_LLM_PROXY
+import org.koin.core.component.get
+import org.koin.core.qualifier.named
 
-class LlmProviderStrategyTest : FunSpec({
+class LlmProviderStrategyTest : CoralTest({
 
     val json = Json { ignoreUnknownKeys = true }
 
@@ -17,26 +22,24 @@ class LlmProviderStrategyTest : FunSpec({
 
         val body =
             """{"usage":{"prompt_tokens":$promptTokens,"completion_tokens":$completionTokens,"total_tokens":$totalTokens}}"""
-        val (input, output) = OpenAIStrategy.extractBufferedTokens(body, json)
-        input.shouldBe(promptTokens)
-        output.shouldBe(completionTokens)
+        val usage = OpenAIStrategy.extractBufferedTokens(body, json).shouldNotBeNull()
+        usage.inputTokens.shouldBe(promptTokens)
+        usage.outputTokens.shouldBe(completionTokens)
     }
 
     test("returnsNullsForMissingOrMalformedInput") {
-        OpenAIStrategy.extractBufferedTokens("""{"id":"test"}""", json).let { (i, o) ->
-            i.shouldBeNull(); o.shouldBeNull()
-        }
-        OpenAIStrategy.extractBufferedTokens("not json", json).let { (i, o) ->
-            i.shouldBeNull(); o.shouldBeNull()
-        }
+        OpenAIStrategy.extractBufferedTokens("""{"id":"test"}""", json).shouldBeNull()
+        OpenAIStrategy.extractBufferedTokens("not json", json).shouldBeNull()
     }
 
     test("injectsStreamOptionsWhenAbsentPreservesWhenPresent") {
+        val logger = get<Logger>(named(LOGGER_LLM_PROXY))
+
         val without = """{"model":"gpt-4","stream":true,"messages":[]}"""
-        OpenAIStrategy.prepareStreamingRequest(without, json).shouldContain("include_usage")
+        OpenAIStrategy.prepareStreamingRequest(without, json, logger).shouldContain("include_usage")
 
         val with = """{"model":"gpt-4","stream_options":{"include_usage":false}}"""
-        OpenAIStrategy.prepareStreamingRequest(with, json).shouldBe(with)
+        OpenAIStrategy.prepareStreamingRequest(with, json, logger).shouldBe(with)
     }
 
     test("openaiStreamParserExtractsTokensFromFinalChunk") {

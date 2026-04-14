@@ -62,7 +62,9 @@ class LlmProxyService(
         val isStreaming = requestJson?.get("stream")?.jsonPrimitive?.booleanOrNull == true
         val model = requestJson?.get("model")?.jsonPrimitive?.content
 
-        val finalBody = if (isStreaming) profile.strategy.prepareStreamingRequest(requestBody, json) else requestBody
+        val finalBody =
+            if (isStreaming) profile.strategy.prepareStreamingRequest(requestBody, json, agent.logger) else requestBody
+
         val req = ProxyRequest(
             agent,
             profile,
@@ -75,7 +77,7 @@ class LlmProxyService(
             System.currentTimeMillis()
         )
 
-        agent.logger.info {
+        agent.logger.debug {
             "LLM Proxy → $providerName/${
                 URLBuilder().appendPathSegments(pathParts).buildString()
             } model=$model streaming=$isStreaming " +
@@ -118,11 +120,11 @@ class LlmProxyService(
         val upstreamContentType = response.contentType() ?: ContentType.Application.Json
         call.respondText(responseBody, upstreamContentType, response.status)
 
-        val (inputTokens, outputTokens) = req.profile.strategy.extractBufferedTokens(responseBody, json)
+        val usage = req.profile.strategy.extractBufferedTokens(responseBody, json)
         emitTelemetry(
             req.agent,
             LlmCallResult(
-                req.profile.providerId, req.model, inputTokens, outputTokens, durationMs,
+                req.profile.providerId, req.model, usage?.inputTokens, usage?.outputTokens, durationMs,
                 streaming = false,
                 success = response.status.isSuccess(),
                 errorKind = if (response.status.isSuccess()) null else classifyHttpError(response.status),
@@ -289,7 +291,7 @@ class LlmProxyService(
             if (result.success) {
                 val chunks = if (result.chunkCount != null) " ${result.chunkCount} chunks" else ""
                 val mode = if (result.streaming) "stream complete" else "${result.statusCode ?: "ok"}"
-                agent.logger.info { "LLM Proxy ← $mode ${result.durationMs}ms$chunks${result.formatTokenInfo()}" }
+                agent.logger.debug { "LLM Proxy ← $mode ${result.durationMs}ms$chunks${result.formatTokenInfo()}" }
             } else {
                 val mode = if (result.streaming) " (stream)" else ""
                 agent.logger.warn { "LLM Proxy ← ${result.statusCode ?: "err"} ${result.durationMs}ms error=${result.errorKind}$mode" }
