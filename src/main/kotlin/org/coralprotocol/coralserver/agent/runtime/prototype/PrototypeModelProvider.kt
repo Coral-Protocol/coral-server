@@ -61,12 +61,11 @@ sealed class PrototypeModelProvider {
         override val url: PrototypeApiUrl? = null,
     ) : PrototypeModelProvider() {
         override fun getExecutor(executionContext: SessionAgentExecutionContext): PromptExecutor {
-            val resolvedUrl = resolveUrlWithProvider(url, executionContext, "openai")
             return MultiLLMPromptExecutor(
                 OpenAILLMClient(
                     apiKey = key.resolve(executionContext),
-                    settings = if (resolvedUrl == null) OpenAIClientSettings() else OpenAIClientSettings(
-                        baseUrl = resolvedUrl
+                    settings = if (url == null) OpenAIClientSettings() else OpenAIClientSettings(
+                        baseUrl = url.resolve(executionContext)
                     )
                 )
             )
@@ -84,12 +83,11 @@ sealed class PrototypeModelProvider {
         override val url: PrototypeApiUrl? = null,
     ) : PrototypeModelProvider() {
         override fun getExecutor(executionContext: SessionAgentExecutionContext): PromptExecutor {
-            val resolvedUrl = resolveUrlWithProvider(url, executionContext, "anthropic")
             return MultiLLMPromptExecutor(
                 AnthropicLLMClient(
                     apiKey = key.resolve(executionContext),
-                    settings = if (resolvedUrl == null) AnthropicClientSettings() else AnthropicClientSettings(
-                        baseUrl = resolvedUrl
+                    settings = if (url == null) AnthropicClientSettings() else AnthropicClientSettings(
+                        baseUrl = url.resolve(executionContext)
                     )
                 )
             )
@@ -107,12 +105,11 @@ sealed class PrototypeModelProvider {
         override val url: PrototypeApiUrl? = null,
     ) : PrototypeModelProvider() {
         override fun getExecutor(executionContext: SessionAgentExecutionContext): PromptExecutor {
-            val resolvedUrl = resolveUrlWithProvider(url, executionContext, "openrouter")
             return MultiLLMPromptExecutor(
                 OpenRouterLLMClient(
                     apiKey = key.resolve(executionContext),
-                    settings = if (resolvedUrl == null) OpenRouterClientSettings() else OpenRouterClientSettings(
-                        baseUrl = resolvedUrl
+                    settings = if (url == null) OpenRouterClientSettings() else OpenRouterClientSettings(
+                        baseUrl = url.resolve(executionContext)
                     )
                 )
             )
@@ -120,17 +117,5 @@ sealed class PrototypeModelProvider {
 
         override val modelClass: Any
             get() = OpenRouterModels
-    }
-
-    companion object {
-        fun resolveUrlWithProvider(
-            url: PrototypeApiUrl?,
-            executionContext: SessionAgentExecutionContext,
-            providerName: String
-        ): String? {
-            if (url == null) return null
-            val base = url.resolve(executionContext)
-            return if (url is PrototypeApiUrl.Proxy) "$base/$providerName" else base
-        }
     }
 }

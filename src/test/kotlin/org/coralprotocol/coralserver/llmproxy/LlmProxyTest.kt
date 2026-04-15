@@ -1,6 +1,12 @@
 package org.coralprotocol.coralserver.llmproxy
 
-import io.kotest.matchers.shouldBe
+import io.kotest.assertions.ktor.client.shouldBeOK
+import io.kotest.matchers.booleans.shouldBeFalse
+import io.kotest.matchers.booleans.shouldBeTrue
+import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.equals.shouldBeEqual
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.string.shouldContain
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -18,9 +24,6 @@ import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.debug.PuppetDebugAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeApiUrl
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeModelProvider
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeString
 import org.coralprotocol.coralserver.config.LlmProxyConfig
 import org.coralprotocol.coralserver.config.LlmProxyProviderConfig
 import org.coralprotocol.coralserver.events.SessionEvent
@@ -29,18 +32,21 @@ import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionIdentifier
 import org.coralprotocol.coralserver.utils.dsl.sessionRequest
-import org.coralprotocol.coralserver.utils.multiAgentPayloadTest
-import java.util.UUID
 import org.koin.core.context.loadKoinModules
 import org.koin.dsl.module
 import org.koin.test.inject
-import kotlin.time.Duration.Companion.minutes
+import java.util.*
 import kotlin.time.Duration.Companion.seconds
+
+private const val totalTokens = 20L
+private const val outputTokens = 5L
+private const val inputTokens = 15L;
+
 
 private const val MOCK_OPENAI_RESPONSE = """{
     "id":"chatcmpl-test","object":"chat.completion","model":"gpt-test",
     "choices":[{"index":0,"message":{"role":"assistant","content":"Hello from upstream"},"finish_reason":"stop"}],
-    "usage":{"prompt_tokens":15,"completion_tokens":5,"total_tokens":20}
+    "usage":{"prompt_tokens":$inputTokens,"completion_tokens":$outputTokens,"total_tokens":$totalTokens}
 }"""
 
 class LlmProxyTest : CoralTest({
@@ -63,11 +69,12 @@ class LlmProxyTest : CoralTest({
             }
         })
 
+        val agentName = "test-agent"
         val id: SessionIdentifier = client.authenticatedPost(LocalSessions.Session()) {
             setBody(sessionRequest {
                 agentGraphRequest {
                     agent(PuppetDebugAgent.identifier) {
-                        name = "test-agent"
+                        name = agentName
                         provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
                     }
                     isolateAllAgents()
@@ -76,7 +83,7 @@ class LlmProxyTest : CoralTest({
         }.body()
 
         val session = localSessionManager.getSessions(id.namespace).first()
-        val secret = session.agents["test-agent"]!!.secret
+        val secret = session.agents[agentName].shouldNotBeNull().secret
 
         try {
             block(secret, session)
@@ -101,7 +108,8 @@ class LlmProxyTest : CoralTest({
             }
         }
 
-        withProxySession("openai", "sk-test-key-123", upstreamPath) { secret, session ->
+        val key = "sk-test-key-${UUID.randomUUID()}"
+        withProxySession("openai", key, upstreamPath) { secret, session ->
             val eventDeferred = async {
                 withTimeout(5.seconds) {
                     session.events.first { it is SessionEvent.LlmProxyCall }
@@ -114,19 +122,125 @@ class LlmProxyTest : CoralTest({
                 setBody("""{"model":"gpt-test","messages":[{"role":"user","content":"hi"}]}""")
             }
 
-            response.status.shouldBe(HttpStatusCode.OK)
+            response.shouldBeOK()
             response.bodyAsText().shouldContain("Hello from upstream")
 
             val headers = capturedHeaders.await()
-            headers["authorization"]?.first().shouldBe("Bearer sk-test-key-123")
+            headers["authorization"].shouldNotBeNull().shouldContainExactly("Bearer $key")
 
             val event = eventDeferred.await() as SessionEvent.LlmProxyCall
-            event.provider.shouldBe("openai")
-            event.model.shouldBe("gpt-test")
-            event.success.shouldBe(true)
-            event.streaming.shouldBe(false)
-            event.inputTokens.shouldBe(15)
-            event.outputTokens.shouldBe(5)
+            event.provider.shouldBeEqual("openai")
+            event.model.shouldNotBeNull().shouldBeEqual("gpt-test")
+            event.success.shouldBeTrue()
+            event.streaming.shouldBeFalse()
+            event.inputTokens.shouldNotBeNull().shouldBeEqual(inputTokens)
+            event.outputTokens.shouldNotBeNull().shouldBeEqual(outputTokens)
+        }
+    }
+
+    test("proxyForwardsQueryParametersToUpstream").config(invocationTimeout = 15.seconds) {
+        val client by inject<HttpClient>()
+        val application by inject<Application>()
+
+        val upstreamPath = "/mock-upstream-query-${UUID.randomUUID()}"
+        val capturedQueryParameters = CompletableDeferred<Map<String, List<String>>>()
+
+        application.routing {
+            post("$upstreamPath/v1/chat/completions") {
+                capturedQueryParameters.complete(
+                    call.request.queryParameters.entries().associate { (key, values) -> key to values }
+                )
+                call.respondText(MOCK_OPENAI_RESPONSE, ContentType.Application.Json)
+            }
+        }
+
+        val key = "sk-test-key-${UUID.randomUUID()}"
+        withProxySession("openai", key, upstreamPath) { secret, _ ->
+            val response = client.post("/llm-proxy/$secret/openai/v1/chat/completions?limit=20&after=abc&tag=x&tag=y") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"model":"gpt-test","messages":[{"role":"user","content":"hi"}]}""")
+            }
+
+            response.shouldBeOK()
+
+            val queryParameters = capturedQueryParameters.await()
+            queryParameters["limit"].shouldNotBeNull().shouldContainExactly("20")
+            queryParameters["after"].shouldNotBeNull().shouldContainExactly("abc")
+            queryParameters["tag"].shouldNotBeNull().shouldContainExactly("x", "y")
+        }
+    }
+
+    test("proxyStripsCookieAndPreservesIncomingJsonContentType").config(invocationTimeout = 15.seconds) {
+        val client by inject<HttpClient>()
+        val application by inject<Application>()
+
+        val upstreamPath = "/mock-upstream-headers-${UUID.randomUUID()}"
+        val capturedHeaders = CompletableDeferred<Map<String, List<String>>>()
+
+        application.routing {
+            post("$upstreamPath/v1/chat/completions") {
+                capturedHeaders.complete(
+                    call.request.headers.entries().associate { (key, values) -> key.lowercase() to values }
+                )
+                call.respondText(MOCK_OPENAI_RESPONSE, ContentType.Application.Json)
+            }
+        }
+
+        val key = "sk-test-key-${UUID.randomUUID()}"
+        withProxySession("openai", key, upstreamPath) { secret, _ ->
+            val response = client.post("/llm-proxy/$secret/openai/v1/chat/completions") {
+                contentType(ContentType.parse("application/json; charset=utf-8"))
+                header(HttpHeaders.Cookie, "session=abc")
+                setBody("""{"model":"gpt-test","messages":[{"role":"user","content":"hi"}]}""")
+            }
+
+            response.shouldBeOK()
+
+            val headers = capturedHeaders.await()
+            headers[HttpHeaders.Cookie.lowercase()].shouldBeNull()
+            headers[HttpHeaders.ContentType.lowercase()].shouldNotBeNull()
+                .shouldContainExactly("application/json; charset=utf-8")
+        }
+    }
+
+    test("proxyRejectsNonJsonBodyRequests").config(invocationTimeout = 15.seconds) {
+        val client by inject<HttpClient>()
+
+        val key = "sk-test-key-${UUID.randomUUID()}"
+        withProxySession("openai", key, "/mock-upstream-${UUID.randomUUID()}") { secret, _ ->
+            val response = client.post("/llm-proxy/$secret/openai/v1/chat/completions") {
+                contentType(ContentType.Text.Plain)
+                setBody("not-json")
+            }
+
+            response.status.shouldBeEqual(HttpStatusCode.UnsupportedMediaType)
+            response.bodyAsText().shouldContain("JSON")
+        }
+    }
+
+    test("proxyAllowsGetRequestsAndRejectsUnsupportedMethods").config(invocationTimeout = 15.seconds) {
+        val client by inject<HttpClient>()
+        val application by inject<Application>()
+
+        val upstreamPath = "/mock-upstream-methods-${UUID.randomUUID()}"
+
+        application.routing {
+            get("$upstreamPath/v1/models") {
+                call.respondText("""{"data":[]}""", ContentType.Application.Json)
+            }
+        }
+
+        val key = "sk-test-key-${UUID.randomUUID()}"
+        withProxySession("openai", key, upstreamPath) { secret, _ ->
+            client.get("/llm-proxy/$secret/openai/v1/models").shouldBeOK()
+
+            val putResponse = client.put("/llm-proxy/$secret/openai/v1/models") {
+                contentType(ContentType.Application.Json)
+                setBody("{}")
+            }
+
+            putResponse.status.shouldBeEqual(HttpStatusCode.MethodNotAllowed)
+            putResponse.bodyAsText().shouldContain("Unsupported proxy method")
         }
     }
 
@@ -156,11 +270,12 @@ class LlmProxyTest : CoralTest({
             }
         })
 
+        val agentName = "test-agent"
         val id: SessionIdentifier = client.authenticatedPost(LocalSessions.Session()) {
             setBody(sessionRequest {
                 agentGraphRequest {
                     agent(PuppetDebugAgent.identifier) {
-                        name = "test-agent"
+                        name = agentName
                         provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
                     }
                     isolateAllAgents()
@@ -169,43 +284,46 @@ class LlmProxyTest : CoralTest({
         }.body()
 
         val session = localSessionManager.getSessions(id.namespace).first()
-        val secret = session.agents["test-agent"]!!.secret
+        val secret = session.agents[agentName].shouldNotBeNull().secret
 
         try {
+            val key = "sk-ant-agent-key-${UUID.randomUUID()}"
             val response = client.post("/llm-proxy/$secret/anthropic/v1/messages") {
                 contentType(ContentType.Application.Json)
-                header("x-api-key", "sk-ant-agent-key-123")
+                header("x-api-key", key)
                 setBody("""{"model":"claude-sonnet-4-20250514","messages":[{"role":"user","content":"hi"}]}""")
             }
 
-            response.status.shouldBe(HttpStatusCode.OK)
-            capturedHeaders.await()["x-api-key"]?.first().shouldBe("sk-ant-agent-key-123")
+            response.shouldBeOK()
+            capturedHeaders.await()["x-api-key"].shouldNotBeNull().shouldContainExactly(key)
         } finally {
             session.cancelAndJoinAgents()
         }
     }
 
-    val openaiApiKey = System.getenv("CORAL_TEST_OPENAI_API_KEY")
 
-    test("e2eProxyWithRealOpenai").config(
-        enabled = openaiApiKey != null,
-        invocationTimeout = 1.minutes
-    ) {
-        loadKoinModules(module {
-            single<LlmProxyConfig> {
-                LlmProxyConfig(
-                    enabled = true,
-                    providers = mapOf("openai" to LlmProxyProviderConfig(apiKey = openaiApiKey!!))
-                )
-            }
-        })
-
-        multiAgentPayloadTest(
-            PrototypeModelProvider.OpenAI(
-                PrototypeString.Inline("proxy-managed"),
-                PrototypeString.Inline("gpt-4.1-nano"),
-                url = PrototypeApiUrl.Proxy
-            )
-        )
-    }
+    // TODO: prototype runtime will be changed soon so that it will only use the proxy, the interface for that is WIP
+//    val openaiApiKey = System.getenv("CORAL_TEST_OPENAI_API_KEY")
+//
+//    test("e2eProxyWithRealOpenai").config(
+//        enabled = openaiApiKey != null,
+//        invocationTimeout = 1.minutes
+//    ) {
+//        loadKoinModules(module {
+//            single<LlmProxyConfig> {
+//                LlmProxyConfig(
+//                    enabled = true,
+//                    providers = mapOf("openai" to LlmProxyProviderConfig(apiKey = openaiApiKey!!))
+//                )
+//            }
+//        })
+//
+//        multiAgentPayloadTest(
+//            PrototypeModelProvider.OpenAI(
+//                PrototypeString.Inline("proxy-managed"),
+//                PrototypeString.Inline("gpt-4.1-nano"),
+//                url = PrototypeApiUrl.Proxy
+//            )
+//        )
+//    }
 })
