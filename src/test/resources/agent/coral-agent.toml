@@ -153,6 +153,15 @@ auth.header.parts = [
     { type = "option", name = "OPTIONAL_STRING" }
 ]
 
+[[llm.proxies]]
+name = "MAIN"
+format = "openai"
+model = "gpt-4.1"
+
+[[llm.proxies]]
+name = "REASONING"
+format = "anthropic"
+
 # option key:
 #   len: 1 - 256
 #   pattern: ^[a-zA-Z_][a-zA-Z_$0-9]*$

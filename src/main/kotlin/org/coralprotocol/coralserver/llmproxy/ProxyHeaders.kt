@@ -23,7 +23,9 @@ object ProxyHeaders {
         HttpHeaders.Authorization,
         HttpHeaders.Host,
         HttpHeaders.ContentLength,
+        HttpHeaders.ContentType,
         HttpHeaders.AcceptEncoding,
+        HttpHeaders.Cookie,
         "x-api-key",
     )).map { it.lowercase() }.toSet()
 
