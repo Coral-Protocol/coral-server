@@ -142,6 +142,38 @@ class LlmProxyTest : CoralTest({
         }
     }
 
+    test("proxyForwardsQueryParametersToUpstream").config(invocationTimeout = 15.seconds) {
+        val client by inject<HttpClient>()
+        val application by inject<Application>()
+
+        val upstreamPath = "/mock-upstream-query-${UUID.randomUUID()}"
+        val capturedQueryParameters = CompletableDeferred<Map<String, List<String>>>()
+
+        application.routing {
+            post("$upstreamPath/v1/chat/completions") {
+                capturedQueryParameters.complete(
+                    call.request.queryParameters.entries().associate { (key, values) -> key to values }
+                )
+                call.respondText(MOCK_OPENAI_RESPONSE, ContentType.Application.Json)
+            }
+        }
+
+        val key = "sk-test-key-${UUID.randomUUID()}"
+        withProxySession("openai", key, upstreamPath) { secret, _ ->
+            val response = client.post("/llm-proxy/$secret/openai/v1/chat/completions?limit=20&after=abc&tag=x&tag=y") {
+                contentType(ContentType.Application.Json)
+                setBody("""{"model":"gpt-test","messages":[{"role":"user","content":"hi"}]}""")
+            }
+
+            response.shouldBeOK()
+
+            val queryParameters = capturedQueryParameters.await()
+            queryParameters["limit"].shouldNotBeNull().shouldContainExactly("20")
+            queryParameters["after"].shouldNotBeNull().shouldContainExactly("abc")
+            queryParameters["tag"].shouldNotBeNull().shouldContainExactly("x", "y")
+        }
+    }
+
     test("anthropicXApiKeyPassThrough").config(invocationTimeout = 15.seconds) {
         val client by inject<HttpClient>()
         val localSessionManager by inject<LocalSessionManager>()
