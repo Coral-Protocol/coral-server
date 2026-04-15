@@ -53,7 +53,12 @@ class LlmProxyService(
         )
 
         val baseUrl = providerConfig?.baseUrl ?: profile.defaultBaseUrl
-        val upstreamUrl = URLBuilder(baseUrl).appendEncodedPathSegments(pathParts).buildString()
+        val upstreamUrl = URLBuilder(baseUrl).apply {
+            appendEncodedPathSegments(pathParts)
+            call.request.queryParameters.entries().forEach { (name, values) ->
+                values.forEach { value -> parameters.append(name, value) }
+            }
+        }.buildString()
         val timeoutMs = ((providerConfig?.timeoutSeconds ?: config.requestTimeoutSeconds) * 1000)
         val hasBody = call.request.httpMethod in METHODS_WITH_BODY
         val requestBody = readRequestBody(hasBody, call)
