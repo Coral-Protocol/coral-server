@@ -5,6 +5,7 @@ import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.equals.shouldBeEqual
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.string.shouldContain
 import io.ktor.client.*
@@ -23,9 +24,6 @@ import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.debug.PuppetDebugAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeApiUrl
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeModelProvider
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeString
 import org.coralprotocol.coralserver.config.LlmProxyConfig
 import org.coralprotocol.coralserver.config.LlmProxyProviderConfig
 import org.coralprotocol.coralserver.events.SessionEvent
@@ -34,12 +32,10 @@ import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionIdentifier
 import org.coralprotocol.coralserver.utils.dsl.sessionRequest
-import org.coralprotocol.coralserver.utils.multiAgentPayloadTest
 import org.koin.core.context.loadKoinModules
 import org.koin.dsl.module
 import org.koin.test.inject
 import java.util.*
-import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
 private const val totalTokens = 20L
@@ -171,6 +167,80 @@ class LlmProxyTest : CoralTest({
             queryParameters["limit"].shouldNotBeNull().shouldContainExactly("20")
             queryParameters["after"].shouldNotBeNull().shouldContainExactly("abc")
             queryParameters["tag"].shouldNotBeNull().shouldContainExactly("x", "y")
+        }
+    }
+
+    test("proxyStripsCookieAndPreservesIncomingJsonContentType").config(invocationTimeout = 15.seconds) {
+        val client by inject<HttpClient>()
+        val application by inject<Application>()
+
+        val upstreamPath = "/mock-upstream-headers-${UUID.randomUUID()}"
+        val capturedHeaders = CompletableDeferred<Map<String, List<String>>>()
+
+        application.routing {
+            post("$upstreamPath/v1/chat/completions") {
+                capturedHeaders.complete(
+                    call.request.headers.entries().associate { (key, values) -> key.lowercase() to values }
+                )
+                call.respondText(MOCK_OPENAI_RESPONSE, ContentType.Application.Json)
+            }
+        }
+
+        val key = "sk-test-key-${UUID.randomUUID()}"
+        withProxySession("openai", key, upstreamPath) { secret, _ ->
+            val response = client.post("/llm-proxy/$secret/openai/v1/chat/completions") {
+                contentType(ContentType.parse("application/json; charset=utf-8"))
+                header(HttpHeaders.Cookie, "session=abc")
+                setBody("""{"model":"gpt-test","messages":[{"role":"user","content":"hi"}]}""")
+            }
+
+            response.shouldBeOK()
+
+            val headers = capturedHeaders.await()
+            headers[HttpHeaders.Cookie.lowercase()].shouldBeNull()
+            headers[HttpHeaders.ContentType.lowercase()].shouldNotBeNull()
+                .shouldContainExactly("application/json; charset=utf-8")
+        }
+    }
+
+    test("proxyRejectsNonJsonBodyRequests").config(invocationTimeout = 15.seconds) {
+        val client by inject<HttpClient>()
+
+        val key = "sk-test-key-${UUID.randomUUID()}"
+        withProxySession("openai", key, "/mock-upstream-${UUID.randomUUID()}") { secret, _ ->
+            val response = client.post("/llm-proxy/$secret/openai/v1/chat/completions") {
+                contentType(ContentType.Text.Plain)
+                setBody("not-json")
+            }
+
+            response.status.shouldBeEqual(HttpStatusCode.UnsupportedMediaType)
+            response.bodyAsText().shouldContain("JSON")
+        }
+    }
+
+    test("proxyAllowsGetRequestsAndRejectsUnsupportedMethods").config(invocationTimeout = 15.seconds) {
+        val client by inject<HttpClient>()
+        val application by inject<Application>()
+
+        val upstreamPath = "/mock-upstream-methods-${UUID.randomUUID()}"
+
+        application.routing {
+            get("$upstreamPath/v1/models") {
+                call.respondText("""{"data":[]}""", ContentType.Application.Json)
+            }
+        }
+
+        val key = "sk-test-key-${UUID.randomUUID()}"
+        withProxySession("openai", key, upstreamPath) { secret, _ ->
+            client.get("/llm-proxy/$secret/openai/v1/models").shouldBeOK()
+
+            val putResponse = client.put("/llm-proxy/$secret/openai/v1/models") {
+                contentType(ContentType.Application.Json)
+                setBody("{}")
+            }
+
+            putResponse.status.shouldBeEqual(HttpStatusCode.MethodNotAllowed)
+            putResponse.bodyAsText().shouldContain("Unsupported proxy method")
         }
     }
 

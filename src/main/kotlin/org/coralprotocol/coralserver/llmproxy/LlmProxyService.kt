@@ -20,7 +20,8 @@ import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.SessionAgent
 import kotlin.coroutines.cancellation.CancellationException
 
-private val METHODS_WITH_BODY = setOf(HttpMethod.Post, HttpMethod.Put, HttpMethod.Patch)
+private val ALLOWED_METHODS = setOf(HttpMethod.Get, HttpMethod.Post)
+private val METHODS_WITH_BODY = setOf(HttpMethod.Post)
 
 private const val MAX_REQUEST_BODY_BYTES = 20 * 1024 * 1024 // 20 MB
 private const val MAX_RESPONSE_BODY_BYTES = 80 * 1024 * 1024L // 80 MB
@@ -33,6 +34,17 @@ class LlmProxyService(
     private val httpClient: HttpClient,
     private val json: Json
 ) {
+
+
+    /**
+    * Methods: GET, POST
+    * POST body: JSON only (application/json and application/+json)
+    * Responses: JSON or SSE
+    * Forwarded: path, query params, provider auth, most normal headers
+    * Not supported: multipart, binary uploads, file/audio/image upload endpoints
+    * Current scope: inference-style endpoints like chat/messages/responses/embeddings/models
+    * Security behavior: Authorization/provider auth is normalized by the proxy, Cookie is dropped
+    */
     suspend fun proxyRequest(
         agent: SessionAgent,
         providerName: String,
@@ -51,6 +63,8 @@ class LlmProxyService(
             HttpStatusCode.Unauthorized,
             "No API key available for provider: $providerName (neither server-configured nor provided by agent)"
         )
+
+        validateRequestShape(call)
 
         val baseUrl = providerConfig?.baseUrl ?: profile.defaultBaseUrl
         val upstreamUrl = URLBuilder(baseUrl).apply {
@@ -228,9 +242,29 @@ class LlmProxyService(
         timeout { requestTimeoutMillis = req.timeoutMs }
         ProxyHeaders.applyUpstream(this, call, req.profile, req.apiKey)
         if (req.hasBody) {
-            contentType(ContentType.Application.Json)
+            contentType(call.request.contentType())
             setBody(req.requestBody)
         }
+    }
+
+    private fun validateRequestShape(call: ApplicationCall) {
+        val method = call.request.httpMethod
+        if (method !in ALLOWED_METHODS) {
+            throw RouteException(HttpStatusCode.MethodNotAllowed, "Unsupported proxy method: $method")
+        }
+
+        if (method in METHODS_WITH_BODY && !isSupportedJsonContentType(call.request.contentType())) {
+            throw RouteException(
+                HttpStatusCode.UnsupportedMediaType,
+                "LLM proxy only supports JSON request bodies"
+            )
+        }
+    }
+
+    private fun isSupportedJsonContentType(contentType: ContentType): Boolean {
+        val normalized = contentType.withoutParameters()
+        return normalized.match(ContentType.Application.Json) ||
+                (normalized.contentType == "application" && normalized.contentSubtype.endsWith("+json"))
     }
 
     private suspend fun readRequestBody(hasBody: Boolean, call: ApplicationCall): String {
