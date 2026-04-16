@@ -14,6 +14,7 @@ import org.bitcoinj.core.Base58
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.runtime.PrototypeRuntime
 import org.coralprotocol.coralserver.agent.runtime.prototype.*
+import org.coralprotocol.coralserver.llmproxy.LlmProviderProfile
 import java.net.URI
 import java.net.URISyntaxException
 
@@ -71,6 +72,12 @@ val AGENT_OPTION_DISPLAY_GROUP_LENGTH = 1..64
 val AGENT_MARKETPLACE_PRICING_DESCRIPTION_LENGTH = 1..256
 const val AGENT_MARKETPLACE_PRICING_MIN_MIN = 0.00
 const val AGENT_MARKETPLACE_PRICING_MIN_MAX = 20.00
+
+// [llm.proxies]
+const val AGENT_LLM_PROXIES_MAX_ENTRIES = 16
+val AGENT_LLM_PROXY_NAME_LENGTH = 1..32
+val AGENT_LLM_PROXY_NAME_PATTERN = "^[A-Z_0-9]+$".toRegex()
+val AGENT_LLM_PROXY_MODEL_LENGTH = 1..128
 
 // [marketplace.identities.erc8004]
 const val AGENT_MARKETPLACE_ERC8004_ENDPOINTS_MAX_ENTRIES = 32
@@ -583,11 +590,36 @@ private fun RegistryAgent.validateMarketplace() {
  *
  * @throws RegistryException if this registry agent contains any number of invalid values
  */
+private fun RegistryAgent.validateLlm() {
+    val llm = llm ?: return
+
+    if (llm.proxies.size > AGENT_LLM_PROXIES_MAX_ENTRIES)
+        throw RegistryException("llm proxy count cannot exceed $AGENT_LLM_PROXIES_MAX_ENTRIES, was ${llm.proxies.size}")
+
+    val names = mutableSetOf<String>()
+    for ((index, proxy) in llm.proxies.withIndex()) {
+        validateStringLength("llm.proxies[$index].name", proxy.name, AGENT_LLM_PROXY_NAME_LENGTH)
+
+        if (!proxy.name.matches(AGENT_LLM_PROXY_NAME_PATTERN))
+            throw RegistryException("llm.proxies[$index].name (\"${proxy.name}\") must only contain uppercase alphanumeric or underscore characters")
+
+        if (!names.add(proxy.name))
+            throw RegistryException("llm.proxies[$index].name (\"${proxy.name}\") is not unique")
+
+        if (LlmProviderProfile.fromId(proxy.format) == null)
+            throw RegistryException("llm.proxies[$index].format (\"${proxy.format}\") is not a known format. Valid formats: ${LlmProviderProfile.entries.joinToString { it.providerId }}")
+
+        if (proxy.model != null)
+            validateStringLength("llm.proxies[$index].model", proxy.model, AGENT_LLM_PROXY_MODEL_LENGTH)
+    }
+}
+
 fun RegistryAgent.validate() {
     validateName()
     validateVersion()
     validateOptionalAgentInfo()
     validateRuntimes()
     validateOptions()
+    validateLlm()
     validateMarketplace()
 }

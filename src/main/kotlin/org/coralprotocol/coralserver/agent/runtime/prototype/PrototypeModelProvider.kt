@@ -11,7 +11,7 @@ import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.executor.clients.openrouter.OpenRouterClientSettings
 import ai.koog.prompt.executor.clients.openrouter.OpenRouterLLMClient
 import ai.koog.prompt.executor.clients.openrouter.OpenRouterModels
-import ai.koog.prompt.executor.llms.SingleLLMPromptExecutor
+import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
 import ai.koog.prompt.executor.model.PromptExecutor
 import ai.koog.prompt.llm.LLModel
 import dev.eav.tomlkt.TomlClassDiscriminator
@@ -60,8 +60,8 @@ sealed class PrototypeModelProvider {
         override val name: PrototypeString,
         override val url: PrototypeApiUrl? = null,
     ) : PrototypeModelProvider() {
-        override fun getExecutor(executionContext: SessionAgentExecutionContext): PromptExecutor =
-            SingleLLMPromptExecutor(
+        override fun getExecutor(executionContext: SessionAgentExecutionContext): PromptExecutor {
+            return MultiLLMPromptExecutor(
                 OpenAILLMClient(
                     apiKey = key.resolve(executionContext),
                     settings = if (url == null) OpenAIClientSettings() else OpenAIClientSettings(
@@ -69,6 +69,7 @@ sealed class PrototypeModelProvider {
                     )
                 )
             )
+        }
 
         override val modelClass: Any
             get() = OpenAIModels.Chat
@@ -81,8 +82,8 @@ sealed class PrototypeModelProvider {
         override val name: PrototypeString,
         override val url: PrototypeApiUrl? = null,
     ) : PrototypeModelProvider() {
-        override fun getExecutor(executionContext: SessionAgentExecutionContext): PromptExecutor =
-            SingleLLMPromptExecutor(
+        override fun getExecutor(executionContext: SessionAgentExecutionContext): PromptExecutor {
+            return MultiLLMPromptExecutor(
                 AnthropicLLMClient(
                     apiKey = key.resolve(executionContext),
                     settings = if (url == null) AnthropicClientSettings() else AnthropicClientSettings(
@@ -90,6 +91,7 @@ sealed class PrototypeModelProvider {
                     )
                 )
             )
+        }
 
         override val modelClass: Any
             get() = AnthropicModels
@@ -102,8 +104,8 @@ sealed class PrototypeModelProvider {
         override val name: PrototypeString,
         override val url: PrototypeApiUrl? = null,
     ) : PrototypeModelProvider() {
-        override fun getExecutor(executionContext: SessionAgentExecutionContext): PromptExecutor =
-            SingleLLMPromptExecutor(
+        override fun getExecutor(executionContext: SessionAgentExecutionContext): PromptExecutor {
+            return MultiLLMPromptExecutor(
                 OpenRouterLLMClient(
                     apiKey = key.resolve(executionContext),
                     settings = if (url == null) OpenRouterClientSettings() else OpenRouterClientSettings(
@@ -111,6 +113,7 @@ sealed class PrototypeModelProvider {
                     )
                 )
             )
+        }
 
         override val modelClass: Any
             get() = OpenRouterModels
