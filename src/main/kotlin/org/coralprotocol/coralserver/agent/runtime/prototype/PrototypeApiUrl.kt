@@ -17,9 +17,9 @@ sealed interface PrototypeApiUrl {
 
     @Serializable
     @SerialName("proxy")
-    object Proxy : PrototypeApiUrl {
+    data object Proxy : PrototypeApiUrl {
         override fun resolve(executionContext: SessionAgentExecutionContext): String {
-            TODO("Not yet implemented")
+            TODO("format changing soon")
         }
     }
 

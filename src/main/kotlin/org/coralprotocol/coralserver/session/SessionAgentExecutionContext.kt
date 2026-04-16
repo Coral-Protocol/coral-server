@@ -2,6 +2,7 @@
 
 package org.coralprotocol.coralserver.session
 
+import io.ktor.http.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.flow.update
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
@@ -12,7 +13,9 @@ import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.DebugConfig
 import org.coralprotocol.coralserver.config.DockerConfig
+import org.coralprotocol.coralserver.config.LlmProxyConfig
 import org.coralprotocol.coralserver.events.SessionEvent
+import org.coralprotocol.coralserver.llmproxy.LlmProviderProfile
 import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.session.reporting.SessionAgentUsageReport
 import org.coralprotocol.coralserver.util.utcTimeNow
@@ -40,6 +43,7 @@ class SessionAgentExecutionContext(
 
     val debugConfig by inject<DebugConfig>()
     val dockerConfig by inject<DockerConfig>()
+    val llmProxyConfig by inject<LlmProxyConfig>()
 
     val disposableResources = mutableListOf<SessionAgentDisposableResource>()
 
@@ -125,6 +129,22 @@ class SessionAgentExecutionContext(
 
             if (agent.graphAgent.provider is GraphAgentProvider.Remote)
                 this["CORAL_REMOTE_AGENT"] = "1"
+
+            val llmProxies = registryAgent.llm?.proxies
+            if (llmProxyConfig.enabled && !llmProxies.isNullOrEmpty()) {
+                for (proxy in llmProxies) {
+                    val proxyBaseUrl = URLBuilder(
+                        applicationRuntimeContext.getLlmProxyUrl(
+                            this@SessionAgentExecutionContext,
+                            addressConsumer
+                        )
+                    )
+
+                    val profile = LlmProviderProfile.fromId(proxy.format) ?: continue
+                    this["CORAL_PROXY_URL_${proxy.name}"] =
+                        proxyBaseUrl.appendPathSegments(profile.providerId, profile.sdkPathSuffix).buildString()
+                }
+            }
         }
     }
 
