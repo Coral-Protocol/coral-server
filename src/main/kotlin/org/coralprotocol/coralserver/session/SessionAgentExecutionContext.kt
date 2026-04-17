@@ -143,6 +143,12 @@ class SessionAgentExecutionContext(
                     val profile = LlmProviderProfile.fromId(proxy.format) ?: continue
                     this["CORAL_PROXY_URL_${proxy.name}"] =
                         proxyBaseUrl.appendPathSegments(profile.providerId, profile.sdkPathSuffix).buildString()
+                    // we might in future provide these different from what was requested in the coral-agent.toml
+                    // also the provider may have relevance, but would be awkward to specify from the agent
+                    // e.g. when azure's openai interface for the same model has a higher max token limit
+                    this["CORAL_PROXY_FORMAT_${proxy.name}"] = proxy.format
+                    this["CORAL_PROXY_PROVIDER_${proxy.name}"] = profile.providerId
+                    this["CORAL_PROXY_MODEL_${proxy.name}"] = proxy.model ?: "unknown"
                 }
             }
         }
