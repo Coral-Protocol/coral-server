@@ -11,6 +11,7 @@ import io.ktor.utils.io.*
 import kotlinx.coroutines.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.agent.execution.DockerExecutionTrustPolicy
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.LoggingInterface
@@ -41,8 +42,12 @@ data class DockerRuntime(
         }
 
         val docker = applicationRuntimeContext.dockerClient
-        val sanitisedImageName =
-            docker.sanitizeDockerImageName(image, executionContext.registryAgent.identifier, executionContext.logger)
+        val sanitisedImageName = sanitizeDockerImageName(
+            imageName = image,
+            id = executionContext.registryAgent.identifier,
+            logger = executionContext.logger,
+            requireDigest = executionContext.executionPolicy.docker.requireImageDigest
+        )
         var containerId: String? = null
 
         try {
@@ -68,14 +73,23 @@ data class DockerRuntime(
                     Bind(it.file.toString(), Volume(it.mountPath))
                 }
 
+            val hostConfig = executionContext.executionPolicy.docker.toHostConfig(
+                volumes = volumes,
+                logger = executionContext.logger
+            )
+
             val containerCreationCmd = docker.createContainerCmd(sanitisedImageName)
                 .withName(executionContext.agent.secret)
                 .withEnv(environment.map { (key, value) -> "$key=$value" })
-                .withHostConfig(HostConfig().withBinds(volumes))
+                .withHostConfig(hostConfig)
                 .withAttachStdout(true)
                 .withAttachStderr(true)
                 .withStopTimeout(1)
                 .withAttachStdin(false) // Stdin makes no sense with orchestration
+
+            executionContext.executionPolicy.docker.user
+                ?.takeIf { it.isNotBlank() }
+                ?.let { containerCreationCmd.withUser(it) }
 
             if (command != null)
                 containerCreationCmd.withCmd(*command.toTypedArray())
@@ -135,11 +149,20 @@ data class DockerRuntime(
     }
 }
 
-private fun DockerClient.sanitizeDockerImageName(
+internal fun sanitizeDockerImageName(
     imageName: String,
     id: RegistryAgentIdentifier,
-    logger: LoggingInterface
+    logger: LoggingInterface,
+    requireDigest: Boolean = false,
 ): String {
+    if (imageName.contains("@sha256:")) {
+        return imageName
+    }
+
+    if (requireDigest) {
+        throw IllegalArgumentException("Docker image $imageName must be pinned by digest for marketplace agents")
+    }
+
     if (imageName.contains(":")) {
         if (!imageName.endsWith(":${id.version}")) {
             logger.warn { "Image $imageName does not match the agent version: ${id.version}" }
@@ -150,6 +173,43 @@ private fun DockerClient.sanitizeDockerImageName(
         return "$imageName:${id.version}"
     }
 }
+
+internal fun DockerExecutionTrustPolicy.toHostConfig(
+    volumes: List<Bind>,
+    logger: LoggingInterface
+): HostConfig {
+    val hostConfig = HostConfig()
+        .withBinds(volumes)
+        .withPrivileged(false)
+        .withReadonlyRootfs(readOnlyRootFilesystem)
+
+    if (noNewPrivileges) {
+        hostConfig.withSecurityOpts(listOf("no-new-privileges"))
+    }
+
+    if (readOnlyRootFilesystem && tmpFs.isNotEmpty()) {
+        hostConfig.withTmpFs(tmpFs)
+    }
+
+    if (dropCapabilities.isNotEmpty()) {
+        hostConfig.withCapDrop(*dropCapabilities.toCapabilities(logger).toTypedArray())
+    }
+
+    pidsLimit?.let { hostConfig.withPidsLimit(it) }
+    nanoCpus?.let { hostConfig.withNanoCPUs(it) }
+    memoryLimitBytes?.let { hostConfig.withMemory(it) }
+
+    return hostConfig
+}
+
+internal fun Set<String>.toCapabilities(logger: LoggingInterface): List<Capability> =
+    mapNotNull { capability ->
+        runCatching { enumValueOf<Capability>(capability.uppercase()) }
+            .onFailure {
+                logger.warn { "Unknown Docker capability in config: $capability" }
+            }
+            .getOrNull()
+    }
 
 private fun DockerClient.findImage(imageName: String): Image? =
     listImagesCmd()

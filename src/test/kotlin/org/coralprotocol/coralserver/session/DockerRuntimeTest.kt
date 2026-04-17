@@ -8,7 +8,9 @@ import com.github.dockerjava.core.DockerClientImpl
 import com.github.dockerjava.httpclient5.ApacheDockerHttpClient
 import com.github.dockerjava.transport.DockerHttpClient
 import io.kotest.assertions.throwables.shouldNotThrowAny
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.test.TestCase
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.nulls.shouldNotBeNull
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -16,6 +18,9 @@ import kotlinx.coroutines.withContext
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
+import org.coralprotocol.coralserver.agent.execution.ExecutionTrustPolicyResolver
+import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
+import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
@@ -23,6 +28,8 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.agent.runtime.DockerRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.agent.runtime.sanitizeDockerImageName
+import org.coralprotocol.coralserver.agent.runtime.toHostConfig
 import org.coralprotocol.coralserver.config.RootConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.Logger
@@ -36,6 +43,7 @@ import org.koin.test.inject
 import java.time.Duration
 import java.util.*
 import kotlin.time.Duration.Companion.seconds
+import com.github.dockerjava.api.model.Capability
 
 /**
  * Because these tests interact with a system docker installation, it is generally recommended to skip them.  For
@@ -228,5 +236,112 @@ class DockerRuntimeTest : CoralTest({
         }
 
         session1.sessionScope.cancel()
+    }
+
+    test("testDockerHostConfigHardeningDefaults") {
+        val logger by inject<Logger>(named(LOGGER_LOCAL_SESSION))
+        val resolver by inject<ExecutionTrustPolicyResolver>()
+
+        val hostConfig = resolver.resolve(AgentRegistrySourceIdentifier.Local).docker.toHostConfig(emptyList(), logger)
+
+        hostConfig.privileged shouldBe false
+        hostConfig.readonlyRootfs shouldBe false
+        hostConfig.securityOpts shouldBe listOf("no-new-privileges")
+        hostConfig.capDrop?.toSet() shouldBe setOf(Capability.ALL)
+        hostConfig.pidsLimit shouldBe 256L
+        hostConfig.nanoCPUs shouldBe null
+        hostConfig.memory shouldBe null
+    }
+
+    test("testDockerImageDigestRequiredForMarketplaceAgents") {
+        val logger by inject<Logger>(named(LOGGER_LOCAL_SESSION))
+        val identifier = RegistryAgentIdentifier(
+            name = "market-agent",
+            version = "1.0.0",
+            registrySourceId = AgentRegistrySourceIdentifier.Marketplace
+        )
+
+        shouldThrow<IllegalArgumentException> {
+            sanitizeDockerImageName(
+                imageName = "ghcr.io/coral-protocol/agent:1.0.0",
+                id = identifier,
+                logger = logger,
+                requireDigest = true
+            )
+        }
+
+        sanitizeDockerImageName(
+            imageName = "ghcr.io/coral-protocol/agent@sha256:abc123",
+            id = identifier,
+            logger = logger,
+            requireDigest = true
+        ) shouldBe "ghcr.io/coral-protocol/agent@sha256:abc123"
+    }
+
+    test("testMarketplaceDockerRuntimeHardening").config(
+        invocations = 1,
+        invocationTimeout = 180.seconds,
+        enabledIf = ::isDockerAvailable
+    ) {
+        val localSessionManager by inject<LocalSessionManager>()
+        val logger by inject<Logger>(named(LOGGER_LOCAL_SESSION))
+
+        val optionValue = UUID.randomUUID().toString()
+
+        val (session1, _) = localSessionManager.createSession(
+            "test", AgentGraph(
+                agents = mapOf(
+                    graphAgentPair("marketplace") {
+                        provider = GraphAgentProvider.Local(RuntimeId.DOCKER)
+                        registryAgent {
+                            registrySourceId = AgentRegistrySourceIdentifier.Marketplace
+                            runtime(
+                                DockerRuntime(
+                                    image = image,
+                                    command = listOf(
+                                        "sh", "-c", """
+                                            echo HOME:
+                                            echo ${'$'}HOME
+
+                                            echo UID:
+                                            id -u
+
+                                            touch /coral-rootfs-test 2>/dev/null || echo ROOT_FS_READ_ONLY
+
+                                            echo TEST_FS_OPTION:
+                                            cat ${'$'}TEST_FS_OPTION
+                                        """.trimIndent()
+                                    )
+                                )
+                            )
+                        }
+                        option(
+                            "TEST_FS_OPTION", AgentOptionWithValue.String(
+                                option = run {
+                                    val opt = AgentOption.String()
+                                    opt.transport = AgentOptionTransport.FILE_SYSTEM
+                                    opt
+                                },
+                                value = AgentOptionValue.String(optionValue)
+                            )
+                        )
+                    }
+                )
+            )
+        )
+
+        shouldPostEvents(
+            timeout = 10.seconds,
+            allowUnexpectedEvents = true,
+            events = mutableListOf(
+                TestEvent("home tmp") { it is LoggingEvent.Info && it.text == "/tmp" },
+                TestEvent("uid") { it is LoggingEvent.Info && it.text == "65532" },
+                TestEvent("rootfs readonly") { it is LoggingEvent.Info && it.text == "ROOT_FS_READ_ONLY" },
+                TestEvent("fs readable") { it is LoggingEvent.Info && it.text == optionValue },
+            ),
+            logger.flow
+        ) {
+            session1.fullLifeCycle()
+        }
     }
 })

@@ -7,4 +7,6 @@ data class SecurityConfig(
      * set it to true and understand the risks involved.
      */
     val enableReferencedExporting: Boolean = false,
+    val allowMarketplaceExecutableRuntime: Boolean = false,
+    val requireMarketplaceDockerImageDigest: Boolean = false,
 )

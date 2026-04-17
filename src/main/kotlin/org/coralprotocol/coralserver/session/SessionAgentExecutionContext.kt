@@ -5,7 +5,11 @@ package org.coralprotocol.coralserver.session
 import io.ktor.http.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.flow.update
+import org.coralprotocol.coralserver.agent.execution.ExecutionTrustPolicy
+import org.coralprotocol.coralserver.agent.execution.ExecutionTrustPolicyResolver
+import org.coralprotocol.coralserver.agent.execution.ExecutionTrustTier
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
+import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
 import org.coralprotocol.coralserver.agent.registry.option.*
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.agent.runtime.DEFAULT_AGENT_RUNTIME_TRANSPORT
@@ -44,10 +48,23 @@ class SessionAgentExecutionContext(
     val debugConfig by inject<DebugConfig>()
     val dockerConfig by inject<DockerConfig>()
     val llmProxyConfig by inject<LlmProxyConfig>()
+    val executionTrustPolicyResolver by inject<ExecutionTrustPolicyResolver>()
 
     val disposableResources = mutableListOf<SessionAgentDisposableResource>()
 
     var lastLaunchTime: Instant? = null
+
+    val isMarketplaceAgent = registryAgent.identifier.registrySourceId is AgentRegistrySourceIdentifier.Marketplace
+
+    val executionPolicy: ExecutionTrustPolicy by lazy {
+        executionTrustPolicyResolver.resolve(registryAgent.identifier.registrySourceId)
+    }
+
+    val executionTrustTier: String
+        get() = executionPolicy.trustTier.name.lowercase()
+
+    val executionProfileName: String
+        get() = executionPolicy.profileName
 
     /**
      * A list of usage reports for this agent.  When a session ends, all usage reports for each agent will be sent to
@@ -88,6 +105,14 @@ class SessionAgentExecutionContext(
                 putAll(debugConfig.additionalDockerEnvironment)
             }
 
+            if (provider.runtime == RuntimeId.DOCKER && executionPolicy.trustTier == ExecutionTrustTier.UNTRUSTED) {
+                this["HOME"] = dockerConfig.containerTemporaryDirectory
+                this["TMPDIR"] = dockerConfig.containerTemporaryDirectory
+                this["XDG_CACHE_HOME"] = "${dockerConfig.containerTemporaryDirectory}/.cache"
+                this["XDG_CONFIG_HOME"] = "${dockerConfig.containerTemporaryDirectory}/.config"
+                this["XDG_DATA_HOME"] = "${dockerConfig.containerTemporaryDirectory}/.local/share"
+            }
+
             // User options
             options.forEach { (name, value) ->
                 when (value.option().transport) {
@@ -123,6 +148,9 @@ class SessionAgentExecutionContext(
             this["CORAL_API_URL"] = applicationRuntimeContext.getApiUrl(addressConsumer).toString()
             this["CORAL_SEND_CLAIMS"] = "0"
             this["CORAL_RUNTIME_ID"] = provider.runtime.toString().lowercase()
+            this["CORAL_REGISTRY_SOURCE"] = registryAgent.identifier.registrySourceId.toString()
+            this["CORAL_TRUST_TIER"] = executionTrustTier
+            this["CORAL_EXECUTION_PROFILE"] = executionProfileName
 
             if (agent.graphAgent.systemPrompt != null)
                 this["CORAL_PROMPT_SYSTEM"] = agent.graphAgent.systemPrompt

@@ -49,6 +49,10 @@ private fun defaultDockerSocket(): String {
     }
 }
 
+private fun defaultDockerTmpFs(): Map<String, String> = mapOf(
+    "/tmp" to "rw,noexec,nosuid,nodev,size=64m"
+)
+
 data class DockerConfig(
     /**
      * Optional docker socket path
@@ -97,5 +101,19 @@ data class DockerConfig(
      *
      * @see [containerPathSeparator]
      */
-    val containerTemporaryDirectory: String = "/tmp"
+    val containerTemporaryDirectory: String = "/tmp",
+    val noNewPrivileges: Boolean = true,
+    val readOnlyRootFilesystem: Boolean = false,
+    val dropCapabilities: Set<String> = setOf("ALL"),
+    val pidsLimit: Long? = 256,
+    val nanoCpus: Long? = null,
+    val memoryLimitBytes: Long? = null,
+    val user: String? = null,
+    val tmpFs: Map<String, String> = defaultDockerTmpFs(),
+    val marketplaceReadOnlyRootFilesystem: Boolean = true,
+    val marketplacePidsLimit: Long? = 256,
+    val marketplaceNanoCpus: Long? = 1_000_000_000,
+    val marketplaceMemoryLimitBytes: Long? = 512L * 1024L * 1024L,
+    val marketplaceUser: String? = "65532:65532",
+    val marketplaceTmpFs: Map<String, String>? = null,
 )
