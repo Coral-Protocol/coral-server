@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
 import org.coralprotocol.coralserver.agent.debug.*
+import org.coralprotocol.coralserver.agent.execution.ExecutionTrustPolicyResolver
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.config.RegistryConfig
 import org.coralprotocol.coralserver.mcp.McpToolManager
@@ -16,6 +17,8 @@ import java.nio.file.Path
 const val AGENT_WATCHER_COROUTINE_SCOPE_NAME = "agentWatcherCoroutineScope"
 
 val agentModule = module {
+    singleOf(::ExecutionTrustPolicyResolver)
+
     singleOf(::EchoDebugAgent)
     singleOf(::SeedDebugAgent)
     singleOf(::ToolDebugAgent)

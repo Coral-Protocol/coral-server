@@ -570,7 +570,9 @@ class SessionAgent(
             status = status.value,
             description = description,
             links = links.map { it.name }.toSet(),
-            annotations = graphAgent.annotations
+            annotations = graphAgent.annotations,
+            executionProfile = executionContext.executionPolicy.profileName,
+            trustTier = executionContext.executionPolicy.trustTier,
         )
 
     /**

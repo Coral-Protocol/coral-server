@@ -16,6 +16,7 @@ import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.maps.shouldHaveSize
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.client.*
@@ -34,6 +35,7 @@ import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.debug.SeedDebugAgent
 import org.coralprotocol.coralserver.agent.debug.ToolDebugAgent
+import org.coralprotocol.coralserver.agent.execution.ExecutionTrustTier
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentTool
 import org.coralprotocol.coralserver.agent.graph.GraphAgentToolTransport
@@ -234,6 +236,65 @@ class SessionApiTest : CoralTest({
         }
 
         localSessionManager.waitAllSessions()
+    }
+
+    test("testSessionApiExposesExecutionTrustPosture") {
+        val client by inject<HttpClient>()
+        val registry by inject<AgentRegistry>()
+
+        val postureName = "posture-agent"
+        val postureVersion = "1.0.0"
+        val postureIdentifier = RegistryAgentIdentifier(
+            postureName,
+            postureVersion,
+            AgentRegistrySourceIdentifier.Local
+        )
+
+        registry.sources.add(
+            ListAgentRegistrySource(
+                "posture agents",
+                listOf(
+                    registryAgent(postureName) {
+                        version = postureVersion
+                        runtime(FunctionRuntime())
+                        registrySourceId = AgentRegistrySourceIdentifier.Local
+                    }
+                )
+            )
+        )
+
+        val sessionId: SessionIdentifier = client.authenticatedPost(LocalSessions.Session()) {
+            setBody(
+                sessionRequest {
+                    agentGraphRequest {
+                        agent(postureIdentifier) {
+                            provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
+                        }
+                        isolateAllAgents()
+                    }
+                    createNamespaceIfNotExists {
+                        name = namespaceName
+                    }
+                    immediateExecution {
+                        persistenceMode = SessionPersistenceMode.HoldAfterExit(1000)
+                    }
+                }
+            )
+        }.shouldBeOK().body()
+
+        val state: SessionStateExtended =
+            client.authenticatedGet(
+                LocalSessions.Session.Existing.Extended(
+                    LocalSessions.Session.Existing(
+                        namespace = sessionId.namespace,
+                        sessionId = sessionId.sessionId
+                    )
+                )
+            ).shouldBeOK().body()
+
+        val agentState = state.agents.single { it.name == postureName }
+        agentState.executionProfile shouldBe "trusted_local"
+        agentState.trustTier shouldBe ExecutionTrustTier.TRUSTED
     }
 
     test("testSessionPersistence") {
