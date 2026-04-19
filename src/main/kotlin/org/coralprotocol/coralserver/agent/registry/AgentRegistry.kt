@@ -1,8 +1,10 @@
 package org.coralprotocol.coralserver.agent.registry
 
 import org.coralprotocol.coralserver.logging.Logger
+import org.coralprotocol.coralserver.modules.AGENT_WATCHER_COROUTINE_SCOPE_NAME
 import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import kotlin.time.Duration
@@ -24,7 +26,7 @@ class AgentRegistrySourceBuilder(private val registry: AgentRegistry) : KoinComp
     }
 
     fun addFileBasedSource(filePattern: String, watch: Boolean, rescanTimer: Duration = Duration.ZERO) {
-        val source = FileAgentRegistrySource(registry, filePattern, watch)
+        val source = FileAgentRegistrySource(registry, filePattern, watch, get(named(AGENT_WATCHER_COROUTINE_SCOPE_NAME)))
         if (rescanTimer > Duration.ZERO)
             source.scanOnInterval(rescanTimer)
 
