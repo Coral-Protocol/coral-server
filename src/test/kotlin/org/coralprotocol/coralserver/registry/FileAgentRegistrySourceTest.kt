@@ -71,7 +71,7 @@ class FileAgentRegistrySourceTest : CoralTest({
             description = "test"
             readme = "test"
             summary = "test"
-            license = { type = "sdpx", expression = "MIT" }
+            license = { type = "spdx", expression = "MIT" }
             
             [runtimes.executable]
             path = "test"
