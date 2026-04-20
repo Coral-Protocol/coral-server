@@ -1,5 +1,37 @@
 # Changelog
 
+## [1.2.0](https://github.com/Coral-Protocol/coral-server/compare/v1.1.0...v1.2.0) (2026-04-20)
+
+
+### Features
+
+* added tests for the test mcp server, used by prototype runtime tests ([861399d](https://github.com/Coral-Protocol/coral-server/commit/861399d291655d344d1ed3ef860425d9cae5a4da))
+* allow config options to be specified using command line arguments ([57182c5](https://github.com/Coral-Protocol/coral-server/commit/57182c554732fe27e231d80ed41f388fab660e67))
+* current agent edition is now 4 ([861399d](https://github.com/Coral-Protocol/coral-server/commit/861399d291655d344d1ed3ef860425d9cae5a4da))
+* Let args be specified via command line args ([#269](https://github.com/Coral-Protocol/coral-server/issues/269)) ([57182c5](https://github.com/Coral-Protocol/coral-server/commit/57182c554732fe27e231d80ed41f388fab660e67))
+* Print guidance on BindException ([#274](https://github.com/Coral-Protocol/coral-server/issues/274)) ([e3c7cdc](https://github.com/Coral-Protocol/coral-server/commit/e3c7cdcf444e6250ecc0661b95375a231aa6b7fd))
+* prompt adjustments for agent time awareness ([861399d](https://github.com/Coral-Protocol/coral-server/commit/861399d291655d344d1ed3ef860425d9cae5a4da))
+* prototype runtime ([861399d](https://github.com/Coral-Protocol/coral-server/commit/861399d291655d344d1ed3ef860425d9cae5a4da))
+* prototype runtime powered multi-agent tests ([861399d](https://github.com/Coral-Protocol/coral-server/commit/861399d291655d344d1ed3ef860425d9cae5a4da))
+* registry agents can now reference constants ([861399d](https://github.com/Coral-Protocol/coral-server/commit/861399d291655d344d1ed3ef860425d9cae5a4da))
+* share model proxy details to agents via envs ([#276](https://github.com/Coral-Protocol/coral-server/issues/276)) ([128665e](https://github.com/Coral-Protocol/coral-server/commit/128665e630f8cc860f6380e4aa2e8a3362e1d95c))
+* update gradle to 9.0.0, kotlin to 2.3.20 and jvm version to 24 ([#264](https://github.com/Coral-Protocol/coral-server/issues/264)) ([9486783](https://github.com/Coral-Protocol/coral-server/commit/948678348a64a00419486a63688c3836934a8d75))
+* update to kotling 2.3.10 ([861399d](https://github.com/Coral-Protocol/coral-server/commit/861399d291655d344d1ed3ef860425d9cae5a4da))
+* updated kotlin-sdk ([861399d](https://github.com/Coral-Protocol/coral-server/commit/861399d291655d344d1ed3ef860425d9cae5a4da))
+* wait tools can now have a customized timeout ([861399d](https://github.com/Coral-Protocol/coral-server/commit/861399d291655d344d1ed3ef860425d9cae5a4da))
+* wait tools now require the current time, allowing the replaying of previous messages ([861399d](https://github.com/Coral-Protocol/coral-server/commit/861399d291655d344d1ed3ef860425d9cae5a4da))
+
+
+### Bug Fixes
+
+* all references to jdk on dockerfile now match 24, gradle version upgraded to version 9 ([28afa08](https://github.com/Coral-Protocol/coral-server/commit/28afa0897b651e97ed0b79e858ca87e55ff5aec6))
+* GraphAgentTool contains a full MCP tool description ([861399d](https://github.com/Coral-Protocol/coral-server/commit/861399d291655d344d1ed3ef860425d9cae5a4da))
+* marketplace extension polymorphic type not inheriting parent class ([1e8252c](https://github.com/Coral-Protocol/coral-server/commit/1e8252c686f64e1c1b0304757aca6901b63c6481))
+* RegistryAgentExtension for marketplace deserialization fix ([861399d](https://github.com/Coral-Protocol/coral-server/commit/861399d291655d344d1ed3ef860425d9cae5a4da))
+* stop implicitly ignoring ~/.coral/agents/* when agents are explicitly defined without including ~/.coral/agents/* ([#267](https://github.com/Coral-Protocol/coral-server/issues/267)) ([3c5a041](https://github.com/Coral-Protocol/coral-server/commit/3c5a041a7749b39e9462a064598f526a6007e2c3))
+* streamable mcp transport cancellations don't throw exceptions ([861399d](https://github.com/Coral-Protocol/coral-server/commit/861399d291655d344d1ed3ef860425d9cae5a4da))
+* update build files and dockerfile for java 24 and gradle 9.0.0 ([c832be9](https://github.com/Coral-Protocol/coral-server/commit/c832be99923884605ba904f99b65315f0a1a5dcb))
+
 ## [1.1.0](https://github.com/Coral-Protocol/coral-server/compare/v1.0.0...v1.1.0) (2026-03-10)
 
 
