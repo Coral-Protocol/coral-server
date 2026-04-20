@@ -71,7 +71,7 @@ class FileAgentRegistrySourceTest : CoralTest({
             description = "test"
             readme = "test"
             summary = "test"
-            license = { type = "sdpx", expression = "MIT" }
+            license = { type = "spdx", expression = "MIT" }
             
             [runtimes.executable]
             path = "test"
@@ -106,10 +106,10 @@ class FileAgentRegistrySourceTest : CoralTest({
         val registry by inject<AgentRegistry>()
         val agentName = "agent1"
 
-        withTempDir {
+        withTempDir { scope ->
             writeAgent(agentName)
 
-            FileAgentRegistrySource(registry, resolve(agentName).toString()).agents.shouldHaveSingleElement {
+            FileAgentRegistrySource(registry, resolve(agentName).toString(), false, scope).agents.shouldHaveSingleElement {
                 it.name == agentName
             }
         }
@@ -122,27 +122,27 @@ class FileAgentRegistrySourceTest : CoralTest({
         // agents/agent1/coral-agent.toml
         // agents/agent2/coral-agent.toml
         // agents/agent3/coral-agent.toml
-        withTempDir {
+        withTempDir { scope ->
             resolve("agents").apply {
                 writeAgent("agent4", "nested/agent4/$AGENT_FILE") // bad agent, nested
                 agentNames.forEach { writeAgent(it) }
             }
 
-            FileAgentRegistrySource(registry, toString() + "/agents/*").agents.map { it.name }
+            FileAgentRegistrySource(registry, toString() + "/agents/*", false, scope).agents.map { it.name }
                 .shouldContainAll(agentNames)
         }
 
         // agents/agent1/data-files/coral-agent.toml
         // agents/agent2/data-files/coral-agent.toml
         // agents/agent3/data-files/coral-agent.toml
-        withTempDir {
+        withTempDir { scope ->
             resolve("agents").apply {
                 agentNames.forEach { writeAgent(it, "$it/data-files/$AGENT_FILE") }
             }
 
             writeAgent("agent4", "agents/agent4/$AGENT_FILE") // bad agent, not nested in data-files
 
-            FileAgentRegistrySource(registry, toString() + "/agents/*/data-files/").agents.map { it.name }
+            FileAgentRegistrySource(registry, toString() + "/agents/*/data-files/", false, scope).agents.map { it.name }
                 .shouldContainAll(agentNames)
         }
     }
@@ -151,13 +151,13 @@ class FileAgentRegistrySourceTest : CoralTest({
         val registry by inject<AgentRegistry>()
         val agentName = "agent1"
 
-        withTempDir {
+        withTempDir { scope ->
             val agentPath = writeAgent(agentName)
             val noise = resolve("$agentName/noise.txt").apply {
                 writeText("noise")
             }
 
-            val registrySource = FileAgentRegistrySource(registry, resolve(agentName).toString(), true, it)
+            val registrySource = FileAgentRegistrySource(registry, resolve(agentName).toString(), true, scope)
             registrySource.agents.shouldHaveSingleElement { agent ->
                 agent.name == agentName
             }
@@ -176,14 +176,14 @@ class FileAgentRegistrySourceTest : CoralTest({
         val agentName = "agent1"
 
         repeat(10) { depth ->
-            withTempDir {
+            withTempDir { scope ->
                 val root = resolve("root")
                 root.resolve("nest/".repeat(depth)).apply {
                     val path = resolve("agents").apply {
                         writeAgent(agentName)
                     }
 
-                    val source = FileAgentRegistrySource(registry, "$path/*", false, it)
+                    val source = FileAgentRegistrySource(registry, "$path/*", false, scope)
                     source.agents.shouldHaveSingleElement { agent -> agent.name == agentName }
 
                     root.deleteRecursively()
@@ -204,14 +204,14 @@ class FileAgentRegistrySourceTest : CoralTest({
         val agentName = "agent1"
         val newAgentName = "agent2"
 
-        withTempDir {
+        withTempDir { scope ->
             writeAgent(agentName)
             val noise = resolve("$agentName/noise.txt").apply {
                 writeText("noise")
             }
 
 
-            val registrySource = FileAgentRegistrySource(registry, resolve(agentName).toString(), true, it)
+            val registrySource = FileAgentRegistrySource(registry, resolve(agentName).toString(), true, scope)
             registrySource.agents.shouldHaveSingleElement { agent ->
                 agent.name == agentName
             }
@@ -232,10 +232,10 @@ class FileAgentRegistrySourceTest : CoralTest({
         val agentName = "agent1"
         val newAgentName = "agent2"
 
-        withTempDir {
+        withTempDir { scope ->
             writeAgent(agentName)
 
-            val registrySource = FileAgentRegistrySource(registry, resolve(agentName).toString(), true, it)
+            val registrySource = FileAgentRegistrySource(registry, resolve(agentName).toString(), true, scope)
             registrySource.agents.shouldHaveSingleElement { agent ->
                 agent.name == agentName
             }
@@ -255,10 +255,10 @@ class FileAgentRegistrySourceTest : CoralTest({
         val registry by inject<AgentRegistry>()
         val agentName = "agent1"
 
-        withTempDir {
+        withTempDir { scope ->
             val path = writeAgent(agentName)
 
-            val registrySource = FileAgentRegistrySource(registry, resolve(agentName).toString(), true, it)
+            val registrySource = FileAgentRegistrySource(registry, resolve(agentName).toString(), true, scope)
             registrySource.agents.shouldHaveSingleElement { agent ->
                 agent.name == agentName
             }
@@ -282,11 +282,11 @@ class FileAgentRegistrySourceTest : CoralTest({
         val registry by inject<AgentRegistry>()
         val agentName = "agent1"
 
-        withTempDir {
+        withTempDir { scope ->
             var nestedPath = this
             repeat(5) { nestedPath = nestedPath.resolve("nest") }
 
-            val registrySource = FileAgentRegistrySource(registry, "$nestedPath/*", true, it)
+            val registrySource = FileAgentRegistrySource(registry, "$nestedPath/*", true, scope)
             registrySource.agents.shouldBeEmpty()
 
             nestedPath.writeAgent(agentName, delay = humanActionTime)
@@ -302,8 +302,8 @@ class FileAgentRegistrySourceTest : CoralTest({
     test("testWatchRenameFolderHuman") {
         val registry by inject<AgentRegistry>()
 
-        withTempDir {
-            val registrySource = FileAgentRegistrySource(registry, "$this/agents/*", true, it)
+        withTempDir { scope ->
+            val registrySource = FileAgentRegistrySource(registry, "$this/agents/*", true, scope)
             registrySource.agents.shouldBeEmpty()
 
             resolve("agents").apply {
@@ -334,8 +334,8 @@ class FileAgentRegistrySourceTest : CoralTest({
 
         val agent1Name = "agent1"
         val agent2Name = "agent2"
-        withTempDir {
-            val registrySource = FileAgentRegistrySource(registry, "$this/*", true, it)
+        withTempDir { scope ->
+            val registrySource = FileAgentRegistrySource(registry, "$this/*", true, scope)
             registrySource.agents.shouldBeEmpty()
 
             writeAgent(agent1Name, delay = humanActionTime)
@@ -350,8 +350,8 @@ class FileAgentRegistrySourceTest : CoralTest({
         val registry by inject<AgentRegistry>()
         val agentNames = listOf("agent1", "agent2", "agent3")
 
-        withTempDir {
-            val registrySource = FileAgentRegistrySource(registry, toString() + "/agents/*", true, it)
+        withTempDir { scope ->
+            val registrySource = FileAgentRegistrySource(registry, toString() + "/agents/*", true, scope)
             registrySource.agents.shouldBeEmpty()
 
             resolve("agents").apply {
@@ -370,13 +370,13 @@ class FileAgentRegistrySourceTest : CoralTest({
         val agentNames = listOf("agent1", "agent2")
         val hiddenAgentName = ".hidden_agent"
 
-        withTempDir {
+        withTempDir { scope ->
             resolve("agents").apply {
                 agentNames.forEach { writeAgent(it) }
                 writeAgent(hiddenAgentName)
             }
 
-            val source = FileAgentRegistrySource(registry, toString() + "/agents/*")
+            val source = FileAgentRegistrySource(registry, toString() + "/agents/*", false, scope)
             source.agents.map { it.name }.shouldContainAll(agentNames)
             source.agents.map { it.name }.shouldNotContain(hiddenAgentName)
         }
@@ -386,12 +386,12 @@ class FileAgentRegistrySourceTest : CoralTest({
         val registry by inject<AgentRegistry>()
         val agentName = "agent1"
 
-        withTempDir {
+        withTempDir { scope ->
             val hiddenDir = resolve(".hidden")
             hiddenDir.createDirectory()
             hiddenDir.writeAgent(agentName)
 
-            val source = FileAgentRegistrySource(registry, hiddenDir.toString() + "/*")
+            val source = FileAgentRegistrySource(registry, "$hiddenDir/*", false, scope)
             source.agents.map { it.name }.shouldContain(agentName)
         }
     }
@@ -401,8 +401,8 @@ class FileAgentRegistrySourceTest : CoralTest({
         val agentName = "agent1"
         val hiddenAgentName = ".hidden_agent"
 
-        withTempDir {
-            val registrySource = FileAgentRegistrySource(registry, "$this/agents/*", true, it)
+        withTempDir { scope ->
+            val registrySource = FileAgentRegistrySource(registry, "$this/agents/*", true, scope)
 
             val agentsDir = resolve("agents")
             agentsDir.createDirectory()

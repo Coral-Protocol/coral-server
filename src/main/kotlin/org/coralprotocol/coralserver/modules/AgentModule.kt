@@ -1,5 +1,8 @@
 package org.coralprotocol.coralserver.modules
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
 import org.coralprotocol.coralserver.agent.debug.*
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
@@ -9,6 +12,8 @@ import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import java.nio.file.Path
+
+const val AGENT_WATCHER_COROUTINE_SCOPE_NAME = "agentWatcherCoroutineScope"
 
 val agentModule = module {
     singleOf(::EchoDebugAgent)
@@ -61,5 +66,9 @@ val agentModule = module {
 
     single(createdAtStart = true) {
         McpToolManager(get(named(LOGGER_CONFIG)))
+    }
+
+    single(named(AGENT_WATCHER_COROUTINE_SCOPE_NAME)) {
+        CoroutineScope(Dispatchers.IO)
     }
 }

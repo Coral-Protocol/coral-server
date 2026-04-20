@@ -5,7 +5,7 @@ name = "string-file-reference"
 version = "0.0.1"
 description = "test"
 summary = "test"
-license = { type = "sdpx", expression = "MIT" }
+license = { type = "spdx", expression = "MIT" }
 
 readme = { type = "file", path = "README.MD" }
 

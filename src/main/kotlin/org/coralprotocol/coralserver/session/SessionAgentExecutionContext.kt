@@ -121,7 +121,6 @@ class SessionAgentExecutionContext(
             this["CORAL_AGENT_SECRET"] = agent.secret
             this["CORAL_SESSION_ID"] = agent.session.id
             this["CORAL_API_URL"] = applicationRuntimeContext.getApiUrl(addressConsumer).toString()
-            this["CORAL_SEND_CLAIMS"] = "0"
             this["CORAL_RUNTIME_ID"] = provider.runtime.toString().lowercase()
 
             if (agent.graphAgent.systemPrompt != null)

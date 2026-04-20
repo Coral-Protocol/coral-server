@@ -69,7 +69,7 @@ class FileAgentRegistrySource(
     val registry: AgentRegistry,
     val pattern: String,
     val watch: Boolean = false,
-    val watchCoroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO),
+    val watchCoroutineScope: CoroutineScope,
     restrictions: Set<RegistryAgentRestriction> = setOf()
 ) : ListAgentRegistrySource(name = "pattern [${normalizedPathString(pattern)}]", restrictions = restrictions) {
 

@@ -125,18 +125,18 @@ class McpToolsTest : CoralTest({
                                 val agent2 = session.getAgent(agent2Name)
 
                                 val singleMessageResult =
-                                    mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput())
+                                    mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput(Long.MAX_VALUE))
                                 singleMessageResult.message?.text shouldBe singleMessageText
 
                                 val agentMessageResult =
                                     mcpToolManager.waitForAgentMessageTool.executeOn(
                                         client,
-                                        WaitForAgentMessageInput(agentName = agent1Name)
+                                        WaitForAgentMessageInput(currentUnixTime = Long.MAX_VALUE, agentName = agent1Name)
                                     )
                                 agentMessageResult.message?.text shouldBe agentMessageText
 
                                 val mentionResult =
-                                    mcpToolManager.waitForMentionTool.executeOn(client, WaitForMentioningMessageInput())
+                                    mcpToolManager.waitForMentionTool.executeOn(client, WaitForMentioningMessageInput(Long.MAX_VALUE))
                                 mentionResult.message?.text shouldBe mentionText
 
                                 agent2.waiters.value.shouldBeEmpty()
@@ -152,7 +152,7 @@ class McpToolsTest : CoralTest({
                                 val mentionMessageResult =
                                     mcpToolManager.waitForMentionTool.executeOn(
                                         client,
-                                        WaitForMentioningMessageInput()
+                                        WaitForMentioningMessageInput(Long.MAX_VALUE)
                                     ).message.shouldNotBeNull()
 
                                 // the first message that this agent should receive is the first message sent by agent1, but only

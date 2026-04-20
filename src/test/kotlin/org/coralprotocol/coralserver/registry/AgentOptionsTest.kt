@@ -295,4 +295,23 @@ class AgentOptionsTest : CoralTest({
         repeat(100) { shouldNotThrowAny { number.validation!!.require(it) } }
         shouldThrow<AgentOptionValidationException> { number.validation!!.require(101) } // too high
     }
+
+    test("testValidateStringU64") {
+        val toml by inject<Toml>()
+        val number = toml.decodeFromString(
+            AgentOption.serializer(), """
+            type = "u64"
+            description = "A test number"
+        
+            [validation]
+            min = "1"
+            max = "${ULong.MAX_VALUE - 1u}"
+        """
+        )
+
+        number.shouldBeInstanceOf<AgentOption.ULong>()
+        shouldNotThrowAny { number.validation!!.require(50UL) }
+        shouldThrow<AgentOptionValidationException> { number.validation!!.require(0UL) } // too low
+        shouldThrow<AgentOptionValidationException> { number.validation!!.require(ULong.MAX_VALUE) } // too high
+    }
 })
