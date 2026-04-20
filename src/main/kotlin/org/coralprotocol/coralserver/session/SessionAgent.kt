@@ -385,25 +385,27 @@ class SessionAgent(
      * came after [replayAfter] match [filters] then this function will wait normally.
      */
     suspend fun waitForMessage(
-        replayAfter: Instant = Clock.System.now(),
+        replayAfter: Instant? = null,
         filters: Set<SessionThreadMessageFilter> = setOf(),
         timeoutMs: Long = sessionConfig.defaultWaitTimeout
     ): SessionThreadMessage? {
-        val msg = withTimeoutOrNull(timeoutMs) {
+        val msg = withTimeoutOrNull(timeoutMs.milliseconds) {
             val waiter = SessionAgentWaiter(filters)
             waiters.update { it + waiter }
 
             val replayMessages = mutableListOf<SessionThreadMessage>()
-            getThreads().forEach { thread ->
-                replayMessages.addAll(thread.withMessageLock { messages ->
-                    messages.filter { it.timestamp >= replayAfter }
-                })
-            }
+            if (replayAfter != null) {
+                getThreads().forEach { thread ->
+                    replayMessages.addAll(thread.withMessageLock { messages ->
+                        messages.filter { it.timestamp >= replayAfter }
+                    })
+                }
 
-            if (filters.isEmpty()) {
-                logger.info { "attempting to wait for any message from any agent, replaying messages after $replayAfter" }
-            } else
-                logger.info { "attempting to wait for a message that matches filters [${filters.joinToString(", ")}], replaying messages after $replayAfter" }
+                if (filters.isEmpty()) {
+                    logger.info { "attempting to wait for any message from any agent, replaying messages after $replayAfter" }
+                } else
+                    logger.info { "attempting to wait for a message that matches filters [${filters.joinToString(", ")}], replaying messages after $replayAfter" }
+            }
 
             session.events.emit(SessionEvent.AgentWaitStart(name, filters))
             setCommunicationStatus(SessionAgentCommunicationStatus.WaitingMessage)
@@ -421,7 +423,7 @@ class SessionAgent(
                     logger.info { "no matching messages found in ${replayMessages.size} replayed messages, waiting for ${timeoutMs}ms..." }
                 }
             } else
-                logger.info { "no messages to replay, waiting for new messages for ${timeoutMs}ms..." }
+                logger.info { "${if (replayAfter != null) "no messages to replay, " else ""}waiting for new messages for ${timeoutMs}ms..." }
 
             val wait = measureTimedValue {
                 waiter.deferred.await()

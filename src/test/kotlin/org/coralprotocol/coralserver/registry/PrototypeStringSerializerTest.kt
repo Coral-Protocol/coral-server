@@ -59,7 +59,7 @@ class PrototypeStringSerializerTest : CoralTest({
                 description = "test"
                 summary = "test"
                 readme = "test"
-                license = { type = "sdpx", expression = "MIT" }
+                license = { type = "spdx", expression = "MIT" }
                 
                 [runtimes.prototype.model]
                 provider = "openai"

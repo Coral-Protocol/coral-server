@@ -28,7 +28,7 @@ data class UnresolvedRegistryAgentInfo(
     val summary: String,
 
     @Optional
-    @Description("The license name as a SDPX expression or the full license text for this agent")
+    @Description("The license name as a SPDX expression or the full license text for this agent")
     val license: RegistryAgentLicense,
 
     @Optional

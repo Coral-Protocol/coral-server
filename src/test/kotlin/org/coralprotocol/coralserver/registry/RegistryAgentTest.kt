@@ -48,6 +48,7 @@ class RegistryAgentTest : CoralTest({
         agent.readme.shouldBeEqual("A full markdown markdown readme for the agent on the marketplace")
         agent.summary.shouldBeEqual("A short NON-markdown summary of the agent on the marketplace")
         agent.license.shouldBeInstanceOf<RegistryAgentLicense.Text>().text.shouldBeEqual("an example license")
+        agent.keywords.shouldContainExactly("test", "debug")
 
         agent.links.shouldBeEqual(
             mapOf(
