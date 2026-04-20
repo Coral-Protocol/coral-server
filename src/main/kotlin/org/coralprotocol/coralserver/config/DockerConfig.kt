@@ -1,8 +1,5 @@
 package org.coralprotocol.coralserver.config
 
-import com.sksamuel.hoplite.ConfigAlias
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.util.isWindows
 import java.io.File
 
@@ -103,17 +100,21 @@ data class DockerConfig(
      */
     val containerTemporaryDirectory: String = "/tmp",
     val noNewPrivileges: Boolean = true,
-    val readOnlyRootFilesystem: Boolean = false,
     val dropCapabilities: Set<String> = setOf("ALL"),
+    val trusted: DockerTierDefaults = DockerTierDefaults(),
+    val marketplace: DockerTierDefaults = DockerTierDefaults(
+        readOnlyRootFilesystem = true,
+        nanoCpus = 1_000_000_000,
+        memoryLimitBytes = 512L * 1024L * 1024L,
+        user = "65532:65532",
+    ),
+)
+
+data class DockerTierDefaults(
+    val readOnlyRootFilesystem: Boolean = false,
     val pidsLimit: Long? = 256,
     val nanoCpus: Long? = null,
     val memoryLimitBytes: Long? = null,
     val user: String? = null,
     val tmpFs: Map<String, String> = defaultDockerTmpFs(),
-    val marketplaceReadOnlyRootFilesystem: Boolean = true,
-    val marketplacePidsLimit: Long? = 256,
-    val marketplaceNanoCpus: Long? = 1_000_000_000,
-    val marketplaceMemoryLimitBytes: Long? = 512L * 1024L * 1024L,
-    val marketplaceUser: String? = "65532:65532",
-    val marketplaceTmpFs: Map<String, String>? = null,
 )

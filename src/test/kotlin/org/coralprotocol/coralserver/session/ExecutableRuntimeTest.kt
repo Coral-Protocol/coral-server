@@ -175,7 +175,9 @@ class ExecutableRuntimeTest : CoralTest({
             allowUnexpectedEvents = true,
             events = mutableListOf(
                 TestEvent("blocked") {
-                    it is LoggingEvent.Error && it.text == "Executable runtime is disabled for marketplace agents"
+                    it is LoggingEvent.Error &&
+                            it.text.startsWith("Executable runtime is disabled by execution profile '") &&
+                            it.text.contains("marketplace_untrusted")
                 }
             ),
             logger.flow

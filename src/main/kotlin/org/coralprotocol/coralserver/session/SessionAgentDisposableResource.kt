@@ -16,7 +16,7 @@ sealed interface SessionAgentDisposableResource {
         val mountPath = "${dockerConfig.containerTemporaryDirectory}${dockerConfig.containerNameSeparator}${file.name}"
         init {
             file.writeBytes(data)
-            runCatching {
+            try {
                 Files.setPosixFilePermissions(
                     file,
                     setOf(
@@ -25,6 +25,7 @@ sealed interface SessionAgentDisposableResource {
                         PosixFilePermission.OTHERS_READ,
                     )
                 )
+            } catch (_: UnsupportedOperationException) {
             }
         }
 
