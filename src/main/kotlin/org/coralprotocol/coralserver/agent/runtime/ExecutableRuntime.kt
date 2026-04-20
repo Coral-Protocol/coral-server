@@ -26,7 +26,8 @@ data class ExecutableRuntime(
         applicationRuntimeContext: ApplicationRuntimeContext
     ) {
         if (!executionContext.executionPolicy.allowExecutableRuntime) {
-            val message = "Executable runtime is disabled for marketplace agents"
+            val message =
+                "Executable runtime is disabled by execution profile '${executionContext.executionPolicy.profileName}'"
             executionContext.logger.error { message }
             throw IllegalStateException(message)
         }

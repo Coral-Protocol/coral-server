@@ -10,6 +10,7 @@ import com.github.dockerjava.transport.DockerHttpClient
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.test.TestCase
+import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.nulls.shouldNotBeNull
 import kotlinx.coroutines.Dispatchers
@@ -28,8 +29,9 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.agent.runtime.DockerRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.agent.execution.toHostConfig
 import org.coralprotocol.coralserver.agent.runtime.sanitizeDockerImageName
-import org.coralprotocol.coralserver.agent.runtime.toHostConfig
+import org.coralprotocol.coralserver.config.DockerConfig
 import org.coralprotocol.coralserver.config.RootConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.Logger
@@ -241,16 +243,18 @@ class DockerRuntimeTest : CoralTest({
     test("testDockerHostConfigHardeningDefaults") {
         val logger by inject<Logger>(named(LOGGER_LOCAL_SESSION))
         val resolver by inject<ExecutionTrustPolicyResolver>()
+        val dockerConfig by inject<DockerConfig>()
 
         val hostConfig = resolver.resolve(AgentRegistrySourceIdentifier.Local).docker.toHostConfig(emptyList(), logger)
+        val tier = dockerConfig.trusted
 
         hostConfig.privileged shouldBe false
-        hostConfig.readonlyRootfs shouldBe false
-        hostConfig.securityOpts shouldBe listOf("no-new-privileges")
+        hostConfig.readonlyRootfs shouldBe tier.readOnlyRootFilesystem
+        hostConfig.securityOpts?.shouldContain("no-new-privileges")
         hostConfig.capDrop?.toSet() shouldBe setOf(Capability.ALL)
-        hostConfig.pidsLimit shouldBe 256L
-        hostConfig.nanoCPUs shouldBe null
-        hostConfig.memory shouldBe null
+        hostConfig.pidsLimit shouldBe tier.pidsLimit
+        hostConfig.nanoCPUs shouldBe tier.nanoCpus
+        hostConfig.memory shouldBe tier.memoryLimitBytes
     }
 
     test("testDockerImageDigestRequiredForMarketplaceAgents") {

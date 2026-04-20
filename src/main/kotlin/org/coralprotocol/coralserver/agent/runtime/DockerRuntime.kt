@@ -11,7 +11,7 @@ import io.ktor.utils.io.*
 import kotlinx.coroutines.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import org.coralprotocol.coralserver.agent.execution.DockerExecutionTrustPolicy
+import org.coralprotocol.coralserver.agent.execution.toHostConfig
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.LoggingInterface
@@ -130,6 +130,9 @@ data class DockerRuntime(
             @OptIn(InternalAPI::class)
             if (e.rootCause is InterruptedException)
                 throw CancellationException("Docker timeout", e)
+
+            executionContext.logger.error(e) { "Docker client error" }
+            throw e
         } finally {
             withContext(NonCancellable) {
                 when (val containerId = containerId) {
@@ -160,7 +163,7 @@ internal fun sanitizeDockerImageName(
     }
 
     if (requireDigest) {
-        throw IllegalArgumentException("Docker image $imageName must be pinned by digest for marketplace agents")
+        throw IllegalArgumentException("Docker image $imageName must be pinned by digest (@sha256:...) to satisfy the active execution profile")
     }
 
     if (imageName.contains(":")) {
@@ -173,43 +176,6 @@ internal fun sanitizeDockerImageName(
         return "$imageName:${id.version}"
     }
 }
-
-internal fun DockerExecutionTrustPolicy.toHostConfig(
-    volumes: List<Bind>,
-    logger: LoggingInterface
-): HostConfig {
-    val hostConfig = HostConfig()
-        .withBinds(volumes)
-        .withPrivileged(false)
-        .withReadonlyRootfs(readOnlyRootFilesystem)
-
-    if (noNewPrivileges) {
-        hostConfig.withSecurityOpts(listOf("no-new-privileges"))
-    }
-
-    if (readOnlyRootFilesystem && tmpFs.isNotEmpty()) {
-        hostConfig.withTmpFs(tmpFs)
-    }
-
-    if (dropCapabilities.isNotEmpty()) {
-        hostConfig.withCapDrop(*dropCapabilities.toCapabilities(logger).toTypedArray())
-    }
-
-    pidsLimit?.let { hostConfig.withPidsLimit(it) }
-    nanoCpus?.let { hostConfig.withNanoCPUs(it) }
-    memoryLimitBytes?.let { hostConfig.withMemory(it) }
-
-    return hostConfig
-}
-
-internal fun Set<String>.toCapabilities(logger: LoggingInterface): List<Capability> =
-    mapNotNull { capability ->
-        runCatching { enumValueOf<Capability>(capability.uppercase()) }
-            .onFailure {
-                logger.warn { "Unknown Docker capability in config: $capability" }
-            }
-            .getOrNull()
-    }
 
 private fun DockerClient.findImage(imageName: String): Image? =
     listImagesCmd()
