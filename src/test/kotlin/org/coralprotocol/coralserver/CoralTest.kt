@@ -1,6 +1,9 @@
+@file:OptIn(KotestInternal::class)
+
 package org.coralprotocol.coralserver
 
 import dev.eav.tomlkt.Toml
+import io.kotest.common.KotestInternal
 import io.kotest.core.NamedTag
 import io.kotest.core.spec.RootTest
 import io.kotest.core.spec.style.FunSpec
@@ -102,6 +105,7 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                 test = {
                     val testLogger = Logger(logBufferSize, LoggerFactory.getLogger("CoralTest"))
                     val prodLogger = Logger(logBufferSize, LoggerFactory.getLogger("CoralProd"))
+                    val backgroundJob = Job()
 
                     try {
                         runTestApplication {
@@ -129,6 +133,7 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                                 ),
                                                 registryConfig = RegistryConfig(
                                                     includeDebugAgents = true,
+                                                    includeCoralHomeAgents = false,
                                                     localAgents = listOf()
                                                 ),
                                                 authConfig = AuthConfig(
@@ -212,7 +217,10 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                             )
                                         }
                                         single(named(WEBSOCKET_COROUTINE_SCOPE_NAME)) {
-                                            this@RootTest + Job()
+                                            this@RootTest + backgroundJob
+                                        }
+                                        single(named(AGENT_WATCHER_COROUTINE_SCOPE_NAME)) {
+                                            this@RootTest + backgroundJob
                                         }
                                     }
                                 )
@@ -230,13 +238,14 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                         }
                     } finally {
                         stopKoin()
+                        backgroundJob.cancel()
                     }
                 },
                 type = test.type,
                 source = test.source,
                 config = test.config,
                 factoryId = test.factoryId,
-                xmethod = test.xmethod
+                xmethod = test.xmethod,
             )
         )
     }

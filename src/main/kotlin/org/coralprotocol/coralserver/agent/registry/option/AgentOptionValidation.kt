@@ -33,17 +33,19 @@ data class StringAgentOptionValidation(
     val regex: String? = null,
 ) {
     fun require(value: String) {
-        if (minLength != null && value.length < minLength)
-            throw AgentOptionValidationException("Value $value is shorter than the minimum length $minLength")
+        val length = value.toByteArray(Charsets.UTF_8).size
 
-        if (maxLength != null && value.length > maxLength)
-            throw AgentOptionValidationException("Value $value is longer than the maximum length $maxLength")
+        if (minLength != null && length < minLength)
+            throw AgentOptionValidationException("Value \"$value\" is shorter than the minimum length $minLength")
+
+        if (maxLength != null && length > maxLength)
+            throw AgentOptionValidationException("Value \"$value\" is longer than the maximum length $maxLength")
 
         if (regex != null && !value.matches(Regex(regex)))
-            throw AgentOptionValidationException("Value $value does not match the regex pattern '$regex'")
+            throw AgentOptionValidationException("Value \"$value\" does not match the regex pattern '$regex'")
 
         if (!variants.isNullOrEmpty() && !variants.contains(value))
-            throw AgentOptionValidationException("Value $value is not a valid variant.  Valid variants are: ${variants.joinToString(",")})")
+            throw AgentOptionValidationException("Value \"$value\" is not a valid variant.  Valid variants are: ${variants.joinToString(",")})")
     }
 }
 

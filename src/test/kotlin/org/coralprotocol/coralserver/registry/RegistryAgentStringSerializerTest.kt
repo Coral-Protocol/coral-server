@@ -47,7 +47,7 @@ class RegistryAgentStringSerializerTest : CoralTest({
                 version = "0.0.1"
                 description = "test"
                 summary = "test"
-                license = { type = "sdpx", expression = "MIT" }
+                license = { type = "spdx", expression = "MIT" }
                 
                 readme = { type = "url", url = "$urlPath" }
                 
@@ -73,7 +73,7 @@ class RegistryAgentStringSerializerTest : CoralTest({
                 version = "0.0.1"
                 description = "test"
                 summary = "test"
-                license = { type = "sdpx", expression = "MIT" }
+                license = { type = "spdx", expression = "MIT" }
                 
                 readme = { type = "url", url = "$urlPath" }
                 
@@ -163,7 +163,7 @@ class RegistryAgentStringSerializerTest : CoralTest({
                 description = "test"
                 summary = "test"
                 readme = "test"
-                license = { type = "sdpx", expression = "MIT" }
+                license = { type = "spdx", expression = "MIT" }
                 
                 [runtimes.docker]
                 image = "ubuntu"

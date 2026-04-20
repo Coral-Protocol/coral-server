@@ -11,7 +11,7 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 @JsonClassDiscriminator("type")
 sealed interface RegistryAgentLicense {
     @Serializable
-    @SerialName("sdpx")
+    @SerialName("spdx")
     data class Spdx(val expression: String) : RegistryAgentLicense
 
     @Serializable
