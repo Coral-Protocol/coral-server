@@ -150,6 +150,7 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                                 registryConfig = RegistryConfig(
                                                     includeDebugAgents = true,
                                                     includeCoralHomeAgents = false,
+                                                    watchLocalAgents = false,
                                                     localAgents = listOf()
                                                 ),
                                                 authConfig = AuthConfig(

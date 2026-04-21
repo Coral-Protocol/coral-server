@@ -2,8 +2,8 @@ package org.coralprotocol.coralserver.session
 
 import io.kotest.matchers.shouldBe
 import org.coralprotocol.coralserver.CoralTest
-import org.coralprotocol.coralserver.agent.execution.ExecutionTrustPolicyResolver
 import org.coralprotocol.coralserver.agent.execution.ExecutionTrustTier
+import org.coralprotocol.coralserver.agent.execution.resolveTrustPolicy
 import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
 import org.coralprotocol.coralserver.config.DockerConfig
 import org.coralprotocol.coralserver.config.SecurityConfig
@@ -11,75 +11,56 @@ import org.koin.test.inject
 
 class ExecutionTrustPolicyResolverTest : CoralTest({
     test("testLocalTrustPolicyMirrorsTrustedTierConfig") {
-        val resolver by inject<ExecutionTrustPolicyResolver>()
         val dockerConfig by inject<DockerConfig>()
+        val securityConfig by inject<SecurityConfig>()
 
-        val policy = resolver.resolve(AgentRegistrySourceIdentifier.Local)
-        val tier = dockerConfig.trusted
+        val policy = AgentRegistrySourceIdentifier.Local.resolveTrustPolicy(dockerConfig, securityConfig)
 
         policy.profileName shouldBe "trusted_local"
         policy.trustTier shouldBe ExecutionTrustTier.TRUSTED
         policy.allowExecutableRuntime shouldBe true
-        policy.docker.requireImageDigest shouldBe false
-        policy.docker.readOnlyRootFilesystem shouldBe tier.readOnlyRootFilesystem
-        policy.docker.pidsLimit shouldBe tier.pidsLimit
-        policy.docker.nanoCpus shouldBe tier.nanoCpus
-        policy.docker.memoryLimitBytes shouldBe tier.memoryLimitBytes
-        policy.docker.user shouldBe tier.user
-        policy.docker.tmpFs shouldBe tier.tmpFs
+        policy.docker shouldBe dockerConfig.trusted
     }
 
     test("testMarketplaceTrustPolicyMirrorsMarketplaceTierConfig") {
-        val resolver by inject<ExecutionTrustPolicyResolver>()
         val dockerConfig by inject<DockerConfig>()
+        val securityConfig by inject<SecurityConfig>()
 
-        val policy = resolver.resolve(AgentRegistrySourceIdentifier.Marketplace)
-        val tier = dockerConfig.marketplace
+        val policy = AgentRegistrySourceIdentifier.Marketplace.resolveTrustPolicy(dockerConfig, securityConfig)
 
         policy.profileName shouldBe "marketplace_untrusted"
         policy.trustTier shouldBe ExecutionTrustTier.UNTRUSTED
         policy.allowExecutableRuntime shouldBe false
-        policy.docker.requireImageDigest shouldBe false
-        policy.docker.readOnlyRootFilesystem shouldBe tier.readOnlyRootFilesystem
-        policy.docker.pidsLimit shouldBe tier.pidsLimit
-        policy.docker.nanoCpus shouldBe tier.nanoCpus
-        policy.docker.memoryLimitBytes shouldBe tier.memoryLimitBytes
-        policy.docker.user shouldBe tier.user
-        policy.docker.tmpFs shouldBe tier.tmpFs
+        policy.docker shouldBe dockerConfig.marketplace
     }
 
     test("testLinkedTrustPolicyInheritsMarketplaceHardening") {
-        val resolver by inject<ExecutionTrustPolicyResolver>()
+        val dockerConfig by inject<DockerConfig>()
+        val securityConfig by inject<SecurityConfig>()
 
-        val linked = resolver.resolve(AgentRegistrySourceIdentifier.Linked("peer-server"))
-        val marketplace = resolver.resolve(AgentRegistrySourceIdentifier.Marketplace)
+        val linked = AgentRegistrySourceIdentifier.Linked("peer-server")
+            .resolveTrustPolicy(dockerConfig, securityConfig)
+        val marketplace = AgentRegistrySourceIdentifier.Marketplace
+            .resolveTrustPolicy(dockerConfig, securityConfig)
 
         linked shouldBe marketplace
     }
 
-    test("testOperatorCanUnblockMarketplaceExecutableRuntime") {
+    test("testOperatorCanUnblockUntrustedExecutableRuntime") {
         val dockerConfig by inject<DockerConfig>()
+        val permissive = SecurityConfig(allowUntrustedExecutableRuntime = true)
 
-        val permissiveResolver = ExecutionTrustPolicyResolver(
-            securityConfig = SecurityConfig(allowMarketplaceExecutableRuntime = true),
-            dockerConfig = dockerConfig,
-        )
-
-        permissiveResolver.resolve(AgentRegistrySourceIdentifier.Marketplace)
+        AgentRegistrySourceIdentifier.Marketplace.resolveTrustPolicy(dockerConfig, permissive)
             .allowExecutableRuntime shouldBe true
     }
 
     test("testOperatorCanRequireMarketplaceDockerImageDigest") {
-        val dockerConfig by inject<DockerConfig>()
+        val securityConfig by inject<SecurityConfig>()
+        val strict = DockerConfig(marketplace = DockerConfig().marketplace.copy(requireImageDigest = true))
 
-        val strictResolver = ExecutionTrustPolicyResolver(
-            securityConfig = SecurityConfig(requireMarketplaceDockerImageDigest = true),
-            dockerConfig = dockerConfig,
-        )
-
-        strictResolver.resolve(AgentRegistrySourceIdentifier.Marketplace)
+        AgentRegistrySourceIdentifier.Marketplace.resolveTrustPolicy(strict, securityConfig)
             .docker.requireImageDigest shouldBe true
-        strictResolver.resolve(AgentRegistrySourceIdentifier.Local)
+        AgentRegistrySourceIdentifier.Local.resolveTrustPolicy(strict, securityConfig)
             .docker.requireImageDigest shouldBe false
     }
 })

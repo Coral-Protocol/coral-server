@@ -11,8 +11,8 @@ import io.ktor.utils.io.*
 import kotlinx.coroutines.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import org.coralprotocol.coralserver.agent.execution.toHostConfig
-import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
+import org.coralprotocol.coralserver.agent.execution.applyTo
+import org.coralprotocol.coralserver.agent.execution.sanitizeImage
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.LoggingInterface
 import org.coralprotocol.coralserver.logging.LoggingTag
@@ -42,11 +42,11 @@ data class DockerRuntime(
         }
 
         val docker = applicationRuntimeContext.dockerClient
-        val sanitisedImageName = sanitizeDockerImageName(
+        val sanitisedImageName = executionContext.executionPolicy.docker.sanitizeImage(
             imageName = image,
             id = executionContext.registryAgent.identifier,
+            profileName = executionContext.executionPolicy.profileName,
             logger = executionContext.logger,
-            requireDigest = executionContext.executionPolicy.docker.requireImageDigest
         )
         var containerId: String? = null
 
@@ -73,23 +73,19 @@ data class DockerRuntime(
                     Bind(it.file.toString(), Volume(it.mountPath))
                 }
 
-            val hostConfig = executionContext.executionPolicy.docker.toHostConfig(
-                volumes = volumes,
-                logger = executionContext.logger
-            )
-
             val containerCreationCmd = docker.createContainerCmd(sanitisedImageName)
                 .withName(executionContext.agent.secret)
                 .withEnv(environment.map { (key, value) -> "$key=$value" })
-                .withHostConfig(hostConfig)
                 .withAttachStdout(true)
                 .withAttachStderr(true)
                 .withStopTimeout(1)
                 .withAttachStdin(false) // Stdin makes no sense with orchestration
 
-            executionContext.executionPolicy.docker.user
-                ?.takeIf { it.isNotBlank() }
-                ?.let { containerCreationCmd.withUser(it) }
+            executionContext.executionPolicy.docker.applyTo(
+                cmd = containerCreationCmd,
+                volumes = volumes,
+                logger = executionContext.logger,
+            )
 
             if (command != null)
                 containerCreationCmd.withCmd(*command.toTypedArray())
@@ -131,7 +127,9 @@ data class DockerRuntime(
             if (e.rootCause is InterruptedException)
                 throw CancellationException("Docker timeout", e)
 
-            executionContext.logger.error(e) { "Docker client error" }
+            executionContext.logger.error(e) {
+                "Docker client error for agent ${executionContext.agent.name} (image=$sanitisedImageName, container=${containerId ?: "none"})"
+            }
             throw e
         } finally {
             withContext(NonCancellable) {
@@ -149,31 +147,6 @@ data class DockerRuntime(
                 }
             }
         }
-    }
-}
-
-internal fun sanitizeDockerImageName(
-    imageName: String,
-    id: RegistryAgentIdentifier,
-    logger: LoggingInterface,
-    requireDigest: Boolean = false,
-): String {
-    if (imageName.contains("@sha256:")) {
-        return imageName
-    }
-
-    if (requireDigest) {
-        throw IllegalArgumentException("Docker image $imageName must be pinned by digest (@sha256:...) to satisfy the active execution profile")
-    }
-
-    if (imageName.contains(":")) {
-        if (!imageName.endsWith(":${id.version}")) {
-            logger.warn { "Image $imageName does not match the agent version: ${id.version}" }
-        }
-
-        return imageName
-    } else {
-        return "$imageName:${id.version}"
     }
 }
 
