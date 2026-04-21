@@ -7,7 +7,6 @@
 > 
 > This readme and connected documentation are a work in progress.
 
-
 <br/>
 <div align="center">
   
@@ -16,8 +15,15 @@
   
 **[How to Run](#how-to-run)** ┃ **[Configuration](#configuration)** ┃ **[Contributing](#contribution-guidelines)**
 
+
 </div>
 <br/>
+
+## What is CoralOS?
+CoralOS is a platform for deploying and orchestrating agents that connect easily (with each other, your application, agentic middleware, …)
+CoralOS consists of the Coral Server and supporting tooling and ecosystem.
+Think of CoralOS as the “Kubernetes for agents”. There is an HTTP api, like a control plane, that lets you spin up a lifecycle-controlled graph of agents.
+
 
 ## How to Run
 
