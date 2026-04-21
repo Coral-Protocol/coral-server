@@ -1,5 +1,8 @@
 package org.coralprotocol.coralserver.utils.dsl
 
+import org.coralprotocol.coralserver.agent.execution.ExecutionConfig
+import org.coralprotocol.coralserver.agent.execution.MinIsolation
+import org.coralprotocol.coralserver.agent.execution.NetworkDeclaration
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.runtime.*
@@ -87,6 +90,7 @@ class RegistryAgentBuilder(
     private val unresolvedExportSettings: MutableMap<RuntimeId, UnresolvedAgentExportSettings> = mutableMapOf()
     private var marketplace: RegistryAgentMarketplaceSettings? = null
     private var llm: AgentLlmConfig? = null
+    private var execution: ExecutionConfig? = null
 
     fun link(name: String, value: String) {
         links[name] = value
@@ -114,6 +118,10 @@ class RegistryAgentBuilder(
 
     fun llm(block: AgentLlmConfigBuilder.() -> Unit) {
         llm = AgentLlmConfigBuilder().apply(block).build()
+    }
+
+    fun execution(minIsolation: MinIsolation, block: ExecutionConfigBuilder.() -> Unit = {}) {
+        execution = ExecutionConfigBuilder(minIsolation).apply(block).build()
     }
 
 
@@ -174,9 +182,24 @@ class RegistryAgentBuilder(
             path = path,
             unresolvedExportSettings = unresolvedExportSettings,
             marketplace = marketplace,
-            llm = llm
+            llm = llm,
+            execution = execution,
         )
     }
+}
+
+@TestDsl
+class ExecutionConfigBuilder(private val minIsolation: MinIsolation) {
+    private val externalHosts: MutableSet<String> = mutableSetOf()
+
+    fun externalHost(host: String) {
+        externalHosts += host
+    }
+
+    fun build(): ExecutionConfig = ExecutionConfig(
+        minIsolation = minIsolation,
+        network = NetworkDeclaration(externalHosts = externalHosts.toSet()),
+    )
 }
 
 @TestDsl
