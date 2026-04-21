@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.config
 
+import org.coralprotocol.coralserver.agent.execution.DockerExecutionTrustPolicy
 import org.coralprotocol.coralserver.util.isWindows
 import java.io.File
 
@@ -99,22 +100,15 @@ data class DockerConfig(
      * @see [containerPathSeparator]
      */
     val containerTemporaryDirectory: String = "/tmp",
-    val noNewPrivileges: Boolean = true,
-    val dropCapabilities: Set<String> = setOf("ALL"),
-    val trusted: DockerTierDefaults = DockerTierDefaults(),
-    val marketplace: DockerTierDefaults = DockerTierDefaults(
+
+    val trusted: DockerExecutionTrustPolicy = DockerExecutionTrustPolicy(
+        tmpFs = defaultDockerTmpFs(),
+    ),
+    val marketplace: DockerExecutionTrustPolicy = DockerExecutionTrustPolicy(
         readOnlyRootFilesystem = true,
         nanoCpus = 1_000_000_000,
         memoryLimitBytes = 512L * 1024L * 1024L,
         user = "65532:65532",
+        tmpFs = defaultDockerTmpFs(),
     ),
-)
-
-data class DockerTierDefaults(
-    val readOnlyRootFilesystem: Boolean = false,
-    val pidsLimit: Long? = 256,
-    val nanoCpus: Long? = null,
-    val memoryLimitBytes: Long? = null,
-    val user: String? = null,
-    val tmpFs: Map<String, String> = defaultDockerTmpFs(),
 )

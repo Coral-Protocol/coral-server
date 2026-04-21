@@ -29,6 +29,7 @@ import io.ktor.server.resources.post
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -36,6 +37,7 @@ import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.debug.SeedDebugAgent
 import org.coralprotocol.coralserver.agent.debug.ToolDebugAgent
 import org.coralprotocol.coralserver.agent.execution.ExecutionTrustTier
+import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentTool
 import org.coralprotocol.coralserver.agent.graph.GraphAgentToolTransport
@@ -240,61 +242,47 @@ class SessionApiTest : CoralTest({
 
     test("testSessionApiExposesExecutionTrustPosture") {
         val client by inject<HttpClient>()
-        val registry by inject<AgentRegistry>()
+        val localSessionManager by inject<LocalSessionManager>()
 
-        val postureName = "posture-agent"
-        val postureVersion = "1.0.0"
-        val postureIdentifier = RegistryAgentIdentifier(
-            postureName,
-            postureVersion,
-            AgentRegistrySourceIdentifier.Local
-        )
-
-        registry.sources.add(
-            ListAgentRegistrySource(
-                "posture agents",
-                listOf(
-                    registryAgent(postureName) {
-                        version = postureVersion
-                        runtime(FunctionRuntime())
-                        registrySourceId = AgentRegistrySourceIdentifier.Local
+        val (session, namespace) = localSessionManager.createSession(
+            namespaceName = namespaceName,
+            agentGraph = AgentGraph(
+                agents = mapOf(
+                    graphAgentPair("local-agent") {
+                        registryAgent {
+                            registrySourceId = AgentRegistrySourceIdentifier.Local
+                            runtime(FunctionRuntime())
+                        }
+                        provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
+                    },
+                    graphAgentPair("marketplace-agent") {
+                        registryAgent {
+                            registrySourceId = AgentRegistrySourceIdentifier.Marketplace
+                            runtime(FunctionRuntime())
+                        }
+                        provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
                     }
                 )
             )
         )
-
-        val sessionId: SessionIdentifier = client.authenticatedPost(LocalSessions.Session()) {
-            setBody(
-                sessionRequest {
-                    agentGraphRequest {
-                        agent(postureIdentifier) {
-                            provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
-                        }
-                        isolateAllAgents()
-                    }
-                    createNamespaceIfNotExists {
-                        name = namespaceName
-                    }
-                    immediateExecution {
-                        persistenceMode = SessionPersistenceMode.HoldAfterExit(1000)
-                    }
-                }
-            )
-        }.shouldBeOK().body()
 
         val state: SessionStateExtended =
             client.authenticatedGet(
                 LocalSessions.Session.Existing.Extended(
                     LocalSessions.Session.Existing(
-                        namespace = sessionId.namespace,
-                        sessionId = sessionId.sessionId
+                        namespace = namespace.name,
+                        sessionId = session.id
                     )
                 )
             ).shouldBeOK().body()
 
-        val agentState = state.agents.single { it.name == postureName }
-        agentState.executionProfile shouldBe "trusted_local"
-        agentState.trustTier shouldBe ExecutionTrustTier.TRUSTED
+        val byName = state.agents.associateBy { it.name }
+        byName.getValue("local-agent").executionProfile shouldBe "trusted_local"
+        byName.getValue("local-agent").trustTier shouldBe ExecutionTrustTier.TRUSTED
+        byName.getValue("marketplace-agent").executionProfile shouldBe "marketplace_untrusted"
+        byName.getValue("marketplace-agent").trustTier shouldBe ExecutionTrustTier.UNTRUSTED
+
+        session.sessionScope.cancel()
     }
 
     test("testSessionPersistence") {

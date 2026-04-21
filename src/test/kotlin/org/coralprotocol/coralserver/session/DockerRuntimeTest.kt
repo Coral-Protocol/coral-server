@@ -19,7 +19,9 @@ import kotlinx.coroutines.withContext
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
-import org.coralprotocol.coralserver.agent.execution.ExecutionTrustPolicyResolver
+import org.coralprotocol.coralserver.agent.execution.buildHostConfig
+import org.coralprotocol.coralserver.agent.execution.resolveTrustPolicy
+import org.coralprotocol.coralserver.agent.execution.sanitizeImage
 import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
@@ -29,9 +31,8 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.agent.runtime.DockerRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
-import org.coralprotocol.coralserver.agent.execution.toHostConfig
-import org.coralprotocol.coralserver.agent.runtime.sanitizeDockerImageName
 import org.coralprotocol.coralserver.config.DockerConfig
+import org.coralprotocol.coralserver.config.SecurityConfig
 import org.coralprotocol.coralserver.config.RootConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.Logger
@@ -242,11 +243,12 @@ class DockerRuntimeTest : CoralTest({
 
     test("testDockerHostConfigHardeningDefaults") {
         val logger by inject<Logger>(named(LOGGER_LOCAL_SESSION))
-        val resolver by inject<ExecutionTrustPolicyResolver>()
         val dockerConfig by inject<DockerConfig>()
+        val securityConfig by inject<SecurityConfig>()
 
-        val hostConfig = resolver.resolve(AgentRegistrySourceIdentifier.Local).docker.toHostConfig(emptyList(), logger)
-        val tier = dockerConfig.trusted
+        val tier = AgentRegistrySourceIdentifier.Local
+            .resolveTrustPolicy(dockerConfig, securityConfig).docker
+        val hostConfig = tier.buildHostConfig(emptyList(), logger)
 
         hostConfig.privileged shouldBe false
         hostConfig.readonlyRootfs shouldBe tier.readOnlyRootFilesystem
@@ -264,21 +266,22 @@ class DockerRuntimeTest : CoralTest({
             version = "1.0.0",
             registrySourceId = AgentRegistrySourceIdentifier.Marketplace
         )
+        val strictPolicy = DockerConfig().marketplace.copy(requireImageDigest = true)
 
         shouldThrow<IllegalArgumentException> {
-            sanitizeDockerImageName(
+            strictPolicy.sanitizeImage(
                 imageName = "ghcr.io/coral-protocol/agent:1.0.0",
                 id = identifier,
+                profileName = "marketplace_untrusted",
                 logger = logger,
-                requireDigest = true
             )
         }
 
-        sanitizeDockerImageName(
+        strictPolicy.sanitizeImage(
             imageName = "ghcr.io/coral-protocol/agent@sha256:abc123",
             id = identifier,
+            profileName = "marketplace_untrusted",
             logger = logger,
-            requireDigest = true
         ) shouldBe "ghcr.io/coral-protocol/agent@sha256:abc123"
     }
 

@@ -2,7 +2,6 @@ package org.coralprotocol.coralserver.modules
 
 import kotlinx.coroutines.runBlocking
 import org.coralprotocol.coralserver.agent.debug.*
-import org.coralprotocol.coralserver.agent.execution.ExecutionTrustPolicyResolver
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.config.RegistryConfig
 import org.coralprotocol.coralserver.mcp.McpToolManager
@@ -12,8 +11,6 @@ import org.koin.dsl.module
 import java.nio.file.Path
 
 val agentModule = module {
-    singleOf(::ExecutionTrustPolicyResolver)
-
     singleOf(::EchoDebugAgent)
     singleOf(::SeedDebugAgent)
     singleOf(::ToolDebugAgent)

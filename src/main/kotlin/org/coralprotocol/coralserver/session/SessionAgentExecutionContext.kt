@@ -6,7 +6,7 @@ import io.ktor.http.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.flow.update
 import org.coralprotocol.coralserver.agent.execution.ExecutionTrustPolicy
-import org.coralprotocol.coralserver.agent.execution.ExecutionTrustPolicyResolver
+import org.coralprotocol.coralserver.agent.execution.resolveTrustPolicy
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.registry.option.*
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
@@ -16,6 +16,7 @@ import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.DebugConfig
 import org.coralprotocol.coralserver.config.DockerConfig
 import org.coralprotocol.coralserver.config.LlmProxyConfig
+import org.coralprotocol.coralserver.config.SecurityConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.llmproxy.LlmProviderProfile
 import org.coralprotocol.coralserver.mcp.McpTransportType
@@ -46,14 +47,14 @@ class SessionAgentExecutionContext(
     val debugConfig by inject<DebugConfig>()
     val dockerConfig by inject<DockerConfig>()
     val llmProxyConfig by inject<LlmProxyConfig>()
-    val executionTrustPolicyResolver by inject<ExecutionTrustPolicyResolver>()
+    val securityConfig by inject<SecurityConfig>()
 
     val disposableResources = mutableListOf<SessionAgentDisposableResource>()
 
     var lastLaunchTime: Instant? = null
 
     val executionPolicy: ExecutionTrustPolicy =
-        executionTrustPolicyResolver.resolve(registryAgent.identifier.registrySourceId)
+        registryAgent.identifier.registrySourceId.resolveTrustPolicy(dockerConfig, securityConfig)
 
     /**
      * A list of usage reports for this agent.  When a session ends, all usage reports for each agent will be sent to
@@ -94,8 +95,7 @@ class SessionAgentExecutionContext(
                 putAll(debugConfig.additionalDockerEnvironment)
             }
 
-            val dockerPolicy = executionPolicy.docker
-            if (isContainer && (dockerPolicy.readOnlyRootFilesystem || dockerPolicy.user != null)) {
+            if (isContainer && executionPolicy.docker.requiresWritableTmpHome) {
                 this["HOME"] = dockerConfig.containerTemporaryDirectory
                 this["TMPDIR"] = dockerConfig.containerTemporaryDirectory
                 this["XDG_CACHE_HOME"] = "${dockerConfig.containerTemporaryDirectory}/.cache"
@@ -140,8 +140,6 @@ class SessionAgentExecutionContext(
             this["CORAL_RUNTIME_ID"] = provider.runtime.toString().lowercase()
 
             this["CORAL_REGISTRY_SOURCE"] = registryAgent.identifier.registrySourceId.toString()
-            this["CORAL_TRUST_TIER"] = executionPolicy.trustTier.name.lowercase()
-            this["CORAL_EXECUTION_PROFILE"] = executionPolicy.profileName
 
             if (agent.graphAgent.systemPrompt != null)
                 this["CORAL_PROMPT_SYSTEM"] = agent.graphAgent.systemPrompt
