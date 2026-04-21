@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.session.state
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.agent.execution.ExecutionConfig
 import org.coralprotocol.coralserver.agent.execution.ExecutionTrustTier
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
@@ -34,6 +35,9 @@ data class SessionAgentState(
 
     @Description("Resolved trust tier applied to this agent")
     val trustTier: ExecutionTrustTier,
+
+    @Description("Execution needs declared in the agent manifest; null if the agent did not declare any")
+    val declaredExecution: ExecutionConfig?,
 
     @Description("Token usage broken down by provider/model (e.g. 'openai/gpt-4.1')")
     val tokensByModel: Map<String, TokenUsage> = emptyMap(),

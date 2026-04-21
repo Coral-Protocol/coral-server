@@ -583,6 +583,7 @@ class SessionAgent(
             annotations = graphAgent.annotations,
             executionProfile = executionContext.executionPolicy.profileName,
             trustTier = executionContext.executionPolicy.trustTier,
+            declaredExecution = graphAgent.registryAgent.execution,
             tokensByModel = tokensByModel
         )
 

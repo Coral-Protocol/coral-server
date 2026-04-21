@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import me.saket.bytesize.kibibytes
 import me.saket.bytesize.mebibytes
+import org.coralprotocol.coralserver.agent.execution.ExecutionConfig
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.defaultAsValue
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
@@ -28,6 +29,7 @@ data class RegistryAgent(
     val options: Map<String, AgentOption> = mapOf(),
     val llm: AgentLlmConfig? = null,
     val marketplace: RegistryAgentMarketplaceSettings? = null,
+    val execution: ExecutionConfig? = null,
 
     @Transient
     val path: Path? = null,
@@ -84,12 +86,14 @@ data class PublicRegistryAgent(
     val id: RegistryAgentIdentifier,
     val runtimes: List<RuntimeId>,
     val options: Map<String, AgentOption>,
-    val exportSettings: PublicAgentExportSettingsMap
+    val exportSettings: PublicAgentExportSettingsMap,
+    val execution: ExecutionConfig? = null,
 )
 
 fun RegistryAgent.toPublic(): PublicRegistryAgent = PublicRegistryAgent(
     id = identifier,
     runtimes = runtimes.toRuntimeIds(),
     options = options,
-    exportSettings = exportSettings.mapValues { (_, settings) -> settings.toPublic() }
+    exportSettings = exportSettings.mapValues { (_, settings) -> settings.toPublic() },
+    execution = execution,
 )

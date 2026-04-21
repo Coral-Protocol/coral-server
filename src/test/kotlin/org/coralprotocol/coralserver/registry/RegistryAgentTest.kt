@@ -17,6 +17,7 @@ import io.ktor.util.*
 import kotlinx.serialization.json.Json
 import org.bitcoinj.core.Base58
 import org.coralprotocol.coralserver.CoralTest
+import org.coralprotocol.coralserver.agent.execution.MinIsolation
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionDisplay
@@ -293,6 +294,12 @@ class RegistryAgentTest : CoralTest({
         )
     }
 
+    fun testExecution(agent: RegistryAgent) {
+        val execution = agent.execution.shouldNotBeNull()
+        execution.minIsolation.shouldBe(MinIsolation.CONTAINER)
+        execution.network.externalHosts.shouldContainExactly("api.firecrawl.dev")
+    }
+
     test("testRegistryAgentFile") {
         // note: reading from a string here is required  so that the path of the RegistryAgent is not set, if it is set
         // then the json recoding test will fail as it is a transient field
@@ -304,6 +311,7 @@ class RegistryAgentTest : CoralTest({
         testOptions(agent)
         testJsonRecode(agent)
         testMarketplace(agent)
+        testExecution(agent)
     }
 
     test("testValidateAgentName") {

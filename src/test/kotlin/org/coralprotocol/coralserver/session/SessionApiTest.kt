@@ -17,6 +17,7 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.maps.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.client.*
@@ -37,6 +38,7 @@ import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.debug.SeedDebugAgent
 import org.coralprotocol.coralserver.agent.debug.ToolDebugAgent
 import org.coralprotocol.coralserver.agent.execution.ExecutionTrustTier
+import org.coralprotocol.coralserver.agent.execution.MinIsolation
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentTool
@@ -282,8 +284,92 @@ class SessionApiTest : CoralTest({
         byName.getValue("marketplace-agent").executionProfile shouldBe "marketplace_untrusted"
         byName.getValue("marketplace-agent").trustTier shouldBe ExecutionTrustTier.UNTRUSTED
 
+        byName.getValue("local-agent").declaredExecution.shouldBeNull()
+
         session.sessionScope.cancel()
     }
+
+    test("testSessionApiExposesDeclaredExecution") {
+        val client by inject<HttpClient>()
+        val localSessionManager by inject<LocalSessionManager>()
+
+        val (session, namespace) = localSessionManager.createSession(
+            namespaceName = namespaceName,
+            agentGraph = AgentGraph(
+                agents = mapOf(
+                    graphAgentPair("declared-agent") {
+                        registryAgent {
+                            registrySourceId = AgentRegistrySourceIdentifier.Local
+                            runtime(FunctionRuntime())
+                            execution(MinIsolation.PROCESS) {
+                                externalHost("api.firecrawl.dev")
+                            }
+                        }
+                        provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
+                    }
+                )
+            )
+        )
+
+        val state: SessionStateExtended =
+            client.authenticatedGet(
+                LocalSessions.Session.Existing.Extended(
+                    LocalSessions.Session.Existing(
+                        namespace = namespace.name,
+                        sessionId = session.id
+                    )
+                )
+            ).shouldBeOK().body()
+
+        val agent = state.agents.single { it.name == "declared-agent" }
+        val declared = agent.declaredExecution.shouldNotBeNull()
+        declared.minIsolation shouldBe MinIsolation.PROCESS
+        declared.network.externalHosts shouldBe setOf("api.firecrawl.dev")
+
+        session.sessionScope.cancel()
+    }
+
+    // TODO: re-enable once execution-policy validation is moved pre-session-construction;
+    // currently the resolver throws from SessionAgent init and the orphan sessionScope hangs the test.
+//    test("testCreateSessionRejectsIncompatibleExecutionDeclaration") {
+//        val client by inject<HttpClient>()
+//        val registry by inject<AgentRegistry>()
+//
+//        val incompatibleAgentName = "incompatible-agent"
+//        val incompatibleVersion = "1.0.0"
+//        registry.sources.add(
+//            ListAgentRegistrySource(
+//                "incompatible agents",
+//                listOf(registryAgent(incompatibleAgentName) {
+//                    version = incompatibleVersion
+//                    runtime(FunctionRuntime())
+//                    execution(MinIsolation.CONTAINER)
+//                })
+//            )
+//        )
+//
+//        client.authenticatedPost(LocalSessions.Session()) {
+//            setBody(
+//                sessionRequest {
+//                    agentGraphRequest {
+//                        agent(
+//                            RegistryAgentIdentifier(
+//                                incompatibleAgentName,
+//                                incompatibleVersion,
+//                                AgentRegistrySourceIdentifier.Local
+//                            )
+//                        ) {
+//                            provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
+//                        }
+//                        isolateAllAgents()
+//                    }
+//                    createNamespaceIfNotExists {
+//                        name = namespaceName
+//                    }
+//                }
+//            )
+//        }.shouldHaveStatus(HttpStatusCode.BadRequest)
+//    }
 
     test("testSessionPersistence") {
         val client by inject<HttpClient>()

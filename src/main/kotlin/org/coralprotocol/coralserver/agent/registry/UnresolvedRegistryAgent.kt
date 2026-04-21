@@ -8,6 +8,7 @@ import io.github.smiley4.schemakenerator.core.annotations.Optional
 import io.ktor.client.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.agent.execution.ExecutionConfig
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.koin.core.component.KoinComponent
@@ -49,7 +50,11 @@ data class UnresolvedRegistryAgent(
 
     @Description("Information for this agent relevant to it's potential listing on the marketplace")
     @Optional
-    val marketplace: RegistryAgentMarketplaceSettings? = null
+    val marketplace: RegistryAgentMarketplaceSettings? = null,
+
+    @Description("Declared isolation and network needs")
+    @Optional
+    val execution: ExecutionConfig? = null
 ) : KoinComponent {
     companion object : KoinComponent {
         fun resolveFromFile(
@@ -120,7 +125,8 @@ data class UnresolvedRegistryAgent(
             options = options,
             llm = llm,
             path = context.path,
-            marketplace = marketplace
+            marketplace = marketplace,
+            execution = execution
         )
         registryAgent.validate()
 
