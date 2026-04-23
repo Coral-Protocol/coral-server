@@ -30,4 +30,14 @@ sealed class ExecutionRejection {
         override val reason: String
             get() = "external host '$host' is not allowed by operator policy"
     }
+
+    @Serializable
+    data class SandboxUnavailable(val detail: String) : ExecutionRejection() {
+        override val reason: String
+            get() = "sandbox backend unavailable: $detail"
+    }
 }
+
+class ExecutionRejectedException(val rejection: ExecutionRejection) :
+    RuntimeException(rejection.reason)
+

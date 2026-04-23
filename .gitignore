@@ -1,3 +1,5 @@
+.tmp.drivedownload/
+.tmp.driveupload/
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar

@@ -1,0 +1,31 @@
+# Example base image for agents launched under Coral's OpenShellRuntime.
+# Copy and adapt for your agent. Minimum requirements for the OpenShell
+# supervisor to set up isolation inside the container:
+#   - iproute2        (ip netns / veth management)
+#   - libcap2-bin     (capability handling for the supervisor + sandbox user)
+#   - ca-certificates (HTTPS egress to declared external_hosts)
+#   - unprivileged "sandbox" user + group (supervisor drops to this UID)
+#   - writable /sandbox and /tmp (declared read_write in generated policy.yaml)
+#   - Linux kernel 5.13+ on the host (for Landlock; falls back gracefully)
+#
+# Do NOT set ENTRYPOINT — OpenShellRuntime overrides it with the supervisor
+# binary. Your [runtimes.openshell].command becomes the inner argv executed
+# after the supervisor sets up the sandbox.
+
+FROM debian:bookworm-slim
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      iproute2 \
+      libcap2-bin \
+      ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd -r sandbox \
+ && useradd -r -g sandbox -d /sandbox -s /usr/sbin/nologin sandbox \
+ && mkdir -p /sandbox \
+ && chown sandbox:sandbox /sandbox
+
+# Install your agent here, e.g.:
+# COPY --chown=sandbox:sandbox agent/ /sandbox/
+# WORKDIR /sandbox
