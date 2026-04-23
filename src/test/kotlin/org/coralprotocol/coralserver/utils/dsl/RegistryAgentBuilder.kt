@@ -123,39 +123,23 @@ class RegistryAgentBuilder(
 
 
     fun runtime(functionRuntime: FunctionRuntime) {
-        runtimes = LocalAgentRuntimes(
-            executableRuntime = runtimes.executableRuntime,
-            dockerRuntime = runtimes.dockerRuntime,
-            functionRuntime = functionRuntime,
-            prototypeRuntime = runtimes.prototypeRuntime
-        )
+        runtimes = runtimes.copy(functionRuntime = functionRuntime)
     }
 
     fun runtime(dockerRuntime: DockerRuntime) {
-        runtimes = LocalAgentRuntimes(
-            executableRuntime = runtimes.executableRuntime,
-            dockerRuntime = dockerRuntime,
-            functionRuntime = runtimes.functionRuntime,
-            prototypeRuntime = runtimes.prototypeRuntime
-        )
+        runtimes = runtimes.copy(dockerRuntime = dockerRuntime)
     }
 
     fun runtime(executableRuntime: ExecutableRuntime) {
-        runtimes = LocalAgentRuntimes(
-            executableRuntime = executableRuntime,
-            dockerRuntime = runtimes.dockerRuntime,
-            functionRuntime = runtimes.functionRuntime,
-            prototypeRuntime = runtimes.prototypeRuntime
-        )
+        runtimes = runtimes.copy(executableRuntime = executableRuntime)
     }
 
     fun runtime(prototypeRuntime: PrototypeRuntime) {
-        runtimes = LocalAgentRuntimes(
-            executableRuntime = runtimes.executableRuntime,
-            dockerRuntime = runtimes.dockerRuntime,
-            functionRuntime = runtimes.functionRuntime,
-            prototypeRuntime = prototypeRuntime
-        )
+        runtimes = runtimes.copy(prototypeRuntime = prototypeRuntime)
+    }
+
+    fun runtime(openShellRuntime: OpenShellRuntime) {
+        runtimes = runtimes.copy(openShellRuntime = openShellRuntime)
     }
 
     fun build(): RegistryAgent {

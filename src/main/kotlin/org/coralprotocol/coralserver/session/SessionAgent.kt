@@ -584,6 +584,8 @@ class SessionAgent(
             executionProfile = executionContext.executionPolicy.profileName,
             trustTier = executionContext.executionPolicy.trustTier,
             declaredExecution = graphAgent.registryAgent.execution,
+            resolvedEgress = executionContext.egressPolicy.allAllowed().toList(),
+            sandboxBackend = executionContext.sandboxBackend,
             tokensByModel = tokensByModel
         )
 

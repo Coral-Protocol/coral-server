@@ -42,6 +42,11 @@ class ExecutionPolicyResolverTest : FunSpec({
         )
     }
 
+    test("containerDeclarationOnOpenShellRuntimeIsAccepted") {
+        val declared = ExecutionConfig(minIsolation = MinIsolation.CONTAINER)
+        validate(declared, runtime = RuntimeId.OPENSHELL).shouldBeEmpty()
+    }
+
     test("isolationBeyondOperatorCeilingIsRejected") {
         val policy = ExecutionPolicyConfig(
             marketplace = ExecutionTierPolicy(maxSupportedIsolation = MinIsolation.PROCESS)

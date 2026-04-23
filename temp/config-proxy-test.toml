@@ -1,0 +1,17 @@
+# E2E test config for LLM proxy
+# Usage: CONFIG_FILE_PATH=temp/config-proxy-test.toml ./gradlew run
+
+[auth]
+keys = ["test-token"]
+
+[registry]
+localAgents = ["/Users/andri/Projects/coral-template-agent"]
+includeDebugAgents = true
+
+[console]
+consoleReleaseVersion = "local"
+
+# LLM proxy is enabled by default (pass-through mode).
+# Agents bring their own API keys. To override with a server-managed key:
+# [llm-proxy.providers.openai]
+# apiKey = "sk-your-key-here"

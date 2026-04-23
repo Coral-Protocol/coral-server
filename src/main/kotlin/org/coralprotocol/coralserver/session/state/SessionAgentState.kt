@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.session.state
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.agent.execution.EgressEndpoint
 import org.coralprotocol.coralserver.agent.execution.ExecutionConfig
 import org.coralprotocol.coralserver.agent.execution.ExecutionTrustTier
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
@@ -38,6 +39,12 @@ data class SessionAgentState(
 
     @Description("Execution needs declared in the agent manifest; null if the agent did not declare any")
     val declaredExecution: ExecutionConfig?,
+
+    @Description("Egress endpoints the agent is permitted to reach (declared + Coral-managed)")
+    val resolvedEgress: List<EgressEndpoint> = emptyList(),
+
+    @Description("Sandbox backend enforcing egress at runtime; null when unsandboxed")
+    val sandboxBackend: String? = null,
 
     @Description("Token usage broken down by provider/model (e.g. 'openai/gpt-4.1')")
     val tokensByModel: Map<String, TokenUsage> = emptyMap(),

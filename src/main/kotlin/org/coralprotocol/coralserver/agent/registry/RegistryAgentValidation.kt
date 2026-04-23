@@ -353,7 +353,7 @@ private fun RegistryAgent.validateOptionalAgentInfo() {
 }
 
 private fun RegistryAgent.validateRuntimes() {
-    if (runtimes.functionRuntime == null && runtimes.dockerRuntime == null && runtimes.executableRuntime == null && runtimes.prototypeRuntime == null)
+    if (runtimes.toRuntimeIds().isEmpty())
         throw RegistryException("Must have at least one defined runtime")
 
     val docker = runtimes.dockerRuntime
@@ -384,6 +384,19 @@ private fun RegistryAgent.validateRuntimes() {
 
     if (runtimes.prototypeRuntime != null)
         validatePrototypeRuntime(runtimes.prototypeRuntime)
+
+    val openshell = runtimes.openShellRuntime
+    if (openshell != null) {
+        validateStringLength("runtimes.openshell.image", openshell.image, AGENT_DOCKER_IMAGE_LENGTH)
+        if (openshell.command != null) {
+            validateStringList(
+                "runtimes.openshell.command",
+                openshell.command,
+                AGENT_DOCKER_COMMAND_ENTRIES,
+                AGENT_DOCKER_COMMAND_MAX_SIZE
+            )
+        }
+    }
 }
 
 private fun RegistryAgent.validatePrototypeRuntime(runtime: PrototypeRuntime) {

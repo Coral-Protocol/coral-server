@@ -5,6 +5,8 @@ package org.coralprotocol.coralserver.session
 import io.ktor.http.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.flow.update
+import org.coralprotocol.coralserver.agent.execution.EgressCompiler
+import org.coralprotocol.coralserver.agent.execution.EgressPolicy
 import org.coralprotocol.coralserver.agent.execution.ExecutionTrustPolicy
 import org.coralprotocol.coralserver.agent.execution.resolveTrustPolicy
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
@@ -16,6 +18,7 @@ import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.DebugConfig
 import org.coralprotocol.coralserver.config.DockerConfig
 import org.coralprotocol.coralserver.config.LlmProxyConfig
+import org.coralprotocol.coralserver.config.OpenShellConfig
 import org.coralprotocol.coralserver.config.SecurityConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.llmproxy.LlmProviderProfile
@@ -48,6 +51,7 @@ class SessionAgentExecutionContext(
     val dockerConfig by inject<DockerConfig>()
     val llmProxyConfig by inject<LlmProxyConfig>()
     val securityConfig by inject<SecurityConfig>()
+    val openShellConfig by inject<OpenShellConfig>()
 
     val disposableResources = mutableListOf<SessionAgentDisposableResource>()
 
@@ -55,6 +59,21 @@ class SessionAgentExecutionContext(
 
     val executionPolicy: ExecutionTrustPolicy =
         registryAgent.identifier.registrySourceId.resolveTrustPolicy(dockerConfig, securityConfig)
+
+    val sandboxBackend: String?
+        get() = if (provider.runtime == RuntimeId.OPENSHELL) "openshell" else null
+
+    val egressPolicy: EgressPolicy by lazy {
+        val transport = runtimes.getById(provider.runtime)?.transport ?: DEFAULT_AGENT_RUNTIME_TRANSPORT
+        EgressCompiler.compile(
+            declared = registryAgent.execution,
+            coralUrls = setOf(
+                applicationRuntimeContext.getApiUrl(AddressConsumer.CONTAINER),
+                applicationRuntimeContext.getMcpUrl(transport, this, AddressConsumer.CONTAINER),
+                applicationRuntimeContext.getLlmProxyUrl(this, AddressConsumer.CONTAINER),
+            ),
+        )
+    }
 
     /**
      * A list of usage reports for this agent.  When a session ends, all usage reports for each agent will be sent to
@@ -74,14 +93,8 @@ class SessionAgentExecutionContext(
      */
     fun buildEnvironment(transport: McpTransportType = DEFAULT_AGENT_RUNTIME_TRANSPORT): Map<String, String> {
         return buildMap {
-            val addressConsumer = when (provider.runtime) {
-                RuntimeId.EXECUTABLE -> AddressConsumer.LOCAL
-                RuntimeId.DOCKER -> AddressConsumer.CONTAINER
-                RuntimeId.FUNCTION -> AddressConsumer.LOCAL
-                RuntimeId.PROTOTYPE -> AddressConsumer.LOCAL
-            }
-
-            val isContainer = provider.runtime == RuntimeId.DOCKER
+            val isContainer = provider.runtime.providesContainerIsolation
+            val addressConsumer = if (isContainer) AddressConsumer.CONTAINER else AddressConsumer.LOCAL
 
             val filePathSeparator = if (isContainer) {
                 dockerConfig.containerPathSeparator
@@ -91,7 +104,7 @@ class SessionAgentExecutionContext(
 
             if (provider.runtime == RuntimeId.EXECUTABLE) {
                 putAll(debugConfig.additionalExecutableEnvironment)
-            } else if (provider.runtime == RuntimeId.DOCKER) {
+            } else if (isContainer) {
                 putAll(debugConfig.additionalDockerEnvironment)
             }
 

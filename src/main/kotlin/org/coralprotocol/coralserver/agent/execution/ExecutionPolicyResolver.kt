@@ -27,7 +27,7 @@ object ExecutionPolicyResolver {
         if (required.ordinal > maxSupported.ordinal)
             add(ExecutionRejection.IsolationUnsupported(required, maxSupported))
 
-        if (required == MinIsolation.CONTAINER && runtime != RuntimeId.DOCKER)
+        if (required == MinIsolation.CONTAINER && !runtime.providesContainerIsolation)
             add(ExecutionRejection.IsolationIncompatibleWithRuntime(required, runtime))
     }
 
