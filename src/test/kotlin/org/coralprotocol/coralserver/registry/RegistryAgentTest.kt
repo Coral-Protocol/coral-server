@@ -26,6 +26,7 @@ import org.coralprotocol.coralserver.agent.runtime.ExecutableRuntime
 import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.agent.runtime.PrototypeRuntime
 import org.coralprotocol.coralserver.agent.runtime.prototype.*
+import org.coralprotocol.coralserver.llmproxy.LlmProviderFormat
 import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.utils.dsl.*
 import org.koin.test.inject
@@ -121,7 +122,8 @@ class RegistryAgentTest : CoralTest({
         val authorizationHeaderAuth =
             prototypeToolServer4.auth.shouldBeInstanceOf<PrototypeToolServerAuth.AuthorizationHeader>()
 
-        val authorizationHeader = authorizationHeaderAuth.authorizationHeader.shouldBeInstanceOf<PrototypeString.ComposedString>()
+        val authorizationHeader =
+            authorizationHeaderAuth.authorizationHeader.shouldBeInstanceOf<PrototypeString.ComposedString>()
         authorizationHeader.separator.shouldBeEqual(" ")
 
         val parts = authorizationHeader.parts.shouldHaveSize(2)
@@ -1384,8 +1386,8 @@ class RegistryAgentTest : CoralTest({
             registryAgent("valid") {
                 runtime(FunctionRuntime())
                 llm {
-                    proxy("GPT", "openai", "gpt-4o")
-                    proxy("CLAUDE", "anthropic", "claude-3-5-sonnet")
+                    proxy("OPENAI", LlmProviderFormat.OpenAI, "gpt-4o")
+                    proxy("ANTHROPIC", LlmProviderFormat.Anthropic, "claude-3-5-sonnet")
                 }
             }.validate()
         }
@@ -1396,7 +1398,7 @@ class RegistryAgentTest : CoralTest({
                 runtime(FunctionRuntime())
                 llm {
                     repeat(AGENT_LLM_PROXIES_MAX_ENTRIES + 1) {
-                        proxy("P$it", "openai")
+                        proxy("P$it", LlmProviderFormat.OpenAI, "gpt-4o")
                     }
                 }
             }.validate()
@@ -1407,7 +1409,7 @@ class RegistryAgentTest : CoralTest({
             registryAgent("valid") {
                 runtime(FunctionRuntime())
                 llm {
-                    proxy("", "openai")
+                    proxy("", LlmProviderFormat.OpenAI)
                 }
             }.validate()
         }
@@ -1417,17 +1419,17 @@ class RegistryAgentTest : CoralTest({
             registryAgent("valid") {
                 runtime(FunctionRuntime())
                 llm {
-                    proxy("A".repeat(AGENT_LLM_PROXY_NAME_LENGTH.last + 1), "openai")
+                    proxy("A".repeat(AGENT_LLM_PROXY_NAME_LENGTH.last + 1), LlmProviderFormat.OpenAI)
                 }
             }.validate()
         }
 
-        // proxy name invalid pattern
+        // proxy name invalid pattern (not all uppercase)
         shouldThrow<RegistryException> {
             registryAgent("valid") {
                 runtime(FunctionRuntime())
                 llm {
-                    proxy("gpt", "openai")
+                    proxy("OpenAI", LlmProviderFormat.OpenAI)
                 }
             }.validate()
         }
@@ -1437,18 +1439,20 @@ class RegistryAgentTest : CoralTest({
             registryAgent("valid") {
                 runtime(FunctionRuntime())
                 llm {
-                    proxy("GPT", "openai")
-                    proxy("GPT", "anthropic")
+                    proxy("OPENAI", LlmProviderFormat.OpenAI)
+                    proxy("OPENAI", LlmProviderFormat.OpenAI)
                 }
             }.validate()
         }
 
-        // proxy format unknown
+        // too many models proxies
         shouldThrow<RegistryException> {
             registryAgent("valid") {
                 runtime(FunctionRuntime())
                 llm {
-                    proxy("GPT", "unknown-format")
+                    proxy("PROXY", LlmProviderFormat.OpenAI, *List(AGENT_LLM_PROXY_MAX_MODELS + 1) { idx ->
+                        "model-$idx"
+                    }.toTypedArray())
                 }
             }.validate()
         }
@@ -1458,7 +1462,7 @@ class RegistryAgentTest : CoralTest({
             registryAgent("valid") {
                 runtime(FunctionRuntime())
                 llm {
-                    proxy("GPT", "openai", "m".repeat(AGENT_LLM_PROXY_MODEL_LENGTH.last + 1))
+                    proxy("GPT", LlmProviderFormat.OpenAI, "m".repeat(AGENT_LLM_PROXY_MODEL_LENGTH.last + 1))
                 }
             }.validate()
         }

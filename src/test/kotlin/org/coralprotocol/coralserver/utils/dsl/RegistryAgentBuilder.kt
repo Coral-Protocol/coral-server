@@ -3,7 +3,9 @@ package org.coralprotocol.coralserver.utils.dsl
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.runtime.*
-import org.coralprotocol.coralserver.agent.runtime.prototype.*
+import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeString
+import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeUrlPart
+import org.coralprotocol.coralserver.llmproxy.LlmProviderFormat
 import java.nio.file.Path
 
 @TestDsl
@@ -178,10 +180,10 @@ class RegistryAgentBuilder(
 
 @TestDsl
 class AgentLlmConfigBuilder {
-    private val proxies = mutableListOf<AgentLlmProxy>()
+    private val proxies = mutableListOf<AgentLlmProxyRequest>()
 
-    fun proxy(name: String, format: String, model: String? = null) {
-        proxies += AgentLlmProxy(name, format, model)
+    fun proxy(name: String, format: LlmProviderFormat, vararg models: String) {
+        proxies += AgentLlmProxyRequest(name, format, models.toSet())
     }
 
     fun build() = AgentLlmConfig(proxies = proxies.toList())

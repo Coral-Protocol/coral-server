@@ -70,6 +70,7 @@ class GraphAgentBuilder(name: String) : CommonGraphAgentBuilder(name) {
             provider = provider,
             x402Budgets = x402Budgets.toList(),
             annotations = annotations.toMap(),
+            proxies = emptyMap()
         )
     }
 }

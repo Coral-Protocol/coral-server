@@ -76,6 +76,7 @@ const val AGENT_MARKETPLACE_PRICING_MIN_MAX = 20.00
 const val AGENT_LLM_PROXIES_MAX_ENTRIES = 16
 val AGENT_LLM_PROXY_NAME_LENGTH = 1..32
 val AGENT_LLM_PROXY_NAME_PATTERN = "^[A-Z_0-9]+$".toRegex()
+const val AGENT_LLM_PROXY_MAX_MODELS = 32
 val AGENT_LLM_PROXY_MODEL_LENGTH = 1..128
 
 // [marketplace.identities.erc8004]
@@ -605,8 +606,12 @@ private fun RegistryAgent.validateLlm() {
         if (!names.add(proxy.name))
             throw RegistryException("llm.proxies[$index].name (\"${proxy.name}\") is not unique")
 
-//        if (proxy.model != null)
-//            validateStringLength("llm.proxies[$index].model", proxy.model, AGENT_LLM_PROXY_MODEL_LENGTH)
+        if (proxy.models.size > AGENT_LLM_PROXY_MAX_MODELS)
+            throw RegistryException("llm proxy model count cannot exceed $AGENT_LLM_PROXY_MAX_MODELS, was ${proxy.models.size}")
+
+        proxy.models.forEachIndexed { index, model ->
+            validateStringLength("llm.proxies[$index].models[$index]", model, AGENT_LLM_PROXY_MODEL_LENGTH)
+        }
     }
 }
 
