@@ -12,8 +12,12 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.compareTypeWithValue
 import org.coralprotocol.coralserver.agent.registry.option.requireValue
 import org.coralprotocol.coralserver.agent.registry.option.withValue
+import org.coralprotocol.coralserver.config.LlmProxyConfig
+import org.coralprotocol.coralserver.llmproxy.LlmProxiedModel
 import org.coralprotocol.coralserver.session.SessionResource
 import org.coralprotocol.coralserver.x402.X402BudgetedResource
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 @Serializable
 @Description("A request for an agent.  GraphAgentRequest -> GraphAgent")
@@ -54,7 +58,10 @@ data class GraphAgentRequest(
 
     @Optional
     override val annotations: Map<String, String> = mapOf(),
-) : SessionResource {
+) : SessionResource, KoinComponent {
+    val agentRegistry by inject<AgentRegistry>()
+    val llmProxyConfig by inject<LlmProxyConfig>()
+
     /**
      * Given a reference to the agent registry [AgentRegistry], this function will attempt to convert this request into
      * a [GraphAgent].  If [isRemote] is true, this function will ensure the [provider] is [GraphAgentProvider.Local]
@@ -63,11 +70,10 @@ data class GraphAgentRequest(
      * @throws IllegalArgumentException if the agent registry cannot be resolved.
      */
     suspend fun toGraphAgent(
-        registry: AgentRegistry,
-        isRemote: Boolean = false,
-        customTools: Map<String, GraphAgentTool> = mapOf()
+        customTools: Map<String, GraphAgentTool> = mapOf(),
+        isRemote: Boolean = false
     ): GraphAgent {
-        val restrictedRegistryAgent = registry.resolveAgent(id)
+        val restrictedRegistryAgent = agentRegistry.resolveAgent(id)
         restrictedRegistryAgent.restrictions.forEach { it.requireNotRestricted(this) }
 
         val registryAgent = restrictedRegistryAgent.registryAgent
@@ -124,6 +130,30 @@ data class GraphAgentRequest(
             throw AgentRequestException("Agent $id is missing required options: ${missingOptions.keys.joinToString()}")
         }
 
+        val proxies = registryAgent.llmProxies.associate { request ->
+            val potentialProviders = llmProxyConfig.providers.filter { it.format == request.format }
+            if (potentialProviders.isEmpty())
+                throw AgentRequestException("Agent $id requires a proxy with format \"${request.format}\", but no such format is configured")
+
+            var match = potentialProviders.firstNotNullOfOrNull { provider ->
+                provider.models.firstOrNull { request.models.contains(it) }?.let { it to provider }
+            }
+
+            // Fallback: check for providers that will provide any of the requested models
+            if (match == null) {
+                match = potentialProviders.filter {
+                    it.allowAnyModel
+                }.firstNotNullOfOrNull { provider ->
+                    request.models.firstOrNull()?.let { it to provider }
+                }
+            }
+
+            if (match == null)
+                throw AgentRequestException("Agent requires one of the following models: ${request.models.joinToString()} with format \"${request.format}\", but no matching provider is configured")
+
+            request.name to LlmProxiedModel(match.second, match.first)
+        }
+
         return GraphAgent(
             registryAgent = registryAgent,
             name = name,
@@ -135,7 +165,8 @@ data class GraphAgentRequest(
             plugins = plugins,
             provider = provider,
             x402Budgets = x402Budgets,
-            annotations = annotations
+            annotations = annotations,
+            proxies = proxies
         )
     }
 }

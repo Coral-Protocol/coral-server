@@ -14,7 +14,6 @@ import org.bitcoinj.core.Base58
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.runtime.PrototypeRuntime
 import org.coralprotocol.coralserver.agent.runtime.prototype.*
-import org.coralprotocol.coralserver.llmproxy.LlmProviderProfile
 import java.net.URI
 import java.net.URISyntaxException
 
@@ -606,11 +605,8 @@ private fun RegistryAgent.validateLlm() {
         if (!names.add(proxy.name))
             throw RegistryException("llm.proxies[$index].name (\"${proxy.name}\") is not unique")
 
-        if (LlmProviderProfile.fromId(proxy.format) == null)
-            throw RegistryException("llm.proxies[$index].format (\"${proxy.format}\") is not a known format. Valid formats: ${LlmProviderProfile.entries.joinToString { it.providerId }}")
-
-        if (proxy.model != null)
-            validateStringLength("llm.proxies[$index].model", proxy.model, AGENT_LLM_PROXY_MODEL_LENGTH)
+//        if (proxy.model != null)
+//            validateStringLength("llm.proxies[$index].model", proxy.model, AGENT_LLM_PROXY_MODEL_LENGTH)
     }
 }
 

@@ -41,7 +41,7 @@ data class RootConfig(
     val consoleConfig: ConsoleConfig = ConsoleConfig(),
 
     @param:ConfigAlias("llm-proxy")
-    val llmProxyConfig: LlmProxyConfig = LlmProxyConfig()
+    val llmProxyConfig: LlmProxyConfig = LlmProxyConfig(),
 ) {
     /**
      * Calculates the address required to access the server for a given consumer.

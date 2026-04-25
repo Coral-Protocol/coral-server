@@ -1,9 +1,9 @@
 package org.coralprotocol.coralserver.modules
 
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.HttpRequestRetry
-import io.ktor.http.HttpStatusCode
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.*
+import io.ktor.http.*
 import org.coralprotocol.coralserver.config.LlmProxyConfig
 import org.coralprotocol.coralserver.llmproxy.LlmProxyService
 import org.koin.core.qualifier.named
@@ -24,8 +24,8 @@ val llmProxyModule = module {
                     }
                     exponentialDelay(
                         base = 2.0,
-                        baseDelayMs = config.retryInitialDelayMs,
-                        maxDelayMs = config.retryMaxDelayMs
+                        baseDelayMs = config.retryInitialDelay.inWholeMilliseconds,
+                        maxDelayMs = config.retryMaxDelay.inWholeMilliseconds
                     )
                 }
             }
