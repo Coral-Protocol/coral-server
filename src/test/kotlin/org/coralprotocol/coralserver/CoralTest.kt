@@ -24,6 +24,7 @@ import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.modules.*
 import org.coralprotocol.coralserver.modules.ktor.coralServerModule
 import org.coralprotocol.coralserver.session.LocalSessionManager
+import org.coralprotocol.coralserver.template.SessionTemplateRegistry
 import org.koin.core.context.loadKoinModules
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
@@ -110,6 +111,7 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                 modules(
                                     module {
                                         singleOf(::ApplicationRuntimeContext)
+                                        singleOf(::SessionTemplateRegistry)
                                         single {
                                             RootConfig(
                                                 // port for testing is zero

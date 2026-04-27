@@ -67,6 +67,9 @@ data class PrototypeRuntime(
     @SerialName("tools")
     val toolServers: List<PrototypeToolServer> = listOf(),
 
+    @SerialName("disableEarlyExit")
+    val disableEarlyExit: Boolean = false,
+
     @Transient
     /**
      * Debugging convenience callback that gets called immediately after each inference request to the LLM.
@@ -195,7 +198,18 @@ data class PrototypeRuntime(
                     tools(additionalTools)
                 },
                 strategy = functionalStrategy { _: Nothing? ->
+                    val agentName = executionContext.name.lowercase()
+                    val shouldCheckForEarlyExit = !disableEarlyExit &&
+                            !agentName.contains("orchestrator") &&
+                            !agentName.contains("recovery")
+
+                    var shouldExit = false
                     repeat(iterationCount) { iteration ->
+                        if (shouldExit) {
+                            executionContext.logger.info { "Agent reported success, exiting early after $iteration iterations" }
+                            return@repeat
+                        }
+
                         try {
                             val iterationTime = measureTime {
                                 if (iteration > 0 && iterationDelay > 0) {
@@ -217,6 +231,17 @@ data class PrototypeRuntime(
                                 llm.readSession { readSession -> postRequestToLLMCallback(readSession) }
                                 executionContext.logger.debug { "$modelIdentifier responded in $llmResponseTime, with: ${response.content}" }
 
+                                // Check if agent reports success in response content (only for single agents)
+                                if (shouldCheckForEarlyExit) {
+                                    val responseContent = response.content.lowercase()
+                                    if (responseContent.contains("success") ||
+                                        responseContent.contains("completed") ||
+                                        responseContent.contains("done")) {
+                                        executionContext.logger.info { "Agent indicated completion in response: ${response.content}" }
+                                        shouldExit = true
+                                    }
+                                }
+
                                 val toolCalls = extractToolCalls(listOf(response))
                                 executionContext.logger.debug { "Extracted tool calls: ${toolCalls.joinToString { it.tool }}" }
 
@@ -228,6 +253,18 @@ data class PrototypeRuntime(
                                         json.encodeToString(
                                             toolCallResults.map { it.toMessage() })
                                     }"
+                                }
+
+                                // Check if any tool results indicate success (only for single agents)
+                                if (shouldCheckForEarlyExit) {
+                                    toolCallResults.forEach { result ->
+                                        val resultContent = result.content.lowercase()
+                                        if ((resultContent.contains("success") || resultContent.contains("completed")) &&
+                                            result.resultKind == ToolResultKind.Success) {
+                                            executionContext.logger.info { "Tool '${result.tool}' reported success" }
+                                            shouldExit = true
+                                        }
+                                    }
                                 }
 
                                 llm.writeSession {

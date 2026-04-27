@@ -228,6 +228,7 @@ fun Application.coralServerModule(isTest: Boolean = false) {
             localSessionApi()
             registryApi()
             puppetApi()
+            templateApi()
         }
 
         authenticate("agentSecret") {

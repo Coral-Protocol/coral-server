@@ -25,10 +25,14 @@ abstract class Session(parentScope: CoroutineScope, supervisedSessions: Boolean 
     /**
      * Coroutine scope for this session
      */
-    val sessionScope = if (supervisedSessions) {
-        CoroutineScope(parentScope.coroutineContext + SupervisorJob(parentScope.coroutineContext[Job]))
-    } else {
-        CoroutineScope(parentScope.coroutineContext + Job(parentScope.coroutineContext[Job]))
+    val sessionScope: CoroutineScope by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        CoroutineScope(
+            parentScope.coroutineContext + if (supervisedSessions) {
+                SupervisorJob(parentScope.coroutineContext[Job])
+            } else {
+                Job(parentScope.coroutineContext[Job])
+            }
+        )
     }
 
     var status: MutableStateFlow<SessionStatus> = MutableStateFlow(SessionStatus.PendingExecution)

@@ -23,11 +23,21 @@ val blockchainModule = module {
                 BlankBlockchainService()
             }
 
-            else -> BlockchainServiceImpl(
-                rpcUrl = config.remoteAgentWallet.rpcUrl,
-                commitment = "confirmed",
-                signerConfig = wallet.signerConfig
-            )
+            else -> {
+                try {
+                    BlockchainServiceImpl(
+                        rpcUrl = config.remoteAgentWallet.rpcUrl,
+                        commitment = "confirmed",
+                        signerConfig = wallet.signerConfig
+                    )
+                } catch (e: UnsatisfiedLinkError) {
+                    logger.warn("Agent exporting and importing will be disabled because coral_ffi is unavailable: ${e.message}")
+                    BlankBlockchainService()
+                } catch (e: NoClassDefFoundError) {
+                    logger.warn("Agent exporting and importing will be disabled because coral_ffi could not be initialized: ${e.message}")
+                    BlankBlockchainService()
+                }
+            }
         }
     }
 
@@ -39,11 +49,21 @@ val blockchainModule = module {
                 BlankX402Service()
             }
 
-            is Wallet.Solana -> X402ServiceImpl(
-                rpcUrl = wallet.rpcUrl,
-                commitment = "confirmed",
-                signerConfig = wallet.signerConfig
-            )
+            is Wallet.Solana -> {
+                try {
+                    X402ServiceImpl(
+                        rpcUrl = wallet.rpcUrl,
+                        commitment = "confirmed",
+                        signerConfig = wallet.signerConfig
+                    )
+                } catch (e: UnsatisfiedLinkError) {
+                    logger.warn("x402 service forwarding services will be disabled because coral_ffi is unavailable: ${e.message}")
+                    BlankX402Service()
+                } catch (e: NoClassDefFoundError) {
+                    logger.warn("x402 service forwarding services will be disabled because coral_ffi could not be initialized: ${e.message}")
+                    BlankX402Service()
+                }
+            }
 
             else -> {
                 logger.warn("x402 service forwarding services will be disabled because the configured wallet is not a Solana wallet")

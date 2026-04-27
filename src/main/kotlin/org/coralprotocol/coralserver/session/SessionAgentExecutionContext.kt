@@ -85,17 +85,17 @@ class SessionAgentExecutionContext(
             }
 
             // User options
-            options.forEach { (name, value) ->
+            options.forEach { (optionName, value) ->
                 when (value.option().transport) {
                     AgentOptionTransport.ENVIRONMENT_VARIABLE -> {
-                        this[name] = value.asEnvVarValue()
+                        this[optionName] = value.asEnvVarValue()
                     }
 
                     AgentOptionTransport.FILE_SYSTEM -> {
                         val resources = value.asFileSystemValue(dockerConfig)
                         disposableResources.addAll(resources)
 
-                        this[name] = resources.joinToString(filePathSeparator) {
+                        this[optionName] = resources.joinToString(filePathSeparator) {
                             if (isContainer) {
                                 it.mountPath
                             } else {
@@ -105,7 +105,9 @@ class SessionAgentExecutionContext(
                     }
                 }
 
-                logger.info { "Setting option \"$name\" = \"${value.toDisplayString()}\" for agent $name" }
+                logger.info {
+                    "Setting option \"$optionName\" = \"${value.toDisplayString()}\" for session agent ${agent.name}"
+                }
             }
 
             // Coral environment variables

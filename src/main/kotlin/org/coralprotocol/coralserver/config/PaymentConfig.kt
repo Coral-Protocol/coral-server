@@ -36,5 +36,5 @@ data class PaymentConfig(
     val remoteAgentWallet: Wallet? = wallets.firstOrNull { it.name == remoteAgentWalletName },
 
     @Transient
-    val x402Wallet: Wallet? = wallets.firstOrNull { it.name == remoteAgentWalletName },
+    val x402Wallet: Wallet? = wallets.firstOrNull { it.name == x402WalletName },
 )

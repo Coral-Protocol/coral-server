@@ -45,6 +45,51 @@ class LocalSessions(val parent: ApiV1 = ApiV1()) {
     }
 }
 
+suspend fun resolveAndLaunchSession(
+    sessionRequest: SessionRequest,
+    agentRegistry: AgentRegistry,
+    localSessionManager: LocalSessionManager,
+    logger: Logger,
+    logPrefix: String = "session",
+): SessionIdentifier {
+    val agentGraph = sessionRequest.agentGraphRequest.toAgentGraph(agentRegistry)
+
+    val existingNamespaces = localSessionManager.getNamespaces()
+    val namespace = when (sessionRequest.namespaceProvider) {
+        is SessionNamespaceProvider.CreateIfNotExists -> {
+            existingNamespaces.firstOrNull { it.name == sessionRequest.namespaceProvider.namespaceRequest.name }
+                ?: localSessionManager.createNamespace(sessionRequest.namespaceProvider.namespaceRequest)
+        }
+
+        is SessionNamespaceProvider.UseExisting -> {
+            existingNamespaces.firstOrNull { it.name == sessionRequest.namespaceProvider.name }
+                ?: throw RouteException(HttpStatusCode.NotFound, "Namespace not found")
+        }
+    }
+
+    val (session, _) = localSessionManager.createSession(
+        namespace,
+        agentGraph,
+        sessionRequest.annotations
+    )
+
+    when (sessionRequest.execution) {
+        is SessionRequestExecution.Defer -> {
+            logger.info { "$logPrefix \"${session.id}\" was created in \"${namespace.name}\" with deferred execution" }
+        }
+
+        is SessionRequestExecution.Execute -> {
+            logger.info { "$logPrefix \"${session.id}\" was created in \"${namespace.name}\" with immediate execution" }
+            localSessionManager.launchSession(session, namespace, sessionRequest.execution.runtimeSettings)
+        }
+    }
+
+    return SessionIdentifier(
+        sessionId = session.id,
+        namespace = namespace.name
+    )
+}
+
 /**
  * Configures session-related routes.
  */
@@ -85,42 +130,12 @@ fun Route.localSessionApi() {
         }
     }) { _ ->
         val sessionRequest = call.receive<SessionRequest>()
-        val agentGraph = sessionRequest.agentGraphRequest.toAgentGraph(registry)
-
-        val existingNamespaces = localSessionManager.getNamespaces()
-        val namespace = when (sessionRequest.namespaceProvider) {
-            is SessionNamespaceProvider.CreateIfNotExists -> {
-                existingNamespaces.firstOrNull { it.name == sessionRequest.namespaceProvider.namespaceRequest.name }
-                    ?: localSessionManager.createNamespace(sessionRequest.namespaceProvider.namespaceRequest)
-            }
-
-            is SessionNamespaceProvider.UseExisting -> {
-                existingNamespaces.firstOrNull { it.name == sessionRequest.namespaceProvider.name }
-                    ?: throw RouteException(HttpStatusCode.NotFound, "Namespace not found")
-            }
-        }
-
-        val (session, _) = localSessionManager.createSession(
-            namespace,
-            agentGraph,
-            sessionRequest.annotations
-        )
-
-        when (sessionRequest.execution) {
-            is SessionRequestExecution.Defer -> {
-                logger.info { "session \"${session.id}\" was created in \"${namespace.name}\" with deferred execution" }
-            }
-
-            is SessionRequestExecution.Execute -> {
-                logger.info { "session \"${session.id}\" was created in \"${namespace.name}\" with immediate execution" }
-                localSessionManager.launchSession(session, namespace, sessionRequest.execution.runtimeSettings)
-            }
-        }
-
         call.respond(
-            SessionIdentifier(
-                sessionId = session.id,
-                namespace = namespace.name
+            resolveAndLaunchSession(
+                sessionRequest = sessionRequest,
+                agentRegistry = registry,
+                localSessionManager = localSessionManager,
+                logger = logger,
             )
         )
     }

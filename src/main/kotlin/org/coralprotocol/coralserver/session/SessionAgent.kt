@@ -73,7 +73,8 @@ class SessionAgent(
     private val sessionConfig by inject<SessionConfig>()
     val logger = session.logger.withTags(LoggingTag.Agent(graphAgent.name))
 
-    val coroutineScope: CoroutineScope = session.sessionScope
+    val coroutineScope: CoroutineScope
+        get() = session.sessionScope
 
     /**
      * Agent name
