@@ -210,9 +210,6 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                                 }
                                             }
                                         }
-                                        single(named(LLM_PROXY_HTTP_CLIENT)) {
-                                            createClient { }
-                                        }
                                     },
                                     blockchainModule,
                                     agentModule,
