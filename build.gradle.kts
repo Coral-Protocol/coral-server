@@ -1,5 +1,4 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
-import org.gradle.kotlin.dsl.invoke
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -122,6 +121,14 @@ tasks.test {
         exceptionFormat = TestExceptionFormat.FULL
         showExceptions = true
         showStandardStreams = true
+    }
+
+    if (!project.hasProperty("benchmarkOpenAI")) {
+        exclude("org/coralprotocol/coralserver/llm/OpenAITest.class")
+    }
+
+    if (!project.hasProperty("benchmarkAnthropic")) {
+        exclude("org/coralprotocol/coralserver/llm/AnthropicTest.class")
     }
 }
 
