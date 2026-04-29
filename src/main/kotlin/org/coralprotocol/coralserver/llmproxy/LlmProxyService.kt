@@ -111,7 +111,7 @@ class LlmProxyService(
     }
 
     private suspend fun proxyBuffered(req: LlmProxyRequest, call: ApplicationCall) {
-        val response = httpClient.request(req.model.providerConfig.baseUrl) {
+        val response = httpClient.request(req.upstreamUrl) {
             configureProxy(req, call)
         }
 
@@ -139,7 +139,7 @@ class LlmProxyService(
     }
 
     private suspend fun proxyStreaming(req: LlmProxyRequest, call: ApplicationCall) {
-        httpClient.prepareRequest(req.model.providerConfig.baseUrl) {
+        httpClient.prepareRequest(req.upstreamUrl) {
             configureProxy(req, call)
             timeout {
                 socketTimeoutMillis = req.model.providerConfig.timeout.inWholeMilliseconds
@@ -266,19 +266,13 @@ class LlmProxyService(
 
     private suspend fun readRequestBody(hasBody: Boolean, call: ApplicationCall): String {
         if (!hasBody) return ""
-        val declaredLength = call.request.headers[HttpHeaders.ContentLength]?.toLongOrNull() ?: throw RouteException(
-            HttpStatusCode.LengthRequired,
-            "Request body missing Content-Length header"
-        )
+        val channel = call.receiveChannel()
+        val body = channel.readRemaining(config.maxRequestSize.inWholeBytes).readText()
 
-        if (declaredLength > config.maxRequestSize.inWholeBytes) {
-            throw RouteException(
-                HttpStatusCode.PayloadTooLarge,
-                "Request body exceeds ${config.maxRequestSize} limit"
-            )
-        }
+        if (channel.availableForRead > 0 || !channel.isClosedForRead)
+            throw LlmProxyException("Upstream response exceeded ${config.maxRequestSize} limit")
 
-        return call.receiveText()
+        return body
     }
 
     private fun tryParseJson(body: String): JsonObject? {
@@ -290,14 +284,13 @@ class LlmProxyService(
     }
 
     private suspend fun readBoundedBody(response: HttpResponse): String {
-        val declaredLength = response.headers[HttpHeaders.ContentLength]?.toLongOrNull()
-            ?: throw LlmProxyException("Upstream response missing Content-Length header")
+        val channel = response.bodyAsChannel()
+        val body = channel.readRemaining(config.maxResponseSize.inWholeBytes).readText()
 
-        if (declaredLength > config.maxResponseSize.inWholeBytes) {
-            throw LlmProxyException("Upstream response exceeds ${config.maxResponseSize} limit")
-        }
+        if (channel.availableForRead > 0 || !channel.isClosedForRead)
+            throw LlmProxyException("Upstream response exceeded ${config.maxResponseSize} limit")
 
-        return response.bodyAsText()
+        return body
     }
 
     private fun classifyHttpError(status: HttpStatusCode): LlmErrorKind = when (status.value) {
