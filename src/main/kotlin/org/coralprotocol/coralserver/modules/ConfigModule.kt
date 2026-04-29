@@ -14,8 +14,11 @@ val configModule = module {
             .addEnvironmentSource()
 
         val path = System.getenv("CONFIG_FILE_PATH")
-        if (path != null)
+        if (path != null) {
+            // logger awkward to get here
+            println("Including config file from path specified in CONFIG_FILE_PATH: $path")
             loader.addFileSource(path)
+        }
 
         loader.build().loadConfigOrThrow<RootConfig>()
     }

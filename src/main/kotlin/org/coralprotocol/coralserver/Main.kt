@@ -72,21 +72,24 @@ fun main(args: Array<String>) {
 }
 
 private fun printBindExceptionGuidance(port: UShort) {
-    println("\n\n${"=".repeat(60)}")
-    println("Probably port $port is already in use.")
-    println("Likely another Coral instance is already running.")
-    println("Please close the other instance and try again.")
-    println()
-    if (isWindows()) {
-        println("With PowerShell, you can kill whatever is using the port with:")
-        println("Get-Process -Id (Get-NetTCPConnection -LocalPort $port).OwningProcess | Stop-Process -Force")
-    } else {
-        println("With bash, you can kill whatever is using the port with:")
-        println()
-        println("lsof -t -i :$port | xargs kill -9")
-        println()
+    val message = buildString {
+        appendLine("\n\n${"=".repeat(60)}")
+        appendLine("Probably port $port is already in use.")
+        appendLine("Likely another Coral instance is already running.")
+        appendLine("Please close the other instance and try again.")
+        appendLine()
+        if (isWindows()) {
+            appendLine("With PowerShell, you can kill whatever is using the port with:")
+            appendLine("Get-Process -Id (Get-NetTCPConnection -LocalPort $port).OwningProcess | Stop-Process -Force")
+        } else {
+            appendLine("With bash, you can kill whatever is using the port with:")
+            appendLine()
+            appendLine("lsof -t -i :$port | xargs kill -9")
+            appendLine()
+        }
+        appendLine("${"=".repeat(60)}\n\n")
     }
-    println("${"=".repeat(60)}\n\n")
+    print(message)
 }
 
 private fun Throwable.hasCause(type: KClass<out Throwable>) =

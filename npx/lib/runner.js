@@ -167,7 +167,7 @@ async function runServer(serverArgs, configProfile, fromSourceValue) {
       }
     }
 
-    // Set the config file path environment variable for the server
+    // for coral server, inherited by java and gradlew
     process.env.CONFIG_FILE_PATH = profilePath;
   }
 

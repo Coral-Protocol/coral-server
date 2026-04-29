@@ -36,7 +36,7 @@ data class RegistryConfig(
     /**
      * If this is true, all debug agents will be included in the registry
      */
-    val includeDebugAgents: Boolean = false,
+    val includeDebugAgents: Boolean = true,
 
     /**
      * If this is true and [includeDebugAgents] is true, the debug agents included will also be exported
