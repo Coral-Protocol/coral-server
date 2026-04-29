@@ -76,12 +76,8 @@ class RegistryAgentTest : CoralTest({
         prototypeRuntime.iterationCount.shouldBeEqual(20)
         prototypeRuntime.iterationDelay.shouldBeZero()
 
-        val modelProvider = prototypeRuntime.modelProvider.shouldBeInstanceOf<PrototypeModelProvider.OpenAI>()
-        modelProvider.name.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("gpt-5.1")
-        modelProvider.key.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("key here")
-
-        val customUrl = modelProvider.url.shouldBeInstanceOf<PrototypeApiUrl.Custom>()
-        customUrl.value.shouldBeEqual("https://api.custom-model-provider.com")
+        prototypeRuntime.proxyName.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("MAIN")
+        prototypeRuntime.client.shouldNotBeNull().shouldBeEqual(PrototypeClient.OPEN_AI)
 
         prototypeRuntime.prompts.system.base.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("base system prompt")
         prototypeRuntime.prompts.system.extra.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("extra system prompt")
@@ -753,79 +749,13 @@ class RegistryAgentTest : CoralTest({
         }
     }
 
-    test("testValidatePrototypeRuntimeModelProvider") {
-        shouldNotThrowAny {
-            registryAgent("valid") {
-                runtime(
-                    PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = PrototypeString.Inline("gpt-5.1"),
-                            key = PrototypeString.Inline("key here"),
-                            url = PrototypeApiUrl.Custom("https://api.custom-model-provider.com")
-                        )
-                    )
-                )
-            }.validate()
-        }
-
-        // model name too long
-        shouldThrow<RegistryException> {
-            registryAgent("valid") {
-                runtime(
-                    PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = PrototypeString.Inline("a".repeat(AGENT_PROTOTYPE_MODEL_NAME_LENGTH.last + 1)),
-                            key = PrototypeString.Inline("key")
-                        )
-                    )
-                )
-            }.validate()
-        }
-
-        // model key too long
-        shouldThrow<RegistryException> {
-            registryAgent("valid") {
-                runtime(
-                    PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = PrototypeString.Inline("gpt-5.1"),
-                            key = PrototypeString.Inline("a".repeat(AGENT_PROTOTYPE_MODEL_KEY_LENGTH.last + 1))
-                        )
-                    )
-                )
-            }.validate()
-        }
-
-        // custom url too long
-        shouldThrow<RegistryException> {
-            registryAgent("valid") {
-                runtime(
-                    PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = PrototypeString.Inline("gpt-5.1"),
-                            key = PrototypeString.Inline("key"),
-                            url = PrototypeApiUrl.Custom(
-                                "https://example.com/" + "a".repeat(
-                                    AGENT_PROTOTYPE_MODEL_API_URL_LENGTH.last
-                                )
-                            )
-                        )
-                    )
-                )
-            }.validate()
-        }
-    }
-
     test("testValidatePrototypeRuntimePrompts") {
         // system prompt base too big
         shouldThrow<RegistryException> {
             registryAgent("valid") {
                 runtime(
                     PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = PrototypeString.Inline("gpt-5.1"),
-                            key = PrototypeString.Inline("key")
-                        ),
+                        proxyName = PrototypeString.Inline("EXAMPLE_PROXY_NAME"),
                         prompts = PrototypePrompts(
                             system = PrototypeSystemPrompt(
                                 base = PrototypeString.Inline("a".repeat(AGENT_PROTOTYPE_PROMPT_SYSTEM_BASE_SIZE.inWholeBytes.toInt() + 1))
@@ -841,10 +771,7 @@ class RegistryAgentTest : CoralTest({
             registryAgent("valid") {
                 runtime(
                     PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = PrototypeString.Inline("gpt-5.1"),
-                            key = PrototypeString.Inline("key")
-                        ),
+                        proxyName = PrototypeString.Inline("EXAMPLE_PROXY_NAME"),
                         prompts = PrototypePrompts(
                             system = PrototypeSystemPrompt(
                                 extra = PrototypeString.Inline("a".repeat(AGENT_PROTOTYPE_PROMPT_SYSTEM_EXTRA_SIZE.inWholeBytes.toInt() + 1))
@@ -860,10 +787,7 @@ class RegistryAgentTest : CoralTest({
             registryAgent("valid") {
                 runtime(
                     PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = PrototypeString.Inline("gpt-5.1"),
-                            key = PrototypeString.Inline("key")
-                        ),
+                        proxyName = PrototypeString.Inline("EXAMPLE_PROXY_NAME"),
                         prompts = PrototypePrompts(
                             loop = PrototypeLoopPrompt(
                                 initial = PrototypeLoopInitialPrompt(
@@ -885,10 +809,7 @@ class RegistryAgentTest : CoralTest({
             registryAgent("valid") {
                 runtime(
                     PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = PrototypeString.Inline("gpt-5.1"),
-                            key = PrototypeString.Inline("key")
-                        ),
+                        proxyName = PrototypeString.Inline("EXAMPLE_PROXY_NAME"),
                         prompts = PrototypePrompts(
                             loop = PrototypeLoopPrompt(
                                 initial = PrototypeLoopInitialPrompt(
@@ -910,10 +831,7 @@ class RegistryAgentTest : CoralTest({
             registryAgent("valid") {
                 runtime(
                     PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = PrototypeString.Inline("gpt-5.1"),
-                            key = PrototypeString.Inline("key")
-                        ),
+                        proxyName = PrototypeString.Inline("EXAMPLE_PROXY_NAME"),
                         prompts = PrototypePrompts(
                             loop = PrototypeLoopPrompt(
                                 followup = PrototypeString.Inline("a".repeat(AGENT_PROTOTYPE_PROMPT_LOOP_FOLLOWUP_SIZE.inWholeBytes.toInt() + 1))
@@ -931,10 +849,7 @@ class RegistryAgentTest : CoralTest({
             registryAgent("valid") {
                 runtime(
                     PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = PrototypeString.Inline("gpt-5.1"),
-                            key = PrototypeString.Inline("key")
-                        ),
+                        proxyName = PrototypeString.Inline("EXAMPLE_PROXY_NAME"),
                         toolServers = listOf(
                             PrototypeToolServer.McpSse(
                                 url = PrototypeString.Inline(
@@ -954,10 +869,7 @@ class RegistryAgentTest : CoralTest({
             registryAgent("valid") {
                 runtime(
                     PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = PrototypeString.Inline("gpt-5.1"),
-                            key = PrototypeString.Inline("key")
-                        ),
+                        proxyName = PrototypeString.Inline("EXAMPLE_PROXY_NAME"),
                         toolServers = listOf(
                             PrototypeToolServer.McpSse(
                                 url = PrototypeString.Inline("https://example.com"),
@@ -978,10 +890,7 @@ class RegistryAgentTest : CoralTest({
             registryAgent("valid") {
                 runtime(
                     PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = PrototypeString.Inline("gpt-5.1"),
-                            key = PrototypeString.Inline("key here")
-                        ),
+                        proxyName = PrototypeString.Inline("EXAMPLE_PROXY_NAME"),
                         iterationCount = 0
                     )
                 )
@@ -993,10 +902,7 @@ class RegistryAgentTest : CoralTest({
             registryAgent("valid") {
                 runtime(
                     PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = PrototypeString.Inline("gpt-5.1"),
-                            key = PrototypeString.Inline("key here")
-                        ),
+                        proxyName = PrototypeString.Inline("EXAMPLE_PROXY_NAME"),
                         iterationDelay = -1
                     )
                 )
@@ -1006,30 +912,18 @@ class RegistryAgentTest : CoralTest({
         shouldNotThrowAny {
             registryAgent("valid") {
                 runtime(
-                    PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = PrototypeString.Option("MODEL_NAME"),
-                            key = PrototypeString.Option("MODEL_KEY")
-                        )
-                    )
+                    PrototypeRuntime(proxyName = PrototypeString.Option("EXAMPLE_PROXY_NAME"))
                 )
-                option("MODEL_NAME", AgentOption.String(default = "gpt-5.1"))
-                option("MODEL_KEY", AgentOption.String(default = "key here"))
+                option("EXAMPLE_PROXY_NAME", AgentOption.String(default = "gpt-5.1"))
             }.validate()
         }
 
-        // option MODEL_KEY doesn't exist
+        // option EXAMPLE_PROXY_NAME_OPTION doesn't exist
         shouldThrow<RegistryException> {
             registryAgent("valid") {
                 runtime(
-                    PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = PrototypeString.Option("MODEL_NAME"),
-                            key = PrototypeString.Option("MODEL_KEY")
-                        )
-                    )
+                    PrototypeRuntime(proxyName = PrototypeString.Option("EXAMPLE_PROXY_NAME_OPTION"))
                 )
-                option("MODEL_NAME", AgentOption.String(default = "gpt-5.1"))
             }.validate()
         }
 
@@ -1037,15 +931,161 @@ class RegistryAgentTest : CoralTest({
         shouldThrow<RegistryException> {
             registryAgent("valid") {
                 runtime(
+                    PrototypeRuntime(proxyName = PrototypeString.Option("EXAMPLE_PROXY_NAME_OPTION"))
+                )
+                option("EXAMPLE_PROXY_NAME_OPTION", AgentOption.Int())
+            }.validate()
+        }
+    }
+
+    test("testValidatePrototypeStringComposed") {
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(
                     PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = PrototypeString.Option("MODEL_NAME"),
-                            key = PrototypeString.Option("MODEL_KEY")
+                        proxyName = PrototypeString.Inline("EXAMPLE_PROXY_NAME"),
+                        prompts = PrototypePrompts(loop = PrototypeLoopPrompt(followup = composedString("-") {
+                            inline("gpt")
+                            inline("4")
+                        }))
+                    )
+                )
+            }.validate()
+        }
+
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        proxyName = PrototypeString.Inline("EXAMPLE_PROXY_NAME"),
+                        toolServers = listOf(
+                            PrototypeToolServer.McpSse(composedUrl("https://my-server.com/mcp") {
+                                queryParameter("token") { option("API_KEY") }
+                            })
                         )
                     )
                 )
-                option("MODEL_NAME", AgentOption.String(default = "gpt-5.1"))
-                option("MODEL_KEY", AgentOption.Int())
+                option("API_KEY", AgentOption.String())
+            }.validate()
+        }
+
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        proxyName = PrototypeString.Inline("EXAMPLE_PROXY_NAME"),
+                        prompts = PrototypePrompts(loop = PrototypeLoopPrompt(followup = composedString("-") {
+                            inline("gpt")
+                            composedString {
+                                inline("4")
+                                inline("o")
+                            }
+                        }))
+                    )
+                )
+            }.validate()
+        }
+
+        // name of composed string too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        proxyName = PrototypeString.Inline("EXAMPLE_PROXY_NAME"),
+                        prompts = PrototypePrompts(loop = PrototypeLoopPrompt(followup = composedString {
+                            inline("a".repeat((AGENT_PROTOTYPE_PROMPT_LOOP_FOLLOWUP_SIZE.inWholeBytes / 2).toInt()))
+                            inline("a".repeat((AGENT_PROTOTYPE_PROMPT_LOOP_FOLLOWUP_SIZE.inWholeBytes / 2 + 2).toInt()))
+                        }))
+                    )
+                )
+            }.validate()
+        }
+
+        // too many composed parts
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        proxyName = PrototypeString.Inline("EXAMPLE_PROXY_NAME"),
+                        prompts = PrototypePrompts(loop = PrototypeLoopPrompt(followup = composedString {
+                            repeat(AGENT_PROTOTYPE_MAX_COMPOSED_PARTS + 1) {
+                                inline("a")
+                            }
+                        }))
+                    )
+                )
+            }.validate()
+        }
+
+        // missing option reference in composed string
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        proxyName = PrototypeString.Inline("EXAMPLE_PROXY_NAME"),
+                        prompts = PrototypePrompts(loop = PrototypeLoopPrompt(followup = composedString {
+                            inline("gpt-")
+                            option("MISSING_OPTION")
+                        }))
+                    )
+                )
+            }.validate()
+        }
+
+        // option is not a string in composed string
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        proxyName = PrototypeString.Inline("EXAMPLE_PROXY_NAME"),
+                        prompts = PrototypePrompts(loop = PrototypeLoopPrompt(followup = composedString {
+                            inline("gpt-")
+                            option("INT_OPTION")
+                        }))
+                    )
+                )
+                option("INT_OPTION", AgentOption.Int())
+            }.validate()
+        }
+
+        // nested composed string too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        proxyName = PrototypeString.Inline("EXAMPLE_PROXY_NAME"),
+                        prompts = PrototypePrompts(loop = PrototypeLoopPrompt(followup = composedString {
+                            inline("a".repeat((AGENT_PROTOTYPE_PROMPT_LOOP_FOLLOWUP_SIZE.inWholeBytes / 2).toInt()))
+                            composedString {
+                                inline("a".repeat((AGENT_PROTOTYPE_PROMPT_LOOP_FOLLOWUP_SIZE.inWholeBytes / 2 + 2).toInt()))
+                            }
+                        }))
+                    )
+                )
+            }.validate()
+        }
+
+        // too many nested composed parts
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(
+                    PrototypeRuntime(
+                        proxyName = PrototypeString.Inline("EXAMPLE_PROXY_NAME"),
+                        prompts = PrototypePrompts(loop = PrototypeLoopPrompt(followup = composedString {
+                            inline("a".repeat((AGENT_PROTOTYPE_PROMPT_LOOP_FOLLOWUP_SIZE.inWholeBytes / 2).toInt()))
+                            composedString {
+                                repeat(AGENT_PROTOTYPE_MAX_COMPOSED_PARTS / 2) {
+                                    inline("a")
+                                }
+                                composedString {
+                                    repeat(AGENT_PROTOTYPE_MAX_COMPOSED_PARTS / 2 + 2) {
+                                        inline("a")
+                                    }
+                                }
+                            }
+                        }))
+                    )
+                )
             }.validate()
         }
     }
@@ -1209,174 +1249,6 @@ class RegistryAgentTest : CoralTest({
         shouldThrow<RegistryException> {
             agentWithErc8004 {
                 endpoint("endpoint1", "not a url")
-            }.validate()
-        }
-    }
-
-    test("testValidatePrototypeStringComposed") {
-        shouldNotThrowAny {
-            registryAgent("valid") {
-                runtime(
-                    PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = composedString("-") {
-                                inline("gpt")
-                                inline("4")
-                            },
-                            key = PrototypeString.Inline("key")
-                        )
-                    )
-                )
-            }.validate()
-        }
-
-        shouldNotThrowAny {
-            registryAgent("valid") {
-                runtime(
-                    PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = PrototypeString.Inline("gpt-4"),
-                            key = PrototypeString.Inline("key"),
-                        ),
-                        toolServers = listOf(
-                            PrototypeToolServer.McpSse(composedUrl("https://my-server.com/mcp") {
-                                queryParameter("token") { option("API_KEY") }
-                            })
-                        )
-                    )
-                )
-                option("API_KEY", AgentOption.String())
-            }.validate()
-        }
-
-        shouldNotThrowAny {
-            registryAgent("valid") {
-                runtime(
-                    PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = composedString("-") {
-                                inline("gpt")
-                                composedString {
-                                    inline("4")
-                                    inline("o")
-                                }
-                            },
-                            key = PrototypeString.Inline("key")
-                        )
-                    )
-                )
-            }.validate()
-        }
-
-        // name of composed string too long
-        shouldThrow<RegistryException> {
-            registryAgent("valid") {
-                runtime(
-                    PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = composedString {
-                                inline("a".repeat(AGENT_PROTOTYPE_MODEL_NAME_LENGTH.last / 2))
-                                inline("a".repeat(AGENT_PROTOTYPE_MODEL_NAME_LENGTH.last / 2 + 2))
-                            },
-                            key = PrototypeString.Inline("key")
-                        )
-                    )
-                )
-            }.validate()
-        }
-
-        // too many composed parts
-        shouldThrow<RegistryException> {
-            registryAgent("valid") {
-                runtime(
-                    PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = composedString {
-                                repeat(AGENT_PROTOTYPE_MAX_COMPOSED_PARTS + 1) {
-                                    inline("a")
-                                }
-                            },
-                            key = PrototypeString.Inline("key")
-                        )
-                    )
-                )
-            }.validate()
-        }
-
-        // missing option reference in composed string
-        shouldThrow<RegistryException> {
-            registryAgent("valid") {
-                runtime(
-                    PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = composedString {
-                                inline("gpt-")
-                                option("MISSING_OPTION")
-                            },
-                            key = PrototypeString.Inline("key")
-                        )
-                    )
-                )
-            }.validate()
-        }
-
-        // option is not a string in composed string
-        shouldThrow<RegistryException> {
-            registryAgent("valid") {
-                runtime(
-                    PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = composedString {
-                                inline("gpt-")
-                                option("INT_OPTION")
-                            },
-                            key = PrototypeString.Inline("key")
-                        )
-                    )
-                )
-                option("INT_OPTION", AgentOption.Int())
-            }.validate()
-        }
-
-        // nested composed string too long
-        shouldThrow<RegistryException> {
-            registryAgent("valid") {
-                runtime(
-                    PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = composedString {
-                                inline("a".repeat(AGENT_PROTOTYPE_MODEL_NAME_LENGTH.last / 2))
-                                composedString {
-                                    inline("a".repeat(AGENT_PROTOTYPE_MODEL_NAME_LENGTH.last / 2 + 2))
-                                }
-                            },
-                            key = PrototypeString.Inline("key")
-                        )
-                    )
-                )
-            }.validate()
-        }
-
-        // too many nested composed parts
-        shouldThrow<RegistryException> {
-            registryAgent("valid") {
-                runtime(
-                    PrototypeRuntime(
-                        modelProvider = PrototypeModelProvider.OpenAI(
-                            name = composedString {
-                                repeat(AGENT_PROTOTYPE_MAX_COMPOSED_PARTS / 2) {
-                                    inline("a")
-                                }
-                                composedString {
-                                    repeat(AGENT_PROTOTYPE_MAX_COMPOSED_PARTS / 2 + 2) {
-                                        inline("a")
-                                    }
-                                }
-                            },
-                            key = PrototypeString.Inline("key")
-                        )
-                    )
-                )
             }.validate()
         }
     }

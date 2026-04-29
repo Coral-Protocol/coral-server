@@ -74,17 +74,8 @@ arguments = ["--some-argument"]
 [runtimes.prototype]
 iterations = 20 # > 0
 delay = 0 # >= 0
-
-[runtimes.prototype.model]
-
-# openai, anthropic or openrouter (for now)
-provider = "openai" # openai/anthropic/openrouter
-
-# inline string, len 1 - 128
-name = "gpt-5.1"
-
-# inline string, len 1 - 1024
-key = "key here"
+proxy = "MAIN" # exists in [llm.proxies]
+client = "openai" # openai/anthropic/openrouter
 
 [runtimes.prototype.model.url]
 type = "custom"
