@@ -77,13 +77,6 @@ delay = 0 # >= 0
 proxy = "MAIN" # exists in [llm.proxies]
 client = "openai" # openai/anthropic/openrouter
 
-[runtimes.prototype.model.url]
-type = "custom"
-
-# pattern: valid URI, https scheme
-# len: 1 - 256
-value = "https://api.custom-model-provider.com"
-
 [runtimes.prototype.prompts]
 # inline: 6KiB
 system.base = "base system prompt"
