@@ -10,6 +10,8 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.registry.option.option
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.llmproxy.LlmProxiedModel
+import org.coralprotocol.coralserver.utils.TestProxy
 import org.coralprotocol.coralserver.x402.X402BudgetedResource
 
 @TestDsl
@@ -24,6 +26,7 @@ open class CommonGraphAgentBuilder(
     protected val annotations: MutableMap<String, String> = mutableMapOf()
     protected val plugins = mutableSetOf<GraphAgentPlugin>()
     protected val x402Budgets = mutableListOf<X402BudgetedResource>()
+    protected val proxies = mutableMapOf<String, LlmProxiedModel>()
 
     fun plugin(plugin: GraphAgentPlugin) {
         plugins.add(plugin)
@@ -35,6 +38,14 @@ open class CommonGraphAgentBuilder(
 
     fun x402Budget(budget: X402BudgetedResource) {
         x402Budgets.add(budget)
+    }
+
+    fun proxy(name: String, model: LlmProxiedModel) {
+        proxies[name] = model
+    }
+
+    fun testProxy(testProxy: TestProxy, modelName: String) {
+        proxies[testProxy.providerConfig.name] = LlmProxiedModel(testProxy.providerConfig, modelName)
     }
 }
 
@@ -70,7 +81,7 @@ class GraphAgentBuilder(name: String) : CommonGraphAgentBuilder(name) {
             provider = provider,
             x402Budgets = x402Budgets.toList(),
             annotations = annotations.toMap(),
-            proxies = emptyMap()
+            proxies = proxies.toMap()
         )
     }
 }

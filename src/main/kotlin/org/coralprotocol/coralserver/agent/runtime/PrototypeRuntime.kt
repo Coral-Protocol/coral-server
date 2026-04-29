@@ -232,7 +232,7 @@ data class PrototypeRuntime(
                                 val (response, llmResponseTime) = measureTimedValue {
                                     requestLLMOnlyCallingTools(if (iteration == 0) initialUserMessage else followupUserMessage)
                                 }
-                                
+
                                 llm.readSession { readSession -> postRequestToLLMCallback(readSession) }
                                 executionContext.logger.debug { "$proxiedModel responded in $llmResponseTime, with: ${response.content}" }
 

@@ -53,7 +53,7 @@ class MultiAgentTestPayloadPath(val sessionId: String, val agentId: String)
  * here.  If this test fails, it is because a model is not supported by Coral or because there is an issue with the
  * default prompts and toolset.
  */
-suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelProvider) {
+suspend fun KoinComponent.multiAgentPayloadTest(testProxy: TestProxy, model: String) {
     val localSessionManager by inject<LocalSessionManager>()
     val application by inject<Application>()
     val json by inject<Json>()
@@ -99,8 +99,9 @@ suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelPro
                     registryAgent {
                         runtime(
                             PrototypeRuntime(
-                                true,
-                                modelProvider,
+                                volatile = true,
+                                proxyName = PrototypeString.Inline(testProxy.proxyRequest.name),
+                                client = testProxy.prototypeClient,
                                 prompts = PrototypePrompts(
                                     loop = PrototypeLoopPrompt(
                                         initial = PrototypeLoopInitialPrompt(
@@ -123,14 +124,16 @@ suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelPro
                             outputSchema = buildToolSchema<MultiAgentTestPayloadResponse>()
                         )
                     )
+                    testProxy(testProxy, model)
                     provider = GraphAgentProvider.Local(RuntimeId.PROTOTYPE)
                 },
                 graphAgentPair(senderAgentName) {
                     registryAgent {
                         runtime(
                             PrototypeRuntime(
-                                true,
-                                modelProvider,
+                                volatile = true,
+                                proxyName = PrototypeString.Inline(testProxy.proxyRequest.name),
+                                client = testProxy.prototypeClient,
                                 prompts = PrototypePrompts(
                                     system = PrototypeSystemPrompt(extra = PrototypeString.Inline("payload = $payloadData")),
                                 ),
@@ -138,6 +141,7 @@ suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelPro
                             )
                         )
                     }
+                    testProxy(testProxy, model)
                     provider = GraphAgentProvider.Local(RuntimeId.PROTOTYPE)
                 },
             )

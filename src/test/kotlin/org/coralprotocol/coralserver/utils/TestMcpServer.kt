@@ -235,7 +235,8 @@ class TestMcpServer(
 }
 
 suspend fun KoinComponent.runTestServerTest(
-    modelProvider: PrototypeModelProvider,
+    testProxy: TestProxy,
+    modelName: String,
     testMcpServer: TestMcpServer,
     prototypeToolServer: PrototypeToolServer
 ) {
@@ -249,8 +250,9 @@ suspend fun KoinComponent.runTestServerTest(
                     registryAgent {
                         runtime(
                             PrototypeRuntime(
-                                true,
-                                modelProvider,
+                                volatile = true,
+                                proxyName = PrototypeString.Inline(testProxy.proxyRequest.name),
+                                client = testProxy.prototypeClient,
                                 prompts = PrototypePrompts(
                                     loop = PrototypeLoopPrompt(
                                         initial = PrototypeLoopInitialPrompt(
@@ -272,6 +274,7 @@ suspend fun KoinComponent.runTestServerTest(
                             )
                         )
                     }
+                    testProxy(testProxy, modelName)
                     provider = GraphAgentProvider.Local(RuntimeId.PROTOTYPE)
                 },
             )
