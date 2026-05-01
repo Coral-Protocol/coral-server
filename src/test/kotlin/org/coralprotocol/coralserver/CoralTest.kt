@@ -68,7 +68,7 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
     val anthropicProxy = TestProxy.buildFromConfig(TestProxyConfiguration.ANTHROPIC)
 
     // Test cases that rely on proxies must use these functions with the `enabledIf` config instead of `enabled` because
-    // the config is evaluated before the above proxies are initialised
+    // the config is evaluated before the above proxies are initialized
     fun hasOpenAIProxy(testCase: TestCase) = openAIProxy != null
     fun hasAnthropicProxy(testCase: TestCase) = anthropicProxy != null
 
@@ -185,7 +185,7 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                         single<Logger>(named(LOGGER_TEST)) { testLogger }
                                         single<Logger>(named(LOGGER_LLM_PROXY)) { prodLogger }
                                     },
-                                    llmProxyModule,
+                                    llmProxyModule(false),
                                     module {
                                         single {
                                             Json {

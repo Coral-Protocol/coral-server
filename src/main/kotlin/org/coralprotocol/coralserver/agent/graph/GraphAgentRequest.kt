@@ -12,8 +12,8 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.compareTypeWithValue
 import org.coralprotocol.coralserver.agent.registry.option.requireValue
 import org.coralprotocol.coralserver.agent.registry.option.withValue
-import org.coralprotocol.coralserver.config.LlmProxyConfig
-import org.coralprotocol.coralserver.llmproxy.LlmProxiedModel
+import org.coralprotocol.coralserver.llmproxy.LlmProxyException
+import org.coralprotocol.coralserver.llmproxy.LlmProxyService
 import org.coralprotocol.coralserver.session.SessionResource
 import org.coralprotocol.coralserver.x402.X402BudgetedResource
 import org.koin.core.component.KoinComponent
@@ -60,7 +60,7 @@ data class GraphAgentRequest(
     override val annotations: Map<String, String> = mapOf(),
 ) : SessionResource, KoinComponent {
     val agentRegistry by inject<AgentRegistry>()
-    val llmProxyConfig by inject<LlmProxyConfig>()
+    val llmProxyService by inject<LlmProxyService>()
 
     /**
      * Given a reference to the agent registry [AgentRegistry], this function will attempt to convert this request into
@@ -131,27 +131,11 @@ data class GraphAgentRequest(
         }
 
         val proxies = registryAgent.llmProxies.associate { request ->
-            val potentialProviders = llmProxyConfig.providers.filter { it.format == request.format }
-            if (potentialProviders.isEmpty())
-                throw AgentRequestException("Agent $id requires a proxy with format \"${request.format}\", but no such format is configured")
-
-            var match = potentialProviders.firstNotNullOfOrNull { provider ->
-                provider.models.firstOrNull { request.models.contains(it) }?.let { it to provider }
+            try {
+                request.name to llmProxyService.resolveAgentProxyRequest(request)
+            } catch (e: LlmProxyException) {
+                throw AgentRequestException("Could not resolve proxy request for agent $id: ${e.message}")
             }
-
-            // Fallback: check for providers that will provide any of the requested models
-            if (match == null) {
-                match = potentialProviders.filter {
-                    it.allowAnyModel
-                }.firstNotNullOfOrNull { provider ->
-                    request.models.firstOrNull()?.let { it to provider }
-                }
-            }
-
-            if (match == null)
-                throw AgentRequestException("Agent requires one of the following models: ${request.models.joinToString()} with format \"${request.format}\", but no matching provider is configured")
-
-            request.name to LlmProxiedModel(match.second, match.first)
         }
 
         return GraphAgent(

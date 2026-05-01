@@ -1,6 +1,9 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package org.coralprotocol.coralserver.llmproxy
 
 import io.ktor.client.*
+import io.ktor.client.call.*
 import io.ktor.client.network.sockets.*
 import io.ktor.client.plugins.*
 import io.ktor.client.request.*
@@ -10,28 +13,126 @@ import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.utils.io.*
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.booleanOrNull
-import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.*
+import org.coralprotocol.coralserver.agent.registry.AgentLlmProxyRequest
+import org.coralprotocol.coralserver.config.CloudConfig
 import org.coralprotocol.coralserver.config.LlmProxyConfig
+import org.coralprotocol.coralserver.config.LlmProxyProviderConfig
 import org.coralprotocol.coralserver.events.SessionEvent
+import org.coralprotocol.coralserver.logging.Logger
+import org.coralprotocol.coralserver.modules.LOGGER_LLM_PROXY
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.SessionAgent
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
+import org.koin.core.qualifier.named
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
 
 private val ALLOWED_METHODS = setOf(HttpMethod.Get, HttpMethod.Post)
 private val METHODS_WITH_BODY = setOf(HttpMethod.Post)
 
-class LlmProxyException(message: String) : Exception(message)
+@Serializable
+@JsonIgnoreUnknownKeys
+private data class OpenAIModelList(
+    @SerialName("data") val models: List<OpenAIModel>
+    // .. etc
+)
+
+@Serializable
+@JsonIgnoreUnknownKeys
+private data class OpenAIModel(
+    val id: String,
+    // .. etc
+)
 
 class LlmProxyService(
-    private val config: LlmProxyConfig,
+    private val llmProxyConfig: LlmProxyConfig,
+    private val cloudConfig: CloudConfig,
     private val httpClient: HttpClient,
     private val json: Json,
+    logger: Logger
 ) {
+    companion object : KoinComponent {
+        fun buildCoralCloudProviders(apiKey: String): List<LlmProxyProviderConfig> {
+            val httpClient = get<HttpClient>()
+            val logger = get<Logger>(named(LOGGER_LLM_PROXY))
 
+            return buildList {
+                add(
+                    LlmProxyProviderConfig(
+                        name = "Coral Cloud, OpenAI",
+                        format = LlmProviderFormat.OpenAI,
+                        models = runBlocking {
+                            try {
+                                httpClient.get("https://llm.coralcloud.ai/openai/v1/models") {
+                                    bearerAuth(apiKey)
+                                }.body<OpenAIModelList>().models.map { it.id }.toSet()
+                            } catch (e: Exception) {
+                                logger.error(e) { "Failed to fetch Coral Cloud OpenAI models" }
+                                emptySet()
+                            }
+                        },
+                        apiKey = apiKey,
+                        baseUrl = "https://llm.coralcloud.ai/openai/",
+                        timeout = 10.seconds,
+                        allowAnyModel = false
+                    )
+                )
+            }
+        }
+    }
+
+    val providers = buildList {
+        addAll(llmProxyConfig.providers)
+
+        if (cloudConfig.apiKey != null)
+            addAll(buildCoralCloudProviders(cloudConfig.apiKey))
+
+    }.toMutableList()
+
+    init {
+        if (!providers.any { it.format == LlmProviderFormat.OpenAI })
+            logger.warn { "The server will not be able to launch agents that require OpenAI-format LLM proxies as no provider of this format has been configured" }
+
+        if (!providers.any { it.format == LlmProviderFormat.Anthropic })
+            logger.warn { "The server will not be able to launch agents that require Anthropic-format LLM proxies as no provider of this format has been configured" }
+    }
+
+    /**
+     * Attempts to resolve an agent's request for a proxy, returning a [LlmProxiedModel] that contains a proxy config
+     * for the requested format and models.  This function will throw an exception if the request cannot be resolved.
+     *
+     * @throws LlmProxyException.ProxyRequestResolutionError if the request cannot be resolved
+     */
+    fun resolveAgentProxyRequest(request: AgentLlmProxyRequest): LlmProxiedModel {
+        val potentialProviders = providers.filter { it.format == request.format }
+        if (potentialProviders.isEmpty())
+            throw LlmProxyException.ProxyRequestResolutionError("No providers are configured for format \"${request.format}\".")
+
+        var match = potentialProviders.firstNotNullOfOrNull { provider ->
+            provider.models.firstOrNull { request.models.contains(it) }?.let { it to provider }
+        }
+
+        // Fallback: check for providers that will provide any of the requested models
+        if (match == null) {
+            match = potentialProviders.filter {
+                it.allowAnyModel
+            }.firstNotNullOfOrNull { provider ->
+                request.models.firstOrNull()?.let { it to provider }
+            }
+        }
+
+        if (match == null)
+            throw LlmProxyException.ProxyRequestResolutionError("None of the ${potentialProviders.size} configured \"${request.format}\" providers support any of the requested models: ${request.models.joinToString()}")
+
+        return LlmProxiedModel(match.second, match.first)
+    }
 
     /**
      * Methods: GET, POST
@@ -176,7 +277,7 @@ class LlmProxyService(
                     while (!channel.isClosedForRead) {
                         val line = channel.readUTF8Line() ?: break
                         totalChars += line.length + 1
-                        if (totalChars > config.maxStreamChars.inWholeBytes) {
+                        if (totalChars > llmProxyConfig.maxStreamChars.inWholeBytes) {
                             emitTelemetry(
                                 req.agent,
                                 LlmCallResult(
@@ -195,7 +296,7 @@ class LlmProxyService(
                         flush()
                     }
 
-                    if (totalChars <= config.maxStreamChars.inWholeBytes) {
+                    if (totalChars <= llmProxyConfig.maxStreamChars.inWholeBytes) {
                         emitTelemetry(
                             req.agent,
                             LlmCallResult(
@@ -267,10 +368,10 @@ class LlmProxyService(
     private suspend fun readRequestBody(hasBody: Boolean, call: ApplicationCall): String {
         if (!hasBody) return ""
         val channel = call.receiveChannel()
-        val body = channel.readRemaining(config.maxRequestSize.inWholeBytes).readText()
+        val body = channel.readRemaining(llmProxyConfig.maxRequestSize.inWholeBytes).readText()
 
         if (channel.availableForRead > 0 || !channel.isClosedForRead)
-            throw LlmProxyException("Upstream response exceeded ${config.maxRequestSize} limit")
+            throw LlmProxyException.BufferOverflow("Upstream response exceeded ${llmProxyConfig.maxRequestSize} limit")
 
         return body
     }
@@ -285,10 +386,10 @@ class LlmProxyService(
 
     private suspend fun readBoundedBody(response: HttpResponse): String {
         val channel = response.bodyAsChannel()
-        val body = channel.readRemaining(config.maxResponseSize.inWholeBytes).readText()
+        val body = channel.readRemaining(llmProxyConfig.maxResponseSize.inWholeBytes).readText()
 
         if (channel.availableForRead > 0 || !channel.isClosedForRead)
-            throw LlmProxyException("Upstream response exceeded ${config.maxResponseSize} limit")
+            throw LlmProxyException.BufferOverflow("Upstream response exceeded ${llmProxyConfig.maxResponseSize} limit")
 
         return body
     }
