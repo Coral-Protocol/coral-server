@@ -3,11 +3,10 @@ package org.coralprotocol.coralserver.utils
 import io.kotest.assertions.asClue
 import io.kotest.assertions.withClue
 import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.concurrent.suspension.shouldCompleteWithin
 import io.kotest.matchers.nulls.shouldNotBeNull
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.*
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.session.LocalSession
 import kotlin.time.Duration
@@ -16,6 +15,31 @@ data class TestEvent<Event>(
     val description: String,
     val predicate: (event: Event) -> Boolean,
 )
+
+suspend inline fun <reified Event, FlowType> CoroutineScope.shouldPostEvent(
+    timeout: Duration,
+    eventFlow: Flow<*>,
+    crossinline block: suspend () -> Unit,
+): Event where FlowType : Flow<Event> {
+    val listening = CompletableDeferred<Unit>()
+    val event = CompletableDeferred<Event>()
+
+    launch {
+        listening.complete(Unit)
+        event.complete(eventFlow.filterIsInstance<Event>().first())
+    }
+
+    launch {
+        listening.await()
+        block()
+    }
+
+    return { "expected event was not posted" }.asClue {
+        shouldCompleteWithin(timeout) {
+            event.await().shouldNotBeNull()
+        }
+    }
+}
 
 suspend fun <Event, FlowType, R> CoroutineScope.shouldPostEvents(
     timeout: Duration,
@@ -61,6 +85,12 @@ suspend fun <R> LocalSession.shouldPostEvents(
     block: suspend (SharedFlow<SessionEvent>) -> R,
 ): R =
     this.sessionScope.shouldPostEvents(timeout, allowUnexpectedEvents, events, this@shouldPostEvents.events, block)
+
+suspend inline fun <reified Event> LocalSession.shouldPostEvent(
+    timeout: Duration,
+    crossinline block: suspend () -> Unit,
+) where Event : SessionEvent =
+    this.sessionScope.shouldPostEvent<Event, Flow<Event>>(timeout, events as Flow<*>, block)
 
 suspend fun <Event, R> CoroutineScope.shouldPostEventsFromBody(
     timeout: Duration,
