@@ -149,8 +149,6 @@ async function runServer(serverArgs, configProfile, fromSourceValue) {
   if (serverArgs.length > 0) {
     console.log(`Passing verbatim to server: ${serverArgs.join(' ')}`);
   }
-
-  // Check if --auth.keys is in serverArgs
   const hasAuthKeysArg = serverArgs.some(arg => arg.startsWith('--auth.keys=') || arg.includes('.auth.keys='));
 
   // If config profile specified, add CONFIG_FILE_PATH

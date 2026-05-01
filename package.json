@@ -1,6 +1,6 @@
 {
   "name": "coralos-dev",
-  "version": "1.1.0-SNAPSHOT-deveximprovement-4",
+  "version": "1.2.0-SNAPSHOT-RC-2",
   "description": "Coral Server - Open Infrastructure Connecting the Internet of AI Agents",
   "bin": {
     "coralos-dev": "npx/coral-server.js"
@@ -24,7 +24,5 @@
   ],
   "author": "Coral Protocol",
   "license": "UNLICENSED",
-  "dependencies": {
-    "keytar": "^7.9.0"
-  }
+  "dependencies": {}
 }

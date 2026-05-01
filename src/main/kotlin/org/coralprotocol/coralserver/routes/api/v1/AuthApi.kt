@@ -29,13 +29,15 @@ fun Route.authApi() {
     val config by inject<AuthConfig>()
 
     if (config.keys.isEmpty()) {
-        logger.warn { "" }
-        logger.warn { "=".repeat(60) }
-        logger.warn { "No auth keys are configured. Authenticated routes will not be accessible." }
-        logger.warn { "(most things will not work)" }
-        logger.warn { "To fix this, set auth.keys via the config file or via --auth.keys=..." }
-        logger.warn { "=".repeat(60) }
-        logger.warn { "" }
+        buildString {
+            appendLine()
+            appendLine("=".repeat(60))
+            appendLine("No auth keys are configured. Authenticated routes will not be accessible.")
+            appendLine("(most things will not work)")
+            appendLine("To fix this, set auth.keys via the config file or via --auth.keys=...")
+            appendLine("=".repeat(60))
+            appendLine()
+        }
     }
 
     post<Auth.Token>({
