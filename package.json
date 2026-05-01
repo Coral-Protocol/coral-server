@@ -1,0 +1,28 @@
+{
+  "name": "coralos-dev",
+  "version": "1.2.0-SNAPSHOT-RC-2",
+  "description": "Coral Server - Open Infrastructure Connecting the Internet of AI Agents",
+  "bin": {
+    "coralos-dev": "npx/coral-server.js"
+  },
+  "files": [
+    "npx/",
+    "bin/coral-server.jar"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Coral-Protocol/coral-server.git"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "server",
+    "coral"
+  ],
+  "author": "Coral Protocol",
+  "license": "UNLICENSED",
+  "dependencies": {}
+}
