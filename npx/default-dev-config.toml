@@ -3,18 +3,23 @@
 # ============================================================================
 # Full documentation: https://docs.coralos.ai/
 #
-# Many values shown below are the built-in defaults. Every line is commented out
+# Many values shown below are the built-in defaults. Many are commented out
 # so the server runs with defaults out of the box. Uncomment and change only
 # what you need.
 #
 # This file is a reference. The server will read it if you run it with CONFIG_FILE_PATH env var set to the path of this file
 # NOTE: Agent-specific configuration lives in each agent's own
 #       coral-agent.toml.
+# NOTE: This template was created from server version 1.2.0
+#       do not rely on the accuracy or presence of any settings here for later versions
 # ============================================================================
 
 
 # ========================  Quick-start for development  =====================
 # The most commonly changed settings. See sections below for full details.
+
+[cloud]
+apiKey = ""
 
 [network]
 # Bind to localhost only - keep this for local development.

@@ -22,7 +22,7 @@ function configProfileExists(profileName) {
 }
 
 function generateDefaultConfig() {
-  const templatePath = path.join(__dirname, '..', '..', 'default-dev-config.toml');
+  const templatePath = path.join(__dirname, '..', 'default-dev-config.toml');
   if (!fs.existsSync(templatePath)) {
     // Fallback if template missing
     return `# Coral Server Configuration Profile\n# Template not found at ${templatePath}\n`;
@@ -44,10 +44,16 @@ function generateDefaultConfig() {
   return header + content;
 }
 
-function buildConfigFromWizardResults(providers, authKey) {
+function buildConfigFromWizardResults(providers, authKey, coralApiKey) {
   let config = generateDefaultConfig();
 
-  // Add auth keys if provided
+  if (coralApiKey) {
+    const cloudRegex = /\[cloud\]\napiKey = ""/m;
+    if (cloudRegex.test(config)) {
+      config = config.replace(cloudRegex, `[cloud]\napiKey = "${coralApiKey}"`);
+    }
+  }
+
   if (authKey) {
     const authRegex = /# \[auth\]\n# keys = \["some-secure-password"\]/m;
     if (authRegex.test(config)) {
@@ -57,7 +63,6 @@ function buildConfigFromWizardResults(providers, authKey) {
     }
   }
 
-  // Add providers
   config += '\n# --- Configured LLM Providers ---\n';
   config += '[llm-proxy.providers]\n';
   for (const p of providers) {

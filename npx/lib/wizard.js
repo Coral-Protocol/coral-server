@@ -69,15 +69,7 @@ async function runSetupWizard(profileName, options = {}) {
   const coralApiKey = await askQuestion('Enter your Coral Cloud API key (or press Enter to skip): ');
 
   if (coralApiKey) {
-    try {
-      // Try to use keytar if available
-      const keytar = require('keytar');
-      await keytar.setPassword('coralos-dev', 'coral-cloud-api-key', coralApiKey);
-      console.log('API key saved securely in system keychain.\n');
-    } catch (e) {
-      console.log('Note: Could not save to system keychain (keytar not available).');
-      console.log('Please set it as an environment variable next time: export CORAL_CLOUD_API_KEY=your-key\n');
-    }
+    console.log('API key will be saved to your configuration file.\n');
   }
 
   // Step 2: LLM providers
@@ -146,7 +138,7 @@ async function runSetupWizard(profileName, options = {}) {
   }
 
   // Write config
-  const config = buildConfigFromWizardResults(configuredProviders, authKey);
+  const config = buildConfigFromWizardResults(configuredProviders, authKey, coralApiKey);
   fs.writeFileSync(profilePath, config);
   console.log(`\nConfiguration saved to ${profilePath}`);
 }
