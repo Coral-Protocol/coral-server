@@ -1,9 +1,6 @@
 package org.coralprotocol.coralserver.utils.dsl
 
-import org.coralprotocol.coralserver.agent.graph.GraphAgent
-import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
-import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
-import org.coralprotocol.coralserver.agent.graph.GraphAgentTool
+import org.coralprotocol.coralserver.agent.graph.*
 import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
@@ -93,6 +90,7 @@ class GraphAgentRequestBuilder(
 ) : CommonGraphAgentBuilder(name) {
     private val options = mutableMapOf<String, AgentOptionValue>()
     private val customToolAccess = mutableSetOf<String>()
+    private val proxyOverrideMap = mutableMapOf<String, GraphAgentProxyRequest>()
 
     fun option(key: String, value: AgentOptionValue) {
         options[key] = value
@@ -100,6 +98,10 @@ class GraphAgentRequestBuilder(
 
     fun toolAccess(toolName: String) {
         customToolAccess.add(toolName)
+    }
+
+    fun proxyOverride(requestName: String, override: GraphAgentProxyRequest) {
+        proxyOverrideMap[requestName] = override
     }
 
     fun buildRequest(): GraphAgentRequest {
@@ -115,6 +117,7 @@ class GraphAgentRequestBuilder(
             provider = provider,
             x402Budgets = x402Budgets,
             annotations = annotations.toMap(),
+            proxies = proxyOverrideMap
         )
     }
 }
