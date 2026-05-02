@@ -83,7 +83,7 @@ class LlmProxyResolutionTest : CoralTest({
 
         agentRegistry.sources.clear()
         agentRegistry.sources.add(ListAgentRegistrySource("test", listOf(agent)))
-        
+
         llmProxyService.providers.clear()
         llmProxyService.providers.addAll(configs)
 

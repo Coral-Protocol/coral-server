@@ -4,11 +4,15 @@ package org.coralprotocol.coralserver.llmproxy
 
 import io.ktor.client.*
 import io.ktor.client.call.*
+import io.ktor.client.engine.cio.*
 import io.ktor.client.network.sockets.*
 import io.ktor.client.plugins.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.resources.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
@@ -61,8 +65,13 @@ class LlmProxyService(
 ) {
     companion object : KoinComponent {
         fun buildCoralCloudProviders(apiKey: String): List<LlmProxyProviderConfig> {
-            val httpClient = get<HttpClient>()
             val logger = get<Logger>(named(LOGGER_LLM_PROXY))
+            val client = HttpClient(CIO) {
+                install(Resources)
+                install(ContentNegotiation) {
+                    json(get())
+                }
+            }
 
             return buildList {
                 add(
@@ -71,7 +80,7 @@ class LlmProxyService(
                         format = LlmProviderFormat.OpenAI,
                         models = runBlocking {
                             try {
-                                httpClient.get("https://llm.coralcloud.ai/openai/v1/models") {
+                                client.get("https://llm.coralcloud.ai/openai/v1/models") {
                                     bearerAuth(apiKey)
                                 }.body<OpenAIModelList>().models.map { it.id }.toSet()
                             } catch (e: Exception) {
