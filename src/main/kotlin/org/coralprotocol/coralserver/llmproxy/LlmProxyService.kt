@@ -18,6 +18,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
+import org.coralprotocol.coralserver.agent.graph.GraphAgentProxyRequest
 import org.coralprotocol.coralserver.agent.registry.AgentLlmProxyRequest
 import org.coralprotocol.coralserver.config.CloudConfig
 import org.coralprotocol.coralserver.config.LlmProxyConfig
@@ -132,6 +133,20 @@ class LlmProxyService(
             throw LlmProxyException.ProxyRequestResolutionError("None of the ${potentialProviders.size} configured \"${request.format}\" providers support any of the requested models: ${request.models.joinToString()}")
 
         return LlmProxiedModel(match.second, match.first)
+    }
+
+    /**
+     * Resolves a direct request for a proxy and model using the [GraphAgentProxyRequest] type.  This type specifies
+     * exact configurations and models to use, instead of [AgentLlmProxyRequest] which will select any matching provider
+     * and config combination.
+     *
+     * @throws LlmProxyException.ProxyRequestResolutionError if the request cannot be resolved
+     */
+    fun resolveAgentProxyRequest(request: GraphAgentProxyRequest): LlmProxiedModel {
+        val config = providers.firstOrNull { it.name == request.configurationName }
+            ?: throw LlmProxyException.ProxyRequestResolutionError("No proxy is configured with the name \"${request.configurationName}\"")
+
+        return LlmProxiedModel(config, request.modelName)
     }
 
     /**
