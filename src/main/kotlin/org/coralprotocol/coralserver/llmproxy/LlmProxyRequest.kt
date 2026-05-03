@@ -1,15 +1,13 @@
 package org.coralprotocol.coralserver.llmproxy
 
 import org.coralprotocol.coralserver.session.SessionAgent
+import kotlin.time.Instant
 
-data class ProxyRequest(
+data class LlmProxyRequest(
+    val model: LlmProxiedModel,
     val agent: SessionAgent,
-    val profile: LlmProviderProfile,
-    val apiKey: String,
     val upstreamUrl: String,
-    val timeoutMs: Long,
     val requestBody: String,
-    val model: String?,
     val hasBody: Boolean,
-    val startTime: Long
+    val startTime: Instant
 )

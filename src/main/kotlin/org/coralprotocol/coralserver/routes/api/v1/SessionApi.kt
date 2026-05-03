@@ -49,7 +49,6 @@ class LocalSessions(val parent: ApiV1 = ApiV1()) {
  * Configures session-related routes.
  */
 fun Route.localSessionApi() {
-    val registry by inject<AgentRegistry>()
     val localSessionManager by inject<LocalSessionManager>()
     val logger by inject<Logger>(named(LOGGER_ROUTES))
 
@@ -85,7 +84,7 @@ fun Route.localSessionApi() {
         }
     }) { _ ->
         val sessionRequest = call.receive<SessionRequest>()
-        val agentGraph = sessionRequest.agentGraphRequest.toAgentGraph(registry)
+        val agentGraph = sessionRequest.agentGraphRequest.toAgentGraph()
 
         val existingNamespaces = localSessionManager.getNamespaces()
         val namespace = when (sessionRequest.namespaceProvider) {

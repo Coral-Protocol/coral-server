@@ -13,8 +13,10 @@ import org.bitcoinj.core.AddressFormatException
 import org.bitcoinj.core.Base58
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.runtime.PrototypeRuntime
-import org.coralprotocol.coralserver.agent.runtime.prototype.*
-import org.coralprotocol.coralserver.llmproxy.LlmProviderProfile
+import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeString
+import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeToolServer
+import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeToolServerAuth
+import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeUrlPart
 import java.net.URI
 import java.net.URISyntaxException
 
@@ -46,9 +48,6 @@ val AGENT_EXECUTABLE_ARGUMENTS_ENTRIES = 0..1024
 val AGENT_EXECUTABLE_ARGUMENTS_SIZE = 2.kibibytes
 
 // [runtimes.prototype]
-val AGENT_PROTOTYPE_MODEL_NAME_LENGTH = 1..128
-val AGENT_PROTOTYPE_MODEL_KEY_LENGTH = 1..1024
-val AGENT_PROTOTYPE_MODEL_API_URL_LENGTH = 1..256
 val AGENT_PROTOTYPE_MCP_TOOL_SERVER_URL_LENGTH = 1..256
 val AGENT_PROTOTYPE_MCP_AUTH_BEARER_LENGTH = 1..1024
 val AGENT_PROTOTYPE_MCP_AUTH_HEADER_LENGTH = 1..1024
@@ -77,6 +76,7 @@ const val AGENT_MARKETPLACE_PRICING_MIN_MAX = 20.00
 const val AGENT_LLM_PROXIES_MAX_ENTRIES = 16
 val AGENT_LLM_PROXY_NAME_LENGTH = 1..32
 val AGENT_LLM_PROXY_NAME_PATTERN = "^[A-Z_0-9]+$".toRegex()
+const val AGENT_LLM_PROXY_MAX_MODELS = 32
 val AGENT_LLM_PROXY_MODEL_LENGTH = 1..128
 
 // [marketplace.identities.erc8004]
@@ -393,20 +393,10 @@ private fun RegistryAgent.validatePrototypeRuntime(runtime: PrototypeRuntime) {
     if (runtime.iterationDelay < 0)
         throw RegistryException("\"runtimes.prototype.delay\" cannot be negative")
 
-    val model = runtime.modelProvider
-    model.name.validatePrototypeString("runtimes.prototype.model.name", AGENT_PROTOTYPE_MODEL_NAME_LENGTH)
-    model.key.validatePrototypeString("runtimes.prototype.model.key", AGENT_PROTOTYPE_MODEL_KEY_LENGTH)
-
-
-    val customUrl = (model.url as? PrototypeApiUrl.Custom)?.value
-    if (customUrl != null) {
-        validateUri(
-            "runtimes.prototype.model.url.value",
-            customUrl,
-            AGENT_PROTOTYPE_MODEL_API_URL_LENGTH,
-            "https"
-        )
-    }
+    runtime.proxyName.validatePrototypeString(
+        "runtimes.prototype.proxy",
+        AGENT_LLM_PROXY_NAME_LENGTH
+    )
 
     runtime.prompts.system.base.validatePrototypeString(
         "runtimes.prototype.prompts.system.base",
@@ -606,11 +596,12 @@ private fun RegistryAgent.validateLlm() {
         if (!names.add(proxy.name))
             throw RegistryException("llm.proxies[$index].name (\"${proxy.name}\") is not unique")
 
-        if (LlmProviderProfile.fromId(proxy.format) == null)
-            throw RegistryException("llm.proxies[$index].format (\"${proxy.format}\") is not a known format. Valid formats: ${LlmProviderProfile.entries.joinToString { it.providerId }}")
+        if (proxy.models.size > AGENT_LLM_PROXY_MAX_MODELS)
+            throw RegistryException("llm proxy model count cannot exceed $AGENT_LLM_PROXY_MAX_MODELS, was ${proxy.models.size}")
 
-        if (proxy.model != null)
-            validateStringLength("llm.proxies[$index].model", proxy.model, AGENT_LLM_PROXY_MODEL_LENGTH)
+        proxy.models.forEachIndexed { index, model ->
+            validateStringLength("llm.proxies[$index].models[$index]", model, AGENT_LLM_PROXY_MODEL_LENGTH)
+        }
     }
 }
 

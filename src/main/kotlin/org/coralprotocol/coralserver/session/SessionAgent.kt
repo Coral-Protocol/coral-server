@@ -21,8 +21,6 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.config.SessionConfig
 import org.coralprotocol.coralserver.events.SessionEvent
-import org.coralprotocol.coralserver.llmproxy.AtomicTokenUsage
-import org.coralprotocol.coralserver.llmproxy.TokenUsage
 import org.coralprotocol.coralserver.logging.LoggingTag
 import org.coralprotocol.coralserver.mcp.McpInstructionSnippet
 import org.coralprotocol.coralserver.mcp.McpResourceName
@@ -34,7 +32,6 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.component.inject
 import java.util.concurrent.ConcurrentHashMap
-
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
@@ -98,20 +95,6 @@ class SessionAgent(
      * Connections to other agents.  These connections should be built using groups specified in [AgentGraph.groups]
      */
     val links = mutableSetOf<SessionAgent>()
-
-    /**
-     * Cumulative token usage from LLM proxy calls, broken down by provider/model.
-     */
-    private val _tokensByModel = ConcurrentHashMap<String, AtomicTokenUsage>()
-    val tokensByModel: Map<String, TokenUsage>
-        get() = _tokensByModel.mapValues { it.value.snapshot() }
-
-    fun accumulateTokens(provider: String, model: String?, input: Long?, output: Long?) {
-        if (input != null || output != null) {
-            val key = "$provider/${model ?: "unknown"}"
-            _tokensByModel.computeIfAbsent(key) { AtomicTokenUsage() }.add(input, output)
-        }
-    }
 
     /**
      * A list of all ongoing waits this agent is performing
@@ -582,8 +565,7 @@ class SessionAgent(
             status = status.value,
             description = description,
             links = links.map { it.name }.toSet(),
-            annotations = graphAgent.annotations,
-            tokensByModel = tokensByModel
+            annotations = graphAgent.annotations
         )
 
     /**

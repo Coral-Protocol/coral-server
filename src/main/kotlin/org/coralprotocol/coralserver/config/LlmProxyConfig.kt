@@ -1,16 +1,28 @@
 package org.coralprotocol.coralserver.config
 
+import me.saket.bytesize.BinaryByteSize
+import me.saket.bytesize.mebibytes
+import org.coralprotocol.coralserver.llmproxy.LlmProviderFormat
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
+
 data class LlmProxyConfig(
-    val enabled: Boolean = true,
-    val requestTimeoutSeconds: Long = 300,
     val retryMaxAttempts: Int = 0,
-    val retryInitialDelayMs: Long = 1000,
-    val retryMaxDelayMs: Long = 10000,
-    val providers: Map<String, LlmProxyProviderConfig> = emptyMap()
+    val retryInitialDelay: Duration = 1.seconds,
+    val retryMaxDelay: Duration = 10.seconds,
+    val maxRequestSize: BinaryByteSize = 20.mebibytes,
+    val maxResponseSize: BinaryByteSize = 80.mebibytes,
+    val maxStreamChars: BinaryByteSize = 80.mebibytes,
+    val providers: List<LlmProxyProviderConfig> = listOf()
 )
 
 data class LlmProxyProviderConfig(
-    val apiKey: String? = null,
-    val baseUrl: String? = null,
-    val timeoutSeconds: Long? = null
+    val name: String,
+    val format: LlmProviderFormat,
+    val models: Set<String> = setOf(),
+    val apiKey: String,
+    val baseUrl: String,
+    val timeout: Duration = 10.minutes,
+    val allowAnyModel: Boolean = models.isEmpty()
 )

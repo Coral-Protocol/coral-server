@@ -2,7 +2,6 @@
 
 package org.coralprotocol.coralserver.session
 
-import io.ktor.http.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.flow.update
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
@@ -15,7 +14,6 @@ import org.coralprotocol.coralserver.config.DebugConfig
 import org.coralprotocol.coralserver.config.DockerConfig
 import org.coralprotocol.coralserver.config.LlmProxyConfig
 import org.coralprotocol.coralserver.events.SessionEvent
-import org.coralprotocol.coralserver.llmproxy.LlmProviderProfile
 import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.session.reporting.SessionAgentUsageReport
 import org.coralprotocol.coralserver.util.utcTimeNow
@@ -129,26 +127,16 @@ class SessionAgentExecutionContext(
             if (agent.graphAgent.provider is GraphAgentProvider.Remote)
                 this["CORAL_REMOTE_AGENT"] = "1"
 
-            val llmProxies = registryAgent.llm?.proxies
-            if (llmProxyConfig.enabled && !llmProxies.isNullOrEmpty()) {
-                for (proxy in llmProxies) {
-                    val proxyBaseUrl = URLBuilder(
-                        applicationRuntimeContext.getLlmProxyUrl(
-                            this@SessionAgentExecutionContext,
-                            addressConsumer
-                        )
-                    )
 
-                    val profile = LlmProviderProfile.fromId(proxy.format) ?: continue
-                    this["CORAL_PROXY_URL_${proxy.name}"] =
-                        proxyBaseUrl.appendPathSegments(profile.providerId, profile.sdkPathSuffix).buildString()
-                    // we might in future provide these different from what was requested in the coral-agent.toml
-                    // also the provider may have relevance, but would be awkward to specify from the agent
-                    // e.g. when azure's openai interface for the same model has a higher max token limit
-                    this["CORAL_PROXY_FORMAT_${proxy.name}"] = proxy.format
-                    this["CORAL_PROXY_PROVIDER_${proxy.name}"] = profile.providerId
-                    this["CORAL_PROXY_MODEL_${proxy.name}"] = proxy.model ?: "unknown"
-                }
+            for ((name, model) in agent.graphAgent.proxies) {
+                this["CORAL_PROXY_URL_${name}"] = applicationRuntimeContext.getLlmProxyUrl(
+                    this@SessionAgentExecutionContext,
+                    addressConsumer,
+                    name
+                ).toString()
+                
+                this["CORAL_PROXY_FORMAT_$name"] = model.providerConfig.format.toString()
+                this["CORAL_PROXY_MODEL_$name"] = model.modelName
             }
         }
     }

@@ -11,6 +11,7 @@ import org.coralprotocol.coralserver.llmproxy.LlmErrorKind
 import org.coralprotocol.coralserver.session.*
 import org.coralprotocol.coralserver.util.InstantSerializer
 import org.coralprotocol.coralserver.util.utcTimeNow
+import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -84,10 +85,10 @@ sealed class SessionEvent {
     data class LlmProxyCall(
         val agentName: UniqueAgentName,
         val provider: String,
-        val model: String?,
+        val model: String,
         val inputTokens: Long?,
         val outputTokens: Long?,
-        val durationMs: Long,
+        val duration: Duration,
         val streaming: Boolean,
         val success: Boolean,
         val errorKind: LlmErrorKind? = null

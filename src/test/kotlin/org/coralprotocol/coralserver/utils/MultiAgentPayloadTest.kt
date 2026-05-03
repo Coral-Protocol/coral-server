@@ -20,7 +20,9 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgentToolTransport
 import org.coralprotocol.coralserver.agent.runtime.PrototypeRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.agent.runtime.prototype.*
+import org.coralprotocol.coralserver.config.LlmProxyProviderConfig
 import org.coralprotocol.coralserver.config.NetworkConfig
+import org.coralprotocol.coralserver.llmproxy.LlmProxiedModel
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.mcp.buildToolSchema
 import org.coralprotocol.coralserver.modules.LOGGER_TEST
@@ -53,7 +55,11 @@ class MultiAgentTestPayloadPath(val sessionId: String, val agentId: String)
  * here.  If this test fails, it is because a model is not supported by Coral or because there is an issue with the
  * default prompts and toolset.
  */
-suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelProvider) {
+suspend fun KoinComponent.multiAgentPayloadTest(
+    configuration: LlmProxyProviderConfig,
+    client: PrototypeClient,
+    model: String
+) {
     val localSessionManager by inject<LocalSessionManager>()
     val application by inject<Application>()
     val json by inject<Json>()
@@ -99,8 +105,9 @@ suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelPro
                     registryAgent {
                         runtime(
                             PrototypeRuntime(
-                                true,
-                                modelProvider,
+                                volatile = true,
+                                proxyName = PrototypeString.Inline(configuration.name),
+                                client = client,
                                 prompts = PrototypePrompts(
                                     loop = PrototypeLoopPrompt(
                                         initial = PrototypeLoopInitialPrompt(
@@ -123,14 +130,16 @@ suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelPro
                             outputSchema = buildToolSchema<MultiAgentTestPayloadResponse>()
                         )
                     )
+                    proxy(configuration.name, LlmProxiedModel(configuration, model))
                     provider = GraphAgentProvider.Local(RuntimeId.PROTOTYPE)
                 },
                 graphAgentPair(senderAgentName) {
                     registryAgent {
                         runtime(
                             PrototypeRuntime(
-                                true,
-                                modelProvider,
+                                volatile = true,
+                                proxyName = PrototypeString.Inline(configuration.name),
+                                client = client,
                                 prompts = PrototypePrompts(
                                     system = PrototypeSystemPrompt(extra = PrototypeString.Inline("payload = $payloadData")),
                                 ),
@@ -138,6 +147,7 @@ suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelPro
                             )
                         )
                     }
+                    proxy(configuration.name, LlmProxiedModel(configuration, model))
                     provider = GraphAgentProvider.Local(RuntimeId.PROTOTYPE)
                 },
             )
@@ -161,4 +171,8 @@ suspend fun KoinComponent.multiAgentPayloadTest(modelProvider: PrototypeModelPro
     }
 
     session.sessionScope.cancel()
+}
+
+suspend fun KoinComponent.multiAgentPayloadTest(testProxy: TestProxy, model: String) {
+    multiAgentPayloadTest(testProxy.providerConfig, testProxy.prototypeClient, model)
 }
