@@ -136,6 +136,7 @@ class SessionAgentExecutionContext(
                 ).toString()
                 
                 this["CORAL_PROXY_FORMAT_$name"] = model.providerConfig.format.toString()
+//                this["CORAL_PROXY_PROVIDER_${proxy.name}"] = profile.providerId
                 this["CORAL_PROXY_MODEL_$name"] = model.modelName
             }
         }

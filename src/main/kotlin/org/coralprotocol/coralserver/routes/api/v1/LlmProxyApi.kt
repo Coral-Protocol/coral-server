@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.routes.api.v1
 
 import io.ktor.http.*
 import io.ktor.server.routing.*
+import org.coralprotocol.coralserver.agent.registry.option.asEnvVarValue
 import org.coralprotocol.coralserver.llmproxy.LlmProxyService
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.LocalSessionManager
@@ -26,6 +27,7 @@ fun Route.llmProxyRoutes() {
                 throw RouteException(HttpStatusCode.Unauthorized, "Invalid agent secret")
             }
 
+            // v1
             llmProxyService.proxyRequest(
                 agent, agent.graphAgent.proxies[proxyName] ?: throw RouteException(
                     HttpStatusCode.BadRequest, "Unknown proxy name"

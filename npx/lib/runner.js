@@ -21,7 +21,7 @@ function showDiscordErrorAndExit() {
 async function runFromSource(args, targetBranch = null) {
   const sourceDir = path.join(os.homedir(), '.coral', 'source');
   const repoUrl = pkg.repository && pkg.repository.url ? pkg.repository.url.replace(/^git\+/, '') : null;
-  let target = 'master';
+  let target = 'coraldojo';
 
   if (!fs.existsSync(sourceDir)) {
     fs.mkdirSync(sourceDir, { recursive: true });

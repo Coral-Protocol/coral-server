@@ -1,6 +1,6 @@
 const path = require('path');
 const fs = require('fs');
-const { CONFIG_PROFILES_DIR, pkg } = require('./constants');
+const { CONFIG_PROFILES_DIR, pkg, LLM_PROVIDERS } = require('./constants');
 
 function getProfileDir(profileName) {
   return path.join(CONFIG_PROFILES_DIR, profileName);
@@ -64,12 +64,27 @@ function buildConfigFromWizardResults(providers, authKey, coralApiKey) {
   }
 
   config += '\n# --- Configured LLM Providers ---\n';
-  config += '[llm-proxy.providers]\n';
   for (const p of providers) {
+    const providerInfo = LLM_PROVIDERS.find(lp => lp.id === p.id);
+    const name = providerInfo ? providerInfo.name : p.id;
+    let format = 'OpenAI';
+    let baseUrl = '';
+
+    if (p.id === 'openai') {
+      format = 'OpenAI';
+      baseUrl = 'https://api.openai.com';
+    } else if (p.id === 'anthropic') {
+      format = 'Anthropic';
+      baseUrl = 'https://api.anthropic.com';
+    } else if (p.id === 'openrouter') {
+      format = 'OpenAI';
+      baseUrl = 'https://openrouter.ai/api/v1';
+    }
+
     if (p.working) {
-      config += `[llm-proxy.providers.${p.id}]\napiKey = "${p.apiKey}"\n\n`;
+      config += `[[llm-proxy.providers]]\nname = "${name}"\nformat = "${format}"\napiKey = "${p.apiKey}"\nbaseUrl = "${baseUrl}"\n\n`;
     } else if (p.apiKey) {
-      config += `# [llm-proxy.providers.${p.id}]\n# apiKey = "${p.apiKey}"\n\n`;
+      config += `# [[llm-proxy.providers]]\n# name = "${name}"\n# format = "${format}"\n# apiKey = "${p.apiKey}"\n# baseUrl = "${baseUrl}"\n\n`;
     }
   }
 

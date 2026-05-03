@@ -33,11 +33,17 @@ bindPort = 5555
 
 # LLM provider credentials used by the built-in proxy.
 # Note that in the future, these will become backup options.
-# [llm-proxy.providers.openai]
+# [[llm-proxy.providers]]
+# name = "OpenAI"
+# format = "OpenAI"
 # apiKey = "sk-..."
+# baseUrl = "https://api.openai.com"
 #
-# [llm-proxy.providers.anthropic]
+# [[llm-proxy.providers]]
+# name = "Anthropic"
+# format = "Anthropic"
 # apiKey = "sk-ant-..."
+# baseUrl = "https://api.anthropic.com"
 
 # Paths to local coral-agent.toml files (supports globs).
 # [registry]
@@ -297,15 +303,19 @@ bindPort = 5555
 # # Maximum delay (ms) between retries.
 # retryMaxDelayMs = 10000
 #
-# # Provider-specific overrides. Add one sub-table per provider.
-# # The key is an arbitrary name you reference when configuring agents.
+# # Provider-specific overrides. Add one [[llm-proxy.providers]] entry per provider.
+# # The name is an arbitrary name you reference when configuring agents.
 # # # Note in future releases, these may become backup credentials unless a license is purchased for the built-in proxy.
 # #
-# # [llm-proxy.providers.openai]
-# # apiKey = "sk-..."                  # API key for this provider
-# # baseUrl = "https://api.openai.com" # Base URL override (useful for proxies / Azure)
-# # timeoutSeconds = 120               # Per-provider timeout override
+# # [[llm-proxy.providers]]
+# # name = "OpenAI"                      # Arbitrary name for this configuration
+# # format = "OpenAI"                    # Provider format (OpenAI or Anthropic)
+# # apiKey = "sk-..."                    # API key for this provider
+# # baseUrl = "https://api.openai.com"   # Base URL override (useful for proxies / Azure)
+# # timeout = "120s"                     # Per-provider timeout override
 # #
-# # [llm-proxy.providers.anthropic]
+# # [[llm-proxy.providers]]
+# # name = "Anthropic"
+# # format = "Anthropic"
 # # apiKey = "sk-ant-..."
 # # baseUrl = "https://api.anthropic.com"
