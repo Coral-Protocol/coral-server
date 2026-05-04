@@ -2,8 +2,6 @@ package org.coralprotocol.coralserver.agent.registry
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
-import me.saket.bytesize.kibibytes
-import me.saket.bytesize.mebibytes
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.defaultAsValue
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
@@ -64,6 +62,9 @@ data class RegistryAgent(
 
     @Transient
     val links = info.links
+
+    @Transient
+    val llmProxies = llm?.proxies ?: listOf()
 
     val exportSettings: AgentExportSettingsMap = unresolvedExportSettings.mapValues { (runtime, settings) ->
         settings.resolve(runtime, this)

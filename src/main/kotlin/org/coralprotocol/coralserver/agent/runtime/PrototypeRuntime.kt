@@ -31,10 +31,10 @@ import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonObject
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeModelProvider
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypePrompts
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeToolServer
+import org.coralprotocol.coralserver.agent.exceptions.PrototypeRuntimeException
+import org.coralprotocol.coralserver.agent.runtime.prototype.*
 import org.coralprotocol.coralserver.config.AddressConsumer
+import org.coralprotocol.coralserver.llmproxy.LlmProviderFormat
 import org.coralprotocol.coralserver.logging.LoggingInterface
 import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
@@ -53,14 +53,16 @@ import kotlin.time.measureTimedValue
 data class PrototypeRuntime(
     val volatile: Boolean = false,
 
-    @SerialName("model")
-    val modelProvider: PrototypeModelProvider,
+    @SerialName("proxy")
+    val proxyName: PrototypeString,
+
+    val client: PrototypeClient? = null,
 
     @SerialName("iterations")
-    val iterationCount: Int = 20,
+    val iterationCount: PrototypeInteger = PrototypeInteger.Inline(20),
 
     @SerialName("delay")
-    val iterationDelay: Int = 0,
+    val iterationDelay: PrototypeInteger = PrototypeInteger.Inline(0),
 
     val prompts: PrototypePrompts = PrototypePrompts(),
 
@@ -178,18 +180,35 @@ data class PrototypeRuntime(
         if (toolServers.isNotEmpty())
             executionContext.logger.debug { "Resolved ${additionalTools.size} additional tools from ${toolServers.size} tool servers" }
 
-        val modelIdentifier = modelProvider.getModelIdentifier(executionContext)
+        val resolvedProxyName = proxyName.resolve(executionContext)
+        val proxiedModel = executionContext.graphAgent.proxies[resolvedProxyName]
+            ?: throw PrototypeRuntimeException.BadProxy("Proxy \"$resolvedProxyName\" is not a registered proxy request for agent \"${executionContext.registryAgent.identifier}\"")
+
         var totalTokens = 0L
 
         val systemPrompt = prompts.system.resolve(executionContext)
         val initialUserMessage = prompts.loop.initial.resolve(executionContext)
         val followupUserMessage = prompts.loop.followup.resolve(executionContext)
 
+        val client = client ?: when (proxiedModel.providerConfig.format) {
+            LlmProviderFormat.Anthropic -> PrototypeClient.ANTHROPIC
+            LlmProviderFormat.OpenAI -> PrototypeClient.OPEN_AI
+        }
+
+        val iterationCount = iterationCount.resolve(executionContext).toInt()
+        val iterationDelay = iterationDelay.resolve(executionContext).toInt()
+
         try {
             AIAgent.Companion(
                 systemPrompt = "",
-                promptExecutor = modelProvider.getExecutor(executionContext),
-                llmModel = modelProvider.getModel(executionContext),
+                promptExecutor = client.getPromptExecutor(
+                    applicationRuntimeContext.getLlmProxyUrl(
+                        executionContext,
+                        AddressConsumer.LOCAL,
+                        resolvedProxyName
+                    ).toString(), executionContext.agent.secret
+                ),
+                llmModel = client.getLlmModel(proxiedModel),
                 toolRegistry = ToolRegistry {
                     tools(coralToolRegistry.tools)
                     tools(additionalTools)
@@ -213,9 +232,9 @@ data class PrototypeRuntime(
                                 val (response, llmResponseTime) = measureTimedValue {
                                     requestLLMOnlyCallingTools(if (iteration == 0) initialUserMessage else followupUserMessage)
                                 }
-                                //
+
                                 llm.readSession { readSession -> postRequestToLLMCallback(readSession) }
-                                executionContext.logger.debug { "$modelIdentifier responded in $llmResponseTime, with: ${response.content}" }
+                                executionContext.logger.debug { "$proxiedModel responded in $llmResponseTime, with: ${response.content}" }
 
                                 val toolCalls = extractToolCalls(listOf(response))
                                 executionContext.logger.debug { "Extracted tool calls: ${toolCalls.joinToString { it.tool }}" }
