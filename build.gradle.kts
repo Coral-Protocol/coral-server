@@ -35,18 +35,17 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
-    implementation("ch.qos.logback:logback-classic:1.5.24")
+    implementation("ch.qos.logback:logback-classic:1.5.32")
     implementation("org.fusesource.jansi:jansi:2.4.2")
-    implementation("com.github.sya-ri:kgit:1.1.0")
     implementation("com.github.pgreze:kotlin-process:1.5.1")
     implementation("io.github.z4kn4fein:semver:3.0.0")
     implementation("me.saket.bytesize:bytesize:2.1.0")
 
-    val dockerVersion = "3.7.0"
+    val dockerVersion = "3.7.1"
     implementation("com.github.docker-java:docker-java:$dockerVersion")
     implementation("com.github.docker-java:docker-java-transport-httpclient5:$dockerVersion")
 
-    val ktorVersion = "3.3.3"
+    val ktorVersion = "3.4.3"
     implementation(enforcedPlatform("io.ktor:ktor-bom:$ktorVersion"))
     implementation("io.ktor:ktor-server-status-pages:${ktorVersion}")
     implementation("io.ktor:ktor-server-auth:${ktorVersion}")
@@ -54,7 +53,7 @@ dependencies {
     testImplementation("io.ktor:ktor-server-test-host")
 
     // kotest
-    val kotestVersion = "6.1.7"
+    val kotestVersion = "6.1.11"
     testImplementation("io.kotest:kotest-runner-junit5:$kotestVersion")
     testImplementation("io.kotest:kotest-assertions-core:$kotestVersion")
     testImplementation("io.kotest:kotest-assertions-ktor:${kotestVersion}")
@@ -66,7 +65,6 @@ dependencies {
     implementation("io.ktor:ktor-client-content-negotiation")
     implementation("io.ktor:ktor-client-cio-jvm")
     implementation("io.ktor:ktor-client-websockets")
-    implementation("io.ktor:ktor-serialization-kotlinx-json")
     implementation("io.ktor:ktor-client-resources:$ktorVersion")
 
     // Ktor server dependencies
@@ -79,10 +77,6 @@ dependencies {
     implementation("io.ktor:ktor-server-resources")
     implementation("io.ktor:ktor-serialization-kotlinx-json")
     implementation("io.ktor:ktor-server-websockets:${ktorVersion}")
-    testImplementation("io.ktor:ktor-server-core")
-    testImplementation("io.ktor:ktor-server-cio")
-    testImplementation("io.ktor:ktor-server-sse")
-    testImplementation("io.ktor:ktor-server-test-host")
 
     // TOML serialization
     implementation("dev.eav.tomlkt:tomlkt:0.6.0")
@@ -99,7 +93,7 @@ dependencies {
     implementation("io.github.smiley4:schema-kenerator-jsonschema:$schemaVersion")
 
     // koin
-    val koinVersion = "4.2.0-beta2"
+    val koinVersion = "4.2.1"
     implementation(platform("io.insert-koin:koin-bom:$koinVersion"))
     implementation("io.insert-koin:koin-core")
     implementation("io.insert-koin:koin-ktor")
@@ -110,7 +104,7 @@ dependencies {
     implementation("com.sksamuel.hoplite:hoplite-core:${hopliteVersion}")
     implementation("com.sksamuel.hoplite:hoplite-toml:${hopliteVersion}")
 
-    val koogVersion = "0.7.3"
+    val koogVersion = "0.8.0"
     api("ai.koog:koog-agents:$koogVersion")
     api("ai.koog:agents-mcp:$koogVersion")
 }
