@@ -20,6 +20,7 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgentToolTransport
 import org.coralprotocol.coralserver.agent.runtime.PrototypeRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.agent.runtime.prototype.*
+import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeInteger
 import org.coralprotocol.coralserver.config.LlmProxyProviderConfig
 import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.llmproxy.LlmProxiedModel
@@ -117,7 +118,7 @@ suspend fun KoinComponent.multiAgentPayloadTest(
                                         )
                                     )
                                 ),
-                                iterationCount = 10
+                                iterationCount = PrototypeInteger.Inline(10)
                             )
                         )
                     }
@@ -143,7 +144,7 @@ suspend fun KoinComponent.multiAgentPayloadTest(
                                 prompts = PrototypePrompts(
                                     system = PrototypeSystemPrompt(extra = PrototypeString.Inline("payload = $payloadData")),
                                 ),
-                                iterationCount = 10
+                                iterationCount = PrototypeInteger.Inline(10)
                             )
                         )
                     }

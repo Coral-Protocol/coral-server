@@ -8,7 +8,7 @@ import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.equals.shouldBeEqual
-import io.kotest.matchers.ints.shouldBeZero
+import io.kotest.matchers.longs.shouldBeZero
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -73,8 +73,8 @@ class RegistryAgentTest : CoralTest({
         executableRuntime.arguments.shouldContainExactly("--some-argument")
         executableRuntime.transport.shouldBe(McpTransportType.SSE)
 
-        prototypeRuntime.iterationCount.shouldBeEqual(20)
-        prototypeRuntime.iterationDelay.shouldBeZero()
+        prototypeRuntime.iterationCount.shouldBeInstanceOf<PrototypeInteger.Inline>().value.shouldBeEqual(20)
+        prototypeRuntime.iterationDelay.shouldBeInstanceOf<PrototypeInteger.Inline>().value.shouldBeZero()
 
         prototypeRuntime.proxyName.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("MAIN")
         prototypeRuntime.client.shouldNotBeNull().shouldBeEqual(PrototypeClient.OPEN_AI)
@@ -891,7 +891,7 @@ class RegistryAgentTest : CoralTest({
                 runtime(
                     PrototypeRuntime(
                         proxyName = PrototypeString.Inline("EXAMPLE_PROXY_NAME"),
-                        iterationCount = 0
+                        iterationCount = PrototypeInteger.Inline(0)
                     )
                 )
             }.validate()
@@ -903,7 +903,7 @@ class RegistryAgentTest : CoralTest({
                 runtime(
                     PrototypeRuntime(
                         proxyName = PrototypeString.Inline("EXAMPLE_PROXY_NAME"),
-                        iterationDelay = -1
+                        iterationDelay = PrototypeInteger.Inline(-1)
                     )
                 )
             }.validate()

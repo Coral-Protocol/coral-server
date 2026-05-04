@@ -12,11 +12,9 @@ import me.saket.bytesize.mebibytes
 import org.bitcoinj.core.AddressFormatException
 import org.bitcoinj.core.Base58
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
+import org.coralprotocol.coralserver.agent.registry.option.isIntegral
 import org.coralprotocol.coralserver.agent.runtime.PrototypeRuntime
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeString
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeToolServer
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeToolServerAuth
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeUrlPart
+import org.coralprotocol.coralserver.agent.runtime.prototype.*
 import java.net.URI
 import java.net.URISyntaxException
 
@@ -386,12 +384,38 @@ private fun RegistryAgent.validateRuntimes() {
         validatePrototypeRuntime(runtimes.prototypeRuntime)
 }
 
-private fun RegistryAgent.validatePrototypeRuntime(runtime: PrototypeRuntime) {
-    if (runtime.iterationCount <= 0)
-        throw RegistryException("\"runtimes.prototype.iterations\" must be at least 1")
+private fun RegistryAgent.validateIntegerOption(name: String, optionName: String) {
+    val option = options[optionName]
+        ?: throw RegistryException("\"$name\" references option \"${optionName}\" which is not defined")
 
-    if (runtime.iterationDelay < 0)
-        throw RegistryException("\"runtimes.prototype.delay\" cannot be negative")
+    if (!option.isIntegral())
+        throw RegistryException("\"$name\" references option \"${optionName}\" which must be an integral type, was ${option::class.serializer().descriptor.serialName}")
+}
+
+private fun RegistryAgent.validatePrototypeRuntime(runtime: PrototypeRuntime) {
+    when (runtime.iterationCount) {
+        is PrototypeInteger.Inline -> {
+            if (runtime.iterationCount.value < 1)
+                throw RegistryException("\"runtimes.prototype.iterations\" must be at least 1")
+        }
+
+        is PrototypeInteger.Option -> validateIntegerOption(
+            "runtimes.prototype.iterations",
+            runtime.iterationCount.name
+        )
+    }
+
+    when (runtime.iterationDelay) {
+        is PrototypeInteger.Inline -> {
+            if (runtime.iterationDelay.value < 0)
+                throw RegistryException("\"runtimes.prototype.delay\" cannot be negative")
+        }
+
+        is PrototypeInteger.Option -> validateIntegerOption(
+            "runtimes.prototype.iterations",
+            runtime.iterationDelay.name
+        )
+    }
 
     runtime.proxyName.validatePrototypeString(
         "runtimes.prototype.proxy",

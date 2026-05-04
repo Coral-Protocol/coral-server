@@ -33,6 +33,7 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.runtime.PrototypeRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.agent.runtime.prototype.*
+import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeInteger
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.mcp.buildToolSchema
 import org.coralprotocol.coralserver.modules.LOGGER_TEST
@@ -263,7 +264,7 @@ suspend fun KoinComponent.runTestServerTest(
                                     )
                                 ),
                                 toolServers = listOf(prototypeToolServer),
-                                iterationCount = 5
+                                iterationCount = PrototypeInteger.Inline(5)
                             )
                         )
                         this@graphAgentPair.option(

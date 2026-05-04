@@ -32,10 +32,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonObject
 import org.coralprotocol.coralserver.agent.exceptions.PrototypeRuntimeException
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeClient
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypePrompts
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeString
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeToolServer
+import org.coralprotocol.coralserver.agent.runtime.prototype.*
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.llmproxy.LlmProviderFormat
 import org.coralprotocol.coralserver.logging.LoggingInterface
@@ -62,10 +59,10 @@ data class PrototypeRuntime(
     val client: PrototypeClient? = null,
 
     @SerialName("iterations")
-    val iterationCount: Int = 20,
+    val iterationCount: PrototypeInteger = PrototypeInteger.Inline(20),
 
     @SerialName("delay")
-    val iterationDelay: Int = 0,
+    val iterationDelay: PrototypeInteger = PrototypeInteger.Inline(0),
 
     val prompts: PrototypePrompts = PrototypePrompts(),
 
@@ -197,6 +194,9 @@ data class PrototypeRuntime(
             LlmProviderFormat.Anthropic -> PrototypeClient.ANTHROPIC
             LlmProviderFormat.OpenAI -> PrototypeClient.OPEN_AI
         }
+
+        val iterationCount = iterationCount.resolve(executionContext).toInt()
+        val iterationDelay = iterationDelay.resolve(executionContext).toInt()
 
         try {
             AIAgent.Companion(
