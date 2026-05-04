@@ -29,12 +29,8 @@ import org.coralprotocol.coralserver.config.LlmProxyConfig
 import org.coralprotocol.coralserver.config.LlmProxyProviderConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.Logger
-import org.coralprotocol.coralserver.modules.LOGGER_LLM_PROXY
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.SessionAgent
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.get
-import org.koin.core.qualifier.named
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
@@ -63,13 +59,12 @@ class LlmProxyService(
     private val json: Json,
     logger: Logger
 ) {
-    companion object : KoinComponent {
-        fun buildCoralCloudProviders(apiKey: String): List<LlmProxyProviderConfig> {
-            val logger = get<Logger>(named(LOGGER_LLM_PROXY))
+    companion object {
+        fun buildCoralCloudProviders(apiKey: String, json: Json = Json): List<LlmProxyProviderConfig> {
             val client = HttpClient(CIO) {
                 install(Resources)
                 install(ContentNegotiation) {
-                    json(get())
+                    json(json)
                 }
             }
 
@@ -79,14 +74,9 @@ class LlmProxyService(
                         name = "Coral Cloud, OpenAI",
                         format = LlmProviderFormat.OpenAI,
                         models = runBlocking {
-                            try {
-                                client.get("https://llm.coralcloud.ai/openai/v1/models") {
-                                    bearerAuth(apiKey)
-                                }.body<OpenAIModelList>().models.map { it.id }.toSet()
-                            } catch (e: Exception) {
-                                logger.error(e) { "Failed to fetch Coral Cloud OpenAI models" }
-                                emptySet()
-                            }
+                            client.get("https://llm.coralcloud.ai/openai/v1/models") {
+                                bearerAuth(apiKey)
+                            }.body<OpenAIModelList>().models.map { it.id }.toSet()
                         },
                         apiKey = apiKey,
                         baseUrl = "https://llm.coralcloud.ai/openai/",
@@ -101,8 +91,13 @@ class LlmProxyService(
     val providers = buildList {
         addAll(llmProxyConfig.providers)
 
-        if (cloudConfig.apiKey != null)
-            addAll(buildCoralCloudProviders(cloudConfig.apiKey))
+        if (cloudConfig.apiKey != null) {
+            try {
+                addAll(buildCoralCloudProviders(cloudConfig.apiKey, json))
+            } catch (e: Exception) {
+                logger.error(e) { "Failed to fetch Coral Cloud OpenAI models" }
+            }
+        }
 
     }.toMutableList()
 
