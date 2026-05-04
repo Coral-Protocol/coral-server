@@ -4,6 +4,10 @@ package org.coralprotocol.coralserver.session
 
 import io.ktor.utils.io.*
 import kotlinx.coroutines.flow.update
+import io.modelcontextprotocol.kotlin.sdk.types.CallToolRequest
+import io.modelcontextprotocol.kotlin.sdk.types.CallToolRequestParams
+import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
+import kotlinx.serialization.json.JsonObject
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.registry.option.*
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
@@ -217,5 +221,10 @@ class SessionAgentExecutionContext(
         session.events.emit(SessionEvent.RuntimeStopped(name))
         disposableResources.forEach { it.dispose() }
         disposableResources.clear()
+    }
+
+    suspend fun callTool(name: String, arguments: JsonObject? = null): CallToolResult {
+        val tool = agent.graphAgent.customTools[name] ?: throw IllegalArgumentException("Tool $name not found")
+        return tool.transport.execute(name, agent, CallToolRequest(CallToolRequestParams(name, arguments)))
     }
 }

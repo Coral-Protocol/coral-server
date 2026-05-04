@@ -13,8 +13,10 @@ import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonClassDiscriminator
+import kotlinx.serialization.json.JsonObject
 import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.session.SessionAgent
 import org.coralprotocol.coralserver.util.CORAL_SIGNATURE_HEADER
@@ -31,6 +33,23 @@ sealed interface GraphAgentToolTransport : KoinComponent {
         agent: SessionAgent,
         request: CallToolRequest,
     ): CallToolResult
+
+    @SerialName("local")
+    @Serializable
+    data class Local(
+        @Transient
+        val function: suspend (agent: SessionAgent, arguments: JsonObject?) -> CallToolResult = { _, _ ->
+            CallToolResult(isError = true, content = listOf(TextContent("Local tool not implemented")))
+        }
+    ) : GraphAgentToolTransport {
+        override suspend fun execute(
+            name: String,
+            agent: SessionAgent,
+            request: CallToolRequest,
+        ): CallToolResult {
+            return function(agent, request.arguments)
+        }
+    }
 
     @SerialName("http")
     @Serializable

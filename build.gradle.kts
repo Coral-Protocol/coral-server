@@ -1,10 +1,13 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
 
 plugins {
     kotlin("jvm") version "2.3.20"
     kotlin("plugin.serialization") version "2.3.20"
     application
+    `maven-publish`
 }
 
 application {
@@ -164,6 +167,14 @@ val copyJar = tasks.register("copyJar") {
 
 tasks.assemble {
     dependsOn(copyJar)
+}
+
+configure<PublishingExtension> {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+        }
+    }
 }
 
 kotlin {

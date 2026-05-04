@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.joinAll
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
+import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.Logger
@@ -56,7 +57,7 @@ class LocalSession(
     override val paymentSessionId: PaymentSessionId? = null,
     val namespace: LocalSessionNamespace,
     agentGraph: AgentGraph,
-    sessionManager: LocalSessionManager,
+    val sessionManager: LocalSessionManager,
     override val annotations: Map<String, String> = mapOf(),
 ) : Session(sessionManager.managementScope, sessionManager.supervisedSessions) {
     val logger =
@@ -68,9 +69,11 @@ class LocalSession(
      * that is orchestrated is not guaranteed to be connected to the [SessionAgent].  There will always be a slight
      * delay between orchestration and an MCP connection between the agent and the agent state.
      */
-    val agents: Map<UniqueAgentName, SessionAgent> = agentGraph.agents.map { (_, graphAgent) ->
-        graphAgent.name to SessionAgent(this, graphAgent, namespace, sessionManager)
-    }.toMap()
+    val agents: ConcurrentHashMap<UniqueAgentName, SessionAgent> = ConcurrentHashMap<UniqueAgentName, SessionAgent>().apply {
+        putAll(agentGraph.agents.map { (_, graphAgent) ->
+            graphAgent.name to SessionAgent(this@LocalSession, graphAgent, namespace, sessionManager)
+        })
+    }
 
     /**
      * A list of threads in this session.  Threads are created by agents all messages in a session belong to threads.
@@ -198,19 +201,32 @@ class LocalSession(
         agents[agentName1]?.links?.contains(agents[agentName2]) ?: false
 
     /**
+     * Adds a new agent to the session.
+     */
+    fun addAgent(graphAgent: GraphAgent): SessionAgent {
+        if (agents.containsKey(graphAgent.name))
+            throw SessionException.AlreadyParticipatingException("Agent ${graphAgent.name} is already in this session")
+
+        val agent = SessionAgent(this, graphAgent, namespace, sessionManager)
+        agents[graphAgent.name] = agent
+        return agent
+    }
+
+    /**
      * Launches all agents in this session on new coroutines, returning a list of jobs for each agent.  This function
      * can only be called once per session.
      *
      * @throws SessionException.AlreadyLaunchedException if this session's agents have already been launched
      */
     fun launchAgents() {
-        if (agentJobs.value.isNotEmpty())
-            throw SessionException.AlreadyLaunchedException("This session's agents have already been launched")
-
-        agentJobs.update {
-            agents.map { (name, agent) ->
-                name to agent.launch()
-            }.toMap()
+        agentJobs.update { currentJobs ->
+            val newJobs = currentJobs.toMutableMap()
+            agents.forEach { (name, agent) ->
+                if (!newJobs.containsKey(name)) {
+                    newJobs[name] = agent.launch()
+                }
+            }
+            newJobs
         }
     }
 
