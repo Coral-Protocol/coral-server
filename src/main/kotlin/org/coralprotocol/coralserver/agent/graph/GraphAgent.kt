@@ -6,6 +6,7 @@ import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.RegistryAgent
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
+import org.coralprotocol.coralserver.llmproxy.LlmProxiedModel
 import org.coralprotocol.coralserver.routes.api.v1.LocalSessions
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.SessionResource
@@ -89,6 +90,12 @@ data class GraphAgent(
      * @see GraphAgentRequest.x402Budgets
      */
     val x402Budgets: List<X402BudgetedResource>,
+
+    /**
+     * A map of the agent's requested proxied models.  The request models come from [RegistryAgent], but can be
+     * tweaked via [GraphAgentRequest].  The proxy requests in [RegistryAgent] must be satisfied.
+     */
+    val proxies: Map<String, LlmProxiedModel>,
 
     /**
      * @see SessionResource.annotations

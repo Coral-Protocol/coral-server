@@ -66,9 +66,14 @@ class ApplicationRuntimeContext(
         return builder.build()
     }
 
-    fun getLlmProxyUrl(executionContext: SessionAgentExecutionContext, addressConsumer: AddressConsumer): Url {
+    fun getLlmProxyUrl(
+        executionContext: SessionAgentExecutionContext,
+        addressConsumer: AddressConsumer,
+        proxyName: String
+    ): Url {
         val builder = URLBuilder(getApiUrl(addressConsumer))
         builder.appendPathSegments("llm-proxy", executionContext.agent.secret)
+        builder.appendPathSegments(proxyName)
         return builder.build()
     }
 

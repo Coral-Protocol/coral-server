@@ -1,246 +1,343 @@
+@file:OptIn(ExperimentalSerializationApi::class)
+
 package org.coralprotocol.coralserver.llmproxy
 
 import io.ktor.client.*
-import io.ktor.client.network.sockets.*
+import io.ktor.client.call.*
+import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.resources.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.utils.io.*
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.booleanOrNull
-import kotlinx.serialization.json.jsonPrimitive
+import io.ktor.utils.io.core.*
+import kotlinx.coroutines.flow.updateAndGet
+import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.*
+import me.saket.bytesize.BinaryByteSize
+import org.coralprotocol.coralserver.agent.graph.GraphAgentProxyRequest
+import org.coralprotocol.coralserver.agent.registry.AgentLlmProxyRequest
+import org.coralprotocol.coralserver.config.CloudConfig
 import org.coralprotocol.coralserver.config.LlmProxyConfig
+import org.coralprotocol.coralserver.config.LlmProxyProviderConfig
 import org.coralprotocol.coralserver.events.SessionEvent
+import org.coralprotocol.coralserver.logging.Logger
+import org.coralprotocol.coralserver.logging.LoggingTag
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.SessionAgent
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
 
 private val ALLOWED_METHODS = setOf(HttpMethod.Get, HttpMethod.Post)
 private val METHODS_WITH_BODY = setOf(HttpMethod.Post)
 
-private const val MAX_REQUEST_BODY_BYTES = 20 * 1024 * 1024 // 20 MB
-private const val MAX_RESPONSE_BODY_BYTES = 80 * 1024 * 1024L // 80 MB
-private const val MAX_STREAM_CHARS = 80 * 1024 * 1024L // 80 M chars (~bytes for ASCII SSE)
+@Serializable
+@JsonIgnoreUnknownKeys
+private data class OpenAIModelList(
+    @SerialName("data") val models: List<OpenAIModel>
+    // .. etc
+)
 
-class LlmProxyException(message: String) : Exception(message)
+@Serializable
+@JsonIgnoreUnknownKeys
+private data class OpenAIModel(
+    val id: String,
+    // .. etc
+)
 
 class LlmProxyService(
-    private val config: LlmProxyConfig,
+    private val llmProxyConfig: LlmProxyConfig,
+    private val cloudConfig: CloudConfig,
     private val httpClient: HttpClient,
-    private val json: Json
+    private val json: Json,
+    logger: Logger
 ) {
+    companion object {
+        fun buildCoralCloudProviders(apiKey: String, json: Json = Json): List<LlmProxyProviderConfig> {
+            val client = HttpClient(CIO) {
+                install(Resources)
+                install(ContentNegotiation) {
+                    json(json)
+                }
+            }
 
+            return buildList {
+                add(
+                    LlmProxyProviderConfig(
+                        name = "Coral Cloud, OpenAI",
+                        format = LlmProviderFormat.OpenAI,
+                        models = runBlocking {
+                            client.get("https://llm.coralcloud.ai/openai/v1/models") {
+                                bearerAuth(apiKey)
+                            }.body<OpenAIModelList>().models.map { it.id }.toSet()
+                        },
+                        apiKey = apiKey,
+                        baseUrl = "https://llm.coralcloud.ai/openai/",
+                        timeout = 10.seconds,
+                        allowAnyModel = false
+                    )
+                )
+            }
+        }
+    }
+
+    val providers = buildList {
+        addAll(llmProxyConfig.providers)
+
+        if (cloudConfig.apiKey != null) {
+            try {
+                addAll(buildCoralCloudProviders(cloudConfig.apiKey, json))
+            } catch (e: Exception) {
+                logger.error(e) { "Failed to fetch Coral Cloud OpenAI models" }
+            }
+        }
+
+    }.toMutableList()
+
+    init {
+        if (!providers.any { it.format == LlmProviderFormat.OpenAI })
+            logger.warn { "The server will not be able to launch agents that require OpenAI-format LLM proxies as no provider of this format has been configured" }
+
+        if (!providers.any { it.format == LlmProviderFormat.Anthropic })
+            logger.warn { "The server will not be able to launch agents that require Anthropic-format LLM proxies as no provider of this format has been configured" }
+    }
 
     /**
-    * Methods: GET, POST
-    * POST body: JSON only (application/json and application/+json)
-    * Responses: JSON or SSE
-    * Forwarded: path, query params, provider auth, most normal headers
-    * Not supported: multipart, binary uploads, file/audio/image upload endpoints
-    * Current scope: inference-style endpoints like chat/messages/responses/embeddings/models
-    * Security behavior: Authorization/provider auth is normalized by the proxy, Cookie is dropped
-    */
+     * Attempts to resolve an agent's request for a proxy, returning a [LlmProxiedModel] that contains a proxy config
+     * for the requested format and models.  This function will throw an exception if the request cannot be resolved.
+     *
+     * @throws LlmProxyException.ProxyRequestResolutionError if the request cannot be resolved
+     */
+    fun resolveAgentProxyRequest(request: AgentLlmProxyRequest): LlmProxiedModel {
+        val potentialProviders = providers.filter { it.format == request.format }
+        if (potentialProviders.isEmpty())
+            throw LlmProxyException.ProxyRequestResolutionError("No providers are configured for format \"${request.format}\".")
+
+        var match = potentialProviders.firstNotNullOfOrNull { provider ->
+            provider.models.firstOrNull { request.models.contains(it) }?.let { it to provider }
+        }
+
+        // Fallback: check for providers that will provide any of the requested models
+        if (match == null) {
+            match = potentialProviders.filter {
+                it.allowAnyModel
+            }.firstNotNullOfOrNull { provider ->
+                request.models.firstOrNull()?.let { it to provider }
+            }
+        }
+
+        if (match == null)
+            throw LlmProxyException.ProxyRequestResolutionError("None of the ${potentialProviders.size} configured \"${request.format}\" providers support any of the requested models: ${request.models.joinToString()}")
+
+        return LlmProxiedModel(match.second, match.first)
+    }
+
+    /**
+     * Resolves a direct request for a proxy and model using the [GraphAgentProxyRequest] type.  This type specifies
+     * exact configurations and models to use, instead of [AgentLlmProxyRequest] which will select any matching provider
+     * and config combination.
+     *
+     * @throws LlmProxyException.ProxyRequestResolutionError if the request cannot be resolved
+     */
+    fun resolveAgentProxyRequest(request: GraphAgentProxyRequest): LlmProxiedModel {
+        val config = providers.firstOrNull { it.name == request.configurationName }
+            ?: throw LlmProxyException.ProxyRequestResolutionError("No proxy is configured with the name \"${request.configurationName}\"")
+
+        return LlmProxiedModel(config, request.modelName)
+    }
+
+    /**
+     * Methods: GET, POST
+     * POST body: JSON only (application/json and application/+json)
+     * Responses: JSON or SSE
+     * Forwarded: path, query params, provider auth, most normal headers
+     * Not supported: multipart, binary uploads, file/audio/image upload endpoints
+     * Current scope: inference-style endpoints like chat/messages/responses/embeddings/models
+     * Security behavior: Authorization/provider auth is normalized by the proxy, Cookie is dropped
+     */
     suspend fun proxyRequest(
         agent: SessionAgent,
-        providerName: String,
+        proxyRequestName: String,
         pathParts: List<String>,
         call: ApplicationCall
     ) {
-        val profile = LlmProviderProfile.fromId(providerName) ?: throw RouteException(
-            HttpStatusCode.BadRequest,
-            "Unknown provider: $providerName"
-        )
-
-        val providerConfig = config.providers[providerName]
-        val serverKey = providerConfig?.apiKey
-        val agentKey = ProxyHeaders.extractAgentKey(call, profile)
-        val apiKey = serverKey ?: agentKey ?: throw RouteException(
-            HttpStatusCode.Unauthorized,
-            "No API key available for provider: $providerName (neither server-configured nor provided by agent)"
-        )
-
         validateRequestShape(call)
 
-        val baseUrl = providerConfig?.baseUrl ?: profile.defaultBaseUrl
-        val upstreamUrl = URLBuilder(baseUrl).apply {
+        val model = agent.graphAgent.proxies[proxyRequestName] ?: throw RouteException(
+            HttpStatusCode.BadRequest, "Unknown proxy name"
+        )
+
+        val upstreamUrl = URLBuilder(model.providerConfig.baseUrl).apply {
             appendEncodedPathSegments(pathParts)
             call.request.queryParameters.entries().forEach { (name, values) ->
                 values.forEach { value -> parameters.append(name, value) }
             }
         }.buildString()
-        val timeoutMs = ((providerConfig?.timeoutSeconds ?: config.requestTimeoutSeconds) * 1000)
+
         val hasBody = call.request.httpMethod in METHODS_WITH_BODY
         val requestBody = readRequestBody(hasBody, call)
 
         val requestJson = if (hasBody) tryParseJson(requestBody) else null
         val isStreaming = requestJson?.get("stream")?.jsonPrimitive?.booleanOrNull == true
-        val model = requestJson?.get("model")?.jsonPrimitive?.content
+        val requestedModel = requestJson?.get("model")?.jsonPrimitive?.content
 
         val finalBody =
-            if (isStreaming) profile.strategy.prepareStreamingRequest(requestBody, json, agent.logger) else requestBody
+            if (isStreaming) model.providerConfig.format.prepareStreamingRequest(
+                requestBody,
+                json,
+                agent.logger
+            ) else requestBody
 
-        val req = ProxyRequest(
-            agent,
-            profile,
-            apiKey,
-            upstreamUrl,
-            timeoutMs,
-            finalBody,
-            model,
-            hasBody,
-            System.currentTimeMillis()
+        val req = LlmProxyRequest(
+            logger = agent.logger.withTags(LoggingTag.ProxyRequest(agent.proxyRequestCount.updateAndGet { it + 1 })),
+            proxyRequestName = proxyRequestName,
+            model = model,
+            agent = agent,
+            requestBody = finalBody,
+            hasBody = hasBody,
+            upstreamUrl = upstreamUrl,
+            startTime = Clock.System.now(),
         )
 
-        agent.logger.debug {
-            "LLM Proxy → $providerName/${
-                URLBuilder().appendPathSegments(pathParts).buildString()
-            } model=$model streaming=$isStreaming " +
-                    "auth=${if (serverKey != null) "server" else "agent"}"
+        req.logger.info {
+            "Proxy request started: config=\"${model.providerConfig.name}\", model=${model.modelName}, url=\"${req.upstreamUrl}\", method=${call.request.httpMethod}, streaming=$isStreaming"
         }
+
+        if (requestedModel != null && requestedModel != model.modelName)
+            req.logger.warn { "Request model is ${model.modelName}, this will be substituted with ${model.modelName}" }
 
         try {
             if (isStreaming) proxyStreaming(req, call) else proxyBuffered(req, call)
         } catch (e: CancellationException) {
+            registerProxyResult(agent, LlmProxyResult.Exception(req, e))
             throw e
         } catch (e: Exception) {
-            val durationMs = System.currentTimeMillis() - req.startTime
-            emitTelemetry(
-                agent,
-                LlmCallResult(
-                    providerName,
-                    model,
-                    durationMs = durationMs,
-                    streaming = isStreaming,
-                    success = false,
-                    errorKind = classifyError(e)
-                )
-            )
-            if (!call.response.isCommitted) {
-                agent.logger.warn { "LLM proxy request failed: ${e::class.simpleName}: ${e.message}" }
-                throw RouteException(HttpStatusCode.BadGateway, "LLM proxy request failed")
-            }
+            registerProxyResult(agent, LlmProxyResult.Exception(req, e))
         }
     }
 
-    private suspend fun proxyBuffered(req: ProxyRequest, call: ApplicationCall) {
+    private suspend fun proxyBuffered(req: LlmProxyRequest, call: ApplicationCall) {
         val response = httpClient.request(req.upstreamUrl) {
             configureProxy(req, call)
         }
 
-        val responseBody = readBoundedBody(response)
-        val durationMs = System.currentTimeMillis() - req.startTime
+        val (responseBody, responseSize) = readBoundedBody(response)
 
-        ProxyHeaders.forwardResponseHeaders(response, call)
+        LlmProxyHeaders.forwardResponseHeaders(response, call)
         val upstreamContentType = response.contentType() ?: ContentType.Application.Json
+
+        req.agent.logger.trace { "Proxy response received: ${response.status}, ${BinaryByteSize(responseSize)} of $upstreamContentType" }
         call.respondText(responseBody, upstreamContentType, response.status)
 
-        val usage = req.profile.strategy.extractBufferedTokens(responseBody, json)
-        emitTelemetry(
-            req.agent,
-            LlmCallResult(
-                req.profile.providerId, req.model, usage?.inputTokens, usage?.outputTokens, durationMs,
-                streaming = false,
-                success = response.status.isSuccess(),
-                errorKind = if (response.status.isSuccess()) null else classifyHttpError(response.status),
-                statusCode = response.status.value
+        registerProxyResult(
+            req.agent, LlmProxyResult.Buffered(
+                request = req,
+                usage = req.model.providerConfig.format.extractBufferedTokens(responseBody, json),
+                statusCode = response.status
             )
         )
     }
 
-    private suspend fun proxyStreaming(req: ProxyRequest, call: ApplicationCall) {
+    private suspend fun proxyStreaming(req: LlmProxyRequest, call: ApplicationCall) {
         httpClient.prepareRequest(req.upstreamUrl) {
             configureProxy(req, call)
-            timeout { socketTimeoutMillis = req.timeoutMs }
+            timeout {
+                socketTimeoutMillis = req.model.providerConfig.timeout.inWholeMilliseconds
+            }
         }.execute { response ->
             if (!response.status.isSuccess()) {
-                val errorBody = response.bodyAsText()
-                val durationMs = System.currentTimeMillis() - req.startTime
-                val upstreamContentType = response.contentType() ?: ContentType.Application.Json
-                call.respondText(errorBody, upstreamContentType, response.status)
-                emitTelemetry(
-                    req.agent,
-                    LlmCallResult(
-                        req.profile.providerId, req.model, durationMs = durationMs,
-                        streaming = true, success = false,
-                        errorKind = classifyHttpError(response.status),
-                        statusCode = response.status.value
-                    )
-                )
-                return@execute
-            }
+                registerProxyResult(
+                    req.agent, try {
+                        val upstreamContentType = response.contentType() ?: ContentType.Application.Json
 
-            call.response.header(HttpHeaders.ContentType, ContentType.Text.EventStream.toString())
-            call.response.header(HttpHeaders.CacheControl, "no-store")
-            call.response.header("X-Accel-Buffering", "no")
-
-            call.respondTextWriter {
-                val channel = response.bodyAsChannel()
-                val parser = req.profile.strategy.createStreamParser(json)
-                var totalChars = 0L
-
-                try {
-                    while (!channel.isClosedForRead) {
-                        val line = channel.readUTF8Line() ?: break
-                        totalChars += line.length + 1
-                        if (totalChars > MAX_STREAM_CHARS) {
-                            val durationMs = System.currentTimeMillis() - req.startTime
-                            emitTelemetry(
-                                req.agent,
-                                LlmCallResult(
-                                    req.profile.providerId, req.model, durationMs = durationMs,
-                                    streaming = true, success = false,
-                                    errorKind = LlmErrorKind.RESPONSE_TOO_LARGE,
-                                    statusCode = response.status.value
-                                )
-                            )
-                            break
+                        val (errorBody, errorSize) = readBoundedBody(response)
+                        req.agent.logger.trace {
+                            "Streamed proxy response received: ${response.status}, ${BinaryByteSize(errorSize)} of $upstreamContentType"
                         }
-                        parser.processLine(line)
-                        write(line)
-                        write("\n")
-                        flush()
-                    }
+                        call.respondText(errorBody, upstreamContentType, response.status)
 
-                    if (totalChars <= MAX_STREAM_CHARS) {
-                        val durationMs = System.currentTimeMillis() - req.startTime
-                        emitTelemetry(
+                        LlmProxyResult.Streamed(
+                            request = req,
+                            statusCode = response.status,
+                            chunkCount = 0,
+                        )
+                    } catch (e: LlmProxyException) {
+                        LlmProxyResult.Exception(
+                            request = req,
+                            error = e,
+                        )
+                    }
+                )
+            } else {
+                call.response.header(HttpHeaders.ContentType, ContentType.Text.EventStream.toString())
+                call.response.header(HttpHeaders.CacheControl, "no-store")
+                call.response.header("X-Accel-Buffering", "no")
+
+                call.respondTextWriter {
+                    val channel = response.bodyAsChannel()
+                    val parser = req.model.providerConfig.format.createStreamParser(json)
+                    var totalChars = 0L
+
+                    try {
+                        while (!channel.isClosedForRead) {
+                            val remaining = llmProxyConfig.maxStreamCharsUTF8 - totalChars
+                            val line = channel.readLineStrict(remaining) ?: break
+
+                            totalChars += line.length + 1
+                            parser.processLine(line)
+                            write(line)
+                            write("\n")
+                            flush()
+
+                            req.agent.logger.trace {
+                                "Streamed proxy line received: ${line.length} chars, $totalChars total over ${parser.chunkCount} chunks"
+                            }
+                        }
+
+                        registerProxyResult(
                             req.agent,
-                            LlmCallResult(
-                                req.profile.providerId, req.model,
-                                parser.inputTokens, parser.outputTokens, durationMs,
-                                streaming = true, success = true,
-                                statusCode = response.status.value, chunkCount = parser.chunkCount
+                            LlmProxyResult.Streamed(
+                                request = req,
+                                usage = LlmUsage(parser.inputTokens, parser.outputTokens),
+                                statusCode = response.status,
+                                chunkCount = parser.chunkCount
+                            )
+                        )
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        registerProxyResult(
+                            req.agent,
+                            LlmProxyResult.Exception(
+                                request = req,
+                                error = e,
                             )
                         )
                     }
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    val durationMs = System.currentTimeMillis() - req.startTime
-                    emitTelemetry(
-                        req.agent,
-                        LlmCallResult(
-                            req.profile.providerId, req.model,
-                            parser.inputTokens, parser.outputTokens, durationMs,
-                            streaming = true, success = false,
-                            errorKind = classifyError(e),
-                            statusCode = response.status.value
-                        )
-                    )
                 }
             }
         }
     }
 
-    private fun HttpRequestBuilder.configureProxy(req: ProxyRequest, call: ApplicationCall) {
+    private fun HttpRequestBuilder.configureProxy(req: LlmProxyRequest, call: ApplicationCall) {
         method = call.request.httpMethod
-        timeout { requestTimeoutMillis = req.timeoutMs }
-        ProxyHeaders.applyUpstream(this, call, req.profile, req.apiKey)
+
+        timeout {
+            requestTimeoutMillis = req.model.providerConfig.timeout.inWholeMilliseconds
+        }
+
+        LlmProxyHeaders.applyUpstream(this, call, req)
+
         if (req.hasBody) {
             contentType(call.request.contentType())
             setBody(req.requestBody)
@@ -269,20 +366,12 @@ class LlmProxyService(
 
     private suspend fun readRequestBody(hasBody: Boolean, call: ApplicationCall): String {
         if (!hasBody) return ""
-        val declaredLength = call.request.headers[HttpHeaders.ContentLength]?.toLongOrNull()
-        if (declaredLength != null && declaredLength > MAX_REQUEST_BODY_BYTES) {
-            throw RouteException(
-                HttpStatusCode.PayloadTooLarge,
-                "Request body exceeds ${MAX_REQUEST_BODY_BYTES / 1024 / 1024} MB limit"
-            )
-        }
-        val body = call.receiveText()
-        if (body.encodeToByteArray().size > MAX_REQUEST_BODY_BYTES) {
-            throw RouteException(
-                HttpStatusCode.PayloadTooLarge,
-                "Request body exceeds ${MAX_REQUEST_BODY_BYTES / 1024 / 1024} MB limit"
-            )
-        }
+        val channel = call.receiveChannel()
+        val body = channel.readRemaining(llmProxyConfig.maxRequestSize.inWholeBytes).readText()
+
+        if (channel.availableForRead > 0 || !channel.isClosedForRead)
+            throw LlmProxyException.BufferOverflow("Upstream response exceeded ${llmProxyConfig.maxRequestSize} limit")
+
         return body
     }
 
@@ -294,64 +383,59 @@ class LlmProxyService(
         }
     }
 
-    private suspend fun readBoundedBody(response: HttpResponse): String {
-        val declaredLength = response.headers[HttpHeaders.ContentLength]?.toLongOrNull()
-        if (declaredLength != null && declaredLength > MAX_RESPONSE_BODY_BYTES) {
-            throw LlmProxyException("Upstream response exceeds ${MAX_RESPONSE_BODY_BYTES / 1024 / 1024} MB limit")
+    private suspend fun readBoundedBody(response: HttpResponse): Pair<String, Long> {
+        val channel = response.bodyAsChannel()
+        val packet = channel.readRemaining(llmProxyConfig.maxResponseSize.inWholeBytes)
+        val bytesRead = packet.remaining
+
+        val body = packet.readText()
+
+        if (channel.availableForRead > 0 || !channel.isClosedForRead)
+            throw LlmProxyException.BufferOverflow("Upstream response exceeded ${llmProxyConfig.maxResponseSize} limit")
+
+        return Pair(body, bytesRead)
+    }
+
+    private suspend fun registerProxyResult(agent: SessionAgent, result: LlmProxyResult) {
+        fun LlmUsage?.report(): String {
+            val report =
+                listOfNotNull(
+                    this?.inputTokens?.let { "$it input tokens" },
+                    this?.outputTokens?.let { "$it output tokens" })
+                    .joinToString(" and ")
+
+            return if (report.isNotEmpty()) ", using $report" else ""
         }
-        val body = response.bodyAsText()
-        if (body.encodeToByteArray().size > MAX_RESPONSE_BODY_BYTES) {
-            throw LlmProxyException("Upstream response exceeds ${MAX_RESPONSE_BODY_BYTES / 1024 / 1024} MB limit")
-        }
-        return body
-    }
 
-    private fun classifyHttpError(status: HttpStatusCode): LlmErrorKind = when (status.value) {
-        429 -> LlmErrorKind.RATE_LIMITED
-        in 401..403 -> LlmErrorKind.CREDENTIALS
-        in 500..599 -> LlmErrorKind.UPSTREAM_HEALTH
-        in 400..499 -> LlmErrorKind.REQUEST_ERROR
-        else -> LlmErrorKind.UNKNOWN
-    }
-
-    private fun classifyError(e: Exception): LlmErrorKind = when (e) {
-        is ConnectTimeoutException -> LlmErrorKind.CONNECTIVITY
-        is HttpRequestTimeoutException -> LlmErrorKind.CONNECTIVITY
-        is LlmProxyException -> LlmErrorKind.RESPONSE_TOO_LARGE
-        else -> if (e.message?.contains(
-                "timeout",
-                ignoreCase = true
-            ) == true
-        ) LlmErrorKind.CONNECTIVITY else LlmErrorKind.UNKNOWN
-    }
-
-    private suspend fun emitTelemetry(agent: SessionAgent, result: LlmCallResult) {
-        try {
-            if (result.success) {
-                val chunks = if (result.chunkCount != null) " ${result.chunkCount} chunks" else ""
-                val mode = if (result.streaming) "stream complete" else "${result.statusCode ?: "ok"}"
-                agent.logger.debug { "LLM Proxy ← $mode ${result.durationMs}ms$chunks${result.formatTokenInfo()}" }
-            } else {
-                val mode = if (result.streaming) " (stream)" else ""
-                agent.logger.warn { "LLM Proxy ← ${result.statusCode ?: "err"} ${result.durationMs}ms error=${result.errorKind}$mode" }
+        when (result) {
+            is LlmProxyResult.Buffered -> result.request.logger.info {
+                "Proxy request finished in ${result.duration} with status code ${result.statusCode}${result.usage.report()}"
             }
 
-            agent.accumulateTokens(result.provider, result.model, result.inputTokens, result.outputTokens)
-            agent.session.events.emit(
-                SessionEvent.LlmProxyCall(
-                    agentName = agent.name,
-                    provider = result.provider,
-                    model = result.model,
-                    inputTokens = result.inputTokens,
-                    outputTokens = result.outputTokens,
-                    durationMs = result.durationMs,
-                    streaming = result.streaming,
-                    success = result.success,
-                    errorKind = result.errorKind
-                )
-            )
-        } catch (e: Exception) {
-            agent.logger.error(e) { "Failed to emit LLM proxy telemetry event" }
+            is LlmProxyResult.Exception -> result.request.logger.error(result.error) {
+                "Proxy request failed due to an exception"
+            }
+
+            is LlmProxyResult.Streamed -> result.request.logger.info {
+                "Streamed proxy request finished in ${result.duration} with status code ${result.statusCode}, with ${result.chunkCount} chunks${result.usage.report()}"
+            }
         }
+
+        val (code, usage) = when (result) {
+            is LlmProxyResult.Buffered -> Pair(result.statusCode, result.usage)
+            is LlmProxyResult.Exception -> return
+            is LlmProxyResult.Streamed -> Pair(result.statusCode, result.usage)
+        }
+
+        // not emitted for exceptions
+        agent.session.events.emit(
+            SessionEvent.LlmProxyCall(
+                agentName = agent.name,
+                modelName = result.request.model.modelName,
+                providerRequestName = result.request.proxyRequestName,
+                statusCode = code.value,
+                usage = usage ?: LlmUsage(),
+            )
+        )
     }
 }

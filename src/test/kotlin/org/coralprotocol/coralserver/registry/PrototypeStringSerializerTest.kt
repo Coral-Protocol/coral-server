@@ -7,9 +7,9 @@ import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.coralprotocol.coralserver.CoralTest
+import org.coralprotocol.coralserver.agent.registry.AGENT_LLM_PROXY_NAME_LENGTH
 import org.coralprotocol.coralserver.agent.registry.MAXIMUM_SUPPORTED_AGENT_VERSION
 import org.coralprotocol.coralserver.agent.registry.UnresolvedRegistryAgent
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeModelProvider
 import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeString
 import org.koin.test.inject
 import java.io.File
@@ -33,8 +33,7 @@ class PrototypeStringSerializerTest : CoralTest({
         )
 
         val prototypeRuntime = agent.runtimes.prototypeRuntime.shouldNotBeNull()
-        val modelProvider = prototypeRuntime.modelProvider.shouldBeInstanceOf<PrototypeModelProvider.OpenAI>()
-        modelProvider.key.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("key here")
+        prototypeRuntime.proxyName.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("MAIN")
 
         prototypeRuntime.prompts.system.base.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("base system prompt")
         prototypeRuntime.prompts.system.extra.shouldBeInstanceOf<PrototypeString.Option>().name.shouldBeEqual("EXTRA_SYSTEM_PROMPT")
@@ -46,7 +45,7 @@ class PrototypeStringSerializerTest : CoralTest({
     }
 
     test("testPrototypeStringUrlReference") {
-        val uuid = UUID.randomUUID().toString()
+        val uuid = UUID.randomUUID().toString().substring(0, AGENT_LLM_PROXY_NAME_LENGTH.last)
         serveString(uuid)
 
         val agent = UnresolvedRegistryAgent.resolveFromString(
@@ -61,15 +60,12 @@ class PrototypeStringSerializerTest : CoralTest({
                 readme = "test"
                 license = { type = "spdx", expression = "MIT" }
                 
-                [runtimes.prototype.model]
-                provider = "openai"
-                name = "gpt-3.5-turbo"
-                key = { type = "url", url = "$urlPath" }
+                [runtimes.prototype]
+                proxy = { type = "url", url = "$urlPath" }
             """.trimIndent()
         )
 
-        val prototypeRuntime = agent.runtimes.prototypeRuntime.shouldNotBeNull()
-        val modelProvider = prototypeRuntime.modelProvider.shouldBeInstanceOf<PrototypeModelProvider.OpenAI>()
-        modelProvider.key.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual(uuid)
+        agent.runtimes.prototypeRuntime.shouldNotBeNull()
+            .proxyName.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual(uuid)
     }
 })

@@ -19,5 +19,6 @@ data class PaidGraphAgentRequest(
      *
      * @throws IllegalArgumentException if the agent registry cannot be resolved.
      */
-    suspend fun toGraphAgent(registry: AgentRegistry, isRemote: Boolean = false): GraphAgent = graphAgentRequest.toGraphAgent(registry, isRemote)
+    suspend fun toGraphAgent(isRemote: Boolean = false): GraphAgent =
+        graphAgentRequest.toGraphAgent(isRemote = isRemote)
 }

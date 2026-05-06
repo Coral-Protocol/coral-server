@@ -41,6 +41,12 @@ sealed interface LoggingTag {
     }
 
     @Serializable
+    @SerialName("proxy_request")
+    data class ProxyRequest(val proxyNumber: Int) : LoggingTag {
+        override val mdcMap: Map<String, String> = mapOf("pnum" to proxyNumber.toString())
+    }
+
+    @Serializable
     @SerialName("stdout")
     data class Io(val io: LoggingTagIo) : LoggingTag {
         override val mdcMap: Map<String, String> = when (io) {
