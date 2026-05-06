@@ -209,12 +209,12 @@ class LlmProxyService(
             startTime = Clock.System.now(),
         )
 
-        req.logger.debug {
+        req.logger.info {
             "Proxy request started: config=\"${model.providerConfig.name}\", model=${model.modelName}, url=\"${req.upstreamUrl}\", method=${call.request.httpMethod}, streaming=$isStreaming"
         }
 
         if (requestedModel != null && requestedModel != model.modelName)
-            req.logger.debug { "Request model is ${model.modelName}, this will be substituted with ${model.modelName}" }
+            req.logger.warn { "Request model is ${model.modelName}, this will be substituted with ${model.modelName}" }
 
         try {
             if (isStreaming) proxyStreaming(req, call) else proxyBuffered(req, call)
@@ -236,7 +236,7 @@ class LlmProxyService(
         LlmProxyHeaders.forwardResponseHeaders(response, call)
         val upstreamContentType = response.contentType() ?: ContentType.Application.Json
 
-        req.agent.logger.debug { "Proxy response received: ${response.status}, ${BinaryByteSize(responseSize)} of $upstreamContentType" }
+        req.agent.logger.trace { "Proxy response received: ${response.status}, ${BinaryByteSize(responseSize)} of $upstreamContentType" }
         call.respondText(responseBody, upstreamContentType, response.status)
 
         registerProxyResult(
@@ -261,7 +261,7 @@ class LlmProxyService(
                         val upstreamContentType = response.contentType() ?: ContentType.Application.Json
 
                         val (errorBody, errorSize) = readBoundedBody(response)
-                        req.agent.logger.debug {
+                        req.agent.logger.trace {
                             "Streamed proxy response received: ${response.status}, ${BinaryByteSize(errorSize)} of $upstreamContentType"
                         }
                         call.respondText(errorBody, upstreamContentType, response.status)
@@ -298,6 +298,10 @@ class LlmProxyService(
                             write(line)
                             write("\n")
                             flush()
+
+                            req.agent.logger.trace {
+                                "Streamed proxy line received: ${line.length} chars, $totalChars total over ${parser.chunkCount} chunks"
+                            }
                         }
 
                         registerProxyResult(
@@ -393,17 +397,27 @@ class LlmProxyService(
     }
 
     private suspend fun registerProxyResult(agent: SessionAgent, result: LlmProxyResult) {
+        fun LlmUsage?.report(): String {
+            val report =
+                listOfNotNull(
+                    this?.inputTokens?.let { "$it input tokens" },
+                    this?.outputTokens?.let { "$it output tokens" })
+                    .joinToString(" and ")
+
+            return if (report.isNotEmpty()) ", using $report" else ""
+        }
+
         when (result) {
-            is LlmProxyResult.Buffered -> result.request.logger.debug {
-                "Proxy request finished in ${result.duration} with status code ${result.statusCode}"
+            is LlmProxyResult.Buffered -> result.request.logger.info {
+                "Proxy request finished in ${result.duration} with status code ${result.statusCode}${result.usage.report()}"
             }
 
             is LlmProxyResult.Exception -> result.request.logger.error(result.error) {
                 "Proxy request failed due to an exception"
             }
 
-            is LlmProxyResult.Streamed -> result.request.logger.debug {
-                "Streamed proxy request finished in ${result.duration} with status code ${result.statusCode}, with ${result.chunkCount} chunks"
+            is LlmProxyResult.Streamed -> result.request.logger.info {
+                "Streamed proxy request finished in ${result.duration} with status code ${result.statusCode}, with ${result.chunkCount} chunks${result.usage.report()}"
             }
         }
 
