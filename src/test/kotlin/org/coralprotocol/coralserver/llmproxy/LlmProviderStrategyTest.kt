@@ -6,6 +6,8 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.CoralTest
+import org.coralprotocol.coralserver.llmproxy.strategies.AnthropicStrategy
+import org.coralprotocol.coralserver.llmproxy.strategies.OpenAIStrategy
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.modules.LOGGER_LLM_PROXY
 import org.koin.core.component.get

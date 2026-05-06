@@ -33,6 +33,7 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.runtime.PrototypeRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.agent.runtime.prototype.*
+import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeInteger
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.mcp.buildToolSchema
 import org.coralprotocol.coralserver.modules.LOGGER_TEST
@@ -235,7 +236,8 @@ class TestMcpServer(
 }
 
 suspend fun KoinComponent.runTestServerTest(
-    modelProvider: PrototypeModelProvider,
+    testProxy: TestProxy,
+    modelName: String,
     testMcpServer: TestMcpServer,
     prototypeToolServer: PrototypeToolServer
 ) {
@@ -249,8 +251,9 @@ suspend fun KoinComponent.runTestServerTest(
                     registryAgent {
                         runtime(
                             PrototypeRuntime(
-                                true,
-                                modelProvider,
+                                volatile = true,
+                                proxyName = PrototypeString.Inline(testProxy.proxyRequest.name),
+                                client = testProxy.prototypeClient,
                                 prompts = PrototypePrompts(
                                     loop = PrototypeLoopPrompt(
                                         initial = PrototypeLoopInitialPrompt(
@@ -261,7 +264,7 @@ suspend fun KoinComponent.runTestServerTest(
                                     )
                                 ),
                                 toolServers = listOf(prototypeToolServer),
-                                iterationCount = 5
+                                iterationCount = PrototypeInteger.Inline(5)
                             )
                         )
                         this@graphAgentPair.option(
@@ -272,6 +275,7 @@ suspend fun KoinComponent.runTestServerTest(
                             )
                         )
                     }
+                    testProxy(testProxy, modelName)
                     provider = GraphAgentProvider.Local(RuntimeId.PROTOTYPE)
                 },
             )

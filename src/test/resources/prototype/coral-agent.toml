@@ -8,10 +8,13 @@ summary = "test"
 readme = "test"
 license = { type = "spdx", expression = "MIT" }
 
-[runtimes.prototype.model]
-provider = "openai"
-name = "gpt-5.1"
-key = "key here" # PrototypeString: string literal
+[[llm.proxies]]
+name = "MAIN"
+format.type = "OpenAI"
+models = ["gpt-5.1"]
+
+[runtimes.prototype]
+proxy = "MAIN"  # PrototypeString: string literal
 
 [runtimes.prototype.prompts.system]
 base = { type = "inline", value = "base system prompt" } # PrototypeString: discriminated inline

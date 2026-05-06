@@ -7,6 +7,7 @@ import io.kotest.common.KotestInternal
 import io.kotest.core.NamedTag
 import io.kotest.core.spec.RootTest
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.core.test.TestCase
 import io.kotest.core.test.config.DefaultTestConfig
 import io.ktor.client.*
 import io.ktor.client.plugins.cookies.*
@@ -27,6 +28,8 @@ import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.modules.*
 import org.coralprotocol.coralserver.modules.ktor.coralServerModule
 import org.coralprotocol.coralserver.session.LocalSessionManager
+import org.coralprotocol.coralserver.utils.TestProxy
+import org.coralprotocol.coralserver.utils.TestProxyConfiguration
 import org.koin.core.context.loadKoinModules
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
@@ -60,6 +63,14 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
     val authToken = UUID.randomUUID().toString()
     val unitTestSecret = UUID.randomUUID().toString()
     val logBufferSize = 1024
+
+    val openAIProxy = TestProxy.buildFromConfig(TestProxyConfiguration.OPENAI)
+    val anthropicProxy = TestProxy.buildFromConfig(TestProxyConfiguration.ANTHROPIC)
+
+    // Test cases that rely on proxies must use these functions with the `enabledIf` config instead of `enabled` because
+    // the config is evaluated before the above proxies are initialized
+    fun hasOpenAIProxy(testCase: TestCase) = openAIProxy != null
+    fun hasAnthropicProxy(testCase: TestCase) = anthropicProxy != null
 
     fun HttpRequestBuilder.withAuthToken() {
         headers.append(HttpHeaders.Authorization, "Bearer $authToken")
@@ -153,7 +164,13 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                                     } else {
                                                         Level.INFO
                                                     }
-                                                )
+                                                ),
+                                                llmProxyConfig = LlmProxyConfig(
+                                                    providers = listOf(
+                                                        openAIProxy,
+                                                        anthropicProxy
+                                                    ).mapNotNull { it?.providerConfig }
+                                                ),
                                             )
                                         }
                                     },
@@ -168,7 +185,7 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                         single<Logger>(named(LOGGER_TEST)) { testLogger }
                                         single<Logger>(named(LOGGER_LLM_PROXY)) { prodLogger }
                                     },
-                                    llmProxyModule,
+                                    llmProxyModule(false),
                                     module {
                                         single {
                                             Json {
@@ -192,9 +209,6 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                                     json(get(), contentType = ContentType.Application.Json)
                                                 }
                                             }
-                                        }
-                                        single(named(LLM_PROXY_HTTP_CLIENT)) {
-                                            createClient { }
                                         }
                                     },
                                     blockchainModule,

@@ -369,3 +369,24 @@ fun AgentOption.buildFullOption(
     this.required = required
     return name to this
 }
+
+fun AgentOption.isIntegral() =
+    when (this) {
+        is AgentOption.Byte -> true
+        is AgentOption.Int -> true
+        is AgentOption.Long -> true
+        is AgentOption.Short -> true
+        is AgentOption.UByte -> true
+        is AgentOption.UInt -> true
+        is AgentOption.ULong -> true
+        is AgentOption.UShort -> true
+        else -> false
+    }
+
+fun AgentOption.isFloat() =
+    when (this) {
+        is AgentOption.Float -> true
+        is AgentOption.Double -> true
+        else -> false
+    }
+

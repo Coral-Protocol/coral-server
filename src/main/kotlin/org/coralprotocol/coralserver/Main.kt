@@ -9,6 +9,7 @@ import kotlinx.serialization.json.Json
 import dev.eav.tomlkt.Toml
 import org.coralprotocol.coralserver.config.CommandLineArgs
 import org.coralprotocol.coralserver.config.NetworkConfig
+import org.coralprotocol.coralserver.llmproxy.LlmProxyService
 import org.coralprotocol.coralserver.modules.*
 import org.coralprotocol.coralserver.util.isWindows
 import org.koin.core.context.startKoin
@@ -29,7 +30,7 @@ fun main(args: Array<String>) {
             blockchainModule,
             networkModule,
             agentModule,
-            llmProxyModule,
+            llmProxyModule(true),
             sessionModule,
             module {
                 single {
@@ -50,7 +51,6 @@ fun main(args: Array<String>) {
         )
         createEagerInstances()
     }
-
 
     try {
         val server: EmbeddedServer<CIOApplicationEngine, CIOApplicationEngine.Configuration> = app.koin.get()

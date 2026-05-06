@@ -1,13 +1,12 @@
 package org.coralprotocol.coralserver.llmproxy
 
-import io.ktor.client.request.HttpRequestBuilder
-import io.ktor.client.request.header
-import io.ktor.client.statement.HttpResponse
-import io.ktor.http.HttpHeaders
-import io.ktor.server.application.ApplicationCall
-import io.ktor.server.response.header
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.response.*
 
-object ProxyHeaders {
+object LlmProxyHeaders {
     private val HOP_BY_HOP = setOf(
         HttpHeaders.Connection,
         HttpHeaders.TransferEncoding,
@@ -35,15 +34,16 @@ object ProxyHeaders {
         HttpHeaders.SetCookie,
     )).map { it.lowercase() }.toSet()
 
-    fun applyUpstream(builder: HttpRequestBuilder, call: ApplicationCall, profile: LlmProviderProfile, apiKey: String) {
-        when (profile.authStyle) {
-            is AuthStyle.Bearer -> builder.header(HttpHeaders.Authorization, "Bearer $apiKey")
-            is AuthStyle.Custom -> builder.header(profile.authStyle.headerName, apiKey)
+    fun applyUpstream(builder: HttpRequestBuilder, call: ApplicationCall, request: LlmProxyRequest) {
+        val providerConfig = request.model.providerConfig
+        when (val authStyle = providerConfig.format.authStyle) {
+            is LlmProviderAuthStyle.Bearer -> builder.bearerAuth(providerConfig.apiKey)
+            is LlmProviderAuthStyle.Custom -> builder.header(authStyle.headerName, providerConfig.apiKey)
         }
 
-        profile.defaultHeaders.forEach { (name, value) -> builder.header(name, value) }
+        providerConfig.format.defaultHeaders.forEach { (name, value) -> builder.header(name, value) }
 
-        val defaultLower = profile.defaultHeaders.keys.map { it.lowercase() }.toSet()
+        val defaultLower = providerConfig.format.defaultHeaders.keys.map { it.lowercase() }.toSet()
         for ((name, values) in call.request.headers.entries()) {
             val lower = name.lowercase()
             if (lower in STRIP_REQUEST || lower in defaultLower) continue
@@ -58,16 +58,17 @@ object ProxyHeaders {
         }
     }
 
-    fun extractAgentKey(call: ApplicationCall, profile: LlmProviderProfile): String? {
-        return when (profile.authStyle) {
-            is AuthStyle.Bearer -> {
+    fun extractAgentKey(call: ApplicationCall, request: LlmProxyRequest): String? {
+        return when (val authStyle = request.model.providerConfig.format.authStyle) {
+            is LlmProviderAuthStyle.Bearer -> {
                 val authHeader = call.request.headers[HttpHeaders.Authorization] ?: return null
                 if (authHeader.startsWith("Bearer ", ignoreCase = true)) {
                     authHeader.substring(7).trim().ifEmpty { null }
                 } else null
             }
-            is AuthStyle.Custom -> {
-                call.request.headers[profile.authStyle.headerName]?.trim()?.ifEmpty { null }
+
+            is LlmProviderAuthStyle.Custom -> {
+                call.request.headers[authStyle.headerName]?.trim()?.ifEmpty { null }
             }
         }
     }

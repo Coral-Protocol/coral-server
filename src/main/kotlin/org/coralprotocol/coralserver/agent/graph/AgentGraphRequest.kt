@@ -5,6 +5,7 @@ import io.github.smiley4.schemakenerator.core.annotations.Optional
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
+import org.koin.core.component.KoinComponent
 
 @Serializable
 class AgentGraphRequest(
@@ -28,7 +29,7 @@ class AgentGraphRequest(
      * @throws AgentRequestException if any of the [groups] contain references to agents not in [agents]
      * @throws AgentRequestException if any of the [agents] reference custom tools that don't exist inside of [customTools]
      */
-    suspend fun toAgentGraph(registry: AgentRegistry): AgentGraph {
+    suspend fun toAgentGraph(): AgentGraph {
         val duplicateAgentNames = agents.groupingBy { it.name }.eachCount().filter { it.value > 1 }
         if (duplicateAgentNames.isNotEmpty()) {
             throw AgentRequestException("Agent graph contains duplicate agent names: $duplicateAgentNames")
@@ -52,7 +53,7 @@ class AgentGraphRequest(
 
         return AgentGraph(
             agents = agents.associate {
-                it.name to it.toGraphAgent(registry, customTools = customTools)
+                it.name to it.toGraphAgent(customTools)
             },
             customTools = customTools,
             groups = groups
