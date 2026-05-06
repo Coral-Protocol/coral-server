@@ -60,7 +60,7 @@ val loggingModule = module {
 
         val consoleEncoder = PatternLayoutEncoder()
         consoleEncoder.setContext(logCtx)
-        consoleEncoder.setPattern("%highlight(%5level) %logger {%green(%d{yyyy-MM-dd HH:mm:ss.SSS})}%mdc{ns, sid, agent, io} %msgHighlight(%msg%n)")
+        consoleEncoder.setPattern("%highlight(%5level) %logger {%green(%d{yyyy-MM-dd HH:mm:ss.SSS})}%mdc{ns, sid, agent, io, pnum} %msgHighlight(%msg%n)")
         consoleEncoder.charset = StandardCharsets.UTF_8
         consoleEncoder.start()
 

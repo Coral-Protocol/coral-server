@@ -12,13 +12,13 @@ fun Route.llmProxyRoutes() {
     val localSessionManager by inject<LocalSessionManager>()
     val llmProxyService by inject<LlmProxyService>()
 
-    route("/llm-proxy/{agentSecret}/{proxyName}/{path...}") {
+    route("/llm-proxy/{agentSecret}/{proxyRequestName}/{path...}") {
         handle {
             val agentSecret = call.parameters["agentSecret"]
                 ?: throw RouteException(HttpStatusCode.BadRequest, "Missing agent secret")
 
-            val proxyName = call.parameters["proxyName"]
-                ?: throw RouteException(HttpStatusCode.BadRequest, "Missing proxy name")
+            val proxyRequestName = call.parameters["proxyRequestName"]
+                ?: throw RouteException(HttpStatusCode.BadRequest, "Missing proxy request name")
 
             val agent = try {
                 localSessionManager.locateAgent(agentSecret).agent
@@ -26,11 +26,7 @@ fun Route.llmProxyRoutes() {
                 throw RouteException(HttpStatusCode.Unauthorized, "Invalid agent secret")
             }
 
-            llmProxyService.proxyRequest(
-                agent, agent.graphAgent.proxies[proxyName] ?: throw RouteException(
-                    HttpStatusCode.BadRequest, "Unknown proxy name"
-                ), call.parameters.getAll("path") ?: emptyList(), call
-            )
+            llmProxyService.proxyRequest(agent, proxyRequestName, call.parameters.getAll("path") ?: emptyList(), call)
         }
     }
 }

@@ -147,6 +147,11 @@ class SessionAgent(
     val usageReports
         get() = executionContext.usageReports.toList()
 
+    /**
+     * The number of proxy requests made by this agent (in the session this agent belongs to)
+     */
+    val proxyRequestCount = MutableStateFlow(0)
+
     init {
         val mcpToolManager: McpToolManager = get()
         addMcpTool(mcpToolManager.createThreadTool)

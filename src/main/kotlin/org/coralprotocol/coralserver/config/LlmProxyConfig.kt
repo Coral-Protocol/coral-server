@@ -13,7 +13,7 @@ data class LlmProxyConfig(
     val retryMaxDelay: Duration = 10.seconds,
     val maxRequestSize: BinaryByteSize = 20.mebibytes,
     val maxResponseSize: BinaryByteSize = 80.mebibytes,
-    val maxStreamChars: BinaryByteSize = 80.mebibytes,
+    val maxStreamCharsUTF8: Long = 80.mebibytes.inWholeBytes,
     val providers: List<LlmProxyProviderConfig> = listOf()
 )
 

@@ -2,8 +2,6 @@ package org.coralprotocol.coralserver.llmproxy
 
 import io.kotest.assertions.ktor.client.shouldBeOK
 import io.kotest.assertions.ktor.client.shouldHaveStatus
-import io.kotest.matchers.booleans.shouldBeFalse
-import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.nulls.shouldBeNull
@@ -165,12 +163,11 @@ class LlmProxyTest : CoralTest({
                 headers[HttpHeaders.Authorization].shouldNotBeNull().shouldBeEqual("Bearer $apiKey")
             }
 
-            proxyCall.model.shouldBeEqual(modelName)
-            proxyCall.provider.shouldBeEqual(proxyName)
-            proxyCall.success.shouldBeTrue()
-            proxyCall.streaming.shouldBeFalse()
-            proxyCall.inputTokens.shouldNotBeNull().shouldBeEqual(inputTokens)
-            proxyCall.outputTokens.shouldNotBeNull().shouldBeEqual(outputTokens)
+            proxyCall.modelName.shouldBeEqual(modelName)
+            proxyCall.providerRequestName.shouldBeEqual(proxyName)
+            proxyCall.statusCode.shouldBeEqual(200)
+            proxyCall.usage.shouldNotBeNull().inputTokens.shouldNotBeNull().shouldBeEqual(inputTokens)
+            proxyCall.usage.shouldNotBeNull().outputTokens.shouldNotBeNull().shouldBeEqual(outputTokens)
         }
     }
 
