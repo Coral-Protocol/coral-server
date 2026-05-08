@@ -342,6 +342,10 @@ class LlmProxyService(
             contentType(call.request.contentType())
             setBody(req.requestBody)
         }
+
+        if (llmProxyConfig.sendSessionHeaders) {
+            header("X-Coral-SessionId", req.agent.session.id)
+        }
     }
 
     private fun validateRequestShape(call: ApplicationCall) {

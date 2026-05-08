@@ -14,6 +14,7 @@ data class LlmProxyConfig(
     val maxRequestSize: BinaryByteSize = 20.mebibytes,
     val maxResponseSize: BinaryByteSize = 80.mebibytes,
     val maxStreamCharsUTF8: Long = 80.mebibytes.inWholeBytes,
+    val sendSessionHeaders: Boolean = false,
     val providers: List<LlmProxyProviderConfig> = listOf()
 )
 
