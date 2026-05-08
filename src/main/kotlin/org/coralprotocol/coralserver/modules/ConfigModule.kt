@@ -4,6 +4,8 @@ import com.sksamuel.hoplite.*
 import org.coralprotocol.coralserver.config.*
 import org.koin.dsl.module
 
+const val CONFIG_FILE_PATH_ENV = "CONFIG_FILE_PATH"
+
 @OptIn(ExperimentalHoplite::class)
 val configModule = module {
     single(createdAtStart = true) {
@@ -13,12 +15,9 @@ val configModule = module {
             .withExplicitSealedTypes("type")
             .addEnvironmentSource()
 
-        val path = System.getenv("CONFIG_FILE_PATH")
-        if (path != null) {
-            // logger awkward to get here
-            println("Including config file from path specified in CONFIG_FILE_PATH: $path")
+        val path = System.getenv(CONFIG_FILE_PATH_ENV)
+        if (path != null)
             loader.addFileSource(path)
-        }
 
         loader.build().loadConfigOrThrow<RootConfig>()
     }

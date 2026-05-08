@@ -3,16 +3,18 @@
 package org.coralprotocol.coralserver
 
 import com.sksamuel.hoplite.ExperimentalHoplite
+import dev.eav.tomlkt.Toml
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import kotlinx.serialization.json.Json
-import dev.eav.tomlkt.Toml
 import org.coralprotocol.coralserver.config.CommandLineArgs
 import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.llmproxy.LlmProxyService
+import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.modules.*
 import org.coralprotocol.coralserver.util.isWindows
 import org.koin.core.context.startKoin
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.koin.environmentProperties
 import java.net.BindException
@@ -50,6 +52,12 @@ fun main(args: Array<String>) {
             }
         )
         createEagerInstances()
+    }
+
+    val path = System.getenv(CONFIG_FILE_PATH_ENV)
+    if (path != null) {
+        app.koin.get<Logger>(named(LOGGER_CONFIG))
+            .info { "Including config file from path specified in $CONFIG_FILE_PATH_ENV: $path" }
     }
 
     try {
