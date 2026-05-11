@@ -36,7 +36,6 @@ import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.debug.SeedDebugAgent
 import org.coralprotocol.coralserver.agent.debug.ToolDebugAgent
-import org.coralprotocol.coralserver.agent.execution.ExecutionTrustTier
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentTool
@@ -238,51 +237,6 @@ class SessionApiTest : CoralTest({
         }
 
         localSessionManager.waitAllSessions()
-    }
-
-    test("testSessionApiExposesExecutionTrustPosture") {
-        val client by inject<HttpClient>()
-        val localSessionManager by inject<LocalSessionManager>()
-
-        val (session, namespace) = localSessionManager.createSession(
-            namespaceName = namespaceName,
-            agentGraph = AgentGraph(
-                agents = mapOf(
-                    graphAgentPair("local-agent") {
-                        registryAgent {
-                            registrySourceId = AgentRegistrySourceIdentifier.Local
-                            runtime(FunctionRuntime())
-                        }
-                        provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
-                    },
-                    graphAgentPair("marketplace-agent") {
-                        registryAgent {
-                            registrySourceId = AgentRegistrySourceIdentifier.Marketplace
-                            runtime(FunctionRuntime())
-                        }
-                        provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
-                    }
-                )
-            )
-        )
-
-        val state: SessionStateExtended =
-            client.authenticatedGet(
-                LocalSessions.Session.Existing.Extended(
-                    LocalSessions.Session.Existing(
-                        namespace = namespace.name,
-                        sessionId = session.id
-                    )
-                )
-            ).shouldBeOK().body()
-
-        val byName = state.agents.associateBy { it.name }
-        byName.getValue("local-agent").executionProfile shouldBe "trusted_local"
-        byName.getValue("local-agent").trustTier shouldBe ExecutionTrustTier.TRUSTED
-        byName.getValue("marketplace-agent").executionProfile shouldBe "marketplace_untrusted"
-        byName.getValue("marketplace-agent").trustTier shouldBe ExecutionTrustTier.UNTRUSTED
-
-        session.sessionScope.cancel()
     }
 
     test("testSessionPersistence") {

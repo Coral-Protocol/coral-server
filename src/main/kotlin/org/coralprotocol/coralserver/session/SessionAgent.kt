@@ -571,8 +571,6 @@ class SessionAgent(
             description = description,
             links = links.map { it.name }.toSet(),
             annotations = graphAgent.annotations,
-            executionProfile = executionContext.executionPolicy.profileName,
-            trustTier = executionContext.executionPolicy.trustTier,
         )
 
     /**

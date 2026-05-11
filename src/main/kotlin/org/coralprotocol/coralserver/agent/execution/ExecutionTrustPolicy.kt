@@ -44,6 +44,8 @@ data class ExecutionTrustPolicy(
     }
 }
 
+// Authoritative source → trust-tier mapping for Stage 1.  Local is trusted; Marketplace and Linked are untrusted.
+// Stage 2 introduces declared-intent and runtime-aware overrides; both should plug in here.
 fun AgentRegistrySourceIdentifier.resolveTrustPolicy(
     dockerConfig: DockerConfig,
     securityConfig: SecurityConfig,
