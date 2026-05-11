@@ -4,18 +4,11 @@ import com.github.dockerjava.api.command.CreateContainerCmd
 import com.github.dockerjava.api.model.Bind
 import com.github.dockerjava.api.model.Capability
 import com.github.dockerjava.api.model.HostConfig
-import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.config.DockerConfig
 import org.coralprotocol.coralserver.config.SecurityConfig
 import org.coralprotocol.coralserver.logging.LoggingInterface
-
-@Serializable
-enum class ExecutionTrustTier {
-    TRUSTED,
-    UNTRUSTED,
-}
 
 data class DockerExecutionTrustPolicy(
     val readOnlyRootFilesystem: Boolean = false,
@@ -34,30 +27,25 @@ data class DockerExecutionTrustPolicy(
 }
 
 data class ExecutionTrustPolicy(
-    val trustTier: ExecutionTrustTier,
+    val profileName: String,
     val allowExecutableRuntime: Boolean,
     val docker: DockerExecutionTrustPolicy,
-) {
-    val profileName: String = when (trustTier) {
-        ExecutionTrustTier.TRUSTED -> "trusted_local"
-        ExecutionTrustTier.UNTRUSTED -> "marketplace_untrusted"
-    }
-}
+)
 
-// Authoritative source → trust-tier mapping for Stage 1.  Local is trusted; Marketplace and Linked are untrusted.
-// Stage 2 introduces declared-intent and runtime-aware overrides; both should plug in here.
+// Authoritative source → docker hardening profile mapping for Stage 1.  Local is trusted; Marketplace and Linked
+// share the marketplace profile.  Stage 2 will plug in declared-intent and runtime-aware overrides here.
 fun AgentRegistrySourceIdentifier.resolveTrustPolicy(
     dockerConfig: DockerConfig,
     securityConfig: SecurityConfig,
 ): ExecutionTrustPolicy = when (this) {
     is AgentRegistrySourceIdentifier.Local -> ExecutionTrustPolicy(
-        trustTier = ExecutionTrustTier.TRUSTED,
+        profileName = "trusted_local",
         allowExecutableRuntime = true,
         docker = dockerConfig.trusted,
     )
     is AgentRegistrySourceIdentifier.Marketplace,
     is AgentRegistrySourceIdentifier.Linked -> ExecutionTrustPolicy(
-        trustTier = ExecutionTrustTier.UNTRUSTED,
+        profileName = "marketplace_untrusted",
         allowExecutableRuntime = securityConfig.allowUntrustedExecutableRuntime,
         docker = dockerConfig.marketplace,
     )

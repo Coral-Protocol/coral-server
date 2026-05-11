@@ -2,7 +2,6 @@ package org.coralprotocol.coralserver.session
 
 import io.kotest.matchers.shouldBe
 import org.coralprotocol.coralserver.CoralTest
-import org.coralprotocol.coralserver.agent.execution.ExecutionTrustTier
 import org.coralprotocol.coralserver.agent.execution.resolveTrustPolicy
 import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
 import org.coralprotocol.coralserver.config.DockerConfig
@@ -17,7 +16,6 @@ class ExecutionTrustPolicyResolverTest : CoralTest({
         val policy = AgentRegistrySourceIdentifier.Local.resolveTrustPolicy(dockerConfig, securityConfig)
 
         policy.profileName shouldBe "trusted_local"
-        policy.trustTier shouldBe ExecutionTrustTier.TRUSTED
         policy.allowExecutableRuntime shouldBe true
         policy.docker shouldBe dockerConfig.trusted
     }
@@ -29,7 +27,6 @@ class ExecutionTrustPolicyResolverTest : CoralTest({
         val policy = AgentRegistrySourceIdentifier.Marketplace.resolveTrustPolicy(dockerConfig, securityConfig)
 
         policy.profileName shouldBe "marketplace_untrusted"
-        policy.trustTier shouldBe ExecutionTrustTier.UNTRUSTED
         policy.allowExecutableRuntime shouldBe false
         policy.docker shouldBe dockerConfig.marketplace
     }
