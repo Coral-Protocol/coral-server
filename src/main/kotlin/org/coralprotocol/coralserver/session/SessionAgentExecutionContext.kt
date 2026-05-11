@@ -140,10 +140,6 @@ class SessionAgentExecutionContext(
             this["CORAL_API_URL"] = applicationRuntimeContext.getApiUrl(addressConsumer).toString()
             this["CORAL_RUNTIME_ID"] = provider.runtime.toString().lowercase()
 
-            // Trust posture of the agent's registry source: "local", "marketplace", or "linked(<serverId>)".
-            // Agents can use this to gate any tier-aware behaviour they want to apply.
-            this["CORAL_REGISTRY_SOURCE"] = registryAgent.identifier.registrySourceId.toString()
-
             if (agent.graphAgent.systemPrompt != null)
                 this["CORAL_PROMPT_SYSTEM"] = agent.graphAgent.systemPrompt
 
