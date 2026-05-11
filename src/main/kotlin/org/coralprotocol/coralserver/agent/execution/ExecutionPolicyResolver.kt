@@ -11,13 +11,14 @@ object ExecutionPolicyResolver {
         policy: ExecutionPolicyConfig,
         source: AgentRegistrySourceIdentifier,
         runtime: RuntimeId,
-    ): List<ExecutionRejection> {
-        declared ?: return emptyList()
-        val tier = policy.forSource(source)
-        return buildList {
+        trust: ExecutionTrustPolicy,
+    ): List<ExecutionRejection> = buildList {
+        if (declared != null) {
+            val tier = policy.forSource(source)
             validateIsolation(declared.minIsolation, tier.maxSupportedIsolation, runtime)
             validateHosts(declared.network.externalHosts, tier)
         }
+        validateRuntimeWithTrust(runtime, trust)
     }
 
     private fun MutableList<ExecutionRejection>.validateIsolation(
@@ -40,6 +41,29 @@ object ExecutionPolicyResolver {
             val denied = host in tier.deniedHosts
             val notAllowlisted = tier.allowedHosts != null && host !in tier.allowedHosts
             if (denied || notAllowlisted) add(ExecutionRejection.HostDenied(host))
+        }
+    }
+
+    private fun MutableList<ExecutionRejection>.validateRuntimeWithTrust(
+        runtime: RuntimeId,
+        trust: ExecutionTrustPolicy,
+    ) {
+        if (runtime != RuntimeId.OPENSHELL) return
+
+        val docker = trust.docker
+        if (docker.user != null) {
+            add(ExecutionRejection.RuntimeIncompatibleWithTrust(
+                runtime = runtime,
+                profileName = trust.profileName,
+                detail = "supervisor must start as root inside the container to drop privileges; profile pins user='${docker.user}'",
+            ))
+        }
+        if (docker.readOnlyRootFilesystem && "/run" !in docker.tmpFs) {
+            add(ExecutionRejection.RuntimeIncompatibleWithTrust(
+                runtime = runtime,
+                profileName = trust.profileName,
+                detail = "supervisor writes netns state under /run; profile is read-only without a tmpfs covering /run",
+            ))
         }
     }
 }

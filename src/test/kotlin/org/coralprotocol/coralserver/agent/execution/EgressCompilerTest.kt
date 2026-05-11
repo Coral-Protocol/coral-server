@@ -12,7 +12,7 @@ class EgressCompilerTest : FunSpec({
     val coralUrls = setOf(coralApi, coralMcp, coralLlm)
 
     test("nullDeclarationStillEmitsCoralManagedEndpoints") {
-        val policy = EgressCompiler.compile(declared = null, coralUrls = coralUrls)
+        val policy = compileEgressPolicy(declared = null, coralUrls = coralUrls)
 
         policy.declared.shouldContainExactlyInAnyOrder()
         policy.coralManaged.shouldContainExactlyInAnyOrder(
@@ -26,7 +26,7 @@ class EgressCompilerTest : FunSpec({
             network = NetworkDeclaration(externalHosts = setOf("api.github.com", "api.firecrawl.dev")),
         )
 
-        val policy = EgressCompiler.compile(declared = declared, coralUrls = coralUrls)
+        val policy = compileEgressPolicy(declared = declared, coralUrls = coralUrls)
 
         policy.declared.shouldContainExactlyInAnyOrder(
             EgressEndpoint("api.github.com", 443),
@@ -34,17 +34,15 @@ class EgressCompilerTest : FunSpec({
         )
     }
 
-    test("allAllowedMergesDeclaredAndCoralManaged") {
+    test("declaredAndCoralManagedAreSeparate") {
         val declared = ExecutionConfig(
             minIsolation = MinIsolation.CONTAINER,
             network = NetworkDeclaration(externalHosts = setOf("api.github.com")),
         )
 
-        val policy = EgressCompiler.compile(declared = declared, coralUrls = coralUrls)
+        val policy = compileEgressPolicy(declared = declared, coralUrls = coralUrls)
 
-        policy.allAllowed().shouldContainExactlyInAnyOrder(
-            EgressEndpoint("api.github.com", 443),
-            EgressEndpoint("host.docker.internal", 5555),
-        )
+        policy.declared.shouldContainExactlyInAnyOrder(EgressEndpoint("api.github.com", 443))
+        policy.coralManaged.shouldContainExactlyInAnyOrder(EgressEndpoint("host.docker.internal", 5555))
     }
 })

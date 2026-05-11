@@ -17,11 +17,10 @@ data class DockerRuntime(
         executionContext: SessionAgentExecutionContext,
         applicationRuntimeContext: ApplicationRuntimeContext
     ) {
-        val environment = executionContext.buildEnvironment(transport)
-        DockerLauncher.launch(
+        launchDockerContainer(
             spec = DockerContainerSpec(
                 image = image,
-                env = environment,
+                env = executionContext.buildEnvironment(transport),
                 cmd = command,
             ),
             executionContext = executionContext,

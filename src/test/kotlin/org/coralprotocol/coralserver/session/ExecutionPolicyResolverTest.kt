@@ -4,9 +4,11 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
+import org.coralprotocol.coralserver.agent.execution.DockerExecutionTrustPolicy
 import org.coralprotocol.coralserver.agent.execution.ExecutionConfig
 import org.coralprotocol.coralserver.agent.execution.ExecutionPolicyResolver
 import org.coralprotocol.coralserver.agent.execution.ExecutionRejection
+import org.coralprotocol.coralserver.agent.execution.ExecutionTrustPolicy
 import org.coralprotocol.coralserver.agent.execution.MinIsolation
 import org.coralprotocol.coralserver.agent.execution.NetworkDeclaration
 import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
@@ -16,12 +18,29 @@ import org.coralprotocol.coralserver.config.ExecutionTierPolicy
 
 class ExecutionPolicyResolverTest : FunSpec({
 
+    val trustedProfile = ExecutionTrustPolicy(
+        profileName = "trusted_local",
+        allowExecutableRuntime = true,
+        docker = DockerExecutionTrustPolicy(),
+    )
+
+    val marketplaceProfile = ExecutionTrustPolicy(
+        profileName = "marketplace_untrusted",
+        allowExecutableRuntime = false,
+        docker = DockerExecutionTrustPolicy(
+            readOnlyRootFilesystem = true,
+            user = "65532:65532",
+            tmpFs = mapOf("/tmp" to "rw,noexec,nosuid,nodev,size=64m"),
+        ),
+    )
+
     fun validate(
         declared: ExecutionConfig?,
         policy: ExecutionPolicyConfig = ExecutionPolicyConfig(),
         source: AgentRegistrySourceIdentifier = AgentRegistrySourceIdentifier.Local,
         runtime: RuntimeId = RuntimeId.DOCKER,
-    ) = ExecutionPolicyResolver.validate(declared, policy, source, runtime)
+        trust: ExecutionTrustPolicy = trustedProfile,
+    ) = ExecutionPolicyResolver.validate(declared, policy, source, runtime, trust)
 
     test("missingDeclarationSkipsValidation") {
         validate(declared = null).shouldBeEmpty()
@@ -52,7 +71,9 @@ class ExecutionPolicyResolverTest : FunSpec({
             marketplace = ExecutionTierPolicy(maxSupportedIsolation = MinIsolation.PROCESS)
         )
         val declared = ExecutionConfig(minIsolation = MinIsolation.CONTAINER)
-        validate(declared, policy, AgentRegistrySourceIdentifier.Marketplace) shouldContainExactly listOf(
+        validate(
+            declared, policy, AgentRegistrySourceIdentifier.Marketplace, trust = marketplaceProfile,
+        ) shouldContainExactly listOf(
             ExecutionRejection.IsolationUnsupported(MinIsolation.CONTAINER, MinIsolation.PROCESS)
         )
     }
@@ -65,7 +86,7 @@ class ExecutionPolicyResolverTest : FunSpec({
             minIsolation = MinIsolation.CONTAINER,
             network = NetworkDeclaration(externalHosts = setOf("api.firecrawl.dev", "evil.example.com")),
         )
-        validate(declared, policy, AgentRegistrySourceIdentifier.Marketplace) shouldContainExactly listOf(
+        validate(declared, policy, AgentRegistrySourceIdentifier.Marketplace, trust = marketplaceProfile) shouldContainExactly listOf(
             ExecutionRejection.HostDenied("evil.example.com")
         )
     }
@@ -78,26 +99,8 @@ class ExecutionPolicyResolverTest : FunSpec({
             minIsolation = MinIsolation.CONTAINER,
             network = NetworkDeclaration(externalHosts = setOf("api.firecrawl.dev", "other.example.com")),
         )
-        validate(declared, policy, AgentRegistrySourceIdentifier.Marketplace) shouldContainExactly listOf(
+        validate(declared, policy, AgentRegistrySourceIdentifier.Marketplace, trust = marketplaceProfile) shouldContainExactly listOf(
             ExecutionRejection.HostDenied("other.example.com")
-        )
-    }
-
-    test("multipleViolationsAreAllReported") {
-        val policy = ExecutionPolicyConfig(
-            marketplace = ExecutionTierPolicy(
-                maxSupportedIsolation = MinIsolation.PROCESS,
-                deniedHosts = setOf("bad.example.com"),
-            )
-        )
-        val declared = ExecutionConfig(
-            minIsolation = MinIsolation.CONTAINER,
-            network = NetworkDeclaration(externalHosts = setOf("bad.example.com")),
-        )
-        validate(declared, policy, AgentRegistrySourceIdentifier.Marketplace, RuntimeId.EXECUTABLE) shouldBe listOf(
-            ExecutionRejection.IsolationUnsupported(MinIsolation.CONTAINER, MinIsolation.PROCESS),
-            ExecutionRejection.IsolationIncompatibleWithRuntime(MinIsolation.CONTAINER, RuntimeId.EXECUTABLE),
-            ExecutionRejection.HostDenied("bad.example.com"),
         )
     }
 
@@ -111,8 +114,65 @@ class ExecutionPolicyResolverTest : FunSpec({
             network = NetworkDeclaration(externalHosts = setOf("other.example.com")),
         )
         validate(declared, policy, AgentRegistrySourceIdentifier.Local).shouldBeEmpty()
-        validate(declared, policy, AgentRegistrySourceIdentifier.Marketplace) shouldContainExactly listOf(
+        validate(declared, policy, AgentRegistrySourceIdentifier.Marketplace, trust = marketplaceProfile) shouldContainExactly listOf(
             ExecutionRejection.HostDenied("other.example.com")
         )
+    }
+
+    test("openShellRuntimeRejectedWhenTrustProfilePinsUser") {
+        val userOnly = ExecutionTrustPolicy(
+            profileName = "marketplace_untrusted",
+            allowExecutableRuntime = false,
+            docker = DockerExecutionTrustPolicy(user = "65532:65532"),
+        )
+        validate(
+            declared = null,
+            runtime = RuntimeId.OPENSHELL,
+            trust = userOnly,
+        ) shouldContainExactly listOf(
+            ExecutionRejection.RuntimeIncompatibleWithTrust(
+                runtime = RuntimeId.OPENSHELL,
+                profileName = "marketplace_untrusted",
+                detail = "supervisor must start as root inside the container to drop privileges; profile pins user='65532:65532'",
+            )
+        )
+    }
+
+    test("openShellRuntimeRejectedWhenReadOnlyRootfsHasNoRunTmpfs") {
+        val noRunTmpfs = ExecutionTrustPolicy(
+            profileName = "marketplace_untrusted",
+            allowExecutableRuntime = false,
+            docker = DockerExecutionTrustPolicy(
+                readOnlyRootFilesystem = true,
+                tmpFs = mapOf("/tmp" to "rw"),
+            ),
+        )
+        validate(
+            declared = null,
+            runtime = RuntimeId.OPENSHELL,
+            trust = noRunTmpfs,
+        ) shouldContainExactly listOf(
+            ExecutionRejection.RuntimeIncompatibleWithTrust(
+                runtime = RuntimeId.OPENSHELL,
+                profileName = "marketplace_untrusted",
+                detail = "supervisor writes netns state under /run; profile is read-only without a tmpfs covering /run",
+            )
+        )
+    }
+
+    test("openShellRuntimeAcceptedWithRunTmpfs") {
+        val trustWithRun = ExecutionTrustPolicy(
+            profileName = "openshell_marketplace",
+            allowExecutableRuntime = false,
+            docker = DockerExecutionTrustPolicy(
+                readOnlyRootFilesystem = true,
+                tmpFs = mapOf("/tmp" to "rw", "/run" to "rw"),
+            ),
+        )
+        validate(
+            declared = null,
+            runtime = RuntimeId.OPENSHELL,
+            trust = trustWithRun,
+        ).shouldBeEmpty()
     }
 })

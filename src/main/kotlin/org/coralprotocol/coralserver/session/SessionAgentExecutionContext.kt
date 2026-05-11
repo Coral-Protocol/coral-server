@@ -4,9 +4,9 @@ package org.coralprotocol.coralserver.session
 
 import io.ktor.utils.io.*
 import kotlinx.coroutines.flow.update
-import org.coralprotocol.coralserver.agent.execution.EgressCompiler
 import org.coralprotocol.coralserver.agent.execution.EgressPolicy
 import org.coralprotocol.coralserver.agent.execution.ExecutionTrustPolicy
+import org.coralprotocol.coralserver.agent.execution.compileEgressPolicy
 import org.coralprotocol.coralserver.agent.execution.resolveTrustPolicy
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.registry.option.*
@@ -58,18 +58,17 @@ class SessionAgentExecutionContext(
     val executionPolicy: ExecutionTrustPolicy =
         registryAgent.identifier.registrySourceId.resolveTrustPolicy(dockerConfig, securityConfig)
 
-    val sandboxBackend: String?
-        get() = if (provider.runtime == RuntimeId.OPENSHELL) "openshell" else null
-
     val egressPolicy: EgressPolicy by lazy {
         val transport = runtimes.getById(provider.runtime)?.transport ?: DEFAULT_AGENT_RUNTIME_TRANSPORT
-        EgressCompiler.compile(
+        compileEgressPolicy(
             declared = registryAgent.execution,
-            coralUrls = setOf(
-                applicationRuntimeContext.getApiUrl(AddressConsumer.CONTAINER),
-                applicationRuntimeContext.getMcpUrl(transport, this, AddressConsumer.CONTAINER),
-                applicationRuntimeContext.getLlmProxyUrl(this, AddressConsumer.CONTAINER),
-            ),
+            coralUrls = buildSet {
+                add(applicationRuntimeContext.getApiUrl(AddressConsumer.CONTAINER))
+                add(applicationRuntimeContext.getMcpUrl(transport, this@SessionAgentExecutionContext, AddressConsumer.CONTAINER))
+                agent.graphAgent.proxies.keys.forEach { name ->
+                    add(applicationRuntimeContext.getLlmProxyUrl(this@SessionAgentExecutionContext, AddressConsumer.CONTAINER, name))
+                }
+            },
         )
     }
 

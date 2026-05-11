@@ -7,6 +7,7 @@ data class OpenShellConfig(
     val regoTemplatePath: Path? = null,
     val supervisorMountPath: String = "/usr/local/bin/openshell-sandbox",
     val policyMountPath: String = "/policy",
+    val expectedSupervisorVersion: String? = null,
 ) {
     val available: Boolean
         get() = supervisorPath?.toFile()?.canExecute() == true

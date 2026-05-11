@@ -36,6 +36,16 @@ sealed class ExecutionRejection {
         override val reason: String
             get() = "sandbox backend unavailable: $detail"
     }
+
+    @Serializable
+    data class RuntimeIncompatibleWithTrust(
+        val runtime: RuntimeId,
+        val profileName: String,
+        val detail: String,
+    ) : ExecutionRejection() {
+        override val reason: String
+            get() = "runtime '$runtime' cannot run under trust profile '$profileName': $detail"
+    }
 }
 
 class ExecutionRejectedException(val rejection: ExecutionRejection) :
