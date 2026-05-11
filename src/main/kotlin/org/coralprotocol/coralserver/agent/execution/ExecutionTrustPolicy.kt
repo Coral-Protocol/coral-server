@@ -21,6 +21,7 @@ data class DockerExecutionTrustPolicy(
     val readOnlyRootFilesystem: Boolean = false,
     val noNewPrivileges: Boolean = true,
     val dropCapabilities: Set<String> = setOf("ALL"),
+    // bounds fork-bomb blast radius; 256 PIDs covers typical agent process counts
     val pidsLimit: Long? = 256,
     val nanoCpus: Long? = null,
     val memoryLimitBytes: Long? = null,

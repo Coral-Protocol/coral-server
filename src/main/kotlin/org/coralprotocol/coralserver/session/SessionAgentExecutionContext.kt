@@ -93,6 +93,10 @@ class SessionAgentExecutionContext(
                 putAll(debugConfig.additionalDockerEnvironment)
             }
 
+            // Read-only rootfs + non-root UID (e.g. distroless 'nonroot' UID 65532) leaves the agent without a
+            // writable HOME and without a /etc/passwd entry, so libraries that derive paths via getpwuid() land
+            // on /nonexistent. Redirect HOME/TMPDIR/XDG_* into the tmpfs scratch so caches and config writes
+            // succeed without giving the agent write access to the rootfs.
             if (isContainer && executionPolicy.docker.requiresWritableTmpHome) {
                 this["HOME"] = dockerConfig.containerTemporaryDirectory
                 this["TMPDIR"] = dockerConfig.containerTemporaryDirectory
@@ -136,6 +140,8 @@ class SessionAgentExecutionContext(
             this["CORAL_API_URL"] = applicationRuntimeContext.getApiUrl(addressConsumer).toString()
             this["CORAL_RUNTIME_ID"] = provider.runtime.toString().lowercase()
 
+            // Trust posture of the agent's registry source: "local", "marketplace", or "linked(<serverId>)".
+            // Agents can use this to gate any tier-aware behaviour they want to apply.
             this["CORAL_REGISTRY_SOURCE"] = registryAgent.identifier.registrySourceId.toString()
 
             if (agent.graphAgent.systemPrompt != null)
