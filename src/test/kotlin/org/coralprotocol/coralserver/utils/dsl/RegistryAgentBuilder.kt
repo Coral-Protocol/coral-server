@@ -2,7 +2,6 @@ package org.coralprotocol.coralserver.utils.dsl
 
 import org.coralprotocol.coralserver.agent.execution.ExecutionConfig
 import org.coralprotocol.coralserver.agent.execution.MinIsolation
-import org.coralprotocol.coralserver.agent.execution.NetworkDeclaration
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.runtime.*
@@ -182,7 +181,7 @@ class ExecutionConfigBuilder(private val minIsolation: MinIsolation) {
 
     fun build(): ExecutionConfig = ExecutionConfig(
         minIsolation = minIsolation,
-        network = NetworkDeclaration(externalHosts = externalHosts.toSet()),
+        externalHosts = externalHosts.toSet(),
     )
 }
 

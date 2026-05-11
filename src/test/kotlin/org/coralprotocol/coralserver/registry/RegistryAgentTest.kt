@@ -296,7 +296,7 @@ class RegistryAgentTest : CoralTest({
     fun testExecution(agent: RegistryAgent) {
         val execution = agent.execution.shouldNotBeNull()
         execution.minIsolation.shouldBe(MinIsolation.CONTAINER)
-        execution.network.externalHosts.shouldContainExactly("api.firecrawl.dev")
+        execution.externalHosts.shouldContainExactly("api.firecrawl.dev")
     }
 
     test("testRegistryAgentFile") {

@@ -96,4 +96,32 @@ class OpenShellRuntimeTest : FunSpec({
         yaml shouldContain "  external_host_with_dashes_example_com:"
         yaml shouldContain "    name: external_host_with_dashes_example_com"
     }
+
+    test("resolveCoralIpReturnsLiteralIpForIpAddress") {
+        resolveCoralIp("10.0.0.5") shouldBe "10.0.0.5"
+    }
+
+    test("resolveCoralIpReturnsNullForLoopbackAlias") {
+        // Mac Docker Desktop resolves host.docker.internal to 127.0.0.1 on the host;
+        // meaningless from inside the container so we fall back to RFC1918 ranges.
+        resolveCoralIp("localhost") shouldBe null
+    }
+
+    test("rendererFallsBackToRfc1918WhenCoralIpIsNull") {
+        val policy = EgressPolicy(
+            declared = emptySet(),
+            coralManaged = setOf(EgressEndpoint("host.docker.internal", 5555)),
+        )
+        val yaml = renderOpenShellPolicy(policy, coralIp = null)
+        yaml shouldContain "allowed_ips: [\"10.0.0.0/8\", \"172.16.0.0/12\", \"192.168.0.0/16\"]"
+    }
+
+    test("rendererEmitsSlash32WhenCoralIpKnown") {
+        val policy = EgressPolicy(
+            declared = emptySet(),
+            coralManaged = setOf(EgressEndpoint("10.0.0.5", 5555)),
+        )
+        val yaml = renderOpenShellPolicy(policy, coralIp = "10.0.0.5")
+        yaml shouldContain "allowed_ips: [\"10.0.0.5/32\"]"
+    }
 })

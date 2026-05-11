@@ -23,7 +23,7 @@ fun compileEgressPolicy(
     declared: ExecutionConfig?,
     coralUrls: Set<Url>,
 ): EgressPolicy = EgressPolicy(
-    declared = declared?.network?.externalHosts.orEmpty()
+    declared = declared?.externalHosts.orEmpty()
         .map { host -> EgressEndpoint(host, DEFAULT_EXTERNAL_PORT) }
         .toSet(),
     coralManaged = coralUrls.map { EgressEndpoint(it.host, it.port) }.toSet(),

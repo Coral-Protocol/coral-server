@@ -8,7 +8,4 @@ data class OpenShellConfig(
     val supervisorMountPath: String = "/usr/local/bin/openshell-sandbox",
     val policyMountPath: String = "/policy",
     val expectedSupervisorVersion: String? = null,
-) {
-    val available: Boolean
-        get() = supervisorPath?.toFile()?.canExecute() == true
-}
+)

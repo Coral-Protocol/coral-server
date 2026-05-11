@@ -10,11 +10,12 @@ import org.coralprotocol.coralserver.agent.execution.ExecutionPolicyResolver
 import org.coralprotocol.coralserver.agent.execution.ExecutionRejection
 import org.coralprotocol.coralserver.agent.execution.ExecutionTrustPolicy
 import org.coralprotocol.coralserver.agent.execution.MinIsolation
-import org.coralprotocol.coralserver.agent.execution.NetworkDeclaration
 import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.ExecutionPolicyConfig
 import org.coralprotocol.coralserver.config.ExecutionTierPolicy
+import org.coralprotocol.coralserver.config.OpenShellConfig
+import java.nio.file.Paths
 
 class ExecutionPolicyResolverTest : FunSpec({
 
@@ -34,13 +35,17 @@ class ExecutionPolicyResolverTest : FunSpec({
         ),
     )
 
+    val availableSupervisor = OpenShellConfig(supervisorPath = Paths.get("/bin/sh"))
+    val missingSupervisor = OpenShellConfig(supervisorPath = null)
+
     fun validate(
         declared: ExecutionConfig?,
         policy: ExecutionPolicyConfig = ExecutionPolicyConfig(),
         source: AgentRegistrySourceIdentifier = AgentRegistrySourceIdentifier.Local,
         runtime: RuntimeId = RuntimeId.DOCKER,
         trust: ExecutionTrustPolicy = trustedProfile,
-    ) = ExecutionPolicyResolver.validate(declared, policy, source, runtime, trust)
+        openShellConfig: OpenShellConfig = availableSupervisor,
+    ) = ExecutionPolicyResolver.validate(declared, policy, source, runtime, trust, openShellConfig)
 
     test("missingDeclarationSkipsValidation") {
         validate(declared = null).shouldBeEmpty()
@@ -49,7 +54,7 @@ class ExecutionPolicyResolverTest : FunSpec({
     test("declarationPassesThroughWhenPolicyIsPermissive") {
         val declared = ExecutionConfig(
             minIsolation = MinIsolation.CONTAINER,
-            network = NetworkDeclaration(externalHosts = setOf("api.firecrawl.dev")),
+            externalHosts = setOf("api.firecrawl.dev"),
         )
         validate(declared).shouldBeEmpty()
     }
@@ -84,7 +89,7 @@ class ExecutionPolicyResolverTest : FunSpec({
         )
         val declared = ExecutionConfig(
             minIsolation = MinIsolation.CONTAINER,
-            network = NetworkDeclaration(externalHosts = setOf("api.firecrawl.dev", "evil.example.com")),
+            externalHosts = setOf("api.firecrawl.dev", "evil.example.com"),
         )
         validate(declared, policy, AgentRegistrySourceIdentifier.Marketplace, trust = marketplaceProfile) shouldContainExactly listOf(
             ExecutionRejection.HostDenied("evil.example.com")
@@ -97,7 +102,7 @@ class ExecutionPolicyResolverTest : FunSpec({
         )
         val declared = ExecutionConfig(
             minIsolation = MinIsolation.CONTAINER,
-            network = NetworkDeclaration(externalHosts = setOf("api.firecrawl.dev", "other.example.com")),
+            externalHosts = setOf("api.firecrawl.dev", "other.example.com"),
         )
         validate(declared, policy, AgentRegistrySourceIdentifier.Marketplace, trust = marketplaceProfile) shouldContainExactly listOf(
             ExecutionRejection.HostDenied("other.example.com")
@@ -111,7 +116,7 @@ class ExecutionPolicyResolverTest : FunSpec({
         )
         val declared = ExecutionConfig(
             minIsolation = MinIsolation.CONTAINER,
-            network = NetworkDeclaration(externalHosts = setOf("other.example.com")),
+            externalHosts = setOf("other.example.com"),
         )
         validate(declared, policy, AgentRegistrySourceIdentifier.Local).shouldBeEmpty()
         validate(declared, policy, AgentRegistrySourceIdentifier.Marketplace, trust = marketplaceProfile) shouldContainExactly listOf(
@@ -174,5 +179,26 @@ class ExecutionPolicyResolverTest : FunSpec({
             runtime = RuntimeId.OPENSHELL,
             trust = trustWithRun,
         ).shouldBeEmpty()
+    }
+
+    test("openShellRuntimeRejectedWhenSupervisorMissing") {
+        validate(
+            declared = null,
+            runtime = RuntimeId.OPENSHELL,
+            openShellConfig = missingSupervisor,
+        ) shouldContainExactly listOf(
+            ExecutionRejection.SandboxUnavailable("openshell.supervisor_path is not configured")
+        )
+    }
+
+    test("openShellRuntimeRejectedWhenSupervisorNotExecutable") {
+        val notExecutable = OpenShellConfig(supervisorPath = Paths.get("/does/not/exist"))
+        validate(
+            declared = null,
+            runtime = RuntimeId.OPENSHELL,
+            openShellConfig = notExecutable,
+        ) shouldContainExactly listOf(
+            ExecutionRejection.SandboxUnavailable("openshell supervisor at /does/not/exist is not executable")
+        )
     }
 })

@@ -52,8 +52,6 @@ website = "https://www.coralos.ai/"
 
 [execution]
 min_isolation = "container"
-
-[execution.network]
 external_hosts = ["api.firecrawl.dev"]
 
 # must have at least one runtime

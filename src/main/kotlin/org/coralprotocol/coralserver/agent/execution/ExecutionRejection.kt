@@ -48,6 +48,3 @@ sealed class ExecutionRejection {
     }
 }
 
-class ExecutionRejectedException(val rejection: ExecutionRejection) :
-    RuntimeException(rejection.reason)
-

@@ -10,8 +10,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.execution.EgressEndpoint
 import org.coralprotocol.coralserver.agent.execution.EgressPolicy
-import org.coralprotocol.coralserver.agent.execution.ExecutionRejectedException
-import org.coralprotocol.coralserver.agent.execution.ExecutionRejection
 import org.coralprotocol.coralserver.config.OpenShellConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.mcp.McpTransportType
@@ -33,14 +31,8 @@ data class OpenShellRuntime(
         applicationRuntimeContext: ApplicationRuntimeContext,
     ) {
         val config = executionContext.openShellConfig
-        val supervisor = config.supervisorPath
-            ?: throw ExecutionRejectedException(
-                ExecutionRejection.SandboxUnavailable("openshell.supervisor_path is not configured")
-            )
-        if (!supervisor.toFile().canExecute()) {
-            throw ExecutionRejectedException(
-                ExecutionRejection.SandboxUnavailable("openshell supervisor at $supervisor is not executable")
-            )
+        val supervisor = checkNotNull(config.supervisorPath) {
+            "openshell.supervisor_path is not configured (should have been caught by ExecutionPolicyResolver)"
         }
         warnOnSupervisorVersionMismatch(config, executionContext)
 

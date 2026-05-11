@@ -4,6 +4,7 @@ import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifie
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.ExecutionPolicyConfig
 import org.coralprotocol.coralserver.config.ExecutionTierPolicy
+import org.coralprotocol.coralserver.config.OpenShellConfig
 
 object ExecutionPolicyResolver {
     fun validate(
@@ -12,13 +13,14 @@ object ExecutionPolicyResolver {
         source: AgentRegistrySourceIdentifier,
         runtime: RuntimeId,
         trust: ExecutionTrustPolicy,
+        openShellConfig: OpenShellConfig,
     ): List<ExecutionRejection> = buildList {
         if (declared != null) {
             val tier = policy.forSource(source)
             validateIsolation(declared.minIsolation, tier.maxSupportedIsolation, runtime)
-            validateHosts(declared.network.externalHosts, tier)
+            validateHosts(declared.externalHosts, tier)
         }
-        validateRuntimeWithTrust(runtime, trust)
+        validateRuntimeWithTrust(runtime, trust, openShellConfig)
     }
 
     private fun MutableList<ExecutionRejection>.validateIsolation(
@@ -47,8 +49,15 @@ object ExecutionPolicyResolver {
     private fun MutableList<ExecutionRejection>.validateRuntimeWithTrust(
         runtime: RuntimeId,
         trust: ExecutionTrustPolicy,
+        openShellConfig: OpenShellConfig,
     ) {
         if (runtime != RuntimeId.OPENSHELL) return
+
+        val supervisor = openShellConfig.supervisorPath
+        when {
+            supervisor == null -> add(ExecutionRejection.SandboxUnavailable("openshell.supervisor_path is not configured"))
+            !supervisor.toFile().canExecute() -> add(ExecutionRejection.SandboxUnavailable("openshell supervisor at $supervisor is not executable"))
+        }
 
         val docker = trust.docker
         if (docker.user != null) {

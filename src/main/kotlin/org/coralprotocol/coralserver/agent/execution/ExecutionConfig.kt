@@ -13,7 +13,8 @@ data class ExecutionConfig(
 
     @Description("Explicit non-Coral external hosts the agent needs to reach")
     @Optional
-    val network: NetworkDeclaration = NetworkDeclaration(),
+    @SerialName("external_hosts")
+    val externalHosts: Set<String> = emptySet(),
 )
 
 @Serializable
@@ -21,10 +22,3 @@ enum class MinIsolation {
     @SerialName("process") PROCESS,
     @SerialName("container") CONTAINER,
 }
-
-@Serializable
-data class NetworkDeclaration(
-    @Optional
-    @SerialName("external_hosts")
-    val externalHosts: Set<String> = emptySet(),
-)

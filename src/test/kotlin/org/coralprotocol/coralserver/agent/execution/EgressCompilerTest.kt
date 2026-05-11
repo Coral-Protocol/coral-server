@@ -23,7 +23,7 @@ class EgressCompilerTest : FunSpec({
     test("declaredHostsDefaultToHttpsPort") {
         val declared = ExecutionConfig(
             minIsolation = MinIsolation.CONTAINER,
-            network = NetworkDeclaration(externalHosts = setOf("api.github.com", "api.firecrawl.dev")),
+            externalHosts = setOf("api.github.com", "api.firecrawl.dev"),
         )
 
         val policy = compileEgressPolicy(declared = declared, coralUrls = coralUrls)
@@ -37,7 +37,7 @@ class EgressCompilerTest : FunSpec({
     test("declaredAndCoralManagedAreSeparate") {
         val declared = ExecutionConfig(
             minIsolation = MinIsolation.CONTAINER,
-            network = NetworkDeclaration(externalHosts = setOf("api.github.com")),
+            externalHosts = setOf("api.github.com"),
         )
 
         val policy = compileEgressPolicy(declared = declared, coralUrls = coralUrls)
