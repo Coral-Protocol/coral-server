@@ -143,6 +143,7 @@ private fun parseEgressViolation(
     if (stream != StreamType.STDOUT && stream != StreamType.STDERR) return
     val match = OCSF_DENY.find(line) ?: return
     val (protocol, host, port) = match.destructured
+    ctx.logger.info { "egress_policy_violation: $protocol $host:$port" }
     ctx.session.events.tryEmit(
         SessionEvent.EgressPolicyViolation(
             agentName = ctx.agent.name,
@@ -180,7 +181,7 @@ private val POLICY_PRELUDE = """
       run_as_group: sandbox
 """.trimIndent()
 
-private val DOCKER_BRIDGE_RANGES = listOf("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16")
+private val DOCKER_BRIDGE_RANGES = listOf("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7")
 
 fun renderOpenShellPolicy(policy: EgressPolicy, coralIp: String? = null): String = buildString {
     append(POLICY_PRELUDE)
@@ -214,7 +215,7 @@ private fun StringBuilder.appendPolicyEntry(
     appendLine("    endpoints:")
     endpoints.forEach { endpoint ->
         appendLine("      - host: ${endpoint.host}")
-        appendLine("        port: ${endpoint.port}")
+        appendLine("        ports: [${endpoint.port}]")
         if (allowedIps != null) {
             appendLine("        allowed_ips: [${allowedIps.joinToString(", ") { "\"$it\"" }}]")
         }

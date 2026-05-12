@@ -51,22 +51,22 @@ class OpenShellRuntimeTest : FunSpec({
                 name: coral_api
                 endpoints:
                   - host: host.docker.internal
-                    port: 5555
-                    allowed_ips: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+                    ports: [5555]
+                    allowed_ips: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "fc00::/7"]
                 binaries:
                   - path: "/**"
               external_api_firecrawl_dev:
                 name: external_api_firecrawl_dev
                 endpoints:
                   - host: api.firecrawl.dev
-                    port: 443
+                    ports: [443]
                 binaries:
                   - path: "/**"
               external_api_github_com:
                 name: external_api_github_com
                 endpoints:
                   - host: api.github.com
-                    port: 443
+                    ports: [443]
                 binaries:
                   - path: "/**"
 
@@ -113,7 +113,7 @@ class OpenShellRuntimeTest : FunSpec({
             coralManaged = setOf(EgressEndpoint("host.docker.internal", 5555)),
         )
         val yaml = renderOpenShellPolicy(policy, coralIp = null)
-        yaml shouldContain "allowed_ips: [\"10.0.0.0/8\", \"172.16.0.0/12\", \"192.168.0.0/16\"]"
+        yaml shouldContain "allowed_ips: [\"10.0.0.0/8\", \"172.16.0.0/12\", \"192.168.0.0/16\", \"fc00::/7\"]"
     }
 
     test("rendererEmitsSlash32WhenCoralIpKnown") {
