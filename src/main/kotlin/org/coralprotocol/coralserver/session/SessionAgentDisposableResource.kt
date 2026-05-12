@@ -1,9 +1,12 @@
 package org.coralprotocol.coralserver.session
 
+import org.apache.commons.io.file.PathUtils.deleteDirectory
 import org.apache.commons.io.file.PathUtils.deleteFile
 import org.coralprotocol.coralserver.config.DockerConfig
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.attribute.PosixFilePermission
+import kotlin.io.path.createTempDirectory
 import kotlin.io.path.createTempFile
 import kotlin.io.path.name
 import kotlin.io.path.writeBytes
@@ -31,6 +34,14 @@ sealed interface SessionAgentDisposableResource {
 
         override fun dispose() {
             deleteFile(file)
+        }
+    }
+
+    class TemporaryDirectory(prefix: String) : SessionAgentDisposableResource {
+        val path: Path = createTempDirectory(prefix)
+
+        override fun dispose() {
+            deleteDirectory(path)
         }
     }
 }
