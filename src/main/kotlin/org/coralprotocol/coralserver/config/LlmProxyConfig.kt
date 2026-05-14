@@ -9,7 +9,8 @@ import kotlin.time.Duration.Companion.seconds
 
 data class LlmProxyConfig(
     val retryMaxAttempts: Int = 0,
-    val retryInitialDelay: Duration = 1.seconds,
+    val retryBaseDelay: Duration = 1.seconds,
+    val retryDelayExponent: Double = 2.0,
     val retryMaxDelay: Duration = 10.seconds,
     val maxRequestSize: BinaryByteSize = 20.mebibytes,
     val maxResponseSize: BinaryByteSize = 80.mebibytes,
