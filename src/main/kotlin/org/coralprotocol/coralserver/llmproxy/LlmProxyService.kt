@@ -261,7 +261,7 @@ class LlmProxyService(
      */
     private suspend fun ByteReadChannel.readLineWithByteLimit(
         remainingLimit: ByteSize,
-        totalLimit: BinaryByteSize,
+        totalLimit: ByteSize,
         buffer: ByteArrayOutputStream
     ): Long {
         var count = 0L

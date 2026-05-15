@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver.config
 
 import me.saket.bytesize.BinaryByteSize
+import me.saket.bytesize.ByteSize
 import me.saket.bytesize.mebibytes
 import org.coralprotocol.coralserver.llmproxy.LlmProviderFormat
 import kotlin.time.Duration
@@ -12,9 +13,9 @@ data class LlmProxyConfig(
     val retryBaseDelay: Duration = 1.seconds,
     val retryDelayExponent: Double = 2.0,
     val retryMaxDelay: Duration = 10.seconds,
-    val maxRequestSize: BinaryByteSize = 20.mebibytes,
-    val maxResponseSize: BinaryByteSize = 80.mebibytes,
-    val maxStreamChars: BinaryByteSize = 80.mebibytes,
+    val maxRequestSize: ByteSize = 20.mebibytes,
+    val maxResponseSize: ByteSize = 80.mebibytes,
+    val maxStreamChars: ByteSize = 80.mebibytes,
     val sendSessionHeaders: Boolean = false,
     val providers: List<LlmProxyProviderConfig> = listOf()
 )
