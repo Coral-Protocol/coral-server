@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.modules
 
 import com.sksamuel.hoplite.*
 import org.coralprotocol.coralserver.config.*
+import org.coralprotocol.coralserver.util.ByteSizeDecoder
 import org.koin.dsl.module
 
 @OptIn(ExperimentalHoplite::class)
@@ -11,6 +12,7 @@ val configModule = module {
             .addCommandLineSource(getOrNull<CommandLineArgs>()?.values ?: emptyArray())
             .addResourceSource("/config.toml", optional = true)
             .withExplicitSealedTypes("type")
+            .addDecoder(ByteSizeDecoder())
             .addEnvironmentSource()
 
         val path = System.getenv("CONFIG_FILE_PATH")

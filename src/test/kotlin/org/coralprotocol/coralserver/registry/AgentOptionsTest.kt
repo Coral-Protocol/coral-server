@@ -1,17 +1,16 @@
 package org.coralprotocol.coralserver.registry
 
+import dev.eav.tomlkt.Toml
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.types.shouldBeInstanceOf
-import dev.eav.tomlkt.Toml
+import me.saket.bytesize.mebibytes
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
 import org.coralprotocol.coralserver.agent.registry.option.*
-import org.coralprotocol.coralserver.util.ByteUnitSizes
-import org.coralprotocol.coralserver.util.toByteCount
 import org.koin.test.inject
 import kotlin.reflect.KClass
 
@@ -258,14 +257,14 @@ class AgentOptionsTest : CoralTest({
         shouldNotThrowAny {
             blob.withValue(
                 AgentOptionValue.Blob.fromBytes(
-                    ByteArray(ByteUnitSizes.MEBIBYTE.toByteCount(1.0).toInt())
+                    ByteArray(1.mebibytes.inWholeBytes.toInt())
                 )
             ).requireValue()
         }
         shouldThrow<AgentOptionValidationException> {
             blob.withValue(
                 AgentOptionValue.Blob.fromBytes(
-                    ByteArray(ByteUnitSizes.MEBIBYTE.toByteCount(1.0).toInt() + 1)
+                    ByteArray(1.mebibytes.inWholeBytes.toInt() + 1)
                 )
             ).requireValue()
         }
