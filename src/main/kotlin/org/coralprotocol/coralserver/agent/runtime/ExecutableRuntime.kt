@@ -25,6 +25,13 @@ data class ExecutableRuntime(
         executionContext: SessionAgentExecutionContext,
         applicationRuntimeContext: ApplicationRuntimeContext
     ) {
+        if (!executionContext.executionPolicy.allowExecutableRuntime) {
+            val message =
+                "Executable runtime is disabled by execution profile '${executionContext.executionPolicy.profileName}'"
+            executionContext.logger.error { message }
+            throw IllegalStateException(message)
+        }
+
         val potentialPaths = buildList {
             // on Windows, if given a path without an extension, try .exe, .cmd and .bat files
             // on Linux it is expected that a marks files as executables and uses the appropriate shebang to achieve
