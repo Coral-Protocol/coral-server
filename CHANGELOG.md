@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.3.0](https://github.com/Coral-Protocol/coral-server/compare/v1.2.0...v1.3.0) (2026-05-18)
+
+
+### Features
+
+* add the base exponent as a configuration property ([5da1a21](https://github.com/Coral-Protocol/coral-server/commit/5da1a215d1f443757605225e71177c70c449a224))
+* added encoding/decoding for ByteSize with tests ([5da1a21](https://github.com/Coral-Protocol/coral-server/commit/5da1a215d1f443757605225e71177c70c449a224))
+* maxStreamCharsUTF8 renamed to maxStreamChars which now counts using bytes instead of UTF-8 chars ([5da1a21](https://github.com/Coral-Protocol/coral-server/commit/5da1a215d1f443757605225e71177c70c449a224))
+* rename configuration properties around retry delays to make it easier to understand ([5da1a21](https://github.com/Coral-Protocol/coral-server/commit/5da1a215d1f443757605225e71177c70c449a224))
+* replace ValidationFileSize and BinaryByteSize with ByteSize ([5da1a21](https://github.com/Coral-Protocol/coral-server/commit/5da1a215d1f443757605225e71177c70c449a224))
+
 ## [1.2.0](https://github.com/Coral-Protocol/coral-server/compare/v1.1.0...v1.2.0) (2026-05-08)
 
 
