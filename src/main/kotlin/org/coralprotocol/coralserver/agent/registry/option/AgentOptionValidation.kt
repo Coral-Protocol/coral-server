@@ -5,21 +5,10 @@ package org.coralprotocol.coralserver.agent.registry.option
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import me.saket.bytesize.BinaryByteSize
+import me.saket.bytesize.ByteSize
 import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
-import org.coralprotocol.coralserver.util.ByteUnitSizes
-import org.coralprotocol.coralserver.util.toByteCount
-
-@Serializable
-data class ValidationFileSize(
-    private val size: Double,
-    private val unit: ByteUnitSizes
-) {
-    val byteCount: Long = unit.toByteCount(size)
-
-    override fun toString(): String {
-        return "$size $unit"
-    }
-}
+import org.coralprotocol.coralserver.util.ByteSizeSerializer
 
 @Serializable
 data class StringAgentOptionValidation(
@@ -45,28 +34,36 @@ data class StringAgentOptionValidation(
             throw AgentOptionValidationException("Value \"$value\" does not match the regex pattern '$regex'")
 
         if (!variants.isNullOrEmpty() && !variants.contains(value))
-            throw AgentOptionValidationException("Value \"$value\" is not a valid variant.  Valid variants are: ${variants.joinToString(",")})")
+            throw AgentOptionValidationException(
+                "Value \"$value\" is not a valid variant.  Valid variants are: ${
+                    variants.joinToString(
+                        ","
+                    )
+                })"
+            )
     }
 }
 
 @Serializable
 data class BlobAgentOptionValidation(
     @SerialName("min_size")
-    val minSize: ValidationFileSize? = null,
+    @Serializable(with = ByteSizeSerializer::class)
+    val minSize: ByteSize? = null,
 
     @SerialName("max_size")
-    val maxSize: ValidationFileSize? = null,
+    @Serializable(with = ByteSizeSerializer::class)
+    val maxSize: ByteSize? = null,
 ) {
     fun require(value: ByteArray) {
-        if (minSize != null && value.size < minSize.byteCount)
-            throw AgentOptionValidationException("Value $value is smaller than the minimum size ${minSize.byteCount} ($minSize)")
+        if (minSize != null && value.size < minSize.inWholeBytes)
+            throw AgentOptionValidationException("Blob value is ${BinaryByteSize(value.size)} large, which is less than the minimum size $minSize")
 
-        if (maxSize != null && value.size > maxSize.byteCount)
-            throw AgentOptionValidationException("Value $value is greater than the maximum size ${maxSize.byteCount} ($maxSize)")
+        if (maxSize != null && value.size > maxSize.inWholeBytes)
+            throw AgentOptionValidationException("Blob value is ${BinaryByteSize(value.size)} large, which is greater than the maximum size $maxSize")
     }
 }
 
-abstract class NumericAgentOptionValidation<T: Comparable<T>> {
+abstract class NumericAgentOptionValidation<T : Comparable<T>> {
     abstract val variants: List<T>?
     abstract val min: T?
     abstract val max: T?
@@ -82,7 +79,13 @@ abstract class NumericAgentOptionValidation<T: Comparable<T>> {
 
         val variants = variants
         if (!variants.isNullOrEmpty() && !variants.contains(value))
-            throw AgentOptionValidationException("Value $value is not a valid variant.  Valid variants are: ${variants.joinToString(",")})")
+            throw AgentOptionValidationException(
+                "Value $value is not a valid variant.  Valid variants are: ${
+                    variants.joinToString(
+                        ","
+                    )
+                })"
+            )
     }
 }
 

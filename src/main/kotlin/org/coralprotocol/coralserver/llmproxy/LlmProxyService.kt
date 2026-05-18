@@ -24,6 +24,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
 import me.saket.bytesize.BinaryByteSize
+import me.saket.bytesize.ByteSize
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProxyRequest
 import org.coralprotocol.coralserver.agent.registry.AgentLlmProxyRequest
 import org.coralprotocol.coralserver.config.CloudConfig
@@ -34,6 +35,7 @@ import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.logging.LoggingTag
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.SessionAgent
+import java.io.ByteArrayOutputStream
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
@@ -62,6 +64,10 @@ class LlmProxyService(
     private val json: Json,
     logger: Logger
 ) {
+    private val maxRequestSize = llmProxyConfig.maxRequestSize
+    private val maxResponseSize = llmProxyConfig.maxResponseSize
+    private val maxStreamSize = llmProxyConfig.maxStreamSize
+
     companion object {
         fun buildCoralCloudProviders(apiKey: String, json: Json = Json): List<LlmProxyProviderConfig> {
             val client = HttpClient(CIO) {
@@ -248,6 +254,34 @@ class LlmProxyService(
         )
     }
 
+    /**
+     * Reads from a [ByteReadChannel] into a [ByteArrayOutputStream] until a newline character is read.  The newline
+     * will be included in [buffer].  This supports CRLF because it ends in a LF character.  In both cases, the newline
+     * characters will be included in [buffer]
+     */
+    private suspend fun ByteReadChannel.readLineWithByteLimit(
+        remainingLimit: ByteSize,
+        totalLimit: ByteSize,
+        buffer: ByteArrayOutputStream
+    ): Long {
+        var count = 0L
+
+        while (!isClosedForRead) {
+            if (count >= remainingLimit.inWholeBytes) {
+                throw LlmProxyException.BufferOverflow("Upstream streamed response exceeded $totalLimit limit")
+            }
+
+            val byte = readByte().toInt()
+            count++
+
+            buffer.write(byte)
+            if (byte == '\n'.code)
+                break
+        }
+
+        return count
+    }
+
     private suspend fun proxyStreaming(req: LlmProxyRequest, call: ApplicationCall) {
         httpClient.prepareRequest(req.upstreamUrl) {
             configureProxy(req, call)
@@ -286,21 +320,33 @@ class LlmProxyService(
                 call.respondTextWriter {
                     val channel = response.bodyAsChannel()
                     val parser = req.model.providerConfig.format.createStreamParser(json)
-                    var totalChars = 0L
+                    var totalBytes = BinaryByteSize(0L)
 
                     try {
                         while (!channel.isClosedForRead) {
-                            val remaining = llmProxyConfig.maxStreamCharsUTF8 - totalChars
-                            val line = channel.readLineStrict(remaining) ?: break
+                            val remaining = maxStreamSize - totalBytes
+                            val buffer = ByteArrayOutputStream()
+                            val lineSize = BinaryByteSize(
+                                channel.readLineWithByteLimit(
+                                    remaining,
+                                    maxStreamSize,
+                                    buffer
+                                )
+                            )
 
-                            totalChars += line.length + 1
+                            totalBytes += lineSize
+
+                            val line = buffer.toString(Charsets.UTF_8).let {
+                                if (it.endsWith("\r\n")) it.dropLast(2) else it.dropLast(1)
+                            }
+
                             parser.processLine(line)
                             write(line)
                             write("\n")
                             flush()
 
                             req.agent.logger.trace {
-                                "Streamed proxy line received: ${line.length} chars, $totalChars total over ${parser.chunkCount} chunks"
+                                "Streamed proxy line received $lineSize.  Total streamed $totalBytes over ${parser.chunkCount} chunks"
                             }
                         }
 
@@ -371,10 +417,10 @@ class LlmProxyService(
     private suspend fun readRequestBody(hasBody: Boolean, call: ApplicationCall): String {
         if (!hasBody) return ""
         val channel = call.receiveChannel()
-        val body = channel.readRemaining(llmProxyConfig.maxRequestSize.inWholeBytes).readText()
+        val body = channel.readRemaining(maxRequestSize.inWholeBytes).readText()
 
         if (channel.availableForRead > 0 || !channel.isClosedForRead)
-            throw LlmProxyException.BufferOverflow("Upstream response exceeded ${llmProxyConfig.maxRequestSize} limit")
+            throw LlmProxyException.BufferOverflow("Upstream response exceeded ${maxRequestSize} limit")
 
         return body
     }
@@ -389,13 +435,13 @@ class LlmProxyService(
 
     private suspend fun readBoundedBody(response: HttpResponse): Pair<String, Long> {
         val channel = response.bodyAsChannel()
-        val packet = channel.readRemaining(llmProxyConfig.maxResponseSize.inWholeBytes)
+        val packet = channel.readRemaining(maxResponseSize.inWholeBytes)
         val bytesRead = packet.remaining
 
         val body = packet.readText()
 
         if (channel.availableForRead > 0 || !channel.isClosedForRead)
-            throw LlmProxyException.BufferOverflow("Upstream response exceeded ${llmProxyConfig.maxResponseSize} limit")
+            throw LlmProxyException.BufferOverflow("Upstream response exceeded $maxResponseSize limit")
 
         return Pair(body, bytesRead)
     }

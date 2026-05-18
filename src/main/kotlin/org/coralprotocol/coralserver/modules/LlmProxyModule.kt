@@ -24,8 +24,8 @@ val llmProxyModule =
                                 response.status == HttpStatusCode.Conflict || response.status.value in 500..599
                             }
                             exponentialDelay(
-                                base = 2.0,
-                                baseDelayMs = config.retryInitialDelay.inWholeMilliseconds,
+                                base = config.retryDelayExponent,
+                                baseDelayMs = config.retryBaseDelay.inWholeMilliseconds,
                                 maxDelayMs = config.retryMaxDelay.inWholeMilliseconds
                             )
                         }
