@@ -57,6 +57,7 @@ data class GraphAgentRequest(
     val x402Budgets: List<X402BudgetedResource> = emptyList(),
 
     @Description("A map where the key is the name of the proxy request and the value is the configuration and model that should be selected.")
+    @Optional
     val proxies: Map<String, GraphAgentProxyRequest> = emptyMap(),
 
     @Optional
