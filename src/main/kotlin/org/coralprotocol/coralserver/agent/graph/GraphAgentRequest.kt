@@ -17,7 +17,6 @@ import org.coralprotocol.coralserver.agent.registry.option.withValue
 import org.coralprotocol.coralserver.config.DockerConfig
 import org.coralprotocol.coralserver.config.ExecutionPolicyConfig
 import org.coralprotocol.coralserver.config.OpenShellConfig
-import org.coralprotocol.coralserver.config.SecurityConfig
 import org.coralprotocol.coralserver.llmproxy.LlmProxyException
 import org.coralprotocol.coralserver.llmproxy.LlmProxyService
 import org.coralprotocol.coralserver.session.SessionResource
@@ -72,7 +71,6 @@ data class GraphAgentRequest(
     val llmProxyService by inject<LlmProxyService>()
     val executionPolicyConfig by inject<ExecutionPolicyConfig>()
     val dockerConfig by inject<DockerConfig>()
-    val securityConfig by inject<SecurityConfig>()
     val openShellConfig by inject<OpenShellConfig>()
 
     /**
@@ -97,7 +95,7 @@ data class GraphAgentRequest(
             is GraphAgentProvider.Remote, is GraphAgentProvider.RemoteRequest -> null
         }
         if (localRuntime != null) {
-            val trust = id.registrySourceId.resolveTrustPolicy(dockerConfig, securityConfig)
+            val trust = id.registrySourceId.resolveTrustPolicy(dockerConfig)
             val rejections = ExecutionPolicyResolver.validate(
                 declared = registryAgent.execution,
                 policy = executionPolicyConfig,

@@ -21,13 +21,11 @@ class ExecutionPolicyResolverTest : FunSpec({
 
     val trustedProfile = ExecutionTrustPolicy(
         profileName = "trusted_local",
-        allowExecutableRuntime = true,
         docker = DockerExecutionTrustPolicy(),
     )
 
     val marketplaceProfile = ExecutionTrustPolicy(
         profileName = "marketplace_untrusted",
-        allowExecutableRuntime = false,
         docker = DockerExecutionTrustPolicy(
             readOnlyRootFilesystem = true,
             user = "65532:65532",
@@ -127,7 +125,6 @@ class ExecutionPolicyResolverTest : FunSpec({
     test("openShellRuntimeRejectedWhenTrustProfilePinsUser") {
         val userOnly = ExecutionTrustPolicy(
             profileName = "marketplace_untrusted",
-            allowExecutableRuntime = false,
             docker = DockerExecutionTrustPolicy(user = "65532:65532"),
         )
         validate(
@@ -146,7 +143,6 @@ class ExecutionPolicyResolverTest : FunSpec({
     test("openShellRuntimeRejectedWhenReadOnlyRootfsHasNoRunTmpfs") {
         val noRunTmpfs = ExecutionTrustPolicy(
             profileName = "marketplace_untrusted",
-            allowExecutableRuntime = false,
             docker = DockerExecutionTrustPolicy(
                 readOnlyRootFilesystem = true,
                 tmpFs = mapOf("/tmp" to "rw"),
@@ -168,7 +164,6 @@ class ExecutionPolicyResolverTest : FunSpec({
     test("openShellRuntimeAcceptedWithRunTmpfs") {
         val trustWithRun = ExecutionTrustPolicy(
             profileName = "openshell_marketplace",
-            allowExecutableRuntime = false,
             docker = DockerExecutionTrustPolicy(
                 readOnlyRootFilesystem = true,
                 tmpFs = mapOf("/tmp" to "rw", "/run" to "rw"),
@@ -199,6 +194,82 @@ class ExecutionPolicyResolverTest : FunSpec({
             openShellConfig = notExecutable,
         ) shouldContainExactly listOf(
             ExecutionRejection.SandboxUnavailable("openshell supervisor at /does/not/exist is not executable")
+        )
+    }
+
+    test("defaultMarketplaceTierRejectsExecutableRuntime") {
+        validate(
+            declared = null,
+            source = AgentRegistrySourceIdentifier.Marketplace,
+            runtime = RuntimeId.EXECUTABLE,
+            trust = marketplaceProfile,
+        ) shouldContainExactly listOf(
+            ExecutionRejection.RuntimeDisabled(
+                runtime = RuntimeId.EXECUTABLE,
+                profileName = "marketplace_untrusted",
+                allowedRuntimes = setOf(RuntimeId.DOCKER, RuntimeId.OPENSHELL),
+            )
+        )
+    }
+
+    test("defaultTrustedTierAllowsExecutableRuntime") {
+        validate(
+            declared = null,
+            source = AgentRegistrySourceIdentifier.Local,
+            runtime = RuntimeId.EXECUTABLE,
+        ).shouldBeEmpty()
+    }
+
+    test("operatorOverrideAllowsExecutableOnMarketplace") {
+        val policy = ExecutionPolicyConfig(
+            marketplace = ExecutionTierPolicy(
+                allowedRuntimes = setOf(RuntimeId.DOCKER, RuntimeId.OPENSHELL, RuntimeId.EXECUTABLE),
+            )
+        )
+        validate(
+            declared = null,
+            policy = policy,
+            source = AgentRegistrySourceIdentifier.Marketplace,
+            runtime = RuntimeId.EXECUTABLE,
+            trust = marketplaceProfile,
+        ).shouldBeEmpty()
+    }
+
+    test("operatorOverrideRestrictsTrustedTierToDocker") {
+        val policy = ExecutionPolicyConfig(
+            trusted = ExecutionTierPolicy(allowedRuntimes = setOf(RuntimeId.DOCKER)),
+        )
+        validate(
+            declared = null,
+            policy = policy,
+            source = AgentRegistrySourceIdentifier.Local,
+            runtime = RuntimeId.EXECUTABLE,
+        ) shouldContainExactly listOf(
+            ExecutionRejection.RuntimeDisabled(
+                runtime = RuntimeId.EXECUTABLE,
+                profileName = "trusted_local",
+                allowedRuntimes = setOf(RuntimeId.DOCKER),
+            )
+        )
+    }
+
+    test("runtimeDisabledShortCircuitsOpenShellChecks") {
+        val policy = ExecutionPolicyConfig(
+            marketplace = ExecutionTierPolicy(allowedRuntimes = setOf(RuntimeId.DOCKER)),
+        )
+        validate(
+            declared = null,
+            policy = policy,
+            source = AgentRegistrySourceIdentifier.Marketplace,
+            runtime = RuntimeId.OPENSHELL,
+            trust = marketplaceProfile,
+            openShellConfig = missingSupervisor,
+        ) shouldContainExactly listOf(
+            ExecutionRejection.RuntimeDisabled(
+                runtime = RuntimeId.OPENSHELL,
+                profileName = "marketplace_untrusted",
+                allowedRuntimes = setOf(RuntimeId.DOCKER),
+            )
         )
     }
 })

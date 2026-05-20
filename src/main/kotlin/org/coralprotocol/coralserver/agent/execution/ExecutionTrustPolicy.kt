@@ -7,7 +7,6 @@ import com.github.dockerjava.api.model.HostConfig
 import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.config.DockerConfig
-import org.coralprotocol.coralserver.config.SecurityConfig
 import org.coralprotocol.coralserver.logging.LoggingInterface
 
 data class DockerExecutionTrustPolicy(
@@ -28,25 +27,19 @@ data class DockerExecutionTrustPolicy(
 
 data class ExecutionTrustPolicy(
     val profileName: String,
-    val allowExecutableRuntime: Boolean,
     val docker: DockerExecutionTrustPolicy,
 )
 
-// Authoritative source → docker hardening profile mapping for Stage 1.  Local is trusted; Marketplace and Linked
-// share the marketplace profile.  Stage 2 will plug in declared-intent and runtime-aware overrides here.
 fun AgentRegistrySourceIdentifier.resolveTrustPolicy(
     dockerConfig: DockerConfig,
-    securityConfig: SecurityConfig,
 ): ExecutionTrustPolicy = when (this) {
     is AgentRegistrySourceIdentifier.Local -> ExecutionTrustPolicy(
         profileName = "trusted_local",
-        allowExecutableRuntime = true,
         docker = dockerConfig.trusted,
     )
     is AgentRegistrySourceIdentifier.Marketplace,
     is AgentRegistrySourceIdentifier.Linked -> ExecutionTrustPolicy(
         profileName = "marketplace_untrusted",
-        allowExecutableRuntime = securityConfig.allowUntrustedExecutableRuntime,
         docker = dockerConfig.marketplace,
     )
 }

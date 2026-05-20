@@ -15,12 +15,12 @@ object ExecutionPolicyResolver {
         trust: ExecutionTrustPolicy,
         openShellConfig: OpenShellConfig,
     ): List<ExecutionRejection> = buildList {
+        val tier = policy.forSource(source)
         if (declared != null) {
-            val tier = policy.forSource(source)
             validateIsolation(declared.minIsolation, tier.maxSupportedIsolation, runtime)
             validateHosts(declared.externalHosts, tier)
         }
-        validateRuntimeWithTrust(runtime, trust, openShellConfig)
+        validateRuntime(runtime, tier, trust, openShellConfig)
     }
 
     private fun MutableList<ExecutionRejection>.validateIsolation(
@@ -46,11 +46,17 @@ object ExecutionPolicyResolver {
         }
     }
 
-    private fun MutableList<ExecutionRejection>.validateRuntimeWithTrust(
+    private fun MutableList<ExecutionRejection>.validateRuntime(
         runtime: RuntimeId,
+        tier: ExecutionTierPolicy,
         trust: ExecutionTrustPolicy,
         openShellConfig: OpenShellConfig,
     ) {
+        if (runtime !in tier.allowedRuntimes) {
+            add(ExecutionRejection.RuntimeDisabled(runtime, trust.profileName, tier.allowedRuntimes))
+            return
+        }
+
         if (runtime != RuntimeId.OPENSHELL) return
 
         val supervisor = openShellConfig.supervisorPath

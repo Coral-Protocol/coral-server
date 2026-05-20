@@ -32,7 +32,6 @@ import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.agent.runtime.DockerRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.DockerConfig
-import org.coralprotocol.coralserver.config.SecurityConfig
 import org.coralprotocol.coralserver.config.RootConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.Logger
@@ -244,10 +243,9 @@ class DockerRuntimeTest : CoralTest({
     test("testDockerHostConfigHardeningDefaults") {
         val logger by inject<Logger>(named(LOGGER_LOCAL_SESSION))
         val dockerConfig by inject<DockerConfig>()
-        val securityConfig by inject<SecurityConfig>()
 
         val tier = AgentRegistrySourceIdentifier.Local
-            .resolveTrustPolicy(dockerConfig, securityConfig).docker
+            .resolveTrustPolicy(dockerConfig).docker
         val hostConfig = tier.buildHostConfig(emptyList(), logger)
 
         hostConfig.privileged shouldBe false

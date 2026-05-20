@@ -18,7 +18,6 @@ import org.coralprotocol.coralserver.config.DebugConfig
 import org.coralprotocol.coralserver.config.DockerConfig
 import org.coralprotocol.coralserver.config.LlmProxyConfig
 import org.coralprotocol.coralserver.config.OpenShellConfig
-import org.coralprotocol.coralserver.config.SecurityConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.session.reporting.SessionAgentUsageReport
@@ -48,7 +47,6 @@ class SessionAgentExecutionContext(
     val debugConfig by inject<DebugConfig>()
     val dockerConfig by inject<DockerConfig>()
     val llmProxyConfig by inject<LlmProxyConfig>()
-    val securityConfig by inject<SecurityConfig>()
     val openShellConfig by inject<OpenShellConfig>()
 
     val disposableResources = mutableListOf<SessionAgentDisposableResource>()
@@ -56,7 +54,7 @@ class SessionAgentExecutionContext(
     var lastLaunchTime: Instant? = null
 
     val executionPolicy: ExecutionTrustPolicy =
-        registryAgent.identifier.registrySourceId.resolveTrustPolicy(dockerConfig, securityConfig)
+        registryAgent.identifier.registrySourceId.resolveTrustPolicy(dockerConfig)
 
     val egressPolicy: EgressPolicy by lazy {
         val transport = runtimes.getById(provider.runtime)?.transport ?: DEFAULT_AGENT_RUNTIME_TRANSPORT

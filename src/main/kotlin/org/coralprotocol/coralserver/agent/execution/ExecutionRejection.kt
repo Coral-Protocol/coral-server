@@ -46,5 +46,17 @@ sealed class ExecutionRejection {
         override val reason: String
             get() = "runtime '$runtime' cannot run under trust profile '$profileName': $detail"
     }
+
+    @Serializable
+    data class RuntimeDisabled(
+        val runtime: RuntimeId,
+        val profileName: String,
+        val allowedRuntimes: Set<RuntimeId>,
+    ) : ExecutionRejection() {
+        override val reason: String
+            get() = "runtime '$runtime' is not in the allowed set " +
+                "${allowedRuntimes.map { it.name.lowercase() }.sorted()} " +
+                "for profile '$profileName'"
+    }
 }
 
