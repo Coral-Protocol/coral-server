@@ -133,7 +133,7 @@ internal fun resolveCoralIp(address: String): String? {
     return ip.hostAddress
 }
 
-private val OCSF_DENY = Regex("""OCSF (NET:OPEN|HTTP:[A-Z]+) \[.*?] DENIED .*?-> (\S+):(\d+)""")
+private val OCSF_DENY = Regex("""OCSF (NET:OPEN|NET:REFUSE|HTTP:[A-Z]+) \[.*?] DENIED .*?-> (\S+):(\d+)""")
 
 private fun parseEgressViolation(
     stream: StreamType,
