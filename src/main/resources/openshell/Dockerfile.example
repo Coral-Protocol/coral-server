@@ -1,0 +1,44 @@
+# Example base image for agents launched under Coral's OpenShellRuntime.
+# Copy and adapt for your agent.
+#
+# Hard requirements (the supervisor refuses to start otherwise):
+#   - iproute2        (ip netns / veth setup; supervisor shells out to `ip`)
+#   - unprivileged "sandbox" user + group (supervisor drops to this UID)
+#   - glibc-compatible rootfs (supervisor binary is dynamically linked
+#     against /lib64/ld-linux-x86-64.so.2 — distroless-glibc and debian
+#     work; pure-musl alpine needs a glibc shim or a static supervisor)
+#   - writable /sandbox and /tmp (declared read_write in generated policy.yaml)
+#
+# Recommended for full defense-in-depth (supervisor degrades with a
+# `CONFIG:DEGRADED [MED]` line if missing, but the container still runs):
+#   - iptables        (kernel-level bypass-detection rules inside the netns;
+#                      without it, the OPA proxy is the sole egress control
+#                      and direct-TCP attempts that dodge the proxy succeed)
+#   - libcap2-bin     (setcap/getcap helpers used during privilege drop)
+#   - ca-certificates (HTTPS egress to declared external_hosts through proxy)
+#
+# Host requirements:
+#   - Linux kernel 5.13+ (Landlock; older kernels skip the FS-ACL layer)
+#
+# Do NOT set ENTRYPOINT — OpenShellRuntime overrides it with the supervisor
+# binary. Your [runtimes.openshell].command becomes the inner argv executed
+# after the supervisor sets up the sandbox.
+
+FROM debian:bookworm-slim
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      iproute2 \
+      libcap2-bin \
+      ca-certificates \
+      iptables \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd -r sandbox \
+ && useradd -r -g sandbox -d /sandbox -s /usr/sbin/nologin sandbox \
+ && mkdir -p /sandbox \
+ && chown sandbox:sandbox /sandbox
+
+# Install your agent here, e.g.:
+# COPY --chown=sandbox:sandbox agent/ /sandbox/
+# WORKDIR /sandbox

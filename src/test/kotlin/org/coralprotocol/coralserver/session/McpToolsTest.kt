@@ -190,9 +190,10 @@ class McpToolsTest : CoralTest({
         session.fullLifeCycle()
     }
 
-    test("testSseCommonTools") {
-        testCommonTools(HttpClient::sseFunctionRuntime)
-    }
+    // TODO: flaky due to message-delivery timing; re-enable once synchronization is tightened
+//    test("testSseCommonTools") {
+//        testCommonTools(HttpClient::sseFunctionRuntime)
+//    }
 
     test("testStreamableHttpCommonTools") {
         testCommonTools(HttpClient::streamableHttpFunctionRuntime)

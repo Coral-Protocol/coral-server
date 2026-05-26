@@ -45,6 +45,12 @@ data class RootConfig(
 
     @param:ConfigAlias("cloud")
     val cloudConfig: CloudConfig = CloudConfig(),
+
+    @param:ConfigAlias("execution")
+    val executionPolicyConfig: ExecutionPolicyConfig = ExecutionPolicyConfig(),
+
+    @param:ConfigAlias("openshell")
+    val openShellConfig: OpenShellConfig = OpenShellConfig(),
 ) {
     /**
      * Calculates the address required to access the server for a given consumer.

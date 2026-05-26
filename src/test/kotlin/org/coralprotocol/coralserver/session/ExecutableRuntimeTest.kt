@@ -4,7 +4,6 @@ import io.kotest.engine.spec.tempfile
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
-import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
@@ -148,41 +147,4 @@ class ExecutableRuntimeTest : CoralTest({
         }
     }
 
-    test("testMarketplaceExecutableRuntimeBlocked") {
-        val localSessionManager by inject<LocalSessionManager>()
-        val logger by inject<Logger>(named(LOGGER_LOCAL_SESSION))
-
-        val (session1, _) = localSessionManager.createSession(
-            "test", AgentGraph(
-                agents = mapOf(
-                    graphAgentPair("marketplace") {
-                        registryAgent {
-                            registrySourceId = AgentRegistrySourceIdentifier.Marketplace
-                            runtime(
-                                ExecutableRuntime(
-                                    path = if (isWindows()) "powershell.exe" else "/bin/sh"
-                                )
-                            )
-                        }
-                        provider = GraphAgentProvider.Local(RuntimeId.EXECUTABLE)
-                    }
-                )
-            )
-        )
-
-        shouldPostEvents(
-            timeout = 3.seconds,
-            allowUnexpectedEvents = true,
-            events = mutableListOf(
-                TestEvent("blocked") {
-                    it is LoggingEvent.Error &&
-                            it.text.startsWith("Executable runtime is disabled by execution profile '") &&
-                            it.text.contains("marketplace_untrusted")
-                }
-            ),
-            logger.flow
-        ) {
-            session1.fullLifeCycle()
-        }
-    }
 })

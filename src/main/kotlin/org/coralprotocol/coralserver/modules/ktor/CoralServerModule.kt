@@ -44,6 +44,7 @@ import org.coralprotocol.coralserver.logging.LoggingEvent
 import org.coralprotocol.coralserver.mcp.McpResourceName
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.modules.LOGGER_ROUTES
+import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.routes.api.v1.*
 import org.coralprotocol.coralserver.routes.mcp.v1.mcpRoutes
@@ -169,13 +170,13 @@ fun Application.coralServerModule(isTest: Boolean = false) {
     }
     install(StatusPages) {
         exception<Throwable> { call, cause ->
-            // Other exceptions should still be serialized, wrap non RouteException type exceptions in a
-            // RouteException, giving a 500-status code
-            val routeException = if (cause !is RouteException) {
-                logger.error(cause) { "Unexpected exception thrown from route ${call.request.uri}" }
-                RouteException(HttpStatusCode.InternalServerError, cause)
-            } else {
-                cause
+            val routeException = when (cause) {
+                is RouteException -> cause
+                is AgentRequestException -> RouteException(HttpStatusCode.BadRequest, cause)
+                else -> {
+                    logger.error(cause) { "Unexpected exception thrown from route ${call.request.uri}" }
+                    RouteException(HttpStatusCode.InternalServerError, cause)
+                }
             }
 
             call.respond(routeException.status, routeException)
