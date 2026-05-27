@@ -25,7 +25,7 @@ data class AgentGraph(
     /**
      * @see AgentGraphRequest.groups
      */
-    val groups: Set<Set<UniqueAgentName>> = setOf(),
+    val groups: Set<Set<UniqueAgentName>> = setOf()
 ) {
     fun toPayment(): AgentGraphPayment {
         return AgentGraphPayment(

@@ -5,7 +5,6 @@ import io.github.smiley4.schemakenerator.core.annotations.Optional
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
-import org.koin.core.component.KoinComponent
 
 @Serializable
 class AgentGraphRequest(

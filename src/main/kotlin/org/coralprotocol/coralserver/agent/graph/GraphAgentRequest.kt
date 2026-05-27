@@ -60,6 +60,10 @@ data class GraphAgentRequest(
     @Optional
     val proxies: Map<String, GraphAgentProxyRequest> = emptyMap(),
 
+    @Description("Budget settings for this agent.  By default the agent has no budget of its own, and can only claim from the sessions budget.")
+    @Optional
+    val budget: GraphAgentBudgetSettings = GraphAgentBudgetSettings(),
+
     @Optional
     override val annotations: Map<String, String> = emptyMap(),
 ) : SessionResource, KoinComponent {
