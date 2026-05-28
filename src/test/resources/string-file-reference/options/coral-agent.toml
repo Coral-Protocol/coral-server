@@ -17,7 +17,7 @@ default = { type = "file", path = "string.txt" }
 
 [options.STRING_BASE64]
 type = "string"
-default = { type = "file", path = "string.txt", base64 = true }
+default = { type = "file", path = "string.txt", output.base64 = true }
 
 [options.BLOB]
 type = "blob"

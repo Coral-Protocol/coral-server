@@ -15,6 +15,7 @@ import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
+import kotlin.io.encoding.Base64
 
 @Serializable
 @JsonClassDiscriminator("type")
@@ -105,7 +106,7 @@ sealed class AgentOption : KoinComponent {
         val validation: BlobAgentOptionValidation? = null
     ) : AgentOption() {
         @Transient
-        val defaultBytes = default?.decodeBase64Bytes()
+        val defaultBytes = default?.let { Base64.decode(it) }
     }
 
     @Serializable
@@ -117,7 +118,7 @@ sealed class AgentOption : KoinComponent {
         val validation: BlobAgentOptionValidation? = null
     ) : AgentOption() {
         @Transient
-        val defaultBytes = default.map { it.decodeBase64Bytes() }
+        val defaultBytes = default.map { Base64.decode(it) }
     }
 
     @Serializable
