@@ -12,6 +12,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.util.*
 import io.ktor.utils.io.charsets.isSupported
+import kotlinx.serialization.SerializationException
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.registry.MAXIMUM_SUPPORTED_AGENT_VERSION
 import org.coralprotocol.coralserver.agent.registry.UnresolvedRegistryAgent
@@ -63,7 +64,7 @@ class RegistryAgentStringSerializerTest : CoralTest({
         val uuid = UUID.randomUUID().toString()
         serveString(uuid)
 
-        shouldThrow<IllegalStateException> {
+        shouldThrow<SerializationException> {
             UnresolvedRegistryAgent.resolveFromString(
                 """
                 edition = $MAXIMUM_SUPPORTED_AGENT_VERSION
@@ -101,7 +102,7 @@ class RegistryAgentStringSerializerTest : CoralTest({
     }
 
     test("testDisabledFileReferences") {
-        shouldThrow<IllegalStateException> {
+        shouldThrow<SerializationException> {
             UnresolvedRegistryAgent.resolveFromFile(
                 File("src/test/resources/string-file-reference/utf8/coral-agent.toml"),
                 enableFileReferences = false
