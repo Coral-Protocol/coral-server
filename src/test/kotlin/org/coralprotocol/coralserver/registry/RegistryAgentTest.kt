@@ -31,6 +31,7 @@ import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.utils.dsl.*
 import org.koin.test.inject
 import java.io.File
+import kotlin.io.encoding.Base64
 
 class RegistryAgentTest : CoralTest({
     fun testJsonRecode(agent: RegistryAgent) {
@@ -191,7 +192,7 @@ class RegistryAgentTest : CoralTest({
 
         val blobText = "hello world"
         val defaultBlob = agent.options["DEFAULT_BLOB"].shouldNotBeNull().shouldBeInstanceOf<AgentOption.Blob>()
-        defaultBlob.default.shouldNotBeNull().shouldBeEqual(blobText.encodeBase64())
+        defaultBlob.default.shouldNotBeNull().shouldBeEqual(Base64.encode(blobText.encodeToByteArray()))
         defaultBlob.defaultBytes.shouldNotBeNull().toList().shouldContainExactly(blobText.toByteArray().toList())
 
         val defaultListI8 = agent.options["DEFAULT_LIST_I8"].shouldNotBeNull()
@@ -241,7 +242,7 @@ class RegistryAgentTest : CoralTest({
         val blobs = listOf("hello", "world")
         val defaultListBlob =
             agent.options["DEFAULT_LIST_BLOB"].shouldNotBeNull().shouldBeInstanceOf<AgentOption.BlobList>()
-        defaultListBlob.default.shouldContainExactly(blobs.map { it.encodeBase64() })
+        defaultListBlob.default.shouldContainExactly(blobs.map { Base64.encode(it.encodeToByteArray()) })
         defaultListBlob.defaultBytes.shouldContainExactly(blobs.map { it.toByteArray().toList() })
 
         agent.options["OPTIONAL_I8"].shouldNotBeNull().shouldBeInstanceOf<AgentOption.Byte>()

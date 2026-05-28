@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.json.JsonClassDiscriminator
 import java.nio.ByteBuffer
+import kotlin.io.encoding.Base64
 
 @Serializable
 @JsonClassDiscriminator("type")
@@ -25,22 +26,22 @@ sealed interface AgentOptionValue {
     @SerialName("blob")
     data class Blob(val value: kotlin.String) : AgentOptionValue {
         companion object {
-            fun fromBytes(bytes: ByteArray) = Blob(bytes.encodeBase64())
+            fun fromBytes(bytes: ByteArray) = Blob(Base64.encode(bytes))
         }
 
         @Transient
-        val bytes = value.decodeBase64Bytes()
+        val bytes = Base64.decode(value)
     }
 
     @Serializable
     @SerialName("list[blob]")
     data class BlobList(val value: List<kotlin.String>) : AgentOptionValue {
         companion object {
-            fun fromByteList(byteList: List<ByteArray>) = BlobList(byteList.map { it.encodeBase64() })
+            fun fromByteList(byteList: List<ByteArray>) = BlobList(byteList.map { Base64.encode(it) })
         }
 
         @Transient
-        val bytes = value.map { it.decodeBase64Bytes() }
+        val bytes = value.map { Base64.decode(it) }
     }
 
     @Serializable
@@ -157,9 +158,9 @@ fun AgentOptionValue.asEnvVarValue(base64: Boolean = false): String = when (this
     is AgentOptionValue.LongList -> value.joinToString(",")
     is AgentOptionValue.Short -> value.toString()
     is AgentOptionValue.ShortList -> value.joinToString(",")
-    is AgentOptionValue.String -> if (base64) value.encodeBase64() else value
+    is AgentOptionValue.String -> if (base64) Base64.encode(value.encodeToByteArray()) else value
     is AgentOptionValue.StringList -> value.joinToString(",") {
-        if (base64) it.encodeBase64() else it
+        if (base64) Base64.encode(it.encodeToByteArray()) else it
     }
 
     is AgentOptionValue.UByte -> value.toString()

@@ -10,7 +10,6 @@ import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import io.ktor.util.*
 import io.ktor.utils.io.charsets.isSupported
 import kotlinx.serialization.SerializationException
 import org.coralprotocol.coralserver.CoralTest
@@ -21,6 +20,7 @@ import org.coralprotocol.coralserver.agent.registry.stringReferenceConstants
 import org.koin.test.inject
 import java.io.File
 import java.util.*
+import kotlin.io.encoding.Base64
 import kotlin.text.Charsets
 
 class RegistryAgentStringSerializerTest : CoralTest({
@@ -116,14 +116,16 @@ class RegistryAgentStringSerializerTest : CoralTest({
         )
 
         val stringValue = File("src/test/resources/string-file-reference/options/string.txt").readText()
-        val blobValue = File("src/test/resources/string-file-reference/options/blob.txt").readText().encodeBase64()
+        val blobValue = Base64.encode(
+            File("src/test/resources/string-file-reference/options/blob.txt").readBytes()
+        )
 
         agent.options["STRING"].shouldNotBeNull().shouldBeInstanceOf<AgentOption.String>().default.shouldNotBeNull()
             .shouldBeEqual(stringValue)
 
         agent.options["STRING_BASE64"].shouldNotBeNull()
             .shouldBeInstanceOf<AgentOption.String>().default.shouldNotBeNull()
-            .shouldBeEqual(stringValue.encodeBase64())
+            .shouldBeEqual(Base64.encode(stringValue.encodeToByteArray()))
 
         agent.options["BLOB"].shouldNotBeNull().shouldBeInstanceOf<AgentOption.Blob>().default.shouldNotBeNull()
             .shouldBeEqual(blobValue)
@@ -141,8 +143,6 @@ class RegistryAgentStringSerializerTest : CoralTest({
 
         agent.options["BLOB_NO_DEFAULT"].shouldNotBeNull()
             .shouldBeInstanceOf<AgentOption.Blob>().default.shouldBeNull()
-
-        println(agent)
     }
 
     test("testStringConstants") {
@@ -153,7 +153,7 @@ class RegistryAgentStringSerializerTest : CoralTest({
                 default = { type = "constant", name = "$name" }
             """ to value
         }
-        
+
         val agent = UnresolvedRegistryAgent.resolveFromString(
             """
                 edition = $MAXIMUM_SUPPORTED_AGENT_VERSION

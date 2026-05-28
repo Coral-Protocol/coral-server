@@ -5,6 +5,7 @@ package org.coralprotocol.coralserver.agent.registry
 import dev.eav.tomlkt.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.ktor.utils.io.charsets.forName
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.*
 import kotlinx.serialization.builtins.ListSerializer
@@ -20,9 +21,9 @@ import org.coralprotocol.coralserver.agent.runtime.prototype.DEFAULT_SYSTEM_PROM
 import org.coralprotocol.coralserver.mcp.McpResourceName
 import org.koin.core.component.KoinComponent
 import java.io.File
-import java.nio.charset.Charset
 import kotlin.io.encoding.Base64
 import kotlin.reflect.full.findAnnotation
+import kotlin.text.Charsets
 
 /*
     NOTE: This list is used in tests, resources/constants/coral-agent.toml must be updated to include any new constants
@@ -37,44 +38,57 @@ val stringReferenceConstants = buildMap {
 }
 
 @Serializable
+data class EncodingOptions(
+    val base64: Boolean = false,
+    val charset: String = Charsets.UTF_8.name(),
+)
+
+@Serializable
 @JsonClassDiscriminator("type")
 @TomlClassDiscriminator("type")
 sealed interface PotentialStringReference {
-    val base64: Boolean?
+    val input: EncodingOptions?
+    val output: EncodingOptions?
 
     @Serializable
     @SerialName("string")
     data class String(
         val value: kotlin.String,
-        override val base64: Boolean? = null
+        override val input: EncodingOptions? = null,
+        override val output: EncodingOptions? = null,
     ) : PotentialStringReference
 
     @Serializable
     @SerialName("file")
     data class File(
         val path: kotlin.String,
-        val encoding: kotlin.String = "UTF-8",
-        override val base64: Boolean? = null
+        override val input: EncodingOptions? = null,
+        override val output: EncodingOptions? = null
     ) : PotentialStringReference
 
     @Serializable
     @SerialName("url")
     data class Url(
         val url: kotlin.String,
-        val encoding: kotlin.String = "UTF-8",
-        override val base64: Boolean? = null
+        override val input: EncodingOptions? = null,
+        override val output: EncodingOptions? = null,
     ) : PotentialStringReference
 
     @Serializable
     @SerialName("constant")
     data class Constant(
         val name: kotlin.String,
-        override val base64: Boolean? = null
+        override val input: EncodingOptions? = null,
+        override val output: EncodingOptions? = null,
     ) : PotentialStringReference
 }
 
 open class RegistryAgentStringSerializer : KSerializer<String>, KoinComponent {
-    open val base64Default: Boolean = false
+    open fun defaultInputEncodingOptions(reference: PotentialStringReference) =
+        EncodingOptions()
+
+    open fun defaultOutputEncodingOptions(reference: PotentialStringReference) =
+        EncodingOptions()
 
     private val stringSerializer = PotentialStringReference.String.serializer()
     private val fileSerializer = PotentialStringReference.File.serializer()
@@ -195,7 +209,13 @@ open class RegistryAgentStringSerializer : KSerializer<String>, KoinComponent {
             else -> throw SerializationException("Unsupported decoder type: ${decoder::class.simpleName}")
         }
 
-        val text = when (reference) {
+        val inputEncodingOptions = reference.input ?: defaultInputEncodingOptions(reference)
+        val outputEncodingOptions = reference.output ?: defaultOutputEncodingOptions(reference)
+
+        val inputCharset = Charsets.forName(inputEncodingOptions.charset)
+        val outputCharset = Charsets.forName(outputEncodingOptions.charset)
+
+        val bytes = when (reference) {
             is PotentialStringReference.File -> {
                 val context = registryAgentSerializationContext.get()
                     ?: throw SerializationException("File references require a serialization context")
@@ -205,13 +225,13 @@ open class RegistryAgentStringSerializer : KSerializer<String>, KoinComponent {
 
                 val file = File(reference.path)
                 if (file.isAbsolute || context.agentFilePath == null) {
-                    file.readText(Charset.forName(reference.encoding))
+                    file.readBytes()
                 } else {
-                    context.agentFilePath.toFile().resolve(file).readText(Charset.forName(reference.encoding))
+                    context.agentFilePath.toFile().resolve(file).readBytes()
                 }
             }
 
-            is PotentialStringReference.String -> reference.value
+            is PotentialStringReference.String -> reference.value.toByteArray(inputCharset)
             is PotentialStringReference.Url -> {
                 val context = registryAgentSerializationContext.get()
                     ?: throw SerializationException("URL references require a serialization context")
@@ -220,29 +240,51 @@ open class RegistryAgentStringSerializer : KSerializer<String>, KoinComponent {
                     throw SerializationException("Url references are not enabled")
 
                 runBlocking {
-                    context.httpClient.get(reference.url).bodyAsText(Charset.forName(reference.encoding))
+                    context.httpClient.get(reference.url).bodyAsBytes()
                 }
             }
 
             is PotentialStringReference.Constant -> {
-                stringReferenceConstants[reference.name]
+                stringReferenceConstants[reference.name]?.toByteArray(inputCharset)
                     ?: throw SerializationException("Constant ${reference.name} not found")
             }
         }
 
-        val base64 = reference.base64 ?: base64Default
-        return if (base64) {
-            Base64.encode(text.encodeToByteArray())
+        // If input and output settings are equal, no transformation is required
+        if (inputEncodingOptions == outputEncodingOptions)
+            return String(bytes, outputCharset)
+
+        val inputBytes = if (inputEncodingOptions.base64) Base64.decode(bytes) else bytes
+        val inputText = String(inputBytes, inputCharset)
+
+        // The output character set is only important if outputting base64, otherwise the Java string type is used
+        return if (outputEncodingOptions.base64) {
+            Base64.encode(inputText.toByteArray(outputCharset))
         } else {
-            text
+            inputText
         }
     }
 
 }
 
+/**
+ * This class is used for blob options where default values for base64 encoding should be set
+ */
 class RegistryAgentBase64StringSerializer : RegistryAgentStringSerializer() {
-    override val base64Default: Boolean
-        get() = true
+    override fun defaultInputEncodingOptions(reference: PotentialStringReference): EncodingOptions {
+        return when (reference) {
+            is PotentialStringReference.Constant -> EncodingOptions()
+            is PotentialStringReference.File -> EncodingOptions()
+
+            // Inline strings should be written as base64 strings
+            is PotentialStringReference.String -> EncodingOptions(base64 = true)
+            is PotentialStringReference.Url -> EncodingOptions()
+        }
+    }
+
+    override fun defaultOutputEncodingOptions(reference: PotentialStringReference): EncodingOptions {
+        return EncodingOptions(base64 = true)
+    }
 }
 
 object RegistryAgentStringListSerializer :
