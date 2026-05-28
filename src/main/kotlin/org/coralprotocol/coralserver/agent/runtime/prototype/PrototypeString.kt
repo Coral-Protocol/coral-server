@@ -68,7 +68,10 @@ sealed class PrototypeString {
             for (part in parts) {
                 when (part) {
                     is PrototypeUrlPart.Path -> builder.appendPathSegments(part.value.resolve(agentOptions))
-                    is PrototypeUrlPart.QueryParameter -> builder.parameters.append(part.name, part.value.resolve(agentOptions))
+                    is PrototypeUrlPart.QueryParameter -> builder.parameters.append(
+                        part.name,
+                        part.value.resolve(agentOptions)
+                    )
                 }
             }
 
@@ -190,40 +193,60 @@ object PrototypeStringSerializer : KSerializer<PrototypeString> {
         }
     }
 
-    override fun deserialize(decoder: Decoder): PrototypeString {
+    override fun deserialize(decoder: Decoder
+                             ): PrototypeString {
+        // deserialization should allow inline strings to represent as string literals and should also
+        // support PotentialStringReference deserialization
         return when (decoder) {
-
-            // json should only support plain deserialization of discriminated option/inline subtypes
             is JsonDecoder -> {
-                val jsonObject = decoder.decodeJsonElement() as JsonObject
+                when (val element = decoder.decodeJsonElement()) {
+                    is JsonPrimitive if element.isString -> {
+                        try {
+                            PrototypeString.Inline(element.jsonPrimitive.content)
+                        } catch (_: IllegalArgumentException) {
+                            throw SerializationException("Unsupported json literal: $element")
+                        }
+                    }
 
-                when (val type = jsonObject[prototypeStringDiscriminator]?.jsonPrimitive?.content) {
-                    inlineSerializer.descriptor.serialName -> decoder.json.decodeFromJsonElement(
-                        inlineSerializer,
-                        JsonObject(jsonObject.filterKeys { it != prototypeStringDiscriminator })
-                    )
+                    is JsonObject -> {
+                        when (val type = element[prototypeStringDiscriminator]?.jsonPrimitive?.content) {
+                            inlineSerializer.descriptor.serialName -> decoder.json.decodeFromJsonElement(
+                                inlineSerializer,
+                                JsonObject(element.filterKeys { it != prototypeStringDiscriminator })
+                            )
 
-                    optionSerializer.descriptor.serialName -> decoder.json.decodeFromJsonElement(
-                        optionSerializer,
-                        JsonObject(jsonObject.filterKeys { it != prototypeStringDiscriminator })
-                    )
+                            optionSerializer.descriptor.serialName -> decoder.json.decodeFromJsonElement(
+                                optionSerializer,
+                                JsonObject(element.filterKeys { it != prototypeStringDiscriminator })
+                            )
 
-                    composedStringSerializer.descriptor.serialName -> decoder.json.decodeFromJsonElement(
-                        composedStringSerializer,
-                        JsonObject(jsonObject.filterKeys { it != prototypeStringDiscriminator })
-                    )
+                            composedStringSerializer.descriptor.serialName -> decoder.json.decodeFromJsonElement(
+                                composedStringSerializer,
+                                JsonObject(element.filterKeys { it != prototypeStringDiscriminator })
+                            )
 
-                    composedUrlSerializer.descriptor.serialName -> decoder.json.decodeFromJsonElement(
-                        composedUrlSerializer,
-                        JsonObject(jsonObject.filterKeys { it != prototypeStringDiscriminator })
-                    )
+                            composedUrlSerializer.descriptor.serialName -> decoder.json.decodeFromJsonElement(
+                                composedUrlSerializer,
+                                JsonObject(element.filterKeys { it != prototypeStringDiscriminator })
+                            )
 
-                    else -> throw SerializationException("Unknown type: $type")
+                            else -> {
+                                PrototypeString.Inline(
+                                    decoder.json.decodeFromJsonElement(
+                                        RegistryAgentStringSerializer(),
+                                        element
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    else -> {
+                        throw SerializationException("Unsupported json element: $element")
+                    }
                 }
             }
 
-            // TOML deserialization should allow inline strings to represent as string literals and should also
-            // support PotentialStringReference deserialization
             is TomlDecoder -> {
                 val tomlElement = decoder.decodeTomlElement()
                 try {

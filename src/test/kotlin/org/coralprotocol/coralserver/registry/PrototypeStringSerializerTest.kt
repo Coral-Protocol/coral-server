@@ -1,15 +1,20 @@
 package org.coralprotocol.coralserver.registry
 
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.engine.spec.tempfile
 import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.registry.AGENT_LLM_PROXY_NAME_LENGTH
 import org.coralprotocol.coralserver.agent.registry.MAXIMUM_SUPPORTED_AGENT_VERSION
 import org.coralprotocol.coralserver.agent.registry.UnresolvedRegistryAgent
+import org.coralprotocol.coralserver.agent.registry.stringReferenceConstants
 import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeString
 import org.koin.test.inject
 import java.io.File
@@ -67,5 +72,78 @@ class PrototypeStringSerializerTest : CoralTest({
 
         agent.runtimes.prototypeRuntime.shouldNotBeNull()
             .proxyName.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual(uuid)
+    }
+
+    test("testJsonPrototypeStrings") {
+        val json by inject<Json>()
+
+        // discriminated inline
+        var value = UUID.randomUUID().toString()
+        json.decodeFromString(
+            PrototypeString.serializer(),
+            """
+                {
+                  "type": "inline",
+                  "value": "$value"
+                }
+            """.trimIndent()
+        ).shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual(value)
+
+        // discriminated option
+        value = UUID.randomUUID().toString()
+        json.decodeFromString(
+            PrototypeString.serializer(),
+            """
+                {
+                  "type": "option",
+                  "name": "$value"
+                }
+            """.trimIndent()
+        ).shouldBeInstanceOf<PrototypeString.Option>().name.shouldBeEqual(value)
+
+        // string literal
+        value = UUID.randomUUID().toString()
+        json.decodeFromString(PrototypeString.serializer(), "\"$value\"")
+            .shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual(value)
+
+        // string constant reference
+        // discriminated inline
+        var (constantName, constantValue) = stringReferenceConstants.entries.first()
+        json.decodeFromString(
+            PrototypeString.serializer(),
+            """
+                {
+                  "type": "constant",
+                  "name": "$constantName"
+                }
+            """.trimIndent()
+        ).shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual(constantValue)
+
+        // url reference (should not be allowed)
+        shouldThrow<SerializationException> {
+            json.decodeFromString(
+                PrototypeString.serializer(),
+                """
+                    {
+                      "type": "url",
+                      "url": "https://google.se"
+                    }
+                """.trimIndent()
+            ).shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual(constantValue)
+        }
+
+        // file reference (should not be allowed)
+        shouldThrow<SerializationException> {
+            val file = tempfile("test.txt")
+            json.decodeFromString(
+                PrototypeString.serializer(),
+                """
+                    {
+                      "type": "file",
+                      "file": "$file"
+                    }
+                """.trimIndent()
+            ).shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual(constantValue)
+        }
     }
 })
