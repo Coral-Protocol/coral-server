@@ -4,6 +4,8 @@ package org.coralprotocol.coralserver.session
 
 import io.ktor.utils.io.*
 import kotlinx.coroutines.flow.update
+import org.coralprotocol.coralserver.agent.execution.ExecutionTrustPolicy
+import org.coralprotocol.coralserver.agent.execution.resolveTrustPolicy
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.registry.option.*
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
@@ -13,6 +15,7 @@ import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.DebugConfig
 import org.coralprotocol.coralserver.config.DockerConfig
 import org.coralprotocol.coralserver.config.LlmProxyConfig
+import org.coralprotocol.coralserver.config.SecurityConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.session.reporting.SessionAgentUsageReport
@@ -42,10 +45,14 @@ class SessionAgentExecutionContext(
     val debugConfig by inject<DebugConfig>()
     val dockerConfig by inject<DockerConfig>()
     val llmProxyConfig by inject<LlmProxyConfig>()
+    val securityConfig by inject<SecurityConfig>()
 
     val disposableResources = mutableListOf<SessionAgentDisposableResource>()
 
     var lastLaunchTime: Instant? = null
+
+    val executionPolicy: ExecutionTrustPolicy =
+        registryAgent.identifier.registrySourceId.resolveTrustPolicy(dockerConfig, securityConfig)
 
     /**
      * A list of usage reports for this agent.  When a session ends, all usage reports for each agent will be sent to
@@ -84,6 +91,18 @@ class SessionAgentExecutionContext(
                 putAll(debugConfig.additionalExecutableEnvironment)
             } else if (provider.runtime == RuntimeId.DOCKER) {
                 putAll(debugConfig.additionalDockerEnvironment)
+            }
+
+            // Read-only rootfs + non-root UID (e.g. distroless 'nonroot' UID 65532) leaves the agent without a
+            // writable HOME and without a /etc/passwd entry, so libraries that derive paths via getpwuid() land
+            // on /nonexistent. Redirect HOME/TMPDIR/XDG_* into the tmpfs scratch so caches and config writes
+            // succeed without giving the agent write access to the rootfs.
+            if (isContainer && executionPolicy.docker.requiresWritableTmpHome) {
+                this["HOME"] = dockerConfig.containerTemporaryDirectory
+                this["TMPDIR"] = dockerConfig.containerTemporaryDirectory
+                this["XDG_CACHE_HOME"] = "${dockerConfig.containerTemporaryDirectory}/.cache"
+                this["XDG_CONFIG_HOME"] = "${dockerConfig.containerTemporaryDirectory}/.config"
+                this["XDG_DATA_HOME"] = "${dockerConfig.containerTemporaryDirectory}/.local/share"
             }
 
             // User options

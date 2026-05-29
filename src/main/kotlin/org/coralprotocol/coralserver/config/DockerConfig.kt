@@ -1,8 +1,6 @@
 package org.coralprotocol.coralserver.config
 
-import com.sksamuel.hoplite.ConfigAlias
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.agent.execution.DockerExecutionTrustPolicy
 import org.coralprotocol.coralserver.util.isWindows
 import java.io.File
 
@@ -48,6 +46,13 @@ private fun defaultDockerSocket(): String {
         }
     }
 }
+
+// 64 MiB tmpfs scratch for the agent's writable temp dir.  Flags block privilege-escalation via the writable
+// mount (noexec, nosuid, nodev); size is small enough to bound abuse but large enough for typical caches,
+// sockets, and small file-transport option payloads.
+private fun defaultDockerTmpFs(): Map<String, String> = mapOf(
+    "/tmp" to "rw,noexec,nosuid,nodev,size=64m"
+)
 
 data class DockerConfig(
     /**
@@ -97,5 +102,26 @@ data class DockerConfig(
      *
      * @see [containerPathSeparator]
      */
-    val containerTemporaryDirectory: String = "/tmp"
+    val containerTemporaryDirectory: String = "/tmp",
+
+    /**
+     * Container execution profile for locally-registered (trusted) agents. Permissive by default — the operator
+     * ships and runs their own code here, so only the tmpfs scratch is locked down.
+     */
+    val trusted: DockerExecutionTrustPolicy = DockerExecutionTrustPolicy(
+        tmpFs = defaultDockerTmpFs(),
+    ),
+
+    /**
+     * Container execution profile for marketplace and linked-source (untrusted) agents.  Read-only rootfs,
+     * distroless 'nonroot' UID, ~1 vCPU and 512 MiB. The image MUST ship the 65532 UID/GID — agents that
+     * require root will fail at container start.
+     */
+    val marketplace: DockerExecutionTrustPolicy = DockerExecutionTrustPolicy(
+        readOnlyRootFilesystem = true,
+        nanoCpus = 1_000_000_000, // Docker nano-CPU units: 1e9 == 1 vCPU
+        memoryLimitBytes = 512L * 1024L * 1024L, // 512 MiB
+        user = "65532:65532", // distroless 'nonroot' UID/GID
+        tmpFs = defaultDockerTmpFs(),
+    ),
 )

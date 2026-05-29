@@ -27,9 +27,14 @@ import org.coralprotocol.coralserver.config.*
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.modules.*
 import org.coralprotocol.coralserver.modules.ktor.coralServerModule
+import org.coralprotocol.coralserver.payment.BlankBlockchainService
+import org.coralprotocol.coralserver.payment.BlankX402Service
+import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.utils.TestProxy
 import org.coralprotocol.coralserver.utils.TestProxyConfiguration
+import org.coralprotocol.payment.blockchain.BlockchainService
+import org.coralprotocol.payment.blockchain.X402Service
 import org.koin.core.context.loadKoinModules
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
@@ -145,6 +150,7 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                                 registryConfig = RegistryConfig(
                                                     includeDebugAgents = true,
                                                     includeCoralHomeAgents = false,
+                                                    watchLocalAgents = false,
                                                     localAgents = listOf()
                                                 ),
                                                 authConfig = AuthConfig(
@@ -211,7 +217,11 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                             }
                                         }
                                     },
-                                    blockchainModule,
+                                    module {
+                                        singleOf(::JupiterService)
+                                        single<BlockchainService> { BlankBlockchainService() }
+                                        single<X402Service> { BlankX402Service() }
+                                    },
                                     agentModule,
                                     module {
                                         single {
