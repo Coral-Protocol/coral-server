@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.3.0](https://github.com/Coral-Protocol/coral-server/compare/v1.2.0...v1.3.0) (2026-05-29)
+
+
+### Features
+
+* add the base exponent as a configuration property ([5da1a21](https://github.com/Coral-Protocol/coral-server/commit/5da1a215d1f443757605225e71177c70c449a224))
+* added encoding/decoding for ByteSize with tests ([5da1a21](https://github.com/Coral-Protocol/coral-server/commit/5da1a215d1f443757605225e71177c70c449a224))
+* better exceptions from string reference serializer (bad discriminated types used to revert to string decoding rather than reporting any error from those discriminated types) ([792725a](https://github.com/Coral-Protocol/coral-server/commit/792725aee723ed52044418be51d7954c3e6f28b5))
+* bump console to version v0.3.15 ([b6fb55d](https://github.com/Coral-Protocol/coral-server/commit/b6fb55d2ab797a7403bd826cd3cccf7e56f2637a))
+* constant references no longer require a serialization context ([792725a](https://github.com/Coral-Protocol/coral-server/commit/792725aee723ed52044418be51d7954c3e6f28b5))
+* maxStreamCharsUTF8 renamed to maxStreamChars which now counts using bytes instead of UTF-8 chars ([5da1a21](https://github.com/Coral-Protocol/coral-server/commit/5da1a215d1f443757605225e71177c70c449a224))
+* PrototypeString now allows inline strings and string constant references ([792725a](https://github.com/Coral-Protocol/coral-server/commit/792725aee723ed52044418be51d7954c3e6f28b5))
+* rename configuration properties around retry delays to make it easier to understand ([5da1a21](https://github.com/Coral-Protocol/coral-server/commit/5da1a215d1f443757605225e71177c70c449a224))
+* replace ValidationFileSize and BinaryByteSize with ByteSize ([5da1a21](https://github.com/Coral-Protocol/coral-server/commit/5da1a215d1f443757605225e71177c70c449a224))
+
+
+### Bug Fixes
+
+* decodeBase64Bytes/encodeBase64Bytes replaced with Base64.decode and Base64.encode ([64e3699](https://github.com/Coral-Protocol/coral-server/commit/64e3699b95c2f9c8cd272bb517604df8f21d138e))
+* more comprehensive base64/encoding support for potential string references (fixes bug with blob defaults) ([64e3699](https://github.com/Coral-Protocol/coral-server/commit/64e3699b95c2f9c8cd272bb517604df8f21d138e))
+* proxies field in GraphAgentRequest is now optional ([66fb046](https://github.com/Coral-Protocol/coral-server/commit/66fb046416b5536bf02cc0146eaa8df431e1b673))
+* update expected exceptions for registry agent string serialization ([93f79fe](https://github.com/Coral-Protocol/coral-server/commit/93f79fec3a4238c32edfa0960326835fed7c9c52))
+
 ## [1.2.0](https://github.com/Coral-Protocol/coral-server/compare/v1.1.0...v1.2.0) (2026-05-08)
 
 
