@@ -1,0 +1,1 @@
+{"version":3,"file":"legacy.js","sourceRoot":"","sources":["../../src/platform/legacy.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,aAAa,EAAE,MAAM,aAAa,CAAC;AAE5C,MAAM,OAAO,GAAG,aAAa,CAAC,MAAM,CAAC,IAAI,CAAC,GAAG,CAAC,CAAC;AAwB/C,MAAM,CAAC,MAAM,aAAa,GAAG,OAAO,CAAC,0BAA0B,CAAkB,CAAC;AAElF,MAAM,CAAC,MAAM,SAAS,GAAG,OAAO,CAAC,qBAAqB,CAGrD,CAAC"}

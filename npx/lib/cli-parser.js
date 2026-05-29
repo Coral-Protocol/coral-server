@@ -21,7 +21,7 @@ function parseCliArgs(argv) {
   let subcommandArgs = [];
   let cliFlags = {};
   
-  const knownCliFlags = ['config-profile', 'from-source', 'help'];
+  const knownCliFlags = ['config-profile', 'from-source', 'help', 'cloud.api-key', 'auth.key', 'yes'];
   const positional = [];
   const unrecognizedFlags = [];
   const knownFlagsUsed = [];
@@ -93,6 +93,9 @@ function printUsage() {
   console.log('Options:');
   console.log('  --config-profile=<name>   Use a named config profile from ~/.coral/config-profiles/');
   console.log('  --from-source[=<branch>]  Build and run from source code (optional branch name, defaults to master)');
+  console.log('  --cloud.api-key=<key>     Configure Coral Cloud API key without opening the TUI');
+  console.log('  --auth.key=<key>          Configure server API auth key without opening the TUI');
+  console.log('  --yes                     Confirm non-interactive configure commands');
   console.log('  --help                    Show this help message');
   console.log('');
   console.log('  Note: All parameters after the -- separator are passed verbatim to the server.');
@@ -100,6 +103,7 @@ function printUsage() {
   console.log('Examples:');
   console.log(`  npx coralos-dev@${version} server start --config-profile=dev -- --auth.keys=dev`);
   console.log(`  npx coralos-dev@${version} server configure dev`);
+  console.log(`  npx coralos-dev@${version} server configure dev --cloud.api-key=ck_... --auth.key=dev --yes`);
 }
 
 module.exports = {

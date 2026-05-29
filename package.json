@@ -9,6 +9,9 @@
     "npx/",
     "bin/coral-server.jar"
   ],
+  "scripts": {
+    "build:npx": "tsc -p tsconfig.npx.json"
+  },
   "engines": {
     "node": ">=22"
   },
@@ -29,5 +32,10 @@
     "ink-select-input": "^6.2.0",
     "ink-text-input": "^6.0.0",
     "react": "^19.2.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.15",
+    "typescript": "^6.0.3"
   }
 }

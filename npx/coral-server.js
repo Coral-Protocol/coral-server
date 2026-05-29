@@ -7,7 +7,8 @@ const { runSetupWizard } = require('./lib/wizard');
 const { 
   ensureConfigProfileDir, 
   getConfigProfilePath, 
-  generateDefaultConfig 
+  generateDefaultConfig,
+  buildConfigFromWizardResults
 } = require('./lib/config-manager');
 
 async function main() {
@@ -47,6 +48,24 @@ async function main() {
         fs.writeFileSync(profilePath, generateDefaultConfig());
         console.log(`File created at ${profilePath}`);
       }
+
+      if (cliFlags['cloud.api-key'] || cliFlags['auth.key']) {
+        if (!cliFlags['yes'] && process.stdin.isTTY) {
+          console.error('Error: Non-interactive configure requires --yes.');
+          console.error(`Usage: npx coralos-dev@${require('../package.json').version} server configure ${profileName} --cloud.api-key=<key> --auth.key=<key> --yes`);
+          process.exit(1);
+        }
+
+        const config = buildConfigFromWizardResults(
+          [],
+          cliFlags['auth.key'] || null,
+          cliFlags['cloud.api-key'] || null
+        );
+        fs.writeFileSync(profilePath, config);
+        console.log(`Configuration saved to ${profilePath}`);
+        break;
+      }
+
       await runSetupWizard(profileName, { hasAuthKeysArg: false, isStartCommand: false });
       break;
     }
