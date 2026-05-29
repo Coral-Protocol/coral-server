@@ -21,6 +21,18 @@
 
 ## How to Run
 
+### Using npx
+
+If you have Node.js installed, you can run the server directly using `npx`:
+```bash
+npx coral-server@1.1.0 start --auth.keys=dev
+```
+
+You can also force the server to run from source code (cloning/updating the repository in `~/.coral/source`) by using the `--from-source` flag as the first argument:
+```bash
+npx coral-server --from-source start --auth.keys=dev
+```
+
 ### Using Gradle
 
 Clone this repository, and in that folder run:
@@ -73,17 +85,17 @@ The server uses [Hoplite](https://github.com/sksamuel/hoplite) for configuration
 
 Examples:
 
-| TOML Config | Command-line Argument                  |
-| :--- |:---------------------------------------|
-| `[auth]`<br/>`keys = ["a", "b"]` | `--auth.keys=a,b`                      |
-| `[network]`<br/>`bindPort = 8080` | `--network.bind-port=8080`             |
+| TOML Config                                  | Command-line Argument                  |
+|:---------------------------------------------|:---------------------------------------|
+| `[auth]`<br/>`keys = ["a", "b"]`             | `--auth.keys=a,b`                      |
+| `[network]`<br/>`bindPort = 8080`            | `--network.bind-port=8080`             |
 | `[registry]`<br/>`includeDebugAgents = true` | `--registry.include-debug-agents=true` |
 
 (camel-case forms for still work for command-line args)
 
 ## Contribution Guidelines
 
-We welcome contributions! Email us at [hello@coralos.ai](mailto:hello@coralos.au) or join our Discord [here](https://discord.gg/rMQc2uWXhj) to connect with the developer team. Feel free to open issues or submit pull requests.
+We welcome contributions! Email us at [hello@coralos.ai](mailto:hello@coralos.ai) or join our Discord [here](https://discord.gg/rMQc2uWXhj) to connect with the developer team. Feel free to open issues or submit pull requests.
 
 Thanks for checking out the project, we hope you like it!
 
