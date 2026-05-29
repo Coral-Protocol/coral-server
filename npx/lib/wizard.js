@@ -1,44 +1,390 @@
 const { spawnSync } = require('child_process');
 const fs = require('fs');
-const { pkg, LLM_PROVIDERS, IS_WINDOWS } = require('./constants');
-const { askQuestion } = require('./utils');
-const { 
-  getConfigProfilePath, 
-  ensureConfigProfileDir, 
-  generateDefaultConfig, 
-  buildConfigFromWizardResults 
+const { pkg, IS_WINDOWS } = require('./constants');
+const {
+  getConfigProfilePath,
+  ensureConfigProfileDir,
+  generateDefaultConfig,
+  buildConfigFromWizardResults
 } = require('./config-manager');
 
-async function testLlmProvider(providerId, apiKey) {
-  try {
-    if (providerId === 'openai') {
-      const result = spawnSync('curl', [
-        '-s', '-o', '/dev/null', '-w', '%{http_code}',
-        '-H', `Authorization: Bearer ${apiKey}`,
-        'https://api.openai.com/v1/models',
-      ], { encoding: 'utf8', timeout: 15000 });
-      return result.stdout && result.stdout.trim() === '200';
-    } else if (providerId === 'anthropic') {
-      const result = spawnSync('curl', [
-        '-s', '-o', '/dev/null', '-w', '%{http_code}',
-        '-H', `x-api-key: ${apiKey}`,
-        '-H', 'anthropic-version: 2023-06-01',
-        'https://api.anthropic.com/v1/models',
-      ], { encoding: 'utf8', timeout: 15000 });
-      const code = result.stdout ? result.stdout.trim() : '';
-      return code === '200';
-    } else if (providerId === 'openrouter') {
-      const result = spawnSync('curl', [
-        '-s', '-o', '/dev/null', '-w', '%{http_code}',
-        '-H', `Authorization: Bearer ${apiKey}`,
-        'https://openrouter.ai/api/v1/models',
-      ], { encoding: 'utf8', timeout: 15000 });
-      return result.stdout && result.stdout.trim() === '200';
-    }
-  } catch (e) {
-    return false;
+async function loadInk() {
+  const ReactModule = await import('react');
+  const ink = await import('ink');
+  const SelectInputModule = await import('ink-select-input');
+  const TextInputModule = await import('ink-text-input');
+
+  return {
+    React: ReactModule.default || ReactModule,
+    ink,
+    SelectInput: SelectInputModule.default,
+    TextInput: TextInputModule.default
+  };
+}
+
+function maskValue(value) {
+  if (!value) return 'Not set';
+  if (value.length <= 8) return '*'.repeat(value.length);
+  return `${value.slice(0, 4)}${'*'.repeat(Math.min(12, value.length - 8))}${value.slice(-4)}`;
+}
+
+function runInkApp(App, props = {}) {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    return Promise.reject(new Error('The setup wizard requires an interactive terminal.'));
   }
-  return false;
+
+  return loadInk().then(({ React, ink, SelectInput, TextInput }) => new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = value => {
+      settled = true;
+      resolve(value);
+    };
+
+    const instance = ink.render(React.createElement(App, {
+      ...props,
+      finish,
+      React,
+      ink,
+      SelectInput,
+      TextInput
+    }), {
+      exitOnCtrlC: true
+    });
+
+    instance.waitUntilExit().then(() => {
+      if (!settled) resolve(null);
+    }).catch(reject);
+  }));
+}
+
+function FieldRow({ React, ink, label, value, muted = false }) {
+  const { Box, Text } = ink;
+  return React.createElement(Box, { flexDirection: 'row' },
+    React.createElement(Box, { width: 15 },
+      React.createElement(Text, { color: muted ? 'gray' : undefined }, label)
+    ),
+    React.createElement(Text, { color: value === 'Not set' ? 'yellow' : 'green' }, value)
+  );
+}
+
+function StatusPanel({ React, ink, profileName, profilePath, hasAuthKeysArg, authKey, cloudApiKey }) {
+  const { Box, Text } = ink;
+  return React.createElement(Box, {
+    borderStyle: 'round',
+    borderColor: 'gray',
+    flexDirection: 'column',
+    paddingX: 1,
+    paddingY: 1,
+    width: 40,
+    marginRight: 2
+  },
+    React.createElement(Text, { bold: true }, 'Profile'),
+    React.createElement(Text, { color: 'cyan' }, profileName),
+    React.createElement(Text, { color: 'gray', wrap: 'truncate-middle' }, profilePath),
+    React.createElement(Box, { marginTop: 1, flexDirection: 'column' },
+      React.createElement(Text, { bold: true }, 'Setup State'),
+      React.createElement(FieldRow, {
+        React,
+        ink,
+        label: 'Server auth',
+        value: hasAuthKeysArg ? 'CLI argument' : maskValue(authKey.trim()),
+        muted: hasAuthKeysArg
+      }),
+      React.createElement(FieldRow, {
+        React,
+        ink,
+        label: 'Coral Cloud',
+        value: maskValue(cloudApiKey.trim())
+      }),
+      React.createElement(FieldRow, {
+        React,
+        ink,
+        label: 'LLM providers',
+        value: 'Manual'
+      })
+    )
+  );
+}
+
+function DividerLine({ React, ink, title }) {
+  const { Box, Text } = ink;
+  const label = title ? ` ${title} ` : '';
+  const left = '-'.repeat(title ? 18 : 72);
+  const right = title ? '-'.repeat(42) : '';
+
+  return React.createElement(Box, null,
+    React.createElement(Text, { color: 'gray' }, left),
+    title ? React.createElement(Text, { color: 'cyan' }, label) : null,
+    right ? React.createElement(Text, { color: 'gray' }, right) : null
+  );
+}
+
+function Shell({ React, ink, profileName, profilePath, children, footer }) {
+  const { Box, Text } = ink;
+  return React.createElement(Box, { flexDirection: 'column', paddingX: 1 },
+    React.createElement(Box, { flexDirection: 'column' },
+      React.createElement(Text, { bold: true, color: 'cyan' }, 'Coral Server setup'),
+      React.createElement(Text, { color: 'gray' }, `Profile "${profileName}" at ${profilePath}`),
+      React.createElement(DividerLine, { React, ink, title: 'configuration' })
+    ),
+    children,
+    React.createElement(Box, { marginTop: 1, flexDirection: 'column' },
+      React.createElement(DividerLine, { React, ink }),
+      React.createElement(Text, { color: 'gray' }, footer || 'Arrow keys: move  Enter: select  Esc/q: exit')
+    )
+  );
+}
+
+function MainMenu({ React, ink, SelectInput, hasAuthKeysArg, onSelect }) {
+  const { Box, Text } = ink;
+  const items = [
+    ...(!hasAuthKeysArg ? [{
+      label: 'Edit server API auth key',
+      value: 'edit-auth'
+    }] : []),
+    {
+      label: 'Edit Coral Cloud API key',
+      value: 'edit-cloud'
+    },
+    {
+      label: 'Save configuration',
+      value: 'save'
+    },
+    {
+      label: 'Exit without saving',
+      value: 'exit'
+    }
+  ];
+
+  return React.createElement(Box, { flexDirection: 'column', flexGrow: 1 },
+    React.createElement(Text, { bold: true }, 'Actions'),
+    React.createElement(Text, { color: 'gray' }, 'Use the arrow keys to choose what to configure.'),
+    React.createElement(Box, { marginTop: 1 },
+      React.createElement(SelectInput, {
+        items,
+        limit: 8,
+        onSelect: item => onSelect(item.value)
+      })
+    )
+  );
+}
+
+function EditorPane({ React, ink, TextInput, title, description, value, setValue, onDone, onCancel }) {
+  const { Box, Text, useInput } = ink;
+
+  useInput((input, key) => {
+    if (key.return || /[\r\n]/.test(input)) onDone();
+    if (key.escape) onCancel();
+    if (input === 'u' && key.ctrl) setValue('');
+  });
+
+  return React.createElement(Box, { flexDirection: 'column', flexGrow: 1 },
+    React.createElement(Text, { bold: true }, title),
+    React.createElement(Text, { color: 'gray' }, description),
+    React.createElement(Box, { marginTop: 1 },
+      React.createElement(Text, { color: 'cyan' }, '> '),
+      React.createElement(TextInput, {
+        value,
+        onChange: nextValue => setValue(nextValue.replace(/[\r\n]/g, '')),
+        onSubmit: onDone,
+        mask: '*',
+        placeholder: 'leave blank to skip',
+        showCursor: true
+      })
+    ),
+    React.createElement(Box, { marginTop: 1, flexDirection: 'column' },
+      React.createElement(Text, { color: 'gray' }, 'Enter: accept value  Ctrl+U: clear field  Esc: return to actions'),
+      React.createElement(Text, { color: 'gray' }, 'Secrets are masked on screen and written to the selected config profile.')
+    )
+  );
+}
+
+function ConfirmPane({ React, ink, SelectInput, title, message, confirmLabel, cancelLabel, onConfirm, onCancel }) {
+  const { Box, Text, useInput } = ink;
+
+  useInput((input, key) => {
+    if (key.escape || input === 'q') onCancel();
+  });
+
+  return React.createElement(Box, { flexDirection: 'column', flexGrow: 1 },
+    React.createElement(Text, { bold: true }, title),
+    React.createElement(Text, { color: 'gray' }, message),
+    React.createElement(Box, { marginTop: 1 },
+      React.createElement(SelectInput, {
+        items: [
+          { label: confirmLabel, value: true },
+          { label: cancelLabel, value: false }
+        ],
+        onSelect: item => item.value ? onConfirm() : onCancel()
+      })
+    )
+  );
+}
+
+function WizardApp({ React, ink, SelectInput, TextInput, finish, profileName, hasAuthKeysArg, isStartCommand }) {
+  const { Box, Text, useApp, useInput } = ink;
+  const { exit } = useApp();
+  const [view, setView] = React.useState('menu');
+  const [authKey, setAuthKey] = React.useState('');
+  const [cloudApiKey, setCloudApiKey] = React.useState('');
+  const profilePath = getConfigProfilePath(profileName);
+  const isEditing = view === 'edit-auth' || view === 'edit-cloud';
+
+  const close = result => {
+    finish(result);
+    exit();
+  };
+
+  useInput((input, key) => {
+    if (isEditing) return;
+
+    if (key.escape || input === 'q') {
+      setView('confirm-exit');
+    }
+  });
+
+  let content;
+  let footer = 'Arrow keys: move  Enter: select  Esc/q: exit';
+
+  if (view === 'edit-auth') {
+    content = React.createElement(EditorPane, {
+      React,
+      ink,
+      TextInput,
+      title: isStartCommand ? 'Server API auth key' : 'Server API auth key',
+      description: isStartCommand
+        ? 'Recommended before starting: clients use this key to authenticate with your local Coral Server API.'
+        : 'Optional: clients use this key to authenticate with your local Coral Server API.',
+      value: authKey,
+      setValue: setAuthKey,
+      onDone: () => setView('menu'),
+      onCancel: () => setView('menu')
+    });
+    footer = 'Enter: accept  Ctrl+U: clear  Esc: back';
+  } else if (view === 'edit-cloud') {
+    content = React.createElement(EditorPane, {
+      React,
+      ink,
+      TextInput,
+      title: 'Coral Cloud API key',
+      description: 'Configures cloud-backed LLM proxy access through [cloud].apiKey. Create a key at https://coralcloud.ai/account.',
+      value: cloudApiKey,
+      setValue: setCloudApiKey,
+      onDone: () => setView('menu'),
+      onCancel: () => setView('menu')
+    });
+    footer = 'Enter: accept  Ctrl+U: clear  Esc: back';
+  } else if (view === 'save') {
+    content = React.createElement(ConfirmPane, {
+      React,
+      ink,
+      SelectInput,
+      title: 'Save configuration?',
+      message: 'This will rewrite the selected profile using the current wizard selections.',
+      confirmLabel: 'Save and exit',
+      cancelLabel: 'Return to actions',
+      onConfirm: () => close({
+        action: 'save',
+        authKey: hasAuthKeysArg ? null : authKey.trim(),
+        cloudApiKey: cloudApiKey.trim()
+      }),
+      onCancel: () => setView('menu')
+    });
+    footer = 'Arrow keys: choose  Enter: confirm  Esc/q: back';
+  } else if (view === 'confirm-exit') {
+    content = React.createElement(ConfirmPane, {
+      React,
+      ink,
+      SelectInput,
+      title: 'Exit without saving?',
+      message: 'No changes will be written to the profile.',
+      confirmLabel: 'Exit without saving',
+      cancelLabel: 'Return to actions',
+      onConfirm: () => close({ action: 'cancel' }),
+      onCancel: () => setView('menu')
+    });
+    footer = 'Arrow keys: choose  Enter: confirm  Esc/q: back';
+  } else {
+    content = React.createElement(Box, { flexDirection: 'column', flexGrow: 1 },
+      React.createElement(MainMenu, {
+        React,
+        ink,
+        SelectInput,
+        hasAuthKeysArg,
+        onSelect: action => {
+          if (action === 'save') setView('save');
+          else if (action === 'exit') setView('confirm-exit');
+          else setView(action);
+        }
+      }),
+      React.createElement(Box, { marginTop: 1, flexDirection: 'column' },
+        React.createElement(Text, { color: 'gray' }, 'Coral Cloud is the supported default for LLM proxy setup in this wizard.'),
+        React.createElement(Text, { color: 'gray' }, 'Direct OpenAI, Anthropic, or other provider blocks can still be edited manually in the config file.')
+      )
+    );
+  }
+
+  return React.createElement(Shell, {
+    React,
+    ink,
+    profileName,
+    profilePath,
+    footer
+  },
+    React.createElement(Box, { flexDirection: 'row' },
+      React.createElement(StatusPanel, {
+        React,
+        ink,
+        profileName,
+        profilePath,
+        hasAuthKeysArg,
+        authKey,
+        cloudApiKey
+      }),
+      content
+    )
+  );
+}
+
+function FirstRunApp({ React, ink, SelectInput, finish, profileName }) {
+  const { Box, Text, useApp, useInput } = ink;
+  const { exit } = useApp();
+  const profilePath = getConfigProfilePath(profileName);
+  const choices = [
+    { label: 'Run setup wizard', value: 'wizard' },
+    { label: 'Edit config with $EDITOR', value: 'editor' },
+    { label: 'Continue with empty config', value: 'continue' },
+    { label: 'Exit', value: 'exit' }
+  ];
+
+  useInput((input, key) => {
+    if (key.escape || input === 'q') {
+      finish('exit');
+      exit();
+    }
+  });
+
+  return React.createElement(Shell, {
+    React,
+    ink,
+    profileName,
+    profilePath,
+    footer: 'Arrow keys: move  Enter: select  Esc/q: exit'
+  },
+    React.createElement(Box, { flexDirection: 'column' },
+      React.createElement(Text, { bold: true }, 'New profile created'),
+      React.createElement(Text, { color: 'gray' }, 'Choose the next step for this profile.'),
+      React.createElement(Box, { marginTop: 1 },
+        React.createElement(SelectInput, {
+          items: choices,
+          onSelect: item => {
+            finish(item.value);
+            exit();
+          }
+        })
+      )
+    )
+  );
 }
 
 async function runSetupWizard(profileName, options = {}) {
@@ -46,101 +392,24 @@ async function runSetupWizard(profileName, options = {}) {
   const profilePath = getConfigProfilePath(profileName);
   const version = pkg.version;
 
-  console.log(`\nWelcome! You can run through this wizard at any time by running this command:`);
-  console.log(`  npx coralos-dev@${version} server configure ${profileName}\n`);
+  console.log(`\nRun this wizard any time with:`);
+  console.log(`  npx ${pkg.name}@${version} server configure ${profileName}\n`);
 
-  let authKey = null;
-  if (!hasAuthKeysArg) {
-    const prompt = isStartCommand ? 
-      'Enter an API key for your Coral Server (required for auth, press Enter to skip): ' : 
-      'Enter an API key for your Coral Server (optional, press Enter to skip): ';
-    authKey = await askQuestion(prompt);
-    
-    if (!authKey && isStartCommand) {
-       console.log('\nContinuing without a key. You might need to provide one later via --auth.keys\n');
-    }
+  const result = await runInkApp(WizardApp, {
+    profileName,
+    hasAuthKeysArg,
+    isStartCommand
+  });
+
+  if (!result || result.action !== 'save') {
+    console.log('Configuration unchanged.');
+    return false;
   }
 
-  // Step 1: Coral Cloud API key
-  console.log('First, lets setup the LLM proxy.');
-  console.log('Please visit https://coralcloud.ai/account and create an API key.');
-  console.log('This will be used for running third party agents, and in the near future for LLM inference.\n');
-
-  const coralApiKey = await askQuestion('Enter your Coral Cloud API key (or press Enter to skip): ');
-
-  if (coralApiKey) {
-    console.log('API key will be saved to your configuration file.\n');
-  }
-
-  // Step 2: LLM providers
-  console.log('Please choose the LLM providers that you\'d like to use:\n');
-
-  const configuredProviders = [];
-
-  for (const provider of LLM_PROVIDERS) {
-    const apiKey = await askQuestion(`Enter API key for ${provider.name} (or press Enter to skip and set later): `);
-
-    if (!apiKey) {
-      console.log(`  Skipped ${provider.name}.\n`);
-      continue;
-    }
-
-    console.log(`  Testing ${provider.name}...`);
-    const works = await testLlmProvider(provider.id, apiKey);
-
-    if (works) {
-      console.log(`  ✓ ${provider.name} is working!\n`);
-      configuredProviders.push({ id: provider.id, apiKey, working: true });
-    } else {
-      console.log(`  ✗ ${provider.name} test failed.\n`);
-      configuredProviders.push({ id: provider.id, apiKey, working: false });
-    }
-  }
-
-  // Check if any working providers
-  const workingCount = configuredProviders.filter(p => p.working).length;
-  const failedProviders = configuredProviders.filter(p => !p.working);
-
-  if (failedProviders.length > 0) {
-    console.log('\nThe following providers failed validation:');
-    for (const p of failedProviders) {
-      const provider = LLM_PROVIDERS.find(lp => lp.id === p.id);
-      console.log(`  - ${provider.name}`);
-    }
-
-    if (workingCount === 0) {
-      console.log('\n⚠  No working LLM providers configured. It is highly recommended to have at least 1 working provider.');
-    }
-
-    const fixAnswer = await askQuestion('\nWould you like to re-enter keys for failed providers? (y/N): ');
-
-    if (fixAnswer.toLowerCase() === 'y') {
-      for (const p of failedProviders) {
-        const provider = LLM_PROVIDERS.find(lp => lp.id === p.id);
-        const newKey = await askQuestion(`Enter new API key for ${provider.name} (or press Enter to keep current): `);
-
-        if (newKey) {
-          console.log(`  Testing ${provider.name}...`);
-          const works = await testLlmProvider(p.id, newKey);
-          if (works) {
-            console.log(`  ✓ ${provider.name} is now working!\n`);
-            p.apiKey = newKey;
-            p.working = true;
-          } else {
-            console.log(`  ✗ ${provider.name} still failing. The key will be commented out in config.\n`);
-            p.apiKey = newKey;
-          }
-        }
-      }
-    } else {
-      console.log('Non-working providers will be commented out in the config file.');
-    }
-  }
-
-  // Write config
-  const config = buildConfigFromWizardResults(configuredProviders, authKey, coralApiKey);
+  const config = buildConfigFromWizardResults([], result.authKey, result.cloudApiKey);
   fs.writeFileSync(profilePath, config);
-  console.log(`\nConfiguration saved to ${profilePath}`);
+  console.log(`Configuration saved to ${profilePath}`);
+  return true;
 }
 
 async function handleFirstRun(profileName, options = {}) {
@@ -150,19 +419,13 @@ async function handleFirstRun(profileName, options = {}) {
   fs.writeFileSync(profilePath, generateDefaultConfig());
   console.log(`File created at ${profilePath}\n`);
 
-  console.log('What next?');
-  console.log('1) Go through setup wizard? (recommended)');
-  console.log('2) Edit config with $EDITOR');
-  console.log('3) Continue to run the server with empty config');
-  console.log('4) Exit');
-
-  const choice = await askQuestion('\nChoose an option [1-4]: ');
+  const choice = await runInkApp(FirstRunApp, { profileName });
 
   switch (choice) {
-    case '1':
+    case 'wizard':
       await runSetupWizard(profileName, options);
       return true;
-    case '2': {
+    case 'editor': {
       const editor = process.env.EDITOR || process.env.VISUAL || (IS_WINDOWS ? 'notepad' : 'vi');
       const result = spawnSync(editor, [profilePath], { stdio: 'inherit' });
       if (result.status !== 0) {
@@ -170,19 +433,15 @@ async function handleFirstRun(profileName, options = {}) {
       }
       return true;
     }
-    case '3':
+    case 'continue':
       return true;
-    case '4':
-      process.exit(0);
-      break;
+    case 'exit':
     default:
-      console.log('Invalid choice, continuing with empty config.');
-      return true;
+      process.exit(0);
   }
 }
 
 module.exports = {
-  testLlmProvider,
   runSetupWizard,
   handleFirstRun,
 };

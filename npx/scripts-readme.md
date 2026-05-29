@@ -7,16 +7,26 @@ This directory contains the Node.js scripts intended to be executed by developer
 ### Running the setup wizard
 
 ```bash
-npx coralos-dev@RC-1.2.0 server --config-profile=dev configure
+npx coralos-dev@RC-1.2.0 server configure dev
 ```
 
-The setup wizard guides you through setting up the LLM proxy's providers. The config profile "dev" means that the output will be written to
-~/.coral/config-profiles/dev/dev-coral-server-config.toml.
+Or from source (run from the project root):
+```bash
+node npx/coral-server.js server configure dev
+```
+
+The setup wizard uses an Ink TUI to configure the server API auth key and Coral Cloud API key. The config profile "dev" means that the output will be written to
+~/.coral/config-profiles/dev/dev-coral-server-config.toml. Direct LLM provider backup settings can still be edited in the config file manually.
 
 ### Running the server
 
 ```bash
-npx coralos-dev@RC-1.2.0 server --config-profile=dev start -- --auth.keys=test
+npx coralos-dev@RC-1.2.0 server start --config-profile=dev -- --auth.keys=test
+```
+
+Or from source (run from the project root):
+```bash
+node npx/coral-server.js server start --config-profile=dev -- --auth.keys=test
 ```
 
 Starts the LLM proxy server using the configuration from the "dev" profile.

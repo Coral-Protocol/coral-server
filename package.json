@@ -10,7 +10,7 @@
     "bin/coral-server.jar"
   ],
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
   "repository": {
     "type": "git",
@@ -24,5 +24,10 @@
   ],
   "author": "Coral Protocol",
   "license": "UNLICENSED",
-  "dependencies": {}
+  "dependencies": {
+    "ink": "^7.0.4",
+    "ink-select-input": "^6.2.0",
+    "ink-text-input": "^6.0.0",
+    "react": "^19.2.6"
+  }
 }

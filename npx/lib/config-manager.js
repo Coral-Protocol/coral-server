@@ -44,32 +44,40 @@ function generateDefaultConfig() {
   return header + content;
 }
 
-function buildConfigFromWizardResults(providers, authKey, coralApiKey) {
+function escapeTomlString(value) {
+  return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+function buildConfigFromWizardResults(providers = [], authKey, coralApiKey) {
   let config = generateDefaultConfig();
 
   if (coralApiKey) {
-    const cloudRegex = /\[cloud\]\napiKey = ""/m;
+    const cloudRegex = /(\[cloud\]\n(?:[^\[]*?\n)*?)apiKey\s*=\s*".*?"/m;
     if (cloudRegex.test(config)) {
-      config = config.replace(cloudRegex, `[cloud]\napiKey = "${coralApiKey}"`);
+      config = config.replace(cloudRegex, `$1apiKey = "${escapeTomlString(coralApiKey)}"`);
+    } else {
+      config += `\n[cloud]\napiKey = "${escapeTomlString(coralApiKey)}"\n`;
     }
   }
 
   if (authKey) {
     const authRegex = /# \[auth\]\n# keys = \["some-secure-password"\]/m;
     if (authRegex.test(config)) {
-      config = config.replace(authRegex, `[auth]\nkeys = ["${authKey}"]`);
+      config = config.replace(authRegex, `[auth]\nkeys = ["${escapeTomlString(authKey)}"]`);
     } else {
-      config += `\n[auth]\nkeys = ["${authKey}"]\n`;
+      config += `\n[auth]\nkeys = ["${escapeTomlString(authKey)}"]\n`;
     }
   }
 
-  config += '\n# --- Configured LLM Providers ---\n';
-  config += '[llm-proxy.providers]\n';
-  for (const p of providers) {
-    if (p.working) {
-      config += `[llm-proxy.providers.${p.id}]\napiKey = "${p.apiKey}"\n\n`;
-    } else if (p.apiKey) {
-      config += `# [llm-proxy.providers.${p.id}]\n# apiKey = "${p.apiKey}"\n\n`;
+  if (providers.length > 0) {
+    config += '\n# --- Configured LLM Providers ---\n';
+    config += '[llm-proxy.providers]\n';
+    for (const p of providers) {
+      if (p.working) {
+        config += `[llm-proxy.providers.${p.id}]\napiKey = "${escapeTomlString(p.apiKey)}"\n\n`;
+      } else if (p.apiKey) {
+        config += `# [llm-proxy.providers.${p.id}]\n# apiKey = "${escapeTomlString(p.apiKey)}"\n\n`;
+      }
     }
   }
 
@@ -83,4 +91,5 @@ module.exports = {
   configProfileExists,
   generateDefaultConfig,
   buildConfigFromWizardResults,
+  escapeTomlString,
 };
