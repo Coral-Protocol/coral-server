@@ -98,6 +98,11 @@ data class GraphAgent(
     val proxies: Map<String, LlmProxiedModel>,
 
     /**
+     * @see GraphAgentRequest.budgetSettings
+     */
+    val budgetSettings: GraphAgentBudgetSettings,
+
+    /**
      * @see SessionResource.annotations
      */
     override val annotations: Map<String, String>

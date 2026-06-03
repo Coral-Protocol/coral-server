@@ -62,7 +62,7 @@ data class GraphAgentRequest(
 
     @Description("Budget settings for this agent.  By default the agent has no budget of its own, and can only claim from the sessions budget.")
     @Optional
-    val budget: GraphAgentBudgetSettings = GraphAgentBudgetSettings(),
+    val budgetSettings: GraphAgentBudgetSettings = GraphAgentBudgetSettings(),
 
     @Optional
     override val annotations: Map<String, String> = emptyMap(),
@@ -174,7 +174,8 @@ data class GraphAgentRequest(
             provider = provider,
             x402Budgets = x402Budgets,
             annotations = annotations,
-            proxies = resolvedProxies
+            proxies = resolvedProxies,
+            budgetSettings = budgetSettings,
         )
     }
 }
