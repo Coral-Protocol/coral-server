@@ -20,6 +20,7 @@ import org.coralprotocol.coralserver.agent.graph.AgentBudgetExhaustionBehaviour
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
+import org.coralprotocol.coralserver.agent.payment.AgentBudgetSource
 import org.coralprotocol.coralserver.agent.payment.AgentBudgetUnit
 import org.coralprotocol.coralserver.config.SessionConfig
 import org.coralprotocol.coralserver.events.SessionEvent
@@ -263,7 +264,7 @@ class SessionAgent(
      *
      * If [GraphAgent.blocking] is false, this function will return immediately.
      * If [GraphAgent.blocking] is true, this function will collect every connected agent using a recursive depth-first
-     * search on [links] (that has [GraphAgent.blocking] == true) and call [SessionAgent.waitForMcpConnection] on each
+     * search on [links] (that has [GraphAgent.blocking] == true) and call [waitForMcpConnection] on each
      * of them, returning either when all connected blocking agents are trying to connect to their respective MCP
      * servers, or when the [timeoutMs] is reached.
      */
@@ -526,6 +527,16 @@ class SessionAgent(
 
         if (agentBudgetSettings.budget.isNotZero()) {
             val claimed = runningBudget.addClaim(amount, description)
+            session.events.emit(
+                SessionEvent.AgentBudgetClaim(
+                    agent = name,
+                    requestedAmount = amount,
+                    claimedAmount = claimed,
+                    remainingBudget = runningBudget.remaining,
+                    budgetSource = AgentBudgetSource.AGENT
+                )
+            )
+
             logger.info { "claimed $claimed of $amount from agent budget.  Remaining agent budget ${runningBudget.remaining}" }
 
             when (val behaviour = agentBudgetSettings.exhaustionBehaviour) {
@@ -551,11 +562,21 @@ class SessionAgent(
         }
 
         if (remainingClaim.isNotZero()) {
-            val claimed = session.runningBudget.addClaim(amount, description)
-            logger.info { "claimed $claimed of $amount from agent budget.  Remaining session budget ${session.runningBudget.remaining}" }
+            val claimed = session.runningBudget.addClaim(remainingClaim, description)
+            session.events.emit(
+                SessionEvent.AgentBudgetClaim(
+                    agent = name,
+                    requestedAmount = remainingClaim,
+                    claimedAmount = claimed,
+                    remainingBudget = runningBudget.remaining,
+                    budgetSource = AgentBudgetSource.SESSION
+                )
+            )
+
+            logger.info { "claimed $claimed of $remainingClaim from agent budget.  Remaining session budget ${session.runningBudget.remaining}" }
 
             when (val behaviour = sessionBudgetSettings.exhaustionBehaviour) {
-                is SessionBudgetExhaustionBehaviour.Kill -> {
+                is SessionBudgetExhaustionBehaviour.KillAgent -> {
                     if (behaviour.minimum <= session.runningBudget.remaining && (autoClose || behaviour.force)) {
                         logger.warn { "session budget fell below minimum of ${behaviour.minimum}, exiting..." }
                         session.cancelAndJoinAgent(name)
@@ -565,8 +586,8 @@ class SessionAgent(
                 }
 
                 SessionBudgetExhaustionBehaviour.Warn -> {
-                    if (claimed != amount) {
-                        logger.warn { "claim for $amount exceeds the defined budget, actual claim is $claimed" }
+                    if (claimed != remainingClaim) {
+                        logger.warn { "claim for $remainingClaim exceeds the defined budget, actual claim is $claimed" }
                         if (!session.runningBudget.clamp)
                             logger.warn { "session budget clamping is disabled, current overclaim is ${session.runningBudget.overclaim}" }
                     }
