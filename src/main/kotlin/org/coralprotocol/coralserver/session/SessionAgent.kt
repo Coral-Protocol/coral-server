@@ -16,9 +16,11 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import org.coralprotocol.coralserver.agent.graph.AgentBudgetExhaustionBehaviour
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
+import org.coralprotocol.coralserver.agent.payment.AgentBudgetUnit
 import org.coralprotocol.coralserver.config.SessionConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.LoggingTag
@@ -151,6 +153,11 @@ class SessionAgent(
      * The number of proxy requests made by this agent (in the session this agent belongs to)
      */
     val proxyRequestCount = MutableStateFlow(0)
+
+    /**
+     * A running budget for this agent
+     */
+    val runningBudget = SessionRunningBudget(graphAgent.budgetSettings.budget, clamp = true)
 
     init {
         val mcpToolManager: McpToolManager = get()
@@ -503,6 +510,69 @@ class SessionAgent(
         }
 
         matching.forEach { it.deferred.complete(message) }
+    }
+
+    /**
+     * Processes this agent's budget claim.  If [autoClose] is true this function may result in the exiting of this
+     * agent.
+     */
+    suspend fun processClaim(amount: AgentBudgetUnit, description: String, autoClose: Boolean) {
+        logger.info { "processing claim of $amount, for: \"$description\"" }
+
+        val agentBudgetSettings = graphAgent.budgetSettings
+        val sessionBudgetSettings = session.budgetSettings
+
+        var remainingClaim = amount
+
+        if (agentBudgetSettings.budget.isNotZero()) {
+            val claimed = runningBudget.addClaim(amount, description)
+            logger.info { "claimed $claimed of $amount from agent budget.  Remaining agent budget ${runningBudget.remaining}" }
+
+            when (val behaviour = agentBudgetSettings.exhaustionBehaviour) {
+                is AgentBudgetExhaustionBehaviour.Kill -> {
+                    if (behaviour.minimum <= runningBudget.remaining && (autoClose || behaviour.force)) {
+                        logger.warn { "agent budget fell below minimum of ${behaviour.minimum}, exiting..." }
+                        session.cancelAndJoinAgent(name)
+
+                        return
+                    }
+                }
+
+                is AgentBudgetExhaustionBehaviour.ConsumeSession -> {
+                    if (claimed != amount) {
+                        logger.info { "claimed $claimed of $amount from agent budget, remaining ${amount - claimed} will be consumed from session" }
+                    } else {
+                        logger.info { "claimed $claimed of $amount from agent budget, agent's remaining budget is ${runningBudget.remaining}" }
+                    }
+
+                    remainingClaim -= claimed
+                }
+            }
+        }
+
+        if (remainingClaim.isNotZero()) {
+            val claimed = session.runningBudget.addClaim(amount, description)
+            logger.info { "claimed $claimed of $amount from agent budget.  Remaining session budget ${session.runningBudget.remaining}" }
+
+            when (val behaviour = sessionBudgetSettings.exhaustionBehaviour) {
+                is SessionBudgetExhaustionBehaviour.Kill -> {
+                    if (behaviour.minimum <= session.runningBudget.remaining && (autoClose || behaviour.force)) {
+                        logger.warn { "session budget fell below minimum of ${behaviour.minimum}, exiting..." }
+                        session.cancelAndJoinAgent(name)
+
+                        return
+                    }
+                }
+
+                SessionBudgetExhaustionBehaviour.Warn -> {
+                    if (claimed != amount) {
+                        logger.warn { "claim for $amount exceeds the defined budget, actual claim is $claimed" }
+                        if (!session.runningBudget.clamp)
+                            logger.warn { "session budget clamping is disabled, current overclaim is ${session.runningBudget.overclaim}" }
+                    }
+                }
+            }
+        }
     }
 
     /**

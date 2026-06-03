@@ -5,6 +5,7 @@ import kotlinx.coroutines.CompletableDeferred
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.session.Session
+import org.coralprotocol.coralserver.session.SessionBudgetSettings
 import org.coralprotocol.coralserver.session.SessionCloseMode
 
 /**
@@ -51,7 +52,8 @@ class RemoteSession(
 
     remoteSessionManager: RemoteSessionManager,
 
-    override val annotations: Map<String, String>
+    override val annotations: Map<String, String>,
+    override val budgetSettings: SessionBudgetSettings
 ) : Session(remoteSessionManager.managementScope) {
     private val lifecycle = CompletableDeferred<SessionCloseMode>()
 

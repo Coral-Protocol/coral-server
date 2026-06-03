@@ -7,6 +7,7 @@ import kotlinx.coroutines.SupervisorJob
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.payment.exporting.AggregatedPaymentClaimManager
+import org.coralprotocol.coralserver.session.SessionBudgetSettings
 import org.coralprotocol.coralserver.session.SessionCloseMode
 import org.jetbrains.annotations.VisibleForTesting
 import java.util.*
@@ -74,7 +75,8 @@ class RemoteSessionManager(
             paymentSessionId = claim.paymentSessionId,
             clientWalletAddress = claim.clientWalletAddress,
             remoteSessionManager = this,
-            annotations = mapOf()
+            annotations = mapOf(),
+            budgetSettings = SessionBudgetSettings()
         )
 
 //        remoteSession.sessionClosedFlow.onEach {

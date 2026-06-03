@@ -58,6 +58,7 @@ class LocalSession(
     agentGraph: AgentGraph,
     sessionManager: LocalSessionManager,
     override val annotations: Map<String, String> = mapOf(),
+    override val budgetSettings: SessionBudgetSettings,
 ) : Session(sessionManager.managementScope, sessionManager.supervisedSessions) {
     val logger =
         get<Logger>(named(LOGGER_LOCAL_SESSION)).withTags(LoggingTag.Namespace(namespace.name), LoggingTag.Session(id))
@@ -77,6 +78,11 @@ class LocalSession(
      * todo: make a kotlin version of this
      */
     val threads: ConcurrentHashMap<ThreadId, SessionThread> = ConcurrentHashMap()
+
+    /**
+     * A running budget for this session
+     */
+    val runningBudget = SessionRunningBudget(budgetSettings.budget, clamp = false)
 
     // Create links between agents from the groups in the agent graph
     init {

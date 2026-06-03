@@ -192,7 +192,8 @@ class LocalSessionManager(
     suspend fun createSession(
         namespace: LocalSessionNamespace,
         agentGraph: AgentGraph,
-        sessionAnnotations: Map<String, String> = mapOf()
+        sessionAnnotations: Map<String, String> = mapOf(),
+        budgetSettings: SessionBudgetSettings = SessionBudgetSettings()
     ): Pair<LocalSession, LocalSessionNamespace> {
         val sessionId: SessionId = UUID.randomUUID().toString()
         val session = LocalSession(
@@ -201,7 +202,8 @@ class LocalSessionManager(
             paymentSessionId = createPaymentSession(agentGraph)?.sessionId,
             agentGraph = agentGraph,
             sessionManager = this,
-            annotations = sessionAnnotations
+            annotations = sessionAnnotations,
+            budgetSettings = budgetSettings,
         )
         namespace.sessions[sessionId] = session
         events.emit(
@@ -220,10 +222,11 @@ class LocalSessionManager(
     suspend fun createSession(
         namespaceName: String,
         agentGraph: AgentGraph,
-        sessionAnnotations: Map<String, String> = mapOf()
+        sessionAnnotations: Map<String, String> = mapOf(),
+        budgetSettings: SessionBudgetSettings = SessionBudgetSettings()
     ): Pair<LocalSession, LocalSessionNamespace> {
         val namespace = createNamespace(SessionNamespaceRequest(name = namespaceName))
-        return createSession(namespace, agentGraph, sessionAnnotations)
+        return createSession(namespace, agentGraph, sessionAnnotations, budgetSettings)
     }
 
     /**
@@ -259,9 +262,10 @@ class LocalSessionManager(
         namespace: LocalSessionNamespace,
         agentGraph: AgentGraph,
         settings: SessionRuntimeSettings = SessionRuntimeSettings(),
-        sessionAnnotations: Map<String, String> = mapOf()
+        sessionAnnotations: Map<String, String> = mapOf(),
+        budgetSettings: SessionBudgetSettings = SessionBudgetSettings()
     ): Pair<LocalSession, LocalSessionNamespace> {
-        val (session, namespace) = createSession(namespace, agentGraph, sessionAnnotations)
+        val (session, namespace) = createSession(namespace, agentGraph, sessionAnnotations, budgetSettings)
         launchSession(session, namespace, settings)
 
         return Pair(session, namespace)
@@ -274,10 +278,11 @@ class LocalSessionManager(
         namespaceName: String,
         agentGraph: AgentGraph,
         settings: SessionRuntimeSettings = SessionRuntimeSettings(),
-        sessionAnnotations: Map<String, String> = mapOf()
+        sessionAnnotations: Map<String, String> = mapOf(),
+        budgetSettings: SessionBudgetSettings = SessionBudgetSettings()
     ): Pair<LocalSession, LocalSessionNamespace> {
         val namespace = createNamespace(SessionNamespaceRequest(name = namespaceName))
-        return createAndLaunchSession(namespace, agentGraph, settings, sessionAnnotations)
+        return createAndLaunchSession(namespace, agentGraph, settings, sessionAnnotations, budgetSettings)
     }
 
     /**
