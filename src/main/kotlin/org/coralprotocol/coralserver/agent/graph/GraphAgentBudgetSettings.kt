@@ -16,15 +16,15 @@ import org.coralprotocol.coralserver.agent.payment.MICRO_CENTS_TO_DOLLARS
 @JsonClassDiscriminator("type")
 sealed interface AgentBudgetExhaustionBehaviour {
     @Serializable
-    @SerialName("exit")
-    @Description(
-        """
-        Once the agent's budget is less than the specified minimum amount, the agent's runtime will be terminated
-        
-        The minimum value is specified in micro cents. $1.00 is $MICRO_CENTS_TO_DOLLARS and $0.01 is $MICRO_CENTS_TO_CENTS.
-        """
-    )
-    data class Exit(val minium: AgentBudgetUnit = AgentBudgetUnit(0)) : AgentBudgetExhaustionBehaviour
+    @SerialName("kill")
+    @Description("Once the agent's budget is less than the specified minimum amount, the agent will be killed.  The higher the minimum is the lower the chance of overclaiming. This behaviour will stop the agent claiming from the session's budget")
+    data class Kill(
+        @Description("The minimum value, specified in micro cents. $1.00 is $MICRO_CENTS_TO_DOLLARS and $0.01 is $MICRO_CENTS_TO_CENTS.")
+        val minimum: AgentBudgetUnit = AgentBudgetUnit(),
+
+        @Description("If this is true, the agent will be killed immediately.  If this is false, the agent will only be killed if the claim requests for automatic closing.")
+        val force: Boolean = false
+    ) : AgentBudgetExhaustionBehaviour
 
     @Serializable
     @SerialName("consume_session")
@@ -36,7 +36,7 @@ sealed interface AgentBudgetExhaustionBehaviour {
 data class GraphAgentBudgetSettings(
     @Description("The budget for this specific agent.  The value is specified in micro cents. $1.00 is $MICRO_CENTS_TO_DOLLARS and $0.01 is $MICRO_CENTS_TO_CENTS.")
     @Optional
-    val budget: AgentBudgetUnit = AgentBudgetUnit(0),
+    val budget: AgentBudgetUnit = AgentBudgetUnit(),
 
     @Description("The behaviour of agent budget exhaustion, defaults to consuming session budget.")
     @Optional

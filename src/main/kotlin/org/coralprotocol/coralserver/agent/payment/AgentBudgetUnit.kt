@@ -12,7 +12,7 @@ const val MICRO_CENTS_TO_DOLLARS: ULong = 100_000_000U
  */
 @JvmInline
 @Serializable
-value class AgentBudgetUnit(val value: ULong) : Comparable<AgentBudgetUnit> {
+value class AgentBudgetUnit(val value: ULong = 0UL) : Comparable<AgentBudgetUnit> {
     operator fun plus(other: AgentBudgetUnit): AgentBudgetUnit =
         AgentBudgetUnit(value + other.value)
 
