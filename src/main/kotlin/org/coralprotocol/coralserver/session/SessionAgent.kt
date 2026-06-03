@@ -578,8 +578,17 @@ class SessionAgent(
             when (val behaviour = sessionBudgetSettings.exhaustionBehaviour) {
                 is SessionBudgetExhaustionBehaviour.KillAgent -> {
                     if (behaviour.minimum <= session.runningBudget.remaining && (autoClose || behaviour.force)) {
-                        logger.warn { "session budget fell below minimum of ${behaviour.minimum}, exiting..." }
+                        logger.warn { "session budget fell below minimum of ${behaviour.minimum}, killing agent..." }
                         session.cancelAndJoinAgent(name)
+
+                        return
+                    }
+                }
+
+                is SessionBudgetExhaustionBehaviour.KillSession -> {
+                    if (behaviour.minimum <= session.runningBudget.remaining) {
+                        logger.warn { "session budget fell below minimum of ${behaviour.minimum}, killing session" }
+                        session.cancelAndJoinAgents()
 
                         return
                     }

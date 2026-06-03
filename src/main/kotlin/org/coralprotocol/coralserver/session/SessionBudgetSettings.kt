@@ -21,14 +21,22 @@ sealed interface SessionBudgetExhaustionBehaviour {
     object Warn : SessionBudgetExhaustionBehaviour
 
     @Serializable
-    @SerialName("kill")
+    @SerialName("kill_agent")
     @Description("Once the session budget drops below the specified minimum, agents that claim for it will be killed.  The higher the minimum is the lower the chance of overclaiming.")
-    data class Kill(
+    data class KillAgent(
         @Description("The minimum value, specified in micro cents. $1.00 is $MICRO_CENTS_TO_DOLLARS and $0.01 is $MICRO_CENTS_TO_CENTS.")
         val minimum: AgentBudgetUnit = AgentBudgetUnit(),
 
         @Description("If this is true, when an agent claims from the session budget that is below the minimum, the agent will be killed immediately.  If this is false, the agent will only be killed if the agent requests for automatic closing.")
         val force: Boolean = false
+    ) : SessionBudgetExhaustionBehaviour
+
+    @Serializable
+    @SerialName("kill_session")
+    @Description("Once the session budget drops below the specified minimum, agents that claim for it will trigger the session to be killed.  The higher the minimum is the lower the chance of overclaiming.")
+    data class KillSession(
+        @Description("The minimum value, specified in micro cents. $1.00 is $MICRO_CENTS_TO_DOLLARS and $0.01 is $MICRO_CENTS_TO_CENTS.")
+        val minimum: AgentBudgetUnit = AgentBudgetUnit(),
     ) : SessionBudgetExhaustionBehaviour
 }
 
@@ -53,5 +61,5 @@ data class SessionBudgetSettings(
         """
     )
     @Optional
-    val exhaustionBehaviour: SessionBudgetExhaustionBehaviour = SessionBudgetExhaustionBehaviour.Kill(),
+    val exhaustionBehaviour: SessionBudgetExhaustionBehaviour = SessionBudgetExhaustionBehaviour.KillAgent(),
 )
