@@ -16,7 +16,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import org.coralprotocol.coralserver.agent.graph.AgentBudgetExhaustionBehaviour
+import org.coralprotocol.coralserver.agent.graph.AgentBudgetExhaustionBehavior
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
@@ -539,17 +539,17 @@ class SessionAgent(
 
             logger.info { "claimed $claimed of $amount from agent budget.  Remaining agent budget ${runningBudget.remaining}" }
 
-            when (val behaviour = agentBudgetSettings.exhaustionBehaviour) {
-                is AgentBudgetExhaustionBehaviour.Kill -> {
-                    if (behaviour.minimum <= runningBudget.remaining && (autoClose || behaviour.force)) {
-                        logger.warn { "agent budget fell below minimum of ${behaviour.minimum}, exiting..." }
+            when (val behavior = agentBudgetSettings.exhaustionBehavior) {
+                is AgentBudgetExhaustionBehavior.Kill -> {
+                    if (behavior.minimum <= runningBudget.remaining && (autoClose || behavior.force)) {
+                        logger.warn { "agent budget fell below minimum of ${behavior.minimum}, exiting..." }
                         session.cancelAndJoinAgent(name)
 
                         return
                     }
                 }
 
-                is AgentBudgetExhaustionBehaviour.ConsumeSession -> {
+                is AgentBudgetExhaustionBehavior.ConsumeSession -> {
                     if (claimed != amount) {
                         logger.info { "claimed $claimed of $amount from agent budget, remaining ${amount - claimed} will be consumed from session" }
                     } else {
@@ -575,26 +575,26 @@ class SessionAgent(
 
             logger.info { "claimed $claimed of $remainingClaim from agent budget.  Remaining session budget ${session.runningBudget.remaining}" }
 
-            when (val behaviour = sessionBudgetSettings.exhaustionBehaviour) {
-                is SessionBudgetExhaustionBehaviour.KillAgent -> {
-                    if (behaviour.minimum <= session.runningBudget.remaining && (autoClose || behaviour.force)) {
-                        logger.warn { "session budget fell below minimum of ${behaviour.minimum}, killing agent..." }
+            when (val behavior = sessionBudgetSettings.exhaustionBehavior) {
+                is SessionBudgetExhaustionBehavior.KillAgent -> {
+                    if (behavior.minimum <= session.runningBudget.remaining && (autoClose || behavior.force)) {
+                        logger.warn { "session budget fell below minimum of ${behavior.minimum}, killing agent..." }
                         session.cancelAndJoinAgent(name)
 
                         return
                     }
                 }
 
-                is SessionBudgetExhaustionBehaviour.KillSession -> {
-                    if (behaviour.minimum <= session.runningBudget.remaining) {
-                        logger.warn { "session budget fell below minimum of ${behaviour.minimum}, killing session" }
+                is SessionBudgetExhaustionBehavior.KillSession -> {
+                    if (behavior.minimum <= session.runningBudget.remaining) {
+                        logger.warn { "session budget fell below minimum of ${behavior.minimum}, killing session" }
                         session.cancelAndJoinAgents()
 
                         return
                     }
                 }
 
-                SessionBudgetExhaustionBehaviour.Warn -> {
+                SessionBudgetExhaustionBehavior.Warn -> {
                     if (claimed != remainingClaim) {
                         logger.warn { "claim for $remainingClaim exceeds the defined budget, actual claim is $claimed" }
                         if (!session.runningBudget.clamp)

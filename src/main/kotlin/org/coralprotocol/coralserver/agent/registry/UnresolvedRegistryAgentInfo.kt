@@ -12,7 +12,7 @@ data class UnresolvedRegistryAgentInfo(
     @Description("The version of the agent, try to follow semantic versioning")
     val version: String,
 
-    @Description("A full description of the agent, this description will be given to other agents to describe this agent's responsibilities, abilities and behaviours")
+    @Description("A full description of the agent, this description will be given to other agents to describe this agent's responsibilities, abilities and behaviors")
     @Serializable(with = RegistryAgentStringSerializer::class)
     val description: String,
 

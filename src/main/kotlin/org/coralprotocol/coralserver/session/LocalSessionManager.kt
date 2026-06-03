@@ -338,7 +338,7 @@ class LocalSessionManager(
             ?: throw SessionException.InvalidSession("Session \"$sessionId\" not found")
 
     /**
-     * Behaviour for session exit.
+     * Behavior for session exit.
      *
      * @param session The session that exited.
      * @param namespace The namespace that the session was in.

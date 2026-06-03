@@ -14,11 +14,11 @@ import org.coralprotocol.coralserver.agent.payment.MICRO_CENTS_TO_DOLLARS
 
 @Serializable
 @JsonClassDiscriminator("type")
-sealed interface SessionBudgetExhaustionBehaviour {
+sealed interface SessionBudgetExhaustionBehavior {
     @Serializable
     @SerialName("warn")
-    @Description("Once the session budget is exhausted and claimed from, a warning will be produced.  This behaviour has a high risk of overclaiming.")
-    object Warn : SessionBudgetExhaustionBehaviour
+    @Description("Once the session budget is exhausted and claimed from, a warning will be produced.  This behavior has a high risk of overclaiming.")
+    object Warn : SessionBudgetExhaustionBehavior
 
     @Serializable
     @SerialName("kill_agent")
@@ -29,7 +29,7 @@ sealed interface SessionBudgetExhaustionBehaviour {
 
         @Description("If this is true, when an agent claims from the session budget that is below the minimum, the agent will be killed immediately.  If this is false, the agent will only be killed if the agent requests for automatic closing.")
         val force: Boolean = false
-    ) : SessionBudgetExhaustionBehaviour
+    ) : SessionBudgetExhaustionBehavior
 
     @Serializable
     @SerialName("kill_session")
@@ -37,7 +37,7 @@ sealed interface SessionBudgetExhaustionBehaviour {
     data class KillSession(
         @Description("The minimum value, specified in micro cents. $1.00 is $MICRO_CENTS_TO_DOLLARS and $0.01 is $MICRO_CENTS_TO_CENTS.")
         val minimum: AgentBudgetUnit = AgentBudgetUnit(),
-    ) : SessionBudgetExhaustionBehaviour
+    ) : SessionBudgetExhaustionBehavior
 }
 
 @Serializable
@@ -55,11 +55,11 @@ data class SessionBudgetSettings(
 
     @Description(
         """
-        The behaviour for agents consuming from this budget after it has been exhausted.  Note that this behaviour
+        The behavior for agents consuming from this budget after it has been exhausted.  Note that this behavior
         only applies to agents that consume from the session budgets. Agents that have their own budget will first 
-        perform behaviours described by the agent's own budget settings.
+        perform behaviors described by the agent's own budget settings.
         """
     )
     @Optional
-    val exhaustionBehaviour: SessionBudgetExhaustionBehaviour = SessionBudgetExhaustionBehaviour.KillAgent(),
+    val exhaustionBehavior: SessionBudgetExhaustionBehavior = SessionBudgetExhaustionBehavior.KillAgent(),
 )
