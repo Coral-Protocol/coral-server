@@ -8,6 +8,7 @@ import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import io.modelcontextprotocol.kotlin.sdk.shared.AbstractTransport
 import io.modelcontextprotocol.kotlin.sdk.types.*
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -22,6 +23,7 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.agent.payment.AgentBudgetSource
 import org.coralprotocol.coralserver.agent.payment.AgentBudgetUnit
+import org.coralprotocol.coralserver.agent.payment.AgentClaimResponse
 import org.coralprotocol.coralserver.config.SessionConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.LoggingTag
@@ -514,19 +516,22 @@ class SessionAgent(
     }
 
     /**
-     * Processes this agent's budget claim.  If [autoClose] is true this function may result in the exiting of this
+     * Processes this agent's budget claim.  If [autoKill] is true this function may result in the exiting of this
      * agent.
      */
-    suspend fun processClaim(amount: AgentBudgetUnit, description: String, autoClose: Boolean) {
+    suspend fun processClaim(amount: AgentBudgetUnit, description: String, autoKill: Boolean): AgentClaimResponse {
         logger.info { "processing claim of $amount, for: \"$description\"" }
 
         val agentBudgetSettings = graphAgent.budgetSettings
         val sessionBudgetSettings = session.budgetSettings
 
         var remainingClaim = amount
+        var totalClaimed = AgentBudgetUnit()
 
         if (agentBudgetSettings.budget.isNotZero()) {
             val claimed = runningBudget.addClaim(amount, description)
+            totalClaimed += claimed
+
             session.events.emit(
                 SessionEvent.AgentBudgetClaim(
                     agent = name,
@@ -541,11 +546,31 @@ class SessionAgent(
 
             when (val behavior = agentBudgetSettings.exhaustionBehavior) {
                 is AgentBudgetExhaustionBehavior.Kill -> {
-                    if (behavior.minimum <= runningBudget.remaining && (autoClose || behavior.force)) {
-                        logger.warn { "agent budget fell below minimum of ${behavior.minimum}, exiting..." }
-                        session.cancelAndJoinAgent(name)
+                    if (behavior.minimum <= runningBudget.remaining) {
+                        val kill = (autoKill || behavior.force)
+                        logger.warn {
+                            "agent budget fell below minimum of ${behavior.minimum}, agent will ${
+                                if (kill) {
+                                    "killed automatically in "
+                                } else {
+                                    "notified of budget exhaustion"
+                                }
+                            }"
+                        }
 
-                        return
+                        if (kill) {
+                            coroutineScope.launch {
+                                delay(behavior.delay)
+                                session.cancelAndJoinAgent(name)
+                            }
+                        }
+
+                        return AgentClaimResponse(
+                            requestedAmount = amount,
+                            fulfilledAmount = claimed,
+                            remainingAmount = runningBudget.remaining,
+                            shouldExit = true
+                        )
                     }
                 }
 
@@ -563,12 +588,14 @@ class SessionAgent(
 
         if (remainingClaim.isNotZero()) {
             val claimed = session.runningBudget.addClaim(remainingClaim, description)
+            totalClaimed += claimed
+
             session.events.emit(
                 SessionEvent.AgentBudgetClaim(
                     agent = name,
                     requestedAmount = remainingClaim,
                     claimedAmount = claimed,
-                    remainingBudget = runningBudget.remaining,
+                    remainingBudget = session.runningBudget.remaining,
                     budgetSource = AgentBudgetSource.SESSION
                 )
             )
@@ -577,20 +604,48 @@ class SessionAgent(
 
             when (val behavior = sessionBudgetSettings.exhaustionBehavior) {
                 is SessionBudgetExhaustionBehavior.KillAgent -> {
-                    if (behavior.minimum <= session.runningBudget.remaining && (autoClose || behavior.force)) {
-                        logger.warn { "session budget fell below minimum of ${behavior.minimum}, killing agent..." }
-                        session.cancelAndJoinAgent(name)
+                    if (behavior.minimum <= session.runningBudget.remaining) {
+                        val kill = (autoKill || behavior.force)
+                        logger.warn {
+                            "session budget fell below minimum of ${behavior.minimum}, agent will ${
+                                if (kill) {
+                                    "killed automatically"
+                                } else {
+                                    "notified of budget exhaustion"
+                                }
+                            }"
+                        }
 
-                        return
+                        if (kill) {
+                            coroutineScope.launch {
+                                delay(behavior.delay)
+                                session.cancelAndJoinAgent(name)
+                            }
+                        }
+
+                        return AgentClaimResponse(
+                            requestedAmount = amount,
+                            fulfilledAmount = totalClaimed,
+                            remainingAmount = session.runningBudget.remaining,
+                            shouldExit = true
+                        )
                     }
                 }
 
                 is SessionBudgetExhaustionBehavior.KillSession -> {
                     if (behavior.minimum <= session.runningBudget.remaining) {
                         logger.warn { "session budget fell below minimum of ${behavior.minimum}, killing session" }
-                        session.cancelAndJoinAgents()
+                        coroutineScope.launch {
+                            delay(behavior.delay)
+                            session.cancelAndJoinAgents()
+                        }
 
-                        return
+                        return AgentClaimResponse(
+                            requestedAmount = amount,
+                            fulfilledAmount = totalClaimed,
+                            remainingAmount = session.runningBudget.remaining,
+                            shouldExit = true
+                        )
                     }
                 }
 
@@ -603,6 +658,17 @@ class SessionAgent(
                 }
             }
         }
+
+        return AgentClaimResponse(
+            requestedAmount = amount,
+            fulfilledAmount = totalClaimed,
+            remainingAmount = if (agentBudgetSettings.exhaustionBehavior is AgentBudgetExhaustionBehavior.ConsumeSession) {
+                runningBudget.remaining + session.runningBudget.remaining
+            } else {
+                runningBudget.remaining
+            },
+            shouldExit = false
+        )
     }
 
     /**
