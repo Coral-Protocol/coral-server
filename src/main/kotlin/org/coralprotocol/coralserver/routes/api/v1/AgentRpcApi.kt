@@ -15,8 +15,8 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.json.Json
-import org.coralprotocol.coralserver.agent.payment.AgentPaymentClaimRequest
-import org.coralprotocol.coralserver.agent.payment.AgentRemainingBudget
+import org.coralprotocol.coralserver.agent.payment.AgentClaimRequest
+import org.coralprotocol.coralserver.agent.payment.AgentClaimResponse
 import org.coralprotocol.coralserver.payment.BlankX402Service
 import org.coralprotocol.coralserver.routes.ApiV1
 import org.coralprotocol.coralserver.routes.RouteException
@@ -30,8 +30,8 @@ import org.koin.ktor.ext.inject
 
 @Resource("agent-rpc")
 class Rpc(val parent: ApiV1 = ApiV1()) {
-    @Resource("rental-claim")
-    class RentalClaim(val parent: Rpc = Rpc())
+    @Resource("claim")
+    class Claim(val parent: Rpc = Rpc())
 
     @Resource("x402")
     class X402(val parent: Rpc = Rpc())
@@ -41,36 +41,27 @@ fun Route.agentRpcApi() {
     val x402Service by inject<X402Service>()
     val json by inject<Json>()
 
-    post<Rpc.RentalClaim>({
-        summary = "Submit rental agent claim"
-        description = "Requests a certain amount of money to be paid for a work done by a rental agent"
-        operationId = "submitRentalClaim"
+    post<Rpc.Claim>({
+        summary = "Submit an agent claim"
+        description = "Submits a claim for work performed"
+        operationId = "submitClaim"
         securitySchemeNames("agentSecret")
         request {
-            pathParameter<String>("remoteSessionId") {
-                description = "The remote session ID"
-            }
-            body<AgentPaymentClaimRequest> {
+            body<AgentClaimRequest> {
                 description = "A description of the work done and the payment required"
             }
         }
         response {
             HttpStatusCode.OK to {
                 description = "Success"
-                body<AgentRemainingBudget> {
-                    description = "The remaining budget associated with the session"
+                body<AgentClaimResponse> {
+                    description = "A response to the claim request"
                 }
             }
-            HttpStatusCode.NotFound to {
-                description = "Remote session not found"
+            HttpStatusCode.Unauthorized to {
+                description = "Bad agent secret provided"
                 body<RouteException> {
-                    description = "Exact error message and stack trace"
-                }
-            }
-            HttpStatusCode.BadRequest to {
-                description = "No payment associated with the session"
-                body<RouteException> {
-                    description = "Exact error message and stack trace"
+                    description = "Error message"
                 }
             }
         }
@@ -78,25 +69,8 @@ fun Route.agentRpcApi() {
         val agent = call.principal<SessionAgent>()
             ?: throw RouteException(HttpStatusCode.Unauthorized, "Unauthorized")
 
-        TODO()
-//        if (remoteSessionManager == null || aggregatedPaymentClaimManager == null)
-//            throw RouteException(HttpStatusCode.InternalServerError, "Remote sessions are disabled")
-//
-//        val request = call.receive<AgentPaymentClaimRequest>()
-//        val session = remoteSessionManager.findSession(claim.remoteSessionId)
-//            ?: throw RouteException(HttpStatusCode.NotFound, "Session not found")
-//
-//        val remainingToClaim = try {
-//           aggregatedPaymentClaimManager.addClaim(request, session)
-//        }
-//        catch (e: IllegalArgumentException) {
-//            throw RouteException(HttpStatusCode.BadRequest, e)
-//        }
-//
-//        call.respond(AgentRemainingBudget(
-//            remainingBudget = remainingToClaim,
-//            coralUsdPrice = jupiterService.coralToUsd(1.0)
-//        ))
+        val claim = call.receive<AgentClaimRequest>()
+        call.respond(agent.processClaim(claim.amount, claim.description, claim.autoKill))
     }
 
     post<Rpc.X402>({
