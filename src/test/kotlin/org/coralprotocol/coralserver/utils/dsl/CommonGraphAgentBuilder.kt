@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.utils.dsl
 
 import org.coralprotocol.coralserver.agent.graph.*
 import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
+import org.coralprotocol.coralserver.agent.payment.AgentBudgetUnit
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
@@ -10,6 +11,7 @@ import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.llmproxy.LlmProxiedModel
 import org.coralprotocol.coralserver.utils.TestProxy
 import org.coralprotocol.coralserver.x402.X402BudgetedResource
+import kotlin.time.Duration.Companion.milliseconds
 
 @TestDsl
 open class CommonGraphAgentBuilder(
@@ -22,6 +24,7 @@ open class CommonGraphAgentBuilder(
 
     protected val annotations: MutableMap<String, String> = mutableMapOf()
     protected val plugins = mutableSetOf<GraphAgentPlugin>()
+    protected var budgetSettings: GraphAgentBudgetSettings = GraphAgentBudgetSettings()
     protected val x402Budgets = mutableListOf<X402BudgetedResource>()
     protected val proxies = mutableMapOf<String, LlmProxiedModel>()
 
@@ -31,6 +34,10 @@ open class CommonGraphAgentBuilder(
 
     fun annotation(name: String, value: String) {
         annotations[name] = value
+    }
+
+    fun budgetSettings(block: GraphAgentBudgetSettingsBuilder.() -> Unit) {
+        budgetSettings = GraphAgentBudgetSettingsBuilder().apply(block).build()
     }
 
     fun x402Budget(budget: X402BudgetedResource) {
@@ -77,6 +84,7 @@ class GraphAgentBuilder(name: String) : CommonGraphAgentBuilder(name) {
             plugins = plugins.toSet(),
             provider = provider,
             x402Budgets = x402Budgets.toList(),
+            budgetSettings = budgetSettings,
             annotations = annotations.toMap(),
             proxies = proxies.toMap()
         )
@@ -116,9 +124,39 @@ class GraphAgentRequestBuilder(
             plugins = plugins,
             provider = provider,
             x402Budgets = x402Budgets,
+            budgetSettings = budgetSettings,
             annotations = annotations.toMap(),
             proxies = proxyOverrideMap
         )
+    }
+}
+
+@TestDsl
+class GraphAgentBudgetSettingsBuilder {
+    var budget: AgentBudgetUnit = AgentBudgetUnit()
+    var exhaustionBehavior: AgentBudgetExhaustionBehavior = AgentBudgetExhaustionBehavior.ConsumeSession
+
+    fun kill(block: GraphAgentBudgetKillBuilder.() -> Unit) {
+        exhaustionBehavior = GraphAgentBudgetKillBuilder().apply(block).build()
+    }
+
+    fun consumeSession() {
+        exhaustionBehavior = AgentBudgetExhaustionBehavior.ConsumeSession
+    }
+
+    fun build(): GraphAgentBudgetSettings {
+        return GraphAgentBudgetSettings(budget, exhaustionBehavior)
+    }
+}
+
+@TestDsl
+class GraphAgentBudgetKillBuilder {
+    var minimum: AgentBudgetUnit = AgentBudgetUnit()
+    var force: Boolean = false
+    var delay: kotlin.time.Duration = 100.milliseconds
+
+    fun build(): AgentBudgetExhaustionBehavior.Kill {
+        return AgentBudgetExhaustionBehavior.Kill(minimum, force, delay)
     }
 }
 
