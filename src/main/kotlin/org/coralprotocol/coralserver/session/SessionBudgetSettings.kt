@@ -11,6 +11,8 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.agent.payment.AgentBudgetUnit
 import org.coralprotocol.coralserver.agent.payment.MICRO_CENTS_TO_CENTS
 import org.coralprotocol.coralserver.agent.payment.MICRO_CENTS_TO_DOLLARS
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 @Serializable
 @JsonClassDiscriminator("type")
@@ -28,7 +30,11 @@ sealed interface SessionBudgetExhaustionBehavior {
         val minimum: AgentBudgetUnit = AgentBudgetUnit(),
 
         @Description("If this is true, when an agent claims from the session budget that is below the minimum, the agent will be killed immediately.  If this is false, the agent will only be killed if the agent requests for automatic closing.")
-        val force: Boolean = false
+        val force: Boolean = false,
+
+        @Description("The delay before the agent is killed, defaults to 100ms")
+        @Optional
+        val delay: Duration = 100.milliseconds
     ) : SessionBudgetExhaustionBehavior
 
     @Serializable
@@ -37,6 +43,10 @@ sealed interface SessionBudgetExhaustionBehavior {
     data class KillSession(
         @Description("The minimum value, specified in micro cents. $1.00 is $MICRO_CENTS_TO_DOLLARS and $0.01 is $MICRO_CENTS_TO_CENTS.")
         val minimum: AgentBudgetUnit = AgentBudgetUnit(),
+
+        @Description("The delay before the session is killed, defaults to 200ms")
+        @Optional
+        val delay: Duration = 200.milliseconds
     ) : SessionBudgetExhaustionBehavior
 }
 

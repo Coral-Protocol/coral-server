@@ -11,6 +11,8 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.agent.payment.AgentBudgetUnit
 import org.coralprotocol.coralserver.agent.payment.MICRO_CENTS_TO_CENTS
 import org.coralprotocol.coralserver.agent.payment.MICRO_CENTS_TO_DOLLARS
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 @Serializable
 @JsonClassDiscriminator("type")
@@ -23,7 +25,11 @@ sealed interface AgentBudgetExhaustionBehavior {
         val minimum: AgentBudgetUnit = AgentBudgetUnit(),
 
         @Description("If this is true, the agent will be killed immediately.  If this is false, the agent will only be killed if the claim requests for automatic closing.")
-        val force: Boolean = false
+        val force: Boolean = false,
+
+        @Description("The delay before the agent is killed, defaults to 100ms")
+        @Optional
+        val delay: Duration = 100.milliseconds
     ) : AgentBudgetExhaustionBehavior
 
     @Serializable
