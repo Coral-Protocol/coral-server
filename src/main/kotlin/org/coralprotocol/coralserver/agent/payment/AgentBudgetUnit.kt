@@ -1,6 +1,8 @@
 package org.coralprotocol.coralserver.agent.payment
 
 import kotlinx.serialization.Serializable
+import java.text.NumberFormat
+import java.util.*
 
 const val MICRO_CENTS_TO_CENTS: ULong = 1_000_000U
 const val MICRO_CENTS_TO_DOLLARS: ULong = 100_000_000U
@@ -36,4 +38,14 @@ value class AgentBudgetUnit(val value: ULong = 0UL) : Comparable<AgentBudgetUnit
 
     fun isZero() = value == 0UL
     fun isNotZero() = value != 0UL
+
+    override fun toString(): String =
+        NumberFormat.getCurrencyInstance(Locale.US).apply {
+            maximumFractionDigits = 8
+        }.format(value.toDouble() / MICRO_CENTS_TO_DOLLARS.toDouble())
+
+    companion object {
+        val ZERO: AgentBudgetUnit = AgentBudgetUnit(0UL)
+    }
+
 }
