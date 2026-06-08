@@ -40,6 +40,8 @@ data class SessionRunningBudget(
                 amount
             }
         } else {
+            claims.add(SessionBudgetClaim(amount, description))
+
             remaining -= amount
             amount
         }
