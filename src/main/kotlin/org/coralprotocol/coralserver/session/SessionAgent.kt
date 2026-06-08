@@ -542,14 +542,14 @@ class SessionAgent(
                 )
             )
 
-            logger.info { "claimed $claimed of $amount from agent budget.  Remaining agent budget ${runningBudget.remaining}" }
+            logger.info { "claimed $claimed of $amount from agent budget, remaining agent budget: ${runningBudget.remaining}" }
 
             when (val behavior = agentBudgetSettings.exhaustionBehavior) {
                 is AgentBudgetExhaustionBehavior.Kill -> {
                     if (behavior.minimum <= runningBudget.remaining) {
                         val kill = (autoKill || behavior.force)
                         logger.warn {
-                            "agent budget fell below minimum of ${behavior.minimum}, agent will ${
+                            "agent budget fell below minimum of ${behavior.minimum}, agent will be ${
                                 if (kill) {
                                     "killed automatically in "
                                 } else {
@@ -600,14 +600,14 @@ class SessionAgent(
                 )
             )
 
-            logger.info { "claimed $claimed of $remainingClaim from agent budget.  Remaining session budget ${session.runningBudget.remaining}" }
+            logger.info { "claimed $claimed of $remainingClaim from session budget, remaining session budget: ${session.runningBudget.remaining}" }
 
             when (val behavior = sessionBudgetSettings.exhaustionBehavior) {
                 is SessionBudgetExhaustionBehavior.KillAgent -> {
-                    if (behavior.minimum <= session.runningBudget.remaining) {
+                    if (session.runningBudget.remaining <= behavior.minimum) {
                         val kill = (autoKill || behavior.force)
                         logger.warn {
-                            "session budget fell below minimum of ${behavior.minimum}, agent will ${
+                            "session budget fell below minimum of ${behavior.minimum}, agent will be ${
                                 if (kill) {
                                     "killed automatically"
                                 } else {
@@ -633,7 +633,7 @@ class SessionAgent(
                 }
 
                 is SessionBudgetExhaustionBehavior.KillSession -> {
-                    if (behavior.minimum <= session.runningBudget.remaining) {
+                    if (session.runningBudget.remaining <= behavior.minimum) {
                         logger.warn { "session budget fell below minimum of ${behavior.minimum}, killing session" }
                         coroutineScope.launch {
                             delay(behavior.delay)
@@ -736,7 +736,8 @@ class SessionAgent(
             status = status.value,
             description = description,
             links = links.map { it.name }.toSet(),
-            annotations = graphAgent.annotations
+            annotations = graphAgent.annotations,
+            runningBudget = runningBudget
         )
 
     /**
