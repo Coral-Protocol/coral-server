@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.session.SessionId
 import org.coralprotocol.coralserver.session.SessionResource
+import org.coralprotocol.coralserver.session.SessionRunningBudget
 import org.coralprotocol.coralserver.session.SessionStatus
 import org.coralprotocol.coralserver.session.SessionThread
 import org.coralprotocol.coralserver.util.InstantSerializer
@@ -46,6 +47,9 @@ data class SessionStateExtended(
 
     @Description("A list of the states of all threads in this session")
     val threads: List<SessionThread>,
+
+    @Description("A counter for the session's running budget.  See SessionRunningBudget for more information")
+    val runningBudget: SessionRunningBudget,
 )
 
 @Serializable

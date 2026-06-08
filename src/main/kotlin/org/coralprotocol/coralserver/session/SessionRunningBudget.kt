@@ -8,6 +8,7 @@ import kotlin.time.Instant
 
 const val BUDGET_CLAIM_DESCRIPTION_MAX_LENGTH = 256
 
+@Serializable
 data class SessionBudgetClaim(
     val amount: AgentBudgetUnit,
     val description: String,
@@ -16,8 +17,9 @@ data class SessionBudgetClaim(
     val timestamp: Instant = utcTimeNow()
 )
 
-class SessionRunningBudget(
-    startBudget: AgentBudgetUnit,
+@Serializable
+data class SessionRunningBudget(
+    val startBudget: AgentBudgetUnit,
     val clamp: Boolean,
 ) {
     var remaining = startBudget
