@@ -27,10 +27,18 @@ data class SessionRunningBudget(
     val claims: MutableList<SessionBudgetClaim> = mutableListOf()
 
     fun addClaim(amount: AgentBudgetUnit, description: String): AgentBudgetUnit {
-        return if (amount > remaining) {
-            val maxClaim = amount.coerceAtMost(remaining)
-            claims.add(SessionBudgetClaim(amount.coerceAtMost(maxClaim), description))
+        val maxClaim = amount.coerceAtMost(remaining)
+        claims.add(
+            SessionBudgetClaim(
+                if (clamp) {
+                    maxClaim
+                } else {
+                    amount
+                }, description
+            )
+        )
 
+        return if (amount > remaining) {
             if (clamp) {
                 remaining -= maxClaim
                 maxClaim
@@ -40,8 +48,6 @@ data class SessionRunningBudget(
                 amount
             }
         } else {
-            claims.add(SessionBudgetClaim(amount, description))
-
             remaining -= amount
             amount
         }

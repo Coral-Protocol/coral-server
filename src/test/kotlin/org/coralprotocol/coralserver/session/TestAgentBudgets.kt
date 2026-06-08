@@ -93,4 +93,31 @@ class TestAgentBudgets : CoralTest({
         sessionRunningBudget.claims[1].amount.shouldBeEqual(claims[1].first)
         sessionRunningBudget.claims[1].description.shouldBeEqual(claims[1].second)
     }
+
+    test("testSessionWarnedOverclaim") {
+        val sessionStartBudget = 1.dollars
+        val claimAmount = 2.dollars
+        val claimDescription = "big claim"
+
+        val report = sessionEndReport {
+            agentGraphRequest {
+                claimAgent("agent1") {
+                    claim(claimAmount to claimDescription)
+                }
+            }
+            budgetSettings {
+                budget = sessionStartBudget
+                exhaustionBehavior = SessionBudgetExhaustionBehavior.Warn
+            }
+        }
+
+        val sessionRunningBudget = report.sessionState.shouldBeInstanceOf<SessionState.Extended>().state.runningBudget
+        sessionRunningBudget.startBudget.shouldBeEqual(sessionStartBudget)
+        sessionRunningBudget.remaining.shouldBeEqual(AgentBudgetUnit.ZERO)
+        sessionRunningBudget.overclaim.shouldBeEqual(claimAmount - sessionStartBudget)
+
+        sessionRunningBudget.claims.shouldHaveSize(1)
+        sessionRunningBudget.claims[0].amount.shouldBeEqual(claimAmount)
+        sessionRunningBudget.claims[0].description.shouldBeEqual(claimDescription)
+    }
 })
