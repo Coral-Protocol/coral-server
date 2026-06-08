@@ -1,12 +1,12 @@
 package org.coralprotocol.coralserver.utils.dsl
 
-import org.coralprotocol.coralserver.agent.payment.AgentBudgetUnit
-import org.coralprotocol.coralserver.agent.payment.MICRO_CENTS_TO_CENTS
-import org.coralprotocol.coralserver.agent.payment.MICRO_CENTS_TO_DOLLARS
 import org.coralprotocol.coralserver.agent.graph.AgentGraphRequest
 import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
 import org.coralprotocol.coralserver.agent.graph.GraphAgentTool
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
+import org.coralprotocol.coralserver.agent.payment.AgentBudgetUnit
+import org.coralprotocol.coralserver.agent.payment.MICRO_CENTS_TO_CENTS
+import org.coralprotocol.coralserver.agent.payment.MICRO_CENTS_TO_DOLLARS
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.session.*
 import kotlin.time.Duration
@@ -71,6 +71,10 @@ class AgentGraphRequestBuilder {
 
     fun agent(identifier: RegistryAgentIdentifier, block: GraphAgentRequestBuilder.() -> Unit) {
         agents.add(graphAgentRequest(identifier, block))
+    }
+
+    fun claimAgent(name: String, block: ClaimAgentRequestBuilder.() -> Unit) {
+        agents.add(ClaimAgentRequestBuilder(name).apply(block).buildRequest())
     }
 
     fun tool(name: String, tool: GraphAgentTool) {

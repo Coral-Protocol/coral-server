@@ -92,13 +92,13 @@ class GraphAgentBuilder(name: String) : CommonGraphAgentBuilder(name) {
 }
 
 @TestDsl
-class GraphAgentRequestBuilder(
+open class GraphAgentRequestBuilder(
     val identifier: RegistryAgentIdentifier,
     override var name: String = identifier.name
 ) : CommonGraphAgentBuilder(name) {
-    private val options = mutableMapOf<String, AgentOptionValue>()
-    private val customToolAccess = mutableSetOf<String>()
-    private val proxyOverrideMap = mutableMapOf<String, GraphAgentProxyRequest>()
+    protected val options = mutableMapOf<String, AgentOptionValue>()
+    protected val customToolAccess = mutableSetOf<String>()
+    protected val proxyOverrideMap = mutableMapOf<String, GraphAgentProxyRequest>()
 
     fun option(key: String, value: AgentOptionValue) {
         options[key] = value
@@ -112,7 +112,7 @@ class GraphAgentRequestBuilder(
         proxyOverrideMap[requestName] = override
     }
 
-    fun buildRequest(): GraphAgentRequest {
+    open fun buildRequest(): GraphAgentRequest {
         return GraphAgentRequest(
             id = identifier,
             name = name,

@@ -2,7 +2,6 @@ package org.coralprotocol.coralserver.modules
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.runBlocking
 import org.coralprotocol.coralserver.agent.debug.*
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
@@ -21,6 +20,7 @@ val agentModule = module {
     singleOf(::ToolDebugAgent)
     singleOf(::PuppetDebugAgent)
     singleOf(::SocketDebugAgent)
+    singleOf(::ClaimDebugAgent)
 
     single(createdAtStart = true) {
         val config: RegistryConfig = get()
@@ -57,7 +57,8 @@ val agentModule = module {
                         get<SeedDebugAgent>().generate(),
                         get<ToolDebugAgent>().generate(),
                         get<PuppetDebugAgent>().generate(),
-                        get<SocketDebugAgent>().generate()
+                        get<SocketDebugAgent>().generate(),
+                        get<ClaimDebugAgent>().generate()
                     )
                 )
             }
