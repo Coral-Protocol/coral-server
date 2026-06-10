@@ -27,9 +27,9 @@ sealed interface AgentBudgetExhaustionBehavior {
         @Description("If this is true, the agent will be killed immediately.  If this is false, the agent will only be killed if the claim requests for automatic closing.")
         val force: Boolean = false,
 
-        @Description("The delay before the agent is killed, defaults to 100ms")
+        @Description("If force killing is enabled, it will be delayed by this amount before the agent is killed.  If this delay is too low the agent may be killed before it handles to response to a claim")
         @Optional
-        val delay: Duration = 100.milliseconds
+        val forceDelay: Duration = 100.milliseconds
     ) : AgentBudgetExhaustionBehavior
 
     @Serializable

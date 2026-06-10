@@ -567,7 +567,7 @@ class SessionAgent(
 
                         if (kill) {
                             coroutineScope.launch {
-                                delay(behavior.delay)
+                                delay(behavior.forceDelay)
                                 session.cancelAndJoinAgent(name)
                             }
                         }
@@ -627,7 +627,7 @@ class SessionAgent(
 
                         if (kill) {
                             coroutineScope.launch {
-                                delay(behavior.delay)
+                                delay(behavior.forceDelay)
                                 session.cancelAndJoinAgent(name)
                             }
                         }

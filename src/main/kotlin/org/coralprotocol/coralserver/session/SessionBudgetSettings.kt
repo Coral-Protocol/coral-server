@@ -32,9 +32,9 @@ sealed interface SessionBudgetExhaustionBehavior {
         @Description("If this is true, when an agent claims from the session budget that is below the minimum, the agent will be killed immediately.  If this is false, the agent will only be killed if the agent requests for automatic closing.")
         val force: Boolean = false,
 
-        @Description("The delay before the agent is killed, defaults to 100ms")
+        @Description("If force killing is enabled, it will be delayed by this amount before the agent is killed.  If this delay is too low the agent may be killed before it handles to response to a claim")
         @Optional
-        val delay: Duration = 100.milliseconds
+        val forceDelay: Duration = 100.milliseconds
     ) : SessionBudgetExhaustionBehavior
 
     @Serializable
@@ -44,9 +44,9 @@ sealed interface SessionBudgetExhaustionBehavior {
         @Description("The minimum value, specified in micro cents. $1.00 is $MICRO_CENTS_TO_DOLLARS and $0.01 is $MICRO_CENTS_TO_CENTS.")
         val minimum: AgentBudgetUnit = AgentBudgetUnit(),
 
-        @Description("The delay before the session is killed, defaults to 200ms")
+        @Description("The delay before the session is killed.  If this delay is too low, the agent whose claim triggered this may be killed before it receives the response to that claim")
         @Optional
-        val delay: Duration = 200.milliseconds
+        val delay: Duration = 100.milliseconds
     ) : SessionBudgetExhaustionBehavior
 }
 
