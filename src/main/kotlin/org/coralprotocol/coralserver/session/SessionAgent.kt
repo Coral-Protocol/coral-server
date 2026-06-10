@@ -163,7 +163,10 @@ class SessionAgent(
     /**
      * A running budget for this agent
      */
-    val runningBudget = SessionRunningBudget(graphAgent.budgetSettings.budget, clamp = true)
+    val runningBudget = SessionRunningBudget(
+        graphAgent.budgetSettings.budget,
+        clamp = graphAgent.budgetSettings.exhaustionBehavior is AgentBudgetExhaustionBehavior.ConsumeSession
+    )
 
     /**
      * Set to true when the agent is exited with a delay
@@ -535,7 +538,7 @@ class SessionAgent(
         var totalClaimed = AgentBudgetUnit.ZERO
         var totalRemaining = AgentBudgetUnit.ZERO
 
-        if (runningBudget.remaining.isNotZero()) {
+        if (runningBudget.remaining.isNotZero() || agentBudgetSettings.exhaustionBehavior is AgentBudgetExhaustionBehavior.Kill) {
             val result = runningBudget.addClaim(amount, description)
             totalClaimed += result.fulfilled
             totalRemaining += result.totalRemaining
@@ -566,7 +569,7 @@ class SessionAgent(
                         logger.warn {
                             "agent budget fell below minimum of ${behavior.minimum}, agent will be ${
                                 if (kill) {
-                                    "killed automatically in "
+                                    "killed automatically in ${behavior.forceDelay}"
                                 } else {
                                     "notified of budget exhaustion"
                                 }
@@ -622,7 +625,7 @@ class SessionAgent(
                         logger.warn {
                             "session budget fell to ${result.totalRemaining}, agent will be ${
                                 if (kill) {
-                                    "killed automatically"
+                                    "killed automatically in ${behavior.forceDelay}"
                                 } else {
                                     "notified of budget exhaustion"
                                 }
