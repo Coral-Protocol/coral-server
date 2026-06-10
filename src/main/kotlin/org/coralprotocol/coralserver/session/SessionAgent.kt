@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalAtomicApi::class)
+
 package org.coralprotocol.coralserver.session
 
 import io.ktor.server.application.*
@@ -8,7 +10,6 @@ import io.modelcontextprotocol.kotlin.sdk.server.SseServerTransport
 import io.modelcontextprotocol.kotlin.sdk.shared.AbstractTransport
 import io.modelcontextprotocol.kotlin.sdk.types.*
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -37,6 +38,8 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.component.inject
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.concurrent.atomics.AtomicBoolean
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Instant
@@ -161,6 +164,11 @@ class SessionAgent(
      * A running budget for this agent
      */
     val runningBudget = SessionRunningBudget(graphAgent.budgetSettings.budget, clamp = true)
+
+    /**
+     * Set to true when the agent is exited with a delay
+     */
+    var exitScheduled = AtomicBoolean(false)
 
     init {
         val mcpToolManager: McpToolManager = get()
@@ -565,12 +573,8 @@ class SessionAgent(
                             }"
                         }
 
-                        if (kill) {
-                            coroutineScope.launch {
-                                delay(behavior.forceDelay)
-                                session.cancelAndJoinAgent(name)
-                            }
-                        }
+                        if (kill)
+                            session.cancelAndJoinAgent(name, behavior.forceDelay)
 
                         return AgentClaimResponse(
                             requestedAmount = amount,
@@ -625,12 +629,8 @@ class SessionAgent(
                             } as the minimum remaining budget is ${behavior.minimum}"
                         }
 
-                        if (kill) {
-                            coroutineScope.launch {
-                                delay(behavior.forceDelay)
-                                session.cancelAndJoinAgent(name)
-                            }
-                        }
+                        if (kill)
+                            session.cancelAndJoinAgent(name, behavior.forceDelay)
 
                         return AgentClaimResponse(
                             requestedAmount = amount,
@@ -644,10 +644,7 @@ class SessionAgent(
                 is SessionBudgetExhaustionBehavior.KillSession -> {
                     if (result.totalRemaining <= behavior.minimum) {
                         logger.warn { "session budget fell to ${result.totalRemaining}, session will be killed in ${behavior.delay} as the minimum remaining budget is ${behavior.minimum}" }
-                        coroutineScope.launch {
-                            delay(behavior.delay)
-                            session.cancelAndJoinAgents()
-                        }
+                        session.cancelAndJoinAgents(behavior.delay)
 
                         return AgentClaimResponse(
                             requestedAmount = amount,
