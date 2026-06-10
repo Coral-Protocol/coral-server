@@ -3,6 +3,7 @@ package org.coralprotocol.coralserver.session
 import io.kotest.assertions.ktor.client.shouldBeOK
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.matchers.comparables.shouldBeBetween
 import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.comparables.shouldBeLessThanOrEqualTo
 import io.kotest.matchers.equals.shouldBeEqual
@@ -503,5 +504,103 @@ class TestAgentBudgets : CoralTest({
         agentRunningBudget.startBudget.shouldBeEqual(agentStartBudget)
         agentRunningBudget.remaining.shouldBeEqual(minimum)
         agentRunningBudget.overclaim.shouldBeEqual(AgentBudgetUnit.ZERO)
+    }
+
+    test("testKillSessionDelay") {
+        val claimAmount = 1.dollars
+        val agentClaimDelay = 100.milliseconds
+        val delayFactor = 5
+
+        val claims = List(100) { claimAmount to "claim $it" }
+
+        val report = sessionEndReport {
+            agentGraphRequest {
+                claimAgent("agent1") {
+                    ignoreShouldExit = true
+                    claimDelay = agentClaimDelay
+                    claims.forEach { claim(it) }
+                }
+            }
+            budgetSettings {
+                exhaustionBehavior = SessionBudgetExhaustionBehavior.KillSession(
+                    delay = agentClaimDelay * delayFactor,
+                )
+            }
+        }
+
+        // force kill should occur exactly on the 5th claim, a claim not making it through and 1 extra claim making it
+        // through
+        val sessionRunningBudget = report.sessionState.shouldBeInstanceOf<SessionState.Extended>().state.runningBudget
+        sessionRunningBudget.overclaim.shouldBeBetween(
+            claimAmount * (delayFactor - 1).toUInt(),
+            claimAmount * (delayFactor + 1).toUInt()
+        )
+    }
+
+    test("testSessionKillAgentForceDelay") {
+        val claimAmount = 1.dollars
+        val agentClaimDelay = 100.milliseconds
+        val delayFactor = 10
+
+        val claims = List(100) { claimAmount to "claim $it" }
+
+        val report = sessionEndReport {
+            agentGraphRequest {
+                claimAgent("agent1") {
+                    ignoreShouldExit = true
+                    claimDelay = agentClaimDelay
+                    claims.forEach { claim(it) }
+                }
+            }
+            budgetSettings {
+                exhaustionBehavior = SessionBudgetExhaustionBehavior.KillAgent(
+                    force = true,
+                    forceDelay = agentClaimDelay * delayFactor,
+                )
+            }
+        }
+
+        // force kill should occur exactly on the 5th claim, a claim not making it through and 1 extra claim making it
+        // through
+        val sessionRunningBudget = report.sessionState.shouldBeInstanceOf<SessionState.Extended>().state.runningBudget
+        sessionRunningBudget.overclaim.shouldBeBetween(
+            claimAmount * (delayFactor - 1).toUInt(),
+            claimAmount * (delayFactor + 1).toUInt()
+        )
+    }
+
+    test("testAgentKillForceDelay") {
+        val claimAmount = 1.dollars
+        val agentClaimDelay = 100.milliseconds
+        val delayFactor = 3
+
+        val claims = List(100) { claimAmount to "claim $it" }
+
+        val report = sessionEndReport {
+            agentGraphRequest {
+                claimAgent("agent1") {
+                    ignoreShouldExit = true
+                    claimDelay = agentClaimDelay
+                    claims.forEach { claim(it) }
+                    budgetSettings {
+                        exhaustionBehavior = AgentBudgetExhaustionBehavior.Kill(
+                            force = true,
+                            forceDelay = agentClaimDelay * delayFactor,
+                        )
+                    }
+                }
+            }
+        }
+
+        // force kill should occur exactly on the 5th claim, a claim not making it through and 1 extra claim making it
+        // through
+        val agentRunningBudget =
+            report.sessionState.shouldBeInstanceOf<SessionState.Extended>().state.agents.shouldHaveSize(1)
+                .first().runningBudget
+
+        agentRunningBudget.overclaim.shouldBeBetween(
+            claimAmount * (delayFactor - 1).toUInt(),
+            claimAmount * (delayFactor + 1).toUInt()
+        )
     }
 })
