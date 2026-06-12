@@ -16,26 +16,26 @@ Or from source (run from the project root):
 node npx/coral-server.js server configure dev
 ```
 
-The setup wizard uses an Ink TUI to configure the server API auth key and Coral Cloud API key. The config profile "dev" means that the output will be written to
+The setup wizard uses an Ink TUI to configure the Coral Cloud API key. Local server runs launched by the TUI use the default development password `dev`. The config profile "dev" means that the output will be written to
 ~/.coral/config-profiles/dev/dev-coral-server-config.toml. Direct LLM provider backup settings can still be edited in the config file manually.
 
 For non-interactive setup:
 
 ```bash
-npx coralos-dev@RC-1.2.0 server configure dev --cloud.api-key=ck_... --auth.key=dev --yes
+npx coralos-dev@RC-1.2.0 server configure dev --cloud.api-key=ck_... --yes
 ```
 
-The TUI also exposes workspace areas for setup, local server running, develop/build templates, and sharing. Template actions are data-backed placeholders until the template repositories exist.
+The TUI also exposes profile areas for setup, local server running, develop/build templates, and sharing. Template actions are data-backed placeholders until the template repositories exist.
 
 ### Running the server
 
 ```bash
-npx coralos-dev@RC-1.2.0 server start --config-profile=dev -- --auth.keys=test
+npx coralos-dev@RC-1.2.0 server start --config-profile=dev -- --auth.keys=dev
 ```
 
 Or from source (run from the project root):
 ```bash
-node npx/coral-server.js server start --config-profile=dev -- --auth.keys=test
+node npx/coral-server.js server start --config-profile=dev -- --auth.keys=dev
 ```
 
 Starts the LLM proxy server using the configuration from the "dev" profile.

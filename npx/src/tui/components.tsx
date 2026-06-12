@@ -42,10 +42,35 @@ export function Menu<T extends string>({
   onSelect: (value: T) => void;
   limit?: number;
 }) {
+  const Item = ({ isSelected, label }: { isSelected?: boolean; label: string }) => {
+    const marker = label.slice(0, 3);
+    const rest = label.slice(3).trimStart();
+    const markerColor =
+      marker === '(!)' ? theme.warning :
+      marker === '(*)' ? theme.success :
+      marker === '(+)' ? theme.brand :
+      marker === '(>)' ? theme.info :
+      marker === '(<)' ? theme.muted :
+      theme.brandSoft;
+
+    return (
+      <Box>
+        <Text color={markerColor}>{marker}</Text>
+        <Text color={isSelected ? theme.brandSoft : undefined}> {rest}</Text>
+      </Box>
+    );
+  };
+
+  const Indicator = ({ isSelected }: { isSelected?: boolean }) => (
+    <Text color={isSelected ? theme.brand : theme.muted}>{isSelected ? '> ' : '  '}</Text>
+  );
+
   return (
     <SelectInput
       items={items}
       limit={limit ?? 10}
+      indicatorComponent={Indicator}
+      itemComponent={Item}
       onSelect={item => onSelect(item.value)}
     />
   );
@@ -115,7 +140,7 @@ export function AppHeader({
         {'  '}
         <Text color={theme.muted}>{ellipsizeMiddle(profilePath, maxPath)}</Text>
       </Text>
-      <Divider title="workspace" width={metrics.width - 2} />
+      <Divider title="profile" width={metrics.width - 2} />
     </Box>
   );
 }

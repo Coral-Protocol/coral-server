@@ -4,7 +4,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const distDir = path.dirname(fileURLToPath(import.meta.url));
-const npxRoot = path.resolve(distDir, '../../..');
+const projectRoot = path.resolve(distDir, '../../../..');
+export const DEFAULT_DEV_AUTH_KEY = 'dev';
 
 export type ServerStatus = 'stopped' | 'starting' | 'running' | 'exited' | 'error';
 
@@ -23,7 +24,7 @@ export class ServerController {
   private snapshot: ServerSnapshot = {
     status: 'stopped',
     exitCode: null,
-    url: 'http://localhost:5555',
+    url: 'http://localhost:5555/ui/console',
     logs: []
   };
   private readonly listeners = new Set<Listener>();
@@ -46,7 +47,7 @@ export class ServerController {
       this.setSnapshot({
         ...this.snapshot,
         status: 'error',
-        error: 'coral-server.jar was not found in bin/ or project root.',
+        error: 'coral-server.jar was not found in bin/, project root, or build/libs.',
         logs: this.pushLog('Unable to start: coral-server.jar was not found.')
       });
       return;
@@ -60,7 +61,7 @@ export class ServerController {
       logs: this.pushLog(`Starting server with CONFIG_FILE_PATH=${profilePath}`)
     });
 
-    const child = spawn('java', ['-jar', jarPath], {
+    const child = spawn('java', ['-jar', jarPath, `--auth.keys=${DEFAULT_DEV_AUTH_KEY}`], {
       env: {
         ...process.env,
         CONFIG_FILE_PATH: profilePath
@@ -110,10 +111,21 @@ export class ServerController {
 
   private findJarPath(): string | null {
     const candidates = [
-      path.join(npxRoot, 'bin', 'coral-server.jar'),
-      path.join(npxRoot, 'coral-server.jar')
+      path.join(projectRoot, 'bin', 'coral-server.jar'),
+      path.join(projectRoot, 'coral-server.jar')
     ];
-    return candidates.find(candidate => fs.existsSync(candidate)) ?? null;
+    const direct = candidates.find(candidate => fs.existsSync(candidate));
+    if (direct) return direct;
+
+    const libsDir = path.join(projectRoot, 'build', 'libs');
+    if (!fs.existsSync(libsDir)) return null;
+
+    return fs.readdirSync(libsDir)
+      .filter(name => name.startsWith('coral-server-') && name.endsWith('.jar') && !name.endsWith('-plain.jar'))
+      .sort()
+      .reverse()
+      .map(name => path.join(libsDir, name))
+      .find(candidate => fs.existsSync(candidate)) ?? null;
   }
 
   private addLog(value: string): void {

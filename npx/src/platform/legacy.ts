@@ -29,4 +29,5 @@ export const configManager = require('../../lib/config-manager') as ConfigManage
 export const constants = require('../../lib/constants') as {
   pkg: PackageInfo;
   IS_WINDOWS: boolean;
+  CONFIG_PROFILES_DIR: string;
 };

@@ -1,3 +1,4 @@
+export declare const DEFAULT_DEV_AUTH_KEY = "dev";
 export type ServerStatus = 'stopped' | 'starting' | 'running' | 'exited' | 'error';
 export type ServerSnapshot = {
     status: ServerStatus;

@@ -2,8 +2,9 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import React from 'react';
 import { render } from 'ink';
-import { WizardApp, FirstRunApp, type WizardResult } from './app.js';
+import { WizardApp, FirstRunApp, ProfilePickerApp, type WizardResult } from './app.js';
 import { configManager, constants } from '../platform/legacy.js';
+import { ensureProfileConfig, listConfigProfiles } from '../platform/profiles.js';
 
 function runInkApp<T>(elementFactory: (finish: (value: T) => void) => React.ReactElement): Promise<T | null> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
@@ -52,10 +53,23 @@ export async function runSetupWizard(profileName: string, options: {
     return false;
   }
 
-  const config = configManager.buildConfigFromWizardResults([], result.authKey, result.cloudApiKey);
+  const config = configManager.buildConfigFromWizardResults([], null, result.cloudApiKey);
   fs.writeFileSync(profilePath, config);
   console.log(`Configuration saved to ${profilePath}`);
   return true;
+}
+
+export async function runHomeTui(): Promise<boolean> {
+  const profileName = await runInkApp<string | null>(finish => (
+    <ProfilePickerApp profiles={listConfigProfiles()} finish={finish} />
+  ));
+
+  if (!profileName) {
+    return false;
+  }
+
+  ensureProfileConfig(profileName);
+  return runSetupWizard(profileName, { hasAuthKeysArg: false, isStartCommand: false });
 }
 
 export async function handleFirstRun(profileName: string, options: {

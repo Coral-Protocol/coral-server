@@ -17,4 +17,5 @@ export declare const configManager: ConfigManager;
 export declare const constants: {
     pkg: PackageInfo;
     IS_WINDOWS: boolean;
+    CONFIG_PROFILES_DIR: string;
 };
