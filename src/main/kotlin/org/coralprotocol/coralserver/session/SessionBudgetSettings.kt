@@ -61,7 +61,7 @@ data class SessionBudgetSettings(
         """
     )
     @Optional
-    val budget: AgentBudgetUnit = AgentBudgetUnit(),
+    val budget: AgentBudgetUnit = AgentBudgetUnit.ZERO,
 
     @Description(
         """

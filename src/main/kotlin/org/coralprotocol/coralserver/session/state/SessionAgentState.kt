@@ -2,10 +2,12 @@ package org.coralprotocol.coralserver.session.state
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.agent.graph.GraphAgentBudgetSettings
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.llmproxy.TokenUsage
 import org.coralprotocol.coralserver.session.SessionAgentStatus
+import org.coralprotocol.coralserver.session.SessionBudgetSettings
 import org.coralprotocol.coralserver.session.SessionResource
 import org.coralprotocol.coralserver.session.SessionRunningBudget
 
@@ -29,6 +31,9 @@ data class SessionAgentState(
 
     @Description("A counter for the agent's running budget.  See SessionRunningBudget for more information")
     val runningBudget: SessionRunningBudget,
+
+    @Description("The budget settings for this agent")
+    val budgetSettings: GraphAgentBudgetSettings,
 
     override val annotations: Map<String, String>,
 ) : SessionResource

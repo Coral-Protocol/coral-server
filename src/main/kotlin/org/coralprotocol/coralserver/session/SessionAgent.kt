@@ -738,7 +738,8 @@ class SessionAgent(
             description = description,
             links = links.map { it.name }.toSet(),
             annotations = graphAgent.annotations,
-            runningBudget = runningBudget
+            runningBudget = runningBudget,
+            budgetSettings = graphAgent.budgetSettings
         )
 
     /**

@@ -196,7 +196,8 @@ class LocalSession(
             ),
             agents = agents.map { (_, agent) -> agent.getState() },
             threads = threads.values.toList(),
-            runningBudget = runningBudget
+            runningBudget = runningBudget,
+            budgetSettings = budgetSettings
         )
 
     @TestOnly

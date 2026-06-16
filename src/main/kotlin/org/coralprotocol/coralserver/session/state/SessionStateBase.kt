@@ -7,6 +7,7 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
+import org.coralprotocol.coralserver.session.SessionBudgetSettings
 import org.coralprotocol.coralserver.session.SessionId
 import org.coralprotocol.coralserver.session.SessionResource
 import org.coralprotocol.coralserver.session.SessionRunningBudget
@@ -50,6 +51,9 @@ data class SessionStateExtended(
 
     @Description("A counter for the session's running budget.  See SessionRunningBudget for more information")
     val runningBudget: SessionRunningBudget,
+
+    @Description("The budget settings for this session")
+    val budgetSettings: SessionBudgetSettings,
 )
 
 @Serializable
