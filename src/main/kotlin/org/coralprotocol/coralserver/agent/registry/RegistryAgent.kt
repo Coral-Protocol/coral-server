@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.agent.registry
 
+import aws.smithy.kotlin.runtime.util.type
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
@@ -16,7 +17,7 @@ const val MINIMUM_SUPPORTED_AGENT_EDITION = 3
 /**
  * The maximum (and current) supported agent edition.
  */
-const val MAXIMUM_SUPPORTED_AGENT_VERSION = 4
+const val MAXIMUM_SUPPORTED_AGENT_VERSION = 5
 
 @Serializable
 data class RegistryAgent(
@@ -26,6 +27,8 @@ data class RegistryAgent(
     val options: Map<String, AgentOption> = mapOf(),
     val llm: AgentLlmConfig? = null,
     val marketplace: RegistryAgentMarketplaceSettings? = null,
+    val dependencies: List<RegistryAgentDependency> = listOf(),
+    val claimTypes: List<RegistryAgentClaimType> = listOf(),
 
     @Transient
     val path: Path? = null,
@@ -65,6 +68,12 @@ data class RegistryAgent(
 
     @Transient
     val llmProxies = llm?.proxies ?: listOf()
+
+    @Transient
+    val dependencyMap = dependencies.associateBy { it.name }
+
+    @Transient
+    val claimTypeMap = claimTypes.associateBy { it.name }
 
     val exportSettings: AgentExportSettingsMap = unresolvedExportSettings.mapValues { (runtime, settings) ->
         settings.resolve(runtime, this)

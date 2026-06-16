@@ -1340,4 +1340,134 @@ class RegistryAgentTest : CoralTest({
             }.validate()
         }
     }
+
+    test("testClaimTypes") {
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                dependency("DEP")
+                claimType("CLAIM_1", "Description 1", "DEP")
+                claimType("CLAIM_2", "Description 2", "DEP")
+            }.validate()
+        }
+
+        // too many claim types
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                dependency("DEP")
+                repeat(AGENT_CLAIM_TYPES_MAX_ENTRIES + 1) {
+                    claimType("CLAIM_$it", "Description $it", "DEP")
+                }
+            }.validate()
+        }
+
+        // claim type name too short
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                dependency("DEP")
+                runtime(FunctionRuntime())
+                claimType("", "Description", "DEP")
+            }.validate()
+        }
+
+        // claim type name too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                dependency("DEP")
+                claimType("A".repeat(AGENT_CLAIM_TYPE_NAME_LENGTH.last + 1), "Description", "DEP")
+            }.validate()
+        }
+
+        // claim type name invalid pattern
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                dependency("DEP")
+                claimType("1_CLAIM", "Description", "DEP")
+            }.validate()
+        }
+
+        // claim type name not unique
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                dependency("DEP")
+                claimType("CLAIM", "Description 1", "DEP")
+                claimType("CLAIM", "Description 2", "DEP")
+            }.validate()
+        }
+
+        // claim type description too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                dependency("DEP")
+                claimType("CLAIM", "D".repeat(AGENT_CLAIM_TYPE_DESCRIPTION_LENGTH.last + 1), "DEP")
+            }.validate()
+        }
+    }
+
+    test("testDependencies") {
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                dependency("DEP_1")
+                dependency("DEP_2")
+            }.validate()
+        }
+
+        // too many dependencies
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                repeat(AGENT_DEPENDENCIES_MAX_ENTRIES + 1) {
+                    dependency("DEP_$it")
+                }
+            }.validate()
+        }
+
+        // dependency name too short
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                dependency("")
+            }.validate()
+        }
+
+        // dependency name too long
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                dependency("A".repeat(AGENT_DEPENDENCY_NAME_LENGTH.last + 1))
+            }.validate()
+        }
+
+        // dependency name not unique
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                dependency("DEP")
+                dependency("DEP")
+            }.validate()
+        }
+
+        // dependency references non-existent option
+        shouldThrow<RegistryException> {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                dependency("DEP", "NON_EXISTENT_OPTION")
+            }.validate()
+        }
+
+        // dependency references existent option
+        shouldNotThrowAny {
+            registryAgent("valid") {
+                runtime(FunctionRuntime())
+                option("EXISTENT_OPTION", AgentOption.Int())
+                dependency("DEP", "EXISTENT_OPTION")
+            }.validate()
+        }
+    }
 })

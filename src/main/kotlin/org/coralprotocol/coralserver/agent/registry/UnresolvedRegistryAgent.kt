@@ -49,7 +49,16 @@ data class UnresolvedRegistryAgent(
 
     @Description("Information for this agent relevant to it's potential listing on the marketplace")
     @Optional
-    val marketplace: RegistryAgentMarketplaceSettings? = null
+    val marketplace: RegistryAgentMarketplaceSettings? = null,
+
+    @Description("A list of dependencies, grouping options together. Dependencies are also required by claim types.")
+    @Optional
+    val dependencies: List<RegistryAgentDependency> = emptyList(),
+
+    @Description("A list of claim types that can be made by this agent during runtime")
+    @Optional
+    @SerialName("claims")
+    val claimTypes: List<RegistryAgentClaimType> = emptyList(),
 ) : KoinComponent {
     companion object : KoinComponent {
         fun resolveFromFile(
@@ -120,7 +129,9 @@ data class UnresolvedRegistryAgent(
             options = options,
             llm = llm,
             path = context.path,
-            marketplace = marketplace
+            marketplace = marketplace,
+            dependencies = dependencies,
+            claimTypes = claimTypes
         )
         registryAgent.validate()
 

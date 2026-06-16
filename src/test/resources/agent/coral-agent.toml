@@ -150,6 +150,16 @@ models = ["gpt-4.1"]
 name = "REASONING"
 format.type = "Anthropic"
 
+[[dependencies]]
+name = "test"
+options = ["DEFAULT_I8", "DEFAULT_I16"]
+
+[[claims]]
+name = "TEST_CLAIM"
+description = "A test claim"
+dependency = "test"
+cost = 100_000_000 # 1 dollar
+
 # option key:
 #   len: 1 - 256
 #   pattern: ^[a-zA-Z_][a-zA-Z_$0-9]*$

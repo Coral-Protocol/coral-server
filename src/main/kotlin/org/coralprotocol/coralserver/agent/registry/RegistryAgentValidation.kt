@@ -83,6 +83,16 @@ val AGENT_MARKETPLACE_ERC8004_ENDPOINTS_NAME_LENGTH = 1..32
 val AGENT_MARKETPLACE_ERC8004_ENDPOINTS_NAME_PATTERN = "^[a-zA-Z][a-zA-Z_\\-0-9]*$".toRegex()
 val AGENT_MARKETPLACE_ERC8004_ENDPOINTS_ENDPOINT_LENGTH = 1..256
 
+// [[claims]]
+const val AGENT_CLAIM_TYPES_MAX_ENTRIES = 64
+val AGENT_CLAIM_TYPE_NAME_LENGTH = 1..32
+val AGENT_CLAIM_TYPE_NAME_PATTERN = "^[a-zA-Z_][a-zA-Z_$0-9]*$".toRegex()
+val AGENT_CLAIM_TYPE_DESCRIPTION_LENGTH = 1..256
+
+// [[dependencies]]
+const val AGENT_DEPENDENCIES_MAX_ENTRIES = 16
+val AGENT_DEPENDENCY_NAME_LENGTH = 1..128
+
 private sealed interface StringSizeValidator {
     fun validate(name: String, length: Int): Int
     fun validate(name: String, value: String): Int
@@ -629,6 +639,48 @@ private fun RegistryAgent.validateLlm() {
     }
 }
 
+private fun RegistryAgent.validateDependencies() {
+    if (dependencies.size > AGENT_DEPENDENCIES_MAX_ENTRIES)
+        throw RegistryException("agent dependency count cannot exceed $AGENT_DEPENDENCIES_MAX_ENTRIES, was ${dependencies.size}")
+
+    val names = mutableSetOf<String>()
+    for ((index, dependency) in dependencies.withIndex()) {
+        validateStringLength("dependencies[$index].name", dependency.name, AGENT_DEPENDENCY_NAME_LENGTH)
+
+        if (names.contains(dependency.name))
+            throw RegistryException("dependency name \"${dependency.name}\" is already defined")
+
+        names.add(dependency.name)
+
+        for (optionName in dependency.options) {
+            if (!options.containsKey(optionName))
+                throw RegistryException("dependency \"${dependency.name}\" references option \"${optionName}\" which is not defined")
+        }
+    }
+}
+
+private fun RegistryAgent.validateClaimTypes() {
+    if (claimTypes.size > AGENT_CLAIM_TYPES_MAX_ENTRIES)
+        throw RegistryException("agent claim types count cannot exceed $AGENT_CLAIM_TYPES_MAX_ENTRIES, was ${claimTypes.size}")
+
+    val names = mutableSetOf<String>()
+    for ((index, claimType) in claimTypes.withIndex()) {
+        validateStringLength("claims[$index].name", claimType.name, AGENT_CLAIM_TYPE_NAME_LENGTH)
+        if (!claimType.name.matches(AGENT_CLAIM_TYPE_NAME_PATTERN))
+            throw RegistryException("claims[$index].name (\"${claimType.name}\") must start with an alphabetic character or underscore and contain only alphanumeric characters or underscores")
+
+        validateStringLength("claims[$index].description", claimType.description, AGENT_CLAIM_TYPE_DESCRIPTION_LENGTH)
+
+        if (names.contains(claimType.name))
+            throw RegistryException("claim type name \"${claimType.name}\" is already defined")
+
+        names.add(claimType.name)
+
+        if (!dependencyMap.containsKey(claimType.dependencyName))
+            throw RegistryException("claim type \"${claimType.name}\" references dependency \"${claimType.dependencyName}\" which is not defined")
+    }
+}
+
 fun RegistryAgent.validate() {
     validateName()
     validateVersion()
@@ -637,4 +689,6 @@ fun RegistryAgent.validate() {
     validateOptions()
     validateLlm()
     validateMarketplace()
+    validateDependencies()
+    validateClaimTypes()
 }

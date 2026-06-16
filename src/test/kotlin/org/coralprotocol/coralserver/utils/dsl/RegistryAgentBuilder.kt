@@ -85,6 +85,8 @@ class RegistryAgentBuilder(
     private val capabilities: MutableSet<AgentCapability> = mutableSetOf()
     private val options: MutableMap<String, AgentOption> = mutableMapOf()
     private val unresolvedExportSettings: MutableMap<RuntimeId, UnresolvedAgentExportSettings> = mutableMapOf()
+    private val claimTypes: MutableList<RegistryAgentClaimType> = mutableListOf()
+    private val dependencies: MutableList<RegistryAgentDependency> = mutableListOf()
     private var marketplace: RegistryAgentMarketplaceSettings? = null
     private var llm: AgentLlmConfig? = null
 
@@ -106,6 +108,14 @@ class RegistryAgentBuilder(
 
     fun exportSetting(runtime: RuntimeId, value: UnresolvedAgentExportSettings) {
         unresolvedExportSettings[runtime] = value
+    }
+
+    fun claimType(name: String, description: String, dependencyName: String) {
+        claimTypes += RegistryAgentClaimType(name = name, description = description, dependencyName = dependencyName)
+    }
+
+    fun dependency(name: String, vararg options: String) {
+        dependencies += RegistryAgentDependency(name = name, options = options.toList())
     }
 
     fun marketplace(block: RegistryAgentMarketplaceSettingsBuilder.() -> Unit) {
@@ -171,10 +181,12 @@ class RegistryAgentBuilder(
             ),
             runtimes = runtimes,
             options = options,
+            llm = llm,
+            marketplace = marketplace,
             path = path,
             unresolvedExportSettings = unresolvedExportSettings,
-            marketplace = marketplace,
-            llm = llm
+            claimTypes = claimTypes,
+            dependencies = dependencies,
         )
     }
 }
