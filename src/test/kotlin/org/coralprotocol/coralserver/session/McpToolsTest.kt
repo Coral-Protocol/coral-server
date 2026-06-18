@@ -1,6 +1,5 @@
 package org.coralprotocol.coralserver.session
 
-import io.kotest.core.NamedTag
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldNotBeEmpty
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -17,7 +16,7 @@ import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.mcp.tools.*
 import org.coralprotocol.coralserver.util.sseFunctionRuntime
 import org.coralprotocol.coralserver.util.streamableHttpFunctionRuntime
-import org.coralprotocol.coralserver.utils.dsl.graphAgentPair
+import org.coralprotocol.coralserver.dsl.graphAgentPair
 import org.coralprotocol.coralserver.utils.synchronizedMessageTransaction
 import org.koin.test.inject
 import java.util.*

@@ -39,7 +39,8 @@ import org.coralprotocol.coralserver.mcp.buildToolSchema
 import org.coralprotocol.coralserver.modules.LOGGER_TEST
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.util.StreamableHttpServerTransport
-import org.coralprotocol.coralserver.utils.dsl.graphAgentPair
+import org.coralprotocol.coralserver.dsl.graphAgentPair
+import org.coralprotocol.coralserver.utils.dsl.testProxy
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.component.inject

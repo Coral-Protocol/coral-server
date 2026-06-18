@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.utils.dsl
+package org.coralprotocol.coralserver.dsl
 
 import org.coralprotocol.coralserver.agent.debug.ClaimDebugAgent
 import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
@@ -6,7 +6,7 @@ import org.coralprotocol.coralserver.agent.payment.AgentBudgetUnit
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import kotlin.time.Duration
 
-@TestDsl
+@CoralDsl
 class ClaimAgentRequestBuilder(name: String) : GraphAgentRequestBuilder(ClaimDebugAgent.identifier, name) {
     var claimDelay = Duration.ZERO
     var autoKill = false

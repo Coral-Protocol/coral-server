@@ -16,7 +16,7 @@ import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.mcp.tools.optional.CloseSessionInput
 import org.coralprotocol.coralserver.util.sseFunctionRuntime
 import org.coralprotocol.coralserver.util.streamableHttpFunctionRuntime
-import org.coralprotocol.coralserver.utils.dsl.graphAgentPair
+import org.coralprotocol.coralserver.dsl.graphAgentPair
 import org.koin.test.inject
 
 class McpAgentPluginTest : CoralTest({

@@ -15,7 +15,7 @@ import org.coralprotocol.coralserver.logging.LoggingEvent
 import org.coralprotocol.coralserver.modules.LOGGER_LOCAL_SESSION
 import org.coralprotocol.coralserver.util.isWindows
 import org.coralprotocol.coralserver.utils.TestEvent
-import org.coralprotocol.coralserver.utils.dsl.graphAgentPair
+import org.coralprotocol.coralserver.dsl.graphAgentPair
 import org.coralprotocol.coralserver.utils.shouldPostEvents
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named

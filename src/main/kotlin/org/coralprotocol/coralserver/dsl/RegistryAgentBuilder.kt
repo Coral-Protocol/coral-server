@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.utils.dsl
+package org.coralprotocol.coralserver.dsl
 
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
@@ -6,16 +6,15 @@ import org.coralprotocol.coralserver.agent.runtime.*
 import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeString
 import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeUrlPart
 import org.coralprotocol.coralserver.llmproxy.LlmProviderFormat
-import org.coralprotocol.coralserver.utils.TestProxy
 import java.nio.file.Path
 
-@TestDsl
+@CoralDsl
 class PrototypeStringBuilder {
     fun inline(value: String): PrototypeString = PrototypeString.Inline(value)
     fun option(name: String): PrototypeString = PrototypeString.Option(name)
 }
 
-@TestDsl
+@CoralDsl
 class PrototypeStringListBuilder {
     private val parts = mutableListOf<PrototypeString>()
 
@@ -44,7 +43,7 @@ class PrototypeStringListBuilder {
     fun build() = parts.toList()
 }
 
-@TestDsl
+@CoralDsl
 class UrlPartListBuilder {
     private val parts = mutableListOf<PrototypeUrlPart>()
 
@@ -67,7 +66,7 @@ class UrlPartListBuilder {
     fun build() = parts.toList()
 }
 
-@TestDsl
+@CoralDsl
 class RegistryAgentBuilder(
     var name: String,
 ) {
@@ -191,26 +190,18 @@ class RegistryAgentBuilder(
     }
 }
 
-@TestDsl
+@CoralDsl
 class AgentLlmConfigBuilder {
-    private val proxies = mutableListOf<AgentLlmProxyRequest>()
+    val proxies = mutableListOf<AgentLlmProxyRequest>()
 
     fun proxy(name: String, format: LlmProviderFormat, vararg models: String) {
         proxies += AgentLlmProxyRequest(name, format, models.toSet())
     }
 
-    fun testProxy(testProxy: TestProxy) {
-        proxies += AgentLlmProxyRequest(
-            testProxy.providerConfig.name,
-            testProxy.providerConfig.format,
-            testProxy.providerConfig.models
-        )
-    }
-
     fun build() = AgentLlmConfig(proxies = proxies.toList())
 }
 
-@TestDsl
+@CoralDsl
 class RegistryAgentMarketplaceSettingsBuilder {
     private var pricing: RegistryAgentMarketplacePricing? = null
     private var identities: RegistryAgentMarketplaceIdentities? = null
@@ -235,7 +226,7 @@ class RegistryAgentMarketplaceSettingsBuilder {
     }
 }
 
-@TestDsl
+@CoralDsl
 class RegistryAgentMarketplacePricingBuilder(
     val description: String,
     val recommendations: RegistryAgentMarketplacePricingRecommendations
@@ -251,7 +242,7 @@ class RegistryAgentMarketplacePricingBuilder(
     }
 }
 
-@TestDsl
+@CoralDsl
 class RegistryAgentMarketplaceIdentitiesBuilder {
     private var erc8004: RegistryAgentMarketplaceIdentityErc8004? = null
 
@@ -263,7 +254,7 @@ class RegistryAgentMarketplaceIdentitiesBuilder {
         RegistryAgentMarketplaceIdentities(erc8004 = erc8004)
 }
 
-@TestDsl
+@CoralDsl
 class RegistryAgentMarketplaceIdentityErc8004Builder(val wallet: String) {
     private val endpoints: MutableList<Erc8004Endpoint> = mutableListOf()
 

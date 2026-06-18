@@ -13,7 +13,6 @@ import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
-import io.ktor.util.*
 import kotlinx.serialization.json.Json
 import org.bitcoinj.core.Base58
 import org.coralprotocol.coralserver.CoralTest
@@ -26,9 +25,13 @@ import org.coralprotocol.coralserver.agent.runtime.ExecutableRuntime
 import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.agent.runtime.PrototypeRuntime
 import org.coralprotocol.coralserver.agent.runtime.prototype.*
+import org.coralprotocol.coralserver.dsl.RegistryAgentMarketplaceIdentityErc8004Builder
+import org.coralprotocol.coralserver.dsl.RegistryAgentMarketplacePricingBuilder
+import org.coralprotocol.coralserver.dsl.composedString
+import org.coralprotocol.coralserver.dsl.composedUrl
+import org.coralprotocol.coralserver.dsl.registryAgent
 import org.coralprotocol.coralserver.llmproxy.LlmProviderFormat
 import org.coralprotocol.coralserver.mcp.McpTransportType
-import org.coralprotocol.coralserver.utils.dsl.*
 import org.koin.test.inject
 import java.io.File
 import kotlin.io.encoding.Base64

@@ -1,4 +1,4 @@
-package org.coralprotocol.coralserver.utils.dsl
+package org.coralprotocol.coralserver.dsl
 
 import org.coralprotocol.coralserver.agent.graph.AgentGraphRequest
 import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
@@ -12,7 +12,7 @@ import org.coralprotocol.coralserver.session.*
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
-@TestDsl
+@CoralDsl
 class SessionRequestBuilder {
     private var agentGraphRequest: AgentGraphRequest = AgentGraphRequest(listOf())
     private var namespaceRequest: SessionNamespaceProvider = SessionNamespaceProvider.CreateIfNotExists(
@@ -63,7 +63,7 @@ class SessionRequestBuilder {
     }
 }
 
-@TestDsl
+@CoralDsl
 class AgentGraphRequestBuilder {
     private val agents = mutableListOf<GraphAgentRequest>()
     private val groups = mutableSetOf<Set<UniqueAgentName>>()
@@ -104,7 +104,7 @@ class AgentGraphRequestBuilder {
     }
 }
 
-@TestDsl
+@CoralDsl
 class SessionRuntimeSettingsBuilder {
     var ttl: Duration? = null
     var persistenceMode: SessionPersistenceMode = SessionPersistenceMode.None
@@ -120,7 +120,7 @@ class SessionRuntimeSettingsBuilder {
     }
 }
 
-@TestDsl
+@CoralDsl
 class SessionWebhooksBuilder {
     private var sessionEnd: SessionEndWebhook? = null
 
@@ -133,7 +133,7 @@ class SessionWebhooksBuilder {
     }
 }
 
-@TestDsl
+@CoralDsl
 class SessionBudgetSettingsBuilder {
     var budget: AgentBudgetUnit = AgentBudgetUnit()
     var exhaustionBehavior: SessionBudgetExhaustionBehavior = SessionBudgetExhaustionBehavior.KillAgent()
@@ -155,7 +155,7 @@ class SessionBudgetSettingsBuilder {
     }
 }
 
-@TestDsl
+@CoralDsl
 class SessionBudgetKillAgentBuilder {
     var minimum: AgentBudgetUnit = AgentBudgetUnit()
     var force: Boolean = false
@@ -166,7 +166,7 @@ class SessionBudgetKillAgentBuilder {
     }
 }
 
-@TestDsl
+@CoralDsl
 class SessionBudgetKillSessionBuilder {
     var minimum: AgentBudgetUnit = AgentBudgetUnit()
     var delay: Duration = 200.milliseconds
@@ -176,7 +176,7 @@ class SessionBudgetKillSessionBuilder {
     }
 }
 
-@TestDsl
+@CoralDsl
 class SessionNamespaceRequestBuilder {
     var name: String = "default"
     var deleteOnLastSessionExit = true

@@ -14,7 +14,7 @@ import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.PaymentConfig
 import org.coralprotocol.coralserver.routes.api.v1.AgentRental
-import org.coralprotocol.coralserver.utils.dsl.registryAgent
+import org.coralprotocol.coralserver.dsl.registryAgent
 import org.koin.test.inject
 
 class RentalApiTest : CoralTest({

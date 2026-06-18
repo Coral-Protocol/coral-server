@@ -27,7 +27,7 @@ import org.coralprotocol.coralserver.util.filterIsInstance
 import org.coralprotocol.coralserver.util.fromWsFrame
 import org.coralprotocol.coralserver.util.map
 import org.coralprotocol.coralserver.utils.TestEvent
-import org.coralprotocol.coralserver.utils.dsl.sessionRequest
+import org.coralprotocol.coralserver.dsl.sessionRequest
 import org.coralprotocol.coralserver.utils.shouldPostEventsFromBody
 import org.koin.core.qualifier.named
 import org.koin.test.inject
