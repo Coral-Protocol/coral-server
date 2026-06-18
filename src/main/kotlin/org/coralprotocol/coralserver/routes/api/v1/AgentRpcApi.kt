@@ -16,11 +16,13 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.payment.AgentClaimRequest
-import org.coralprotocol.coralserver.agent.payment.AgentClaimResponse
+import org.coralprotocol.coralserver.agent.payment.AgentClaimResult
+import org.coralprotocol.coralserver.agent.payment.BUDGET_CLAIM_ADDITIONAL_DESCRIPTION_MAX_LENGTH
 import org.coralprotocol.coralserver.payment.BlankX402Service
 import org.coralprotocol.coralserver.routes.ApiV1
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.SessionAgent
+import org.coralprotocol.coralserver.session.SessionAgentClaim
 import org.coralprotocol.coralserver.x402.X402PaymentRequired
 import org.coralprotocol.coralserver.x402.X402ProxiedResponse
 import org.coralprotocol.coralserver.x402.X402ProxyRequest
@@ -54,7 +56,7 @@ fun Route.agentRpcApi() {
         response {
             HttpStatusCode.OK to {
                 description = "Success"
-                body<AgentClaimResponse> {
+                body<AgentClaimResult> {
                     description = "A response to the claim request"
                 }
             }
@@ -64,13 +66,32 @@ fun Route.agentRpcApi() {
                     description = "Error message"
                 }
             }
+            HttpStatusCode.BadRequest to {
+                description = "Invalid claim type provided"
+                body<RouteException> {
+                    description = "Error message"
+                }
+            }
         }
-    }) { claim ->
+    }) {
         val agent = call.principal<SessionAgent>()
             ?: throw RouteException(HttpStatusCode.Unauthorized, "Unauthorized")
 
-        val claim = call.receive<AgentClaimRequest>()
-        call.respond(agent.processClaim(claim.amount, claim.description, claim.autoKill))
+        val request = call.receive<AgentClaimRequest>()
+        val claim = agent.graphAgent.registryAgent.claimTypeMap[request.claimTypeName]
+            ?: throw RouteException(HttpStatusCode.BadRequest, "Invalid claim type")
+
+        call.respond(
+            agent.processClaim(
+                SessionAgentClaim.RpcClaim(
+                    type = claim,
+                    additionalDescription = request.additionalDescription.take(
+                        BUDGET_CLAIM_ADDITIONAL_DESCRIPTION_MAX_LENGTH
+                    )
+                ),
+                autoKill = request.autoKill
+            )
+        )
     }
 
     post<Rpc.X402>({
