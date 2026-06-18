@@ -44,6 +44,10 @@ data class GraphAgentBudgetSettings(
     @Optional
     val budget: AgentBudgetUnit = AgentBudgetUnit(),
 
+    @Description("A map where each key is a claim type name and the value the cost for that claim. Claims that do not have default values set must have their values set in this map or else they will not contribute to the budget.")
+    @Optional
+    val claimTypeCosts : Map<String, AgentBudgetUnit> = emptyMap(),
+
     @Description("The behavior of agent budget exhaustion, defaults to consuming session budget.")
     @Optional
     val exhaustionBehavior: AgentBudgetExhaustionBehavior = AgentBudgetExhaustionBehavior.ConsumeSession,

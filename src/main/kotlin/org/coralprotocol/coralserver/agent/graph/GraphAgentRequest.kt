@@ -162,6 +162,11 @@ data class GraphAgentRequest(
             }
         }
 
+        budgetSettings.claimTypeCosts.keys.forEach {
+            if (!registryAgent.claimTypeMap.containsKey(it))
+                throw AgentRequestException("Cannot specify a cost for claim type \"$it\".  This claim type is not defined for agent $id")
+        }
+
         return GraphAgent(
             registryAgent = registryAgent,
             name = name,
