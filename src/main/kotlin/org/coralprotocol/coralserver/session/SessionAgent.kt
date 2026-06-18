@@ -13,6 +13,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonObject
@@ -22,9 +23,8 @@ import org.coralprotocol.coralserver.agent.graph.AgentBudgetExhaustionBehavior
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgent
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
-import org.coralprotocol.coralserver.agent.payment.AgentBudgetSource
 import org.coralprotocol.coralserver.agent.payment.AgentBudgetUnit
-import org.coralprotocol.coralserver.agent.payment.AgentClaimResponse
+import org.coralprotocol.coralserver.agent.payment.AgentClaimResult
 import org.coralprotocol.coralserver.config.SessionConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.LoggingTag
@@ -527,149 +527,182 @@ class SessionAgent(
     }
 
     /**
-     * Processes this agent's budget claim.  If [autoKill] is true this function may result in the exiting of this
-     * agent.
+     * Procceses a singular [SessionAgentClaim].  If [autoKill] is true and the claim happens to exhaust a budget
+     * configured to kill the agent or session, calling this function may result in the exit of the agent or the
+     * session.
      */
-    suspend fun processClaim(amount: AgentBudgetUnit, description: String, autoKill: Boolean): AgentClaimResponse {
+    suspend fun processClaim(claim: SessionAgentClaim, autoKill: Boolean): AgentClaimResult {
+        var remainingClaim = claim.calculateCost(this)
+        var totalClaimed = AgentBudgetUnit.ZERO
+
+        val claimId = session.agentClaimReceipts.updateAndGet {
+            it + SessionAgentClaimReceipt(
+                claim = claim,
+                cost = remainingClaim,
+                id = it.size + 1
+            )
+        }.size
+
+        val logger = logger.withTags(LoggingTag.AgentClaim(claimId))
+
         val agentBudgetSettings = graphAgent.budgetSettings
         val sessionBudgetSettings = session.budgetSettings
 
-        var remainingClaim = amount
-        var totalClaimed = AgentBudgetUnit.ZERO
-        var totalRemaining = AgentBudgetUnit.ZERO
+        logger.info { "processing $claim for remainingClaim" }
 
-        if (runningBudget.remaining.isNotZero() || agentBudgetSettings.exhaustionBehavior is AgentBudgetExhaustionBehavior.Kill) {
-            val result = runningBudget.addClaim(amount, description)
-            totalClaimed += result.fulfilled
-            totalRemaining += result.totalRemaining
+        val result = run {
+            if (remainingClaim.isZero()) {
+                logger.warn { "claim cost is zero, claim will not contribute to running budgets" }
 
-            session.events.emit(
-                SessionEvent.AgentBudgetClaim(
-                    agent = name,
-                    requestedAmount = amount,
-                    claimedAmount = result.fulfilled,
-                    remainingBudget = runningBudget.remaining,
-                    budgetSource = AgentBudgetSource.AGENT
+                return@run AgentClaimResult(
+                    claimId = claimId,
+                    requestedAmount = AgentBudgetUnit.ZERO,
+                    fulfilledAmount = AgentBudgetUnit.ZERO,
+                    remainingAgentBudget = runningBudget.remaining,
+                    remainingSessionBudget = session.runningBudget.remaining,
+                    shouldExit = false
                 )
-            )
+            }
 
-            if (result.overclaim.isNotZero()) {
-                if (result.fulfilled.isNotZero()) {
-                    logger.warn { "claim \"$description\" for $amount withdrew ${result.fulfilled} from agent budget exhausting it, overclaiming ${result.overclaim}" }
-                } else {
-                    logger.warn { "claim \"$description\" overclaimed an additional ${result.overclaim} from the exhausted agent budget, total overclaim is now ${result.totalOverclaim}" }
-                }
-            } else
-                logger.info { "claim \"$description\" for $amount withdrew ${result.fulfilled} from agent budget, leaving ${result.totalRemaining} remaining" }
+            // Attempt to subtract from the agent's budget first
+            //
+            // Also use the agent budget's overclaim logic when the agent budget's exhaustion behavior is to kill it,
+            // otherwise overclaiming ends up on the session budget, which is unexpected
+            if (runningBudget.remaining.isNotZero() || agentBudgetSettings.exhaustionBehavior is AgentBudgetExhaustionBehavior.Kill) {
+                val result = runningBudget.addClaim(remainingClaim)
+                totalClaimed += result.fulfilled
 
-            when (val behavior = agentBudgetSettings.exhaustionBehavior) {
-                is AgentBudgetExhaustionBehavior.Kill -> {
-                    if (result.totalRemaining <= behavior.minimum) {
-                        val kill = (autoKill || behavior.force)
-                        logger.warn {
-                            "agent budget fell below minimum of ${behavior.minimum}, agent will be ${
-                                if (kill) {
-                                    "killed automatically in ${behavior.forceDelay}"
-                                } else {
-                                    "notified of budget exhaustion"
-                                }
-                            }"
-                        }
-
-                        if (kill)
-                            session.cancelAndJoinAgent(name, behavior.forceDelay)
-
-                        return AgentClaimResponse(
-                            requestedAmount = amount,
-                            fulfilledAmount = result.fulfilled,
-                            remainingAmount = result.totalRemaining,
-                            shouldExit = true
-                        )
+                if (result.overclaim.isNotZero()) {
+                    if (result.fulfilled.isNotZero()) {
+                        logger.warn { "withdrew ${result.fulfilled} from agent budget exhausting it, overclaiming ${result.overclaim}" }
+                    } else {
+                        logger.warn { "overclaimed an additional ${result.overclaim} from the exhausted agent budget, total overclaim is now ${result.totalOverclaim}" }
                     }
-                }
+                } else
+                    logger.info { "withdrew ${result.fulfilled} from agent budget, leaving ${result.totalRemaining} remaining" }
 
-                is AgentBudgetExhaustionBehavior.ConsumeSession -> {
-                    remainingClaim -= result.fulfilled
+                when (val behavior = agentBudgetSettings.exhaustionBehavior) {
+                    is AgentBudgetExhaustionBehavior.Kill -> {
+                        if (result.totalRemaining <= behavior.minimum) {
+                            val kill = (autoKill || behavior.force)
+                            logger.warn {
+                                "agent budget fell below minimum of ${behavior.minimum}, agent will be ${
+                                    if (kill) {
+                                        "killed automatically in ${behavior.forceDelay}"
+                                    } else {
+                                        "notified of budget exhaustion"
+                                    }
+                                }"
+                            }
+
+                            if (kill)
+                                session.cancelAndJoinAgent(name, behavior.forceDelay)
+
+                            return@run AgentClaimResult(
+                                claimId = claimId,
+                                requestedAmount = remainingClaim,
+                                fulfilledAmount = result.fulfilled,
+                                remainingAgentBudget = result.totalRemaining,
+                                remainingSessionBudget = session.runningBudget.remaining,
+                                shouldExit = true
+                            )
+                        }
+                    }
+
+                    is AgentBudgetExhaustionBehavior.ConsumeSession -> {
+                        remainingClaim -= result.fulfilled
+                    }
                 }
             }
-        }
 
-        if (remainingClaim.isNotZero() && agentBudgetSettings.exhaustionBehavior is AgentBudgetExhaustionBehavior.ConsumeSession) {
-            val result = session.runningBudget.addClaim(remainingClaim, description)
-            totalClaimed += result.fulfilled
-            totalRemaining += result.totalRemaining
+            // If the agent budget could not fully fulfill the cost of the claim and the agent budget's exhaustion and
+            // the agent budget's exhaustion behavior allows consumption from the session budget, try to fulfill the
+            // remainder using the session budget.
+            //
+            // This also handles the default case where the agent has a zero agent budget but has an exhaustion
+            // behavior of consuming from the session.
+            if (remainingClaim.isNotZero() && agentBudgetSettings.exhaustionBehavior is AgentBudgetExhaustionBehavior.ConsumeSession) {
+                val result = session.runningBudget.addClaim(remainingClaim)
+                totalClaimed += result.fulfilled
 
-            if (result.overclaim.isNotZero()) {
-                if (result.fulfilled.isNotZero()) {
-                    logger.warn { "claim \"$description\" for $amount withdrew ${result.fulfilled} from session budget exhausting it, overclaiming ${result.overclaim}" }
-                } else {
-                    logger.warn { "claim \"$description\" overclaimed an additional ${result.overclaim} from the exhausted session budget, total overclaim is now ${result.totalOverclaim}" }
-                }
-            } else
-                logger.info { "claim \"$description\" for $amount withdrew ${result.fulfilled} from session budget, leaving ${result.totalRemaining} remaining" }
+                if (result.overclaim.isNotZero()) {
+                    if (result.fulfilled.isNotZero()) {
+                        logger.warn { "withdrew ${result.fulfilled} from session budget exhausting it, overclaiming ${result.overclaim}" }
+                    } else {
+                        logger.warn { "overclaimed an additional ${result.overclaim} from the exhausted session budget, total overclaim is now ${result.totalOverclaim}" }
+                    }
+                } else
+                    logger.info { "withdrew ${result.fulfilled} from session budget, leaving ${result.totalRemaining} remaining" }
 
-            session.events.emit(
-                SessionEvent.AgentBudgetClaim(
-                    agent = name,
-                    requestedAmount = remainingClaim,
-                    claimedAmount = result.fulfilled,
-                    remainingBudget = session.runningBudget.remaining,
-                    budgetSource = AgentBudgetSource.SESSION
-                )
-            )
+                when (val behavior = sessionBudgetSettings.exhaustionBehavior) {
+                    is SessionBudgetExhaustionBehavior.KillAgent -> {
+                        if (result.totalRemaining <= behavior.minimum) {
+                            val kill = (autoKill || behavior.force)
+                            logger.warn {
+                                "session budget fell to ${result.totalRemaining}, agent will be ${
+                                    if (kill) {
+                                        "killed automatically in ${behavior.forceDelay}"
+                                    } else {
+                                        "notified of budget exhaustion"
+                                    }
+                                } as the minimum remaining budget is ${behavior.minimum}"
+                            }
 
-            when (val behavior = sessionBudgetSettings.exhaustionBehavior) {
-                is SessionBudgetExhaustionBehavior.KillAgent -> {
-                    if (result.totalRemaining <= behavior.minimum) {
-                        val kill = (autoKill || behavior.force)
-                        logger.warn {
-                            "session budget fell to ${result.totalRemaining}, agent will be ${
-                                if (kill) {
-                                    "killed automatically in ${behavior.forceDelay}"
-                                } else {
-                                    "notified of budget exhaustion"
-                                }
-                            } as the minimum remaining budget is ${behavior.minimum}"
+                            if (kill)
+                                session.cancelAndJoinAgent(name, behavior.forceDelay)
+
+                            return@run AgentClaimResult(
+                                claimId = claimId,
+                                requestedAmount = remainingClaim,
+                                fulfilledAmount = totalClaimed,
+                                remainingAgentBudget = runningBudget.remaining,
+                                remainingSessionBudget = result.totalRemaining,
+                                shouldExit = true
+                            )
                         }
-
-                        if (kill)
-                            session.cancelAndJoinAgent(name, behavior.forceDelay)
-
-                        return AgentClaimResponse(
-                            requestedAmount = amount,
-                            fulfilledAmount = totalClaimed,
-                            remainingAmount = session.runningBudget.remaining,
-                            shouldExit = true
-                        )
                     }
-                }
 
-                is SessionBudgetExhaustionBehavior.KillSession -> {
-                    if (result.totalRemaining <= behavior.minimum) {
-                        logger.warn { "session budget fell to ${result.totalRemaining}, session will be killed in ${behavior.delay} as the minimum remaining budget is ${behavior.minimum}" }
-                        session.cancelAndJoinAgents(behavior.delay)
+                    is SessionBudgetExhaustionBehavior.KillSession -> {
+                        if (result.totalRemaining <= behavior.minimum) {
+                            logger.warn { "session budget fell to ${result.totalRemaining}, session will be killed in ${behavior.delay} as the minimum remaining budget is ${behavior.minimum}" }
+                            session.cancelAndJoinAgents(behavior.delay)
 
-                        return AgentClaimResponse(
-                            requestedAmount = amount,
-                            fulfilledAmount = totalClaimed,
-                            remainingAmount = session.runningBudget.remaining,
-                            shouldExit = true
-                        )
+                            return@run AgentClaimResult(
+                                claimId = claimId,
+                                requestedAmount = remainingClaim,
+                                fulfilledAmount = totalClaimed,
+                                remainingAgentBudget = runningBudget.remaining,
+                                remainingSessionBudget = result.totalRemaining,
+                                shouldExit = true
+                            )
+                        }
                     }
-                }
 
-                SessionBudgetExhaustionBehavior.Warn -> {
-                    // warning is already logged
+                    SessionBudgetExhaustionBehavior.Warn -> {
+                        // warning is already logged
+                    }
                 }
             }
+
+            return@run AgentClaimResult(
+                claimId = claimId,
+                requestedAmount = remainingClaim,
+                fulfilledAmount = totalClaimed,
+                remainingAgentBudget = runningBudget.remaining,
+                remainingSessionBudget = session.runningBudget.remaining,
+                shouldExit = false
+            )
         }
 
-        return AgentClaimResponse(
-            requestedAmount = amount,
-            fulfilledAmount = totalClaimed,
-            remainingAmount = totalRemaining,
-            shouldExit = false
+        session.events.emit(
+            SessionEvent.AgentBudgetClaim(
+                agent = name,
+                claim = claim,
+                result = result
+            )
         )
+
+        return result
     }
 
     /**
