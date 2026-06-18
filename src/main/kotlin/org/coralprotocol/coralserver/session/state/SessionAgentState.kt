@@ -5,9 +5,7 @@ import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.graph.GraphAgentBudgetSettings
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
-import org.coralprotocol.coralserver.llmproxy.TokenUsage
 import org.coralprotocol.coralserver.session.SessionAgentStatus
-import org.coralprotocol.coralserver.session.SessionBudgetSettings
 import org.coralprotocol.coralserver.session.SessionResource
 import org.coralprotocol.coralserver.session.SessionRunningBudget
 

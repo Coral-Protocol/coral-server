@@ -83,6 +83,11 @@ class LocalSession(
      */
     val runningBudget = SessionRunningBudget(budgetSettings.budget, clamp = false)
 
+    /**
+     * A list of receipts for all claims made by all agents in this session.
+     */
+    val agentClaimReceipts = MutableStateFlow<List<SessionAgentClaimReceipt>>(emptyList())
+
     // Create links between agents from the groups in the agent graph
     init {
         for (group in agentGraph.groups) {
@@ -197,7 +202,8 @@ class LocalSession(
             agents = agents.map { (_, agent) -> agent.getState() },
             threads = threads.values.toList(),
             runningBudget = runningBudget,
-            budgetSettings = budgetSettings
+            budgetSettings = budgetSettings,
+            agentClaimReceipts = agentClaimReceipts.value,
         )
 
     @TestOnly
