@@ -7,7 +7,6 @@ import org.coralprotocol.coralserver.agent.debug.*
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.config.RegistryConfig
 import org.coralprotocol.coralserver.mcp.McpToolManager
-import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import java.nio.file.Path
@@ -15,13 +14,6 @@ import java.nio.file.Path
 const val AGENT_WATCHER_COROUTINE_SCOPE_NAME = "agentWatcherCoroutineScope"
 
 val agentModule = module {
-    singleOf(::EchoDebugAgent)
-    singleOf(::SeedDebugAgent)
-    singleOf(::ToolDebugAgent)
-    singleOf(::PuppetDebugAgent)
-    singleOf(::SocketDebugAgent)
-    singleOf(::ClaimDebugAgent)
-
     single(createdAtStart = true) {
         val config: RegistryConfig = get()
         AgentRegistry {
@@ -53,12 +45,12 @@ val agentModule = module {
                 addLocalAgents(
                     "debug agents",
                     listOf(
-                        get<EchoDebugAgent>().generate(),
-                        get<SeedDebugAgent>().generate(),
-                        get<ToolDebugAgent>().generate(),
-                        get<PuppetDebugAgent>().generate(),
-                        get<SocketDebugAgent>().generate(),
-                        get<ClaimDebugAgent>().generate()
+                        get(named(ECHO_AGENT_ID)),
+                        get(named(PUPPET_AGENT_ID)),
+                        get(named(SEED_AGENT_ID)),
+                        get(named(SOCKET_AGENT_ID)),
+                        get(named(TOOL_AGENT_ID)),
+                        get(named(CLAIM_AGENT_ID)),
                     )
                 )
             }

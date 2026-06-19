@@ -10,9 +10,8 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import org.coralprotocol.coralserver.CoralTest
-import org.coralprotocol.coralserver.agent.debug.EchoDebugAgent
-import org.coralprotocol.coralserver.agent.debug.SeedDebugAgent
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
+import org.coralprotocol.coralserver.agent.debug.*
+import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOptionValue
 import org.coralprotocol.coralserver.routes.api.v1.LocalSessions
 import org.coralprotocol.coralserver.dsl.sessionRequest
 import org.koin.core.component.inject
@@ -29,10 +28,10 @@ class DebugAgentsTest : CoralTest({
         val sessionId: SessionIdentifier = client.authenticatedPost(LocalSessions.Session()) {
             setBody(sessionRequest {
                 agentGraphRequest {
-                    agent(SeedDebugAgent.identifier) {
-                        option("START_DELAY", AgentOptionValue.UInt(100u))
-                        option("SEED_THREAD_COUNT", AgentOptionValue.UInt(threadCount))
-                        option("SEED_MESSAGE_COUNT", AgentOptionValue.UInt(messageCount))
+                    agent(SEED_AGENT_IDENTIFIER) {
+                        option("START_DELAY", PolymorphicAgentOptionValue.UInt(100u))
+                        option("SEED_THREAD_COUNT", PolymorphicAgentOptionValue.UInt(threadCount))
+                        option("SEED_MESSAGE_COUNT", PolymorphicAgentOptionValue.UInt(messageCount))
                     }
                     isolateAllAgents()
                 }
@@ -60,18 +59,18 @@ class DebugAgentsTest : CoralTest({
         val sessionId: SessionIdentifier = client.authenticatedPost(LocalSessions.Session()) {
             setBody(sessionRequest {
                 agentGraphRequest {
-                    agent(SeedDebugAgent.identifier) {
-                        option("START_DELAY", AgentOptionValue.UInt(100u))
-                        option("OPERATION_DELAY", AgentOptionValue.UInt(200u))
-                        option("SEED_THREAD_COUNT", AgentOptionValue.UInt(threadCount))
-                        option("SEED_MESSAGE_COUNT", AgentOptionValue.UInt(messageCount))
-                        option("PARTICIPANTS", AgentOptionValue.StringList(listOf("echo")))
-                        option("MENTIONS", AgentOptionValue.StringList(listOf("echo")))
+                    agent(SEED_AGENT_IDENTIFIER) {
+                        option("START_DELAY", PolymorphicAgentOptionValue.UInt(100u))
+                        option("OPERATION_DELAY", PolymorphicAgentOptionValue.UInt(200u))
+                        option("SEED_THREAD_COUNT", PolymorphicAgentOptionValue.UInt(threadCount))
+                        option("SEED_MESSAGE_COUNT", PolymorphicAgentOptionValue.UInt(messageCount))
+                        option("PARTICIPANTS", PolymorphicAgentOptionValue.StringList(listOf("echo")))
+                        option("MENTIONS", PolymorphicAgentOptionValue.StringList(listOf("echo")))
                     }
-                    agent(EchoDebugAgent.identifier) {
-                        option("ITERATION_COUNT", AgentOptionValue.UInt(threadCount * messageCount))
-                        option("FROM_AGENT", AgentOptionValue.String("seed"))
-                        option("MENTIONS", AgentOptionValue.Boolean(true))
+                    agent(ECHO_AGENT_IDENTIFIER) {
+                        option("ITERATION_COUNT", PolymorphicAgentOptionValue.UInt(threadCount * messageCount))
+                        option("FROM_AGENT", PolymorphicAgentOptionValue.String("seed"))
+                        option("MENTIONS", PolymorphicAgentOptionValue.Boolean(true))
                     }
                     groupAllAgents()
                 }

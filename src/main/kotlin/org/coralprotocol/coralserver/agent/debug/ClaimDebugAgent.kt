@@ -1,119 +1,86 @@
 package org.coralprotocol.coralserver.agent.debug
 
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.plugins.resources.*
-import io.ktor.client.request.*
-import io.ktor.http.*
-import io.modelcontextprotocol.kotlin.sdk.client.Client
 import kotlinx.coroutines.delay
-import org.coralprotocol.coralserver.agent.payment.*
+import org.coralprotocol.coralserver.agent.payment.MICRO_CENTS_TO_CENTS
+import org.coralprotocol.coralserver.agent.payment.MICRO_CENTS_TO_DOLLARS
 import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
-import org.coralprotocol.coralserver.agent.registry.UnresolvedAgentExportSettings
-import org.coralprotocol.coralserver.agent.registry.option.AgentOption
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
-import org.coralprotocol.coralserver.agent.registry.option.buildFullOption
-import org.coralprotocol.coralserver.agent.runtime.RuntimeId
-import org.coralprotocol.coralserver.routes.api.v1.Rpc
-import org.coralprotocol.coralserver.session.LocalSession
-import org.coralprotocol.coralserver.session.SessionAgent
+import org.coralprotocol.coralserver.dsl.get
+import org.coralprotocol.coralserver.dsl.registryAgent
+import org.koin.core.qualifier.named
+import org.koin.dsl.module
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
-class ClaimDebugAgent(client: HttpClient) : DebugAgent(client) {
-    override val companion: DebugAgentIdHolder
-        get() = Companion
+const val CLAIM_AGENT_ID = "claim"
+const val CLAIM_AGENT_VERSION = "1.0.1"
+val CLAIM_AGENT_IDENTIFIER =
+    RegistryAgentIdentifier(CLAIM_AGENT_ID, CLAIM_AGENT_VERSION, AgentRegistrySourceIdentifier.Local)
 
-    companion object : DebugAgentIdHolder {
-        override val identifier: RegistryAgentIdentifier
-            get() = RegistryAgentIdentifier("claim", "1.0.0", AgentRegistrySourceIdentifier.Local)
-    }
+val claimAgentModule = module {
+    single(named(CLAIM_AGENT_ID)) {
+        registryAgent(CLAIM_AGENT_ID) {
+            description = "Debug agent that tests the claiming system"
+            summary = description
 
-    override val options: Map<String, AgentOption>
-        get() = mapOf(
-            AgentOption.UInt(default = 1000U).buildFullOption(
-                name = "CLAIM_DELAY",
-                description = "Milliseconds of delay between each claim",
-                required = false
-            ),
-            AgentOption.ULongList().buildFullOption(
-                name = "CLAIM_AMOUNTS",
-                description = "An amount for each claim.  The value is specified in micro cents. $1.00 is $MICRO_CENTS_TO_DOLLARS and $0.01 is $MICRO_CENTS_TO_CENTS.",
+            readme =
+                "Makes a number of claims described by CLAIM_AMOUNTS and CLAIM_DESCRIPTIONS.  After all claims have been made this agent will exit."
+
+            val claimDelay = unsignedIntOption("CLAIM_DELAY") {
+                description = "Milliseconds of delay between each claim"
+                default = 1000u
+            }
+
+            val claimQuantities = unsignedLongListOption("CLAIM_QUANTITIES") {
+                description =
+                    "An amount for each claim.  The value is specified in micro cents. $1.00 is $MICRO_CENTS_TO_DOLLARS and $0.01 is $MICRO_CENTS_TO_CENTS."
                 required = true
-            ),
-            AgentOption.StringList().buildFullOption(
-                name = "CLAIM_DESCRIPTIONS",
-                description = "A description for each claim.  If the length of this list is less than CLAIM_AMOUNTS, the last description will be used for the remaining claims.",
+            }
+
+            val claimDescriptions = stringListOption("CLAIM_DESCRIPTIONS") {
+                description =
+                    "A description for each claim.  If the length of this list is less than CLAIM_AMOUNTS, the last description will be used for the remaining claims."
                 required = true
-            ),
-            AgentOption.Boolean(default = false).buildFullOption(
-                name = "AUTO_KILL",
-                description = "Whether to request that this agent is automatically killed when posting a claim.",
-                required = false
-            ),
-            AgentOption.Boolean(default = false).buildFullOption(
-                name = "IGNORE_SHOULD_EXIT",
-                description = "Whether to ignore the shouldExit field in the response.",
-                required = false
-            ),
-            AgentOption.Boolean(default = false).buildFullOption(
-                name = "KEEP_ALIVE",
-                description = "If this is true, after all claims are made the agent will wait to be killed manually",
-                required = false
-            )
-        )
+            }
 
-    override val description: String
-        get() = "Makes a number of claims described by CLAIM_AMOUNTS and CLAIM_DESCRIPTIONS.  After all claims have been made this agent will exit."
+            val autoKill = booleanOption("AUTO_KILL") {
+                description = "Whether to request that this agent is automatically killed when posting a claim."
+                default = false
+            }
 
-    override val readme: String
-        get() = "TODO"
+            val ignoreShouldExit = booleanOption("IGNORE_SHOULD_EXIT") {
+                description = "Whether to ignore the shouldExit field in the response."
+                default = false
+            }
 
-    override val summary: String
-        get() = "TODO"
+            val keepAlive = booleanOption("KEEP_ALIVE") {
+                description = "If this is true, after all claims are made the agent will wait to be killed manually"
+                default = false
+            }
 
-    override val exportSettings: Map<RuntimeId, UnresolvedAgentExportSettings>
-        get() = genericExportSettings
+            debugRuntime(get()) { client, _, agent ->
+                val claimDelayValue = claimDelay.get(agent).toInt().milliseconds
+                val claimQuantitiesValue = claimQuantities.get(agent)
+                val claimDescriptionsValue = claimDescriptions.get(agent)
+                val autoKillValue = autoKill.get(agent)
+                val ignoreShouldExitValue = ignoreShouldExit.get(agent)
+                val keepAliveValue = keepAlive.get(agent)
 
-    override suspend fun execute(
-        client: Client,
-        session: LocalSession,
-        agent: SessionAgent
-    ) {
-        val delayDuration = getRequiredOption<AgentOptionValue.UInt>(agent, "CLAIM_DELAY").value.toInt().milliseconds
-        val claimAmounts = getRequiredOption<AgentOptionValue.ULongList>(agent, "CLAIM_AMOUNTS").value
-        val claimDescriptions = getRequiredOption<AgentOptionValue.StringList>(agent, "CLAIM_DESCRIPTIONS").value
-        val autoKill = getRequiredOption<AgentOptionValue.Boolean>(agent, "AUTO_KILL").value
-        val ignoreShouldExit = getRequiredOption<AgentOptionValue.Boolean>(agent, "IGNORE_SHOULD_EXIT").value
-        val keepAlive = getRequiredOption<AgentOptionValue.Boolean>(agent, "KEEP_ALIVE").value
+                if (claimQuantitiesValue.size != claimDescriptionsValue.size)
+                    agent.logger.error { "CLAIM_QUANTITIES and CLAIM_DESCRIPTIONS must be the same size" }
 
-        if (claimAmounts.size != claimDescriptions.size)
-            agent.logger.error { "CLAIM_AMOUNTS and CLAIM_DESCRIPTIONS must be the same size" }
+                if (claimQuantitiesValue.isEmpty())
+                    agent.logger.error { "At least one claim must be specified" }
 
-        if (claimAmounts.isEmpty())
-            agent.logger.error { "At least one claim must be specified" }
+                for ((amount, description) in claimQuantitiesValue.zip(claimDescriptionsValue)) {
+                    delay(claimDelayValue)
 
-        for ((amount, description) in claimAmounts.zip(claimDescriptions)) {
-            delay(delayDuration)
+                    // todo: implementation of posting claim
+                }
 
-            val response = this.client.post(Rpc.Claim()) {
-                contentType(ContentType.Application.Json)
-                setBody(
-                    AgentClaimRequest(
-                        amount = AgentBudgetUnit(amount.toULong()),
-                        description = description,
-                        autoKill = autoKill
-                    )
-                )
-                bearerAuth(agent.secret)
-            }.body<AgentClaimResponse>()
-
-            if (!ignoreShouldExit && response.shouldExit)
-                break
+                if (keepAliveValue)
+                    delay(Duration.INFINITE)
+            }
         }
-
-        if (keepAlive)
-            delay(Duration.INFINITE)
     }
 }

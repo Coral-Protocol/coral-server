@@ -1,13 +1,20 @@
 package org.coralprotocol.coralserver.dsl
 
-import org.coralprotocol.coralserver.agent.debug.ClaimDebugAgent
+import org.coralprotocol.coralserver.agent.debug.CLAIM_AGENT_ID
 import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
 import org.coralprotocol.coralserver.agent.payment.AgentBudgetUnit
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
+import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
+import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
+import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOptionValue
 import kotlin.time.Duration
 
 @CoralDsl
-class ClaimAgentRequestBuilder(name: String) : GraphAgentRequestBuilder(ClaimDebugAgent.identifier, name) {
+class ClaimAgentRequestBuilder(name: String) : GraphAgentRequestBuilder(
+    RegistryAgentIdentifier(
+        CLAIM_AGENT_ID, "1.0.0",
+        AgentRegistrySourceIdentifier.Local
+    ), name
+) {
     var claimDelay = Duration.ZERO
     var autoKill = false
     var ignoreShouldExit = false
@@ -23,12 +30,12 @@ class ClaimAgentRequestBuilder(name: String) : GraphAgentRequestBuilder(ClaimDeb
             name = name,
             description = description,
             options = options + mapOf(
-                "CLAIM_DELAY" to AgentOptionValue.UInt(claimDelay.inWholeMilliseconds.toUInt()),
-                "CLAIM_AMOUNTS" to AgentOptionValue.ULongList(claims.map { it.first.value.toString() }),
-                "CLAIM_DESCRIPTIONS" to AgentOptionValue.StringList(claims.map { it.second }),
-                "AUTO_KILL" to AgentOptionValue.Boolean(autoKill),
-                "IGNORE_SHOULD_EXIT" to AgentOptionValue.Boolean(ignoreShouldExit),
-                "KEEP_ALIVE" to AgentOptionValue.Boolean(keepAlive),
+                "CLAIM_DELAY" to PolymorphicAgentOptionValue.UInt(claimDelay.inWholeMilliseconds.toUInt()),
+                "CLAIM_QUANTITIES" to PolymorphicAgentOptionValue.ULongList(claims.map { it.first.value.toString() }),
+                "CLAIM_DESCRIPTIONS" to PolymorphicAgentOptionValue.StringList(claims.map { it.second }),
+                "AUTO_KILL" to PolymorphicAgentOptionValue.Boolean(autoKill),
+                "IGNORE_SHOULD_EXIT" to PolymorphicAgentOptionValue.Boolean(ignoreShouldExit),
+                "KEEP_ALIVE" to PolymorphicAgentOptionValue.Boolean(keepAlive),
             ),
             systemPrompt = systemPrompt,
             blocking = blocking,
