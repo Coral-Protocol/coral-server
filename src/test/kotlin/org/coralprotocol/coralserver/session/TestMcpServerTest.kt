@@ -3,7 +3,6 @@ package org.coralprotocol.coralserver.session
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.test.TestScope
 import io.kotest.matchers.concurrent.suspension.shouldCompleteWithin
-import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.modelcontextprotocol.kotlin.sdk.client.Client
@@ -17,11 +16,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.encodeToJsonElement
 import org.coralprotocol.coralserver.CoralTest
-import org.coralprotocol.coralserver.agent.registry.option.AgentOption
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
+import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeString
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeToolServerAuth
+import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOption
 import org.coralprotocol.coralserver.utils.TestMcpServer
 import org.coralprotocol.coralserver.utils.TestToolInput
 import org.koin.core.component.inject
@@ -77,8 +74,8 @@ class TestMcpServerTest : CoralTest({
                 toolServer.url.resolve(
                     mapOf(
                         testServer.authTokenOptionName to AgentOptionWithValue.String(
-                            AgentOption.String(),
-                            AgentOptionValue.String(testServer.authToken)
+                            PolymorphicAgentOption.String(),
+                            PolymorphicAgentOptionValue.String(testServer.authToken)
                         )
                     )
                 )
@@ -99,8 +96,8 @@ class TestMcpServerTest : CoralTest({
                     toolServer.url.resolve(
                         mapOf(
                             testServer.authTokenOptionName to AgentOptionWithValue.String(
-                                AgentOption.String(),
-                                AgentOptionValue.String("bad token")
+                                PolymorphicAgentOption.String(),
+                                PolymorphicAgentOptionValue.String("bad token")
                             )
                         )
                     )

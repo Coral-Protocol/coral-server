@@ -16,6 +16,7 @@ import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.registry.MAXIMUM_SUPPORTED_AGENT_VERSION
 import org.coralprotocol.coralserver.agent.registry.UnresolvedRegistryAgent
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
+import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOption
 import org.coralprotocol.coralserver.agent.registry.stringReferenceConstants
 import org.koin.test.inject
 import java.io.File
@@ -120,29 +121,29 @@ class RegistryAgentStringSerializerTest : CoralTest({
             File("src/test/resources/string-file-reference/options/blob.txt").readBytes()
         )
 
-        agent.options["STRING"].shouldNotBeNull().shouldBeInstanceOf<AgentOption.String>().default.shouldNotBeNull()
+        agent.options["STRING"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.String>().default.shouldNotBeNull()
             .shouldBeEqual(stringValue)
 
         agent.options["STRING_BASE64"].shouldNotBeNull()
-            .shouldBeInstanceOf<AgentOption.String>().default.shouldNotBeNull()
+            .shouldBeInstanceOf<PolymorphicAgentOption.String>().default.shouldNotBeNull()
             .shouldBeEqual(Base64.encode(stringValue.encodeToByteArray()))
 
-        agent.options["BLOB"].shouldNotBeNull().shouldBeInstanceOf<AgentOption.Blob>().default.shouldNotBeNull()
+        agent.options["BLOB"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.Blob>().default.shouldNotBeNull()
             .shouldBeEqual(blobValue)
 
         agent.options["STRING_LIST"].shouldNotBeNull()
-            .shouldBeInstanceOf<AgentOption.StringList>().default.shouldNotBeNull()
+            .shouldBeInstanceOf<PolymorphicAgentOption.StringList>().default.shouldNotBeNull()
             .shouldContainExactly(listOf(stringValue, stringValue))
 
         agent.options["BLOB_LIST"].shouldNotBeNull()
-            .shouldBeInstanceOf<AgentOption.BlobList>().default.shouldNotBeNull()
+            .shouldBeInstanceOf<PolymorphicAgentOption.BlobList>().default.shouldNotBeNull()
             .shouldBeEqual(listOf(blobValue, blobValue))
 
         agent.options["STRING_NO_DEFAULT"].shouldNotBeNull()
-            .shouldBeInstanceOf<AgentOption.String>().default.shouldBeNull()
+            .shouldBeInstanceOf<PolymorphicAgentOption.String>().default.shouldBeNull()
 
         agent.options["BLOB_NO_DEFAULT"].shouldNotBeNull()
-            .shouldBeInstanceOf<AgentOption.Blob>().default.shouldBeNull()
+            .shouldBeInstanceOf<PolymorphicAgentOption.Blob>().default.shouldBeNull()
     }
 
     test("testStringConstants") {
@@ -175,7 +176,7 @@ class RegistryAgentStringSerializerTest : CoralTest({
 
         stringReferenceConstants.forEach { (name, value) ->
             val option = agent.options.shouldHaveKey(name)[name].shouldNotBeNull()
-            option.shouldBeInstanceOf<AgentOption.String>().default.shouldNotBeNull().shouldBeEqual(value)
+            option.shouldBeInstanceOf<PolymorphicAgentOption.String>().default.shouldNotBeNull().shouldBeEqual(value)
         }
     }
 })

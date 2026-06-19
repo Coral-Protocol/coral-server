@@ -11,7 +11,7 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.*
 import org.coralprotocol.coralserver.agent.exceptions.PrototypeRuntimeException
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
+import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.registry.option.value
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
@@ -38,14 +38,14 @@ sealed class PrototypeInteger {
                 ?: throw PrototypeRuntimeException.BadOption("option \"$name\" wasn't found")
 
             return when (val optionValue = option.value()) {
-                is AgentOptionValue.Int -> optionValue.value.toLong()
-                is AgentOptionValue.Long -> optionValue.value
-                is AgentOptionValue.Short -> optionValue.value.toLong()
-                is AgentOptionValue.UByte -> optionValue.value.toLong()
-                is AgentOptionValue.Byte -> optionValue.value.toLong()
-                is AgentOptionValue.UInt -> optionValue.value.toLong()
-                is AgentOptionValue.ULong -> optionValue.value.toULong().toLong()
-                is AgentOptionValue.UShort -> optionValue.value.toLong()
+                is PolymorphicAgentOptionValue.Int -> optionValue.value.toLong()
+                is PolymorphicAgentOptionValue.Long -> optionValue.value
+                is PolymorphicAgentOptionValue.Short -> optionValue.value.toLong()
+                is PolymorphicAgentOptionValue.UByte -> optionValue.value.toLong()
+                is PolymorphicAgentOptionValue.Byte -> optionValue.value.toLong()
+                is PolymorphicAgentOptionValue.UInt -> optionValue.value.toLong()
+                is PolymorphicAgentOptionValue.ULong -> optionValue.value.toULong().toLong()
+                is PolymorphicAgentOptionValue.UShort -> optionValue.value.toLong()
                 else -> throw PrototypeRuntimeException.BadOption("option \"$name\" must have an integral type")
             }
         }

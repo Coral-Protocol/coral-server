@@ -12,6 +12,7 @@ import me.saket.bytesize.mebibytes
 import org.bitcoinj.core.AddressFormatException
 import org.bitcoinj.core.Base58
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
+import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOption
 import org.coralprotocol.coralserver.agent.registry.option.isIntegral
 import org.coralprotocol.coralserver.agent.runtime.PrototypeRuntime
 import org.coralprotocol.coralserver.agent.runtime.prototype.*
@@ -231,7 +232,7 @@ private fun PrototypeString.validatePrototypeString(
             val option = agent.options[this.name]
                 ?: throw RegistryException("\"$name\" references option \"${this.name}\" which is not defined")
 
-            if (option !is AgentOption.String)
+            if (option !is PolymorphicAgentOption.String)
                 throw RegistryException("\"$name\" references option \"${this.name}\" which must be a string type, was ${option::class.serializer().descriptor.serialName}")
 
             0
@@ -519,31 +520,31 @@ private fun RegistryAgent.validateOptions() {
 
         accumulatedDefaultSize += BinaryByteSize(
             when (option) {
-                is AgentOption.Blob -> option.defaultBytes?.size ?: 0
-                is AgentOption.BlobList -> option.defaultBytes.sumOf { it.size }
-                is AgentOption.Boolean -> option.default?.let { 1 } ?: 0
-                is AgentOption.Byte -> option.default?.let { Byte.SIZE_BYTES } ?: 0
-                is AgentOption.ByteList -> option.default.size
-                is AgentOption.Double -> option.default?.let { Double.SIZE_BYTES } ?: 0
-                is AgentOption.DoubleList -> option.default.size * Double.SIZE_BYTES
-                is AgentOption.Float -> option.default?.let { Float.SIZE_BYTES } ?: 0
-                is AgentOption.FloatList -> option.default.size * Float.SIZE_BYTES
-                is AgentOption.Int -> option.default?.let { Int.SIZE_BYTES } ?: 0
-                is AgentOption.IntList -> option.default.size * Int.SIZE_BYTES
-                is AgentOption.Long -> option.default?.let { Long.SIZE_BYTES } ?: 0
-                is AgentOption.LongList -> option.default.size * Long.SIZE_BYTES
-                is AgentOption.Short -> option.default?.let { Short.SIZE_BYTES } ?: 0
-                is AgentOption.ShortList -> option.default.size * Short.SIZE_BYTES
-                is AgentOption.String -> option.default?.toByteArray()?.size ?: 0
-                is AgentOption.StringList -> option.default.sumOf { it.toByteArray().size }
-                is AgentOption.UByte -> option.default?.let { UByte.SIZE_BYTES } ?: 0
-                is AgentOption.UByteList -> option.default.size * UByte.SIZE_BYTES
-                is AgentOption.UInt -> option.default?.let { UInt.SIZE_BYTES } ?: 0
-                is AgentOption.UIntList -> option.default.size * UInt.SIZE_BYTES
-                is AgentOption.ULong -> option.default?.toByteArray()?.size ?: 0
-                is AgentOption.ULongList -> option.default.sumOf { it.toByteArray().size }
-                is AgentOption.UShort -> option.default?.let { UShort.SIZE_BYTES } ?: 0
-                is AgentOption.UShortList -> option.default.size * UShort.SIZE_BYTES
+                is PolymorphicAgentOption.Blob -> option.defaultBytes?.size ?: 0
+                is PolymorphicAgentOption.BlobList -> option.defaultBytes.sumOf { it.size }
+                is PolymorphicAgentOption.Boolean -> option.default?.let { 1 } ?: 0
+                is PolymorphicAgentOption.Byte -> option.default?.let { Byte.SIZE_BYTES } ?: 0
+                is PolymorphicAgentOption.ByteList -> option.default.size
+                is PolymorphicAgentOption.Double -> option.default?.let { Double.SIZE_BYTES } ?: 0
+                is PolymorphicAgentOption.DoubleList -> option.default.size * Double.SIZE_BYTES
+                is PolymorphicAgentOption.Float -> option.default?.let { Float.SIZE_BYTES } ?: 0
+                is PolymorphicAgentOption.FloatList -> option.default.size * Float.SIZE_BYTES
+                is PolymorphicAgentOption.Int -> option.default?.let { Int.SIZE_BYTES } ?: 0
+                is PolymorphicAgentOption.IntList -> option.default.size * Int.SIZE_BYTES
+                is PolymorphicAgentOption.Long -> option.default?.let { Long.SIZE_BYTES } ?: 0
+                is PolymorphicAgentOption.LongList -> option.default.size * Long.SIZE_BYTES
+                is PolymorphicAgentOption.Short -> option.default?.let { Short.SIZE_BYTES } ?: 0
+                is PolymorphicAgentOption.ShortList -> option.default.size * Short.SIZE_BYTES
+                is PolymorphicAgentOption.String -> option.default?.toByteArray()?.size ?: 0
+                is PolymorphicAgentOption.StringList -> option.default.sumOf { it.toByteArray().size }
+                is PolymorphicAgentOption.UByte -> option.default?.let { UByte.SIZE_BYTES } ?: 0
+                is PolymorphicAgentOption.UByteList -> option.default.size * UByte.SIZE_BYTES
+                is PolymorphicAgentOption.UInt -> option.default?.let { UInt.SIZE_BYTES } ?: 0
+                is PolymorphicAgentOption.UIntList -> option.default.size * UInt.SIZE_BYTES
+                is PolymorphicAgentOption.ULong -> option.default?.toByteArray()?.size ?: 0
+                is PolymorphicAgentOption.ULongList -> option.default.sumOf { it.toByteArray().size }
+                is PolymorphicAgentOption.UShort -> option.default?.let { UShort.SIZE_BYTES } ?: 0
+                is PolymorphicAgentOption.UShortList -> option.default.size * UShort.SIZE_BYTES
             })
     }
 

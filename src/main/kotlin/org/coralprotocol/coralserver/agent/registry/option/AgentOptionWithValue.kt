@@ -7,136 +7,136 @@ import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 
 sealed interface AgentOptionWithValue {
     data class String(
-        val option: AgentOption.String,
-        val value: AgentOptionValue.String
+        val option: PolymorphicAgentOption.String,
+        val value: PolymorphicAgentOptionValue.String
     ) : AgentOptionWithValue
 
     data class StringList(
-        val option: AgentOption.StringList,
-        val value: AgentOptionValue.StringList
+        val option: PolymorphicAgentOption.StringList,
+        val value: PolymorphicAgentOptionValue.StringList
     ) : AgentOptionWithValue
 
     data class Blob(
-        val option: AgentOption.Blob,
-        val value: AgentOptionValue.Blob
+        val option: PolymorphicAgentOption.Blob,
+        val value: PolymorphicAgentOptionValue.Blob
     ) : AgentOptionWithValue
 
     data class BlobList(
-        val option: AgentOption.BlobList,
-        val value: AgentOptionValue.BlobList
+        val option: PolymorphicAgentOption.BlobList,
+        val value: PolymorphicAgentOptionValue.BlobList
     ) : AgentOptionWithValue
 
     data class Boolean(
-        val option: AgentOption.Boolean,
-        val value: AgentOptionValue.Boolean
+        val option: PolymorphicAgentOption.Boolean,
+        val value: PolymorphicAgentOptionValue.Boolean
     ) : AgentOptionWithValue
 
     data class Byte(
-        val option: AgentOption.Byte,
-        val value: AgentOptionValue.Byte
+        val option: PolymorphicAgentOption.Byte,
+        val value: PolymorphicAgentOptionValue.Byte
     ) : AgentOptionWithValue
 
     data class ByteList(
-        val option: AgentOption.ByteList,
-        val value: AgentOptionValue.ByteList
+        val option: PolymorphicAgentOption.ByteList,
+        val value: PolymorphicAgentOptionValue.ByteList
     ) : AgentOptionWithValue
 
     data class Short(
-        val option: AgentOption.Short,
-        val value: AgentOptionValue.Short
+        val option: PolymorphicAgentOption.Short,
+        val value: PolymorphicAgentOptionValue.Short
     ) : AgentOptionWithValue
 
     data class ShortList(
-        val option: AgentOption.ShortList,
-        val value: AgentOptionValue.ShortList
+        val option: PolymorphicAgentOption.ShortList,
+        val value: PolymorphicAgentOptionValue.ShortList
     ) : AgentOptionWithValue
 
     data class Int(
-        val option: AgentOption.Int,
-        val value: AgentOptionValue.Int
+        val option: PolymorphicAgentOption.Int,
+        val value: PolymorphicAgentOptionValue.Int
     ) : AgentOptionWithValue
 
     data class IntList(
-        val option: AgentOption.IntList,
-        val value: AgentOptionValue.IntList
+        val option: PolymorphicAgentOption.IntList,
+        val value: PolymorphicAgentOptionValue.IntList
     ) : AgentOptionWithValue
 
     data class Long(
-        val option: AgentOption.Long,
-        val value: AgentOptionValue.Long
+        val option: PolymorphicAgentOption.Long,
+        val value: PolymorphicAgentOptionValue.Long
     ) : AgentOptionWithValue
 
     data class LongList(
-        val option: AgentOption.LongList,
-        val value: AgentOptionValue.LongList
+        val option: PolymorphicAgentOption.LongList,
+        val value: PolymorphicAgentOptionValue.LongList
     ) : AgentOptionWithValue
 
     data class UByte(
-        val option: AgentOption.UByte,
-        val value: AgentOptionValue.UByte
+        val option: PolymorphicAgentOption.UByte,
+        val value: PolymorphicAgentOptionValue.UByte
     ) : AgentOptionWithValue
 
     data class UByteList(
-        val option: AgentOption.UByteList,
-        val value: AgentOptionValue.UByteList
+        val option: PolymorphicAgentOption.UByteList,
+        val value: PolymorphicAgentOptionValue.UByteList
     ) : AgentOptionWithValue
 
     data class UShort(
-        val option: AgentOption.UShort,
-        val value: AgentOptionValue.UShort
+        val option: PolymorphicAgentOption.UShort,
+        val value: PolymorphicAgentOptionValue.UShort
     ) : AgentOptionWithValue
 
     data class UShortList(
-        val option: AgentOption.UShortList,
-        val value: AgentOptionValue.UShortList
+        val option: PolymorphicAgentOption.UShortList,
+        val value: PolymorphicAgentOptionValue.UShortList
     ) : AgentOptionWithValue
 
     data class UInt(
-        val option: AgentOption.UInt,
-        val value: AgentOptionValue.UInt
+        val option: PolymorphicAgentOption.UInt,
+        val value: PolymorphicAgentOptionValue.UInt
     ) : AgentOptionWithValue
 
     data class UIntList(
-        val option: AgentOption.UIntList,
-        val value: AgentOptionValue.UIntList
+        val option: PolymorphicAgentOption.UIntList,
+        val value: PolymorphicAgentOptionValue.UIntList
     ) : AgentOptionWithValue
 
     data class ULong(
-        val option: AgentOption.ULong,
-        val value: AgentOptionValue.ULong
+        val option: PolymorphicAgentOption.ULong,
+        val value: PolymorphicAgentOptionValue.ULong
     ) : AgentOptionWithValue
 
     data class ULongList(
-        val option: AgentOption.ULongList,
-        val value: AgentOptionValue.ULongList
+        val option: PolymorphicAgentOption.ULongList,
+        val value: PolymorphicAgentOptionValue.ULongList
     ) : AgentOptionWithValue
 
     data class Float(
-        val option: AgentOption.Float,
-        val value: AgentOptionValue.Float
+        val option: PolymorphicAgentOption.Float,
+        val value: PolymorphicAgentOptionValue.Float
     ) : AgentOptionWithValue
 
     data class FloatList(
-        val option: AgentOption.FloatList,
-        val value: AgentOptionValue.FloatList
+        val option: PolymorphicAgentOption.FloatList,
+        val value: PolymorphicAgentOptionValue.FloatList
     ) : AgentOptionWithValue
 
     data class Double(
-        val option: AgentOption.Double,
-        val value: AgentOptionValue.Double
+        val option: PolymorphicAgentOption.Double,
+        val value: PolymorphicAgentOptionValue.Double
     ) : AgentOptionWithValue
 
     data class DoubleList(
-        val option: AgentOption.DoubleList,
-        val value: AgentOptionValue.DoubleList
+        val option: PolymorphicAgentOption.DoubleList,
+        val value: PolymorphicAgentOptionValue.DoubleList
     ) : AgentOptionWithValue
 }
 
 /**
- * Extract the underlying value from an [AgentOptionWithValue] as a base [AgentOptionValue].
+ * Extract the underlying value from an [AgentOptionWithValue] as a base [PolymorphicAgentOptionValue].
  */
 @Suppress("DuplicatedCode")
-fun AgentOptionWithValue.value(): AgentOptionValue = when (this) {
+fun AgentOptionWithValue.value(): PolymorphicAgentOptionValue<*> = when (this) {
     is AgentOptionWithValue.Blob -> value
     is AgentOptionWithValue.BlobList -> value
     is AgentOptionWithValue.Boolean -> value
@@ -168,7 +168,7 @@ fun AgentOptionWithValue.value(): AgentOptionValue = when (this) {
  *  Extract the underlying option from an [AgentOptionWithValue] as a base [AgentOption].
  */
 @Suppress("DuplicatedCode")
-fun AgentOptionWithValue.option(): AgentOption = when (this) {
+fun AgentOptionWithValue.option() = when (this) {
     is AgentOptionWithValue.Blob -> option
     is AgentOptionWithValue.BlobList -> option
     is AgentOptionWithValue.Boolean -> option
@@ -209,7 +209,7 @@ fun AgentOptionWithValue.asEnvVarValue(): String = when (this) {
 }
 
 /**
- * Writes the value of this option to file(s) using the values [AgentOptionValue.toFileSystemValue] function.  Note that
+ * Writes the value of this option to file(s) using the values [PolymorphicAgentOptionValue.toFileSystemValue] function.  Note that
  * the return type is always a list.  For single value type options, a list with 1 value will be returned.  For list-type
  * options, a list of temporary files; one for every value in the option, will be returned.
  *

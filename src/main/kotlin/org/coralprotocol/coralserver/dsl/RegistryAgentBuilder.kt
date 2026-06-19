@@ -1,11 +1,19 @@
 package org.coralprotocol.coralserver.dsl
 
+import io.ktor.client.*
+import io.modelcontextprotocol.kotlin.sdk.client.Client
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
+import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOption
+import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOptionValue
+import org.coralprotocol.coralserver.agent.registry.option.value
 import org.coralprotocol.coralserver.agent.runtime.*
 import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeString
 import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeUrlPart
 import org.coralprotocol.coralserver.llmproxy.LlmProviderFormat
+import org.coralprotocol.coralserver.session.LocalSession
+import org.coralprotocol.coralserver.session.SessionAgent
+import org.coralprotocol.coralserver.util.streamableHttpFunctionRuntime
 import java.nio.file.Path
 
 @CoralDsl
@@ -66,6 +74,23 @@ class UrlPartListBuilder {
     fun build() = parts.toList()
 }
 
+data class BuiltAgentOption<T>(val name: String, val option: T) where T : PolymorphicAgentOption<*>
+
+inline fun <OptionType : PolymorphicAgentOption<ValueType>, reified ValueType : PolymorphicAgentOptionValue<BackingType>, BackingType> BuiltAgentOption<OptionType>.tryGet(
+    agent: SessionAgent
+): BackingType? {
+    val specifiedOptionValue = agent.graphAgent.options[name] ?: return null
+    val specifiedValue = specifiedOptionValue.value() as? ValueType ?: return null
+
+    return specifiedValue.value
+}
+
+inline fun <OptionType : PolymorphicAgentOption<ValueType>, reified ValueType : PolymorphicAgentOptionValue<BackingType>, BackingType> BuiltAgentOption<OptionType>.get(
+    agent: SessionAgent
+): BackingType =
+    tryGet(agent) ?: throw IllegalArgumentException("Option \"$name\" was not set")
+
+
 @CoralDsl
 class RegistryAgentBuilder(
     var name: String,
@@ -101,8 +126,9 @@ class RegistryAgentBuilder(
         capabilities.add(capability)
     }
 
-    fun option(key: String, value: AgentOption) {
-        options[key] = value
+    fun <T> option(name: String, value: T): BuiltAgentOption<T> where T : PolymorphicAgentOption<*> {
+        options[name] = value
+        return BuiltAgentOption(name, value)
     }
 
     fun exportSetting(runtime: RuntimeId, value: UnresolvedAgentExportSettings) {
@@ -117,14 +143,86 @@ class RegistryAgentBuilder(
         dependencies += RegistryAgentDependency(name = name, options = options.toList())
     }
 
-    fun marketplace(block: RegistryAgentMarketplaceSettingsBuilder.() -> Unit) {
-        marketplace = RegistryAgentMarketplaceSettingsBuilder().apply(block).build()
-    }
+    fun marketplace(block: RegistryAgentMarketplaceSettingsBuilder.() -> Unit) =
+        RegistryAgentMarketplaceSettingsBuilder().apply(block).build().also { marketplace = it }
 
-    fun llm(block: AgentLlmConfigBuilder.() -> Unit) {
-        llm = AgentLlmConfigBuilder().apply(block).build()
-    }
+    fun llm(block: AgentLlmConfigBuilder.() -> Unit) =
+        AgentLlmConfigBuilder().apply(block).build().also { llm = it }
 
+    fun stringOption(name: String, block: StringAgentOptionBuilder.() -> Unit) =
+        option(name, StringAgentOptionBuilder().apply(block).build())
+
+    fun stringListOption(name: String, block: StringListAgentOptionBuilder.() -> Unit) =
+        option(name, StringListAgentOptionBuilder().apply(block).build())
+
+    fun blobOption(name: String, block: BlobAgentOptionBuilder.() -> Unit) =
+        option(name, BlobAgentOptionBuilder().apply(block).build())
+
+    fun blobListOption(name: String, block: BlobListAgentOptionBuilder.() -> Unit) =
+        option(name, BlobListAgentOptionBuilder().apply(block).build())
+
+    fun booleanOption(name: String, block: BooleanAgentOptionBuilder.() -> Unit) =
+        option(name, BooleanAgentOptionBuilder().apply(block).build())
+
+    fun byteOption(name: String, block: ByteAgentOptionBuilder.() -> Unit) =
+        option(name, ByteAgentOptionBuilder().apply(block).build())
+
+    fun byteListOption(name: String, block: ByteListAgentOptionBuilder.() -> Unit) =
+        option(name, ByteListAgentOptionBuilder().apply(block).build())
+
+    fun shortOption(name: String, block: ShortAgentOptionBuilder.() -> Unit) =
+        option(name, ShortAgentOptionBuilder().apply(block).build())
+
+    fun shortListOption(name: String, block: ShortListAgentOptionBuilder.() -> Unit) =
+        option(name, ShortListAgentOptionBuilder().apply(block).build())
+
+    fun intOption(name: String, block: IntAgentOptionBuilder.() -> Unit) =
+        option(name, IntAgentOptionBuilder().apply(block).build())
+
+    fun intListOption(name: String, block: IntListAgentOptionBuilder.() -> Unit) =
+        option(name, IntListAgentOptionBuilder().apply(block).build())
+
+    fun longOption(name: String, block: LongAgentOptionBuilder.() -> Unit) =
+        option(name, LongAgentOptionBuilder().apply(block).build())
+
+    fun longListOption(name: String, block: LongListAgentOptionBuilder.() -> Unit) =
+        option(name, LongListAgentOptionBuilder().apply(block).build())
+
+    fun unsignedByteOption(name: String, block: UByteAgentOptionBuilder.() -> Unit) =
+        option(name, UByteAgentOptionBuilder().apply(block).build())
+
+    fun unsignedByteListOption(name: String, block: UByteListAgentOptionBuilder.() -> Unit) =
+        option(name, UByteListAgentOptionBuilder().apply(block).build())
+
+    fun unsignedShortOption(name: String, block: UShortAgentOptionBuilder.() -> Unit) =
+        option(name, UShortAgentOptionBuilder().apply(block).build())
+
+    fun unsignedShortListOption(name: String, block: UShortListAgentOptionBuilder.() -> Unit) =
+        option(name, UShortListAgentOptionBuilder().apply(block).build())
+
+    fun unsignedIntOption(name: String, block: UIntAgentOptionBuilder.() -> Unit) =
+        option(name, UIntAgentOptionBuilder().apply(block).build())
+
+    fun unsignedIntListOption(name: String, block: UIntListAgentOptionBuilder.() -> Unit) =
+        option(name, UIntListAgentOptionBuilder().apply(block).build())
+
+    fun unsignedLongOption(name: String, block: ULongAgentOptionBuilder.() -> Unit) =
+        option(name, ULongAgentOptionBuilder().apply(block).build())
+
+    fun unsignedLongListOption(name: String, block: ULongListAgentOptionBuilder.() -> Unit) =
+        option(name, ULongListAgentOptionBuilder().apply(block).build())
+
+    fun floatOption(name: String, block: FloatAgentOptionBuilder.() -> Unit) =
+        option(name, FloatAgentOptionBuilder().apply(block).build())
+
+    fun floatListOption(name: String, block: FloatListAgentOptionBuilder.() -> Unit) =
+        option(name, FloatListAgentOptionBuilder().apply(block).build())
+
+    fun doubleOption(name: String, block: DoubleAgentOptionBuilder.() -> Unit) =
+        option(name, DoubleAgentOptionBuilder().apply(block).build())
+
+    fun doubleListOption(name: String, block: DoubleListAgentOptionBuilder.() -> Unit) =
+        option(name, DoubleListAgentOptionBuilder().apply(block).build())
 
     fun runtime(functionRuntime: FunctionRuntime) {
         runtimes = LocalAgentRuntimes(
@@ -133,6 +231,20 @@ class RegistryAgentBuilder(
             functionRuntime = functionRuntime,
             prototypeRuntime = runtimes.prototypeRuntime
         )
+    }
+
+    fun debugRuntime(
+        httpClient: HttpClient,
+        body: suspend (client: Client, session: LocalSession, agent: SessionAgent) -> Unit
+    ) {
+        runtime(FunctionRuntime { executionContext, runtimeContext ->
+            httpClient.streamableHttpFunctionRuntime(
+                name,
+                version
+            ) { client, session ->
+                body(client, session, executionContext.agent)
+            }.execute(executionContext, runtimeContext)
+        })
     }
 
     fun runtime(dockerRuntime: DockerRuntime) {

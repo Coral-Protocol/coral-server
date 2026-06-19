@@ -27,9 +27,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
-import org.coralprotocol.coralserver.agent.registry.option.AgentOption
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
+import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
+import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOption
 import org.coralprotocol.coralserver.agent.runtime.PrototypeRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.agent.runtime.prototype.*
@@ -271,8 +271,8 @@ suspend fun KoinComponent.runTestServerTest(
                         this@graphAgentPair.option(
                             testMcpServer.authTokenOptionName,
                             AgentOptionWithValue.String(
-                                AgentOption.String(),
-                                AgentOptionValue.String(testMcpServer.authToken)
+                                PolymorphicAgentOption.String(),
+                                PolymorphicAgentOptionValue.String(testMcpServer.authToken)
                             )
                         )
                     }

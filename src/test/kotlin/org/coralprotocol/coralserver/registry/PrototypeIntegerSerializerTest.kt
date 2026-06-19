@@ -7,14 +7,16 @@ import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.serialization.InternalSerializationApi
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.serializer
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.registry.MAXIMUM_SUPPORTED_AGENT_VERSION
 import org.coralprotocol.coralserver.agent.registry.RegistryException
 import org.coralprotocol.coralserver.agent.registry.UnresolvedRegistryAgent
-import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
+import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
+import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOption
 import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeInteger
 
 class PrototypeIntegerSerializerTest : CoralTest({
@@ -68,8 +70,8 @@ class PrototypeIntegerSerializerTest : CoralTest({
         )
 
         when (agentOptionValue) {
-            is AgentOptionValue.Byte -> {
-                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<AgentOption.Byte>()
+            is PolymorphicAgentOptionValue.Byte -> {
+                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.Byte>()
 
                 agent.runtimes.prototypeRuntime.shouldNotBeNull().iterationCount.resolve(
                     mapOf(
@@ -81,8 +83,8 @@ class PrototypeIntegerSerializerTest : CoralTest({
                 ).toByte().shouldBeEqual(agentOptionValue.value)
             }
 
-            is AgentOptionValue.Int -> {
-                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<AgentOption.Int>()
+            is PolymorphicAgentOptionValue.Int -> {
+                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.Int>()
 
                 agent.runtimes.prototypeRuntime.shouldNotBeNull().iterationCount.resolve(
                     mapOf(
@@ -94,8 +96,8 @@ class PrototypeIntegerSerializerTest : CoralTest({
                 ).toInt().shouldBeEqual(agentOptionValue.value)
             }
 
-            is AgentOptionValue.Long -> {
-                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<AgentOption.Long>()
+            is PolymorphicAgentOptionValue.Long -> {
+                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.Long>()
 
                 agent.runtimes.prototypeRuntime.shouldNotBeNull().iterationCount.resolve(
                     mapOf(
@@ -107,8 +109,8 @@ class PrototypeIntegerSerializerTest : CoralTest({
                 ).shouldBeEqual(agentOptionValue.value)
             }
 
-            is AgentOptionValue.Short -> {
-                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<AgentOption.Short>()
+            is PolymorphicAgentOptionValue.Short -> {
+                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.Short>()
 
                 agent.runtimes.prototypeRuntime.shouldNotBeNull().iterationCount.resolve(
                     mapOf(
@@ -120,8 +122,8 @@ class PrototypeIntegerSerializerTest : CoralTest({
                 ).toShort().shouldBeEqual(agentOptionValue.value)
             }
 
-            is AgentOptionValue.UByte -> {
-                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<AgentOption.UByte>()
+            is PolymorphicAgentOptionValue.UByte -> {
+                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.UByte>()
 
                 agent.runtimes.prototypeRuntime.shouldNotBeNull().iterationCount.resolve(
                     mapOf(
@@ -133,8 +135,8 @@ class PrototypeIntegerSerializerTest : CoralTest({
                 ).toUByte().shouldBeEqual(agentOptionValue.value)
             }
 
-            is AgentOptionValue.UInt -> {
-                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<AgentOption.UInt>()
+            is PolymorphicAgentOptionValue.UInt -> {
+                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.UInt>()
 
                 agent.runtimes.prototypeRuntime.shouldNotBeNull().iterationCount.resolve(
                     mapOf(
@@ -146,8 +148,8 @@ class PrototypeIntegerSerializerTest : CoralTest({
                 ).toUInt().shouldBeEqual(agentOptionValue.value)
             }
 
-            is AgentOptionValue.ULong -> {
-                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<AgentOption.ULong>()
+            is PolymorphicAgentOptionValue.ULong -> {
+                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.ULong>()
 
                 agent.runtimes.prototypeRuntime.shouldNotBeNull().iterationCount.resolve(
                     mapOf(
@@ -159,8 +161,8 @@ class PrototypeIntegerSerializerTest : CoralTest({
                 ).toULong().shouldBeEqual(agentOptionValue.value.toULong())
             }
 
-            is AgentOptionValue.UShort -> {
-                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<AgentOption.UShort>()
+            is PolymorphicAgentOptionValue.UShort -> {
+                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.UShort>()
 
                 agent.runtimes.prototypeRuntime.shouldNotBeNull().iterationCount.resolve(
                     mapOf(
@@ -179,22 +181,22 @@ class PrototypeIntegerSerializerTest : CoralTest({
     }
 
     // signed
-    test("testOptionSerializationByte") { testAgentOptionSerialization(AgentOptionValue.Byte(Byte.MAX_VALUE)) }
-    test("testOptionSerializationInt") { testAgentOptionSerialization(AgentOptionValue.Int(Int.MIN_VALUE)) }
-    test("testOptionSerializationLong") { testAgentOptionSerialization(AgentOptionValue.Long(Long.MIN_VALUE)) }
-    test("testOptionSerializationShort") { testAgentOptionSerialization(AgentOptionValue.Short(Short.MIN_VALUE)) }
+    test("testOptionSerializationByte") { testAgentOptionSerialization(PolymorphicAgentOptionValue.Byte(Byte.MAX_VALUE)) }
+    test("testOptionSerializationInt") { testAgentOptionSerialization(PolymorphicAgentOptionValue.Int(Int.MIN_VALUE)) }
+    test("testOptionSerializationLong") { testAgentOptionSerialization(PolymorphicAgentOptionValue.Long(Long.MIN_VALUE)) }
+    test("testOptionSerializationShort") { testAgentOptionSerialization(PolymorphicAgentOptionValue.Short(Short.MIN_VALUE)) }
 
     // unsigned
-    test("testOptionSerializationUByte") { testAgentOptionSerialization(AgentOptionValue.UByte(UByte.MAX_VALUE)) }
-    test("testOptionSerializationUInt") { testAgentOptionSerialization(AgentOptionValue.UInt(UInt.MAX_VALUE)) }
-    test("testOptionSerializationUShort") { testAgentOptionSerialization(AgentOptionValue.UShort(UShort.MAX_VALUE)) }
-    test("testOptionSerializationULong") { testAgentOptionSerialization(AgentOptionValue.ULong(ULong.MAX_VALUE.toString())) }
+    test("testOptionSerializationUByte") { testAgentOptionSerialization(PolymorphicAgentOptionValue.UByte(UByte.MAX_VALUE)) }
+    test("testOptionSerializationUInt") { testAgentOptionSerialization(PolymorphicAgentOptionValue.UInt(UInt.MAX_VALUE)) }
+    test("testOptionSerializationUShort") { testAgentOptionSerialization(PolymorphicAgentOptionValue.UShort(UShort.MAX_VALUE)) }
+    test("testOptionSerializationULong") { testAgentOptionSerialization(PolymorphicAgentOptionValue.ULong(ULong.MAX_VALUE.toString())) }
 
     // unsupported
     test("testOptionSerializationFloat") {
         shouldThrow<RegistryException> {
             testAgentOptionSerialization(
-                AgentOptionValue.Float(100.0f)
+                PolymorphicAgentOptionValue.Float(100.0f)
             )
         }
     }
@@ -202,7 +204,7 @@ class PrototypeIntegerSerializerTest : CoralTest({
     test("testOptionSerializationDouble") {
         shouldThrow<RegistryException> {
             testAgentOptionSerialization(
-                AgentOptionValue.Double(100.0)
+                PolymorphicAgentOptionValue.Double(100.0)
             )
         }
     }
@@ -210,7 +212,7 @@ class PrototypeIntegerSerializerTest : CoralTest({
     test("testOptionSerializationString") {
         shouldThrow<RegistryException> {
             testAgentOptionSerialization(
-                AgentOptionValue.String("200")
+                PolymorphicAgentOptionValue.String("200")
             )
         }
     }

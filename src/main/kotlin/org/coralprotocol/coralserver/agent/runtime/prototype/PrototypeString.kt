@@ -13,7 +13,7 @@ import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.*
 import org.coralprotocol.coralserver.agent.exceptions.PrototypeRuntimeException
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentStringSerializer
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
+import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.registry.option.value
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
@@ -40,7 +40,7 @@ sealed class PrototypeString {
                 ?: throw PrototypeRuntimeException.BadOption("option \"$name\" wasn't found")
 
             val optionValue = option.value()
-            if (optionValue !is AgentOptionValue.String)
+            if (optionValue !is PolymorphicAgentOptionValue.String)
                 throw PrototypeRuntimeException.BadOption("option \"$name\" must have type=\"string\"")
 
             return optionValue.value
