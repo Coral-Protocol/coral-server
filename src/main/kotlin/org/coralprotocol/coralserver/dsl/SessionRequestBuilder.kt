@@ -147,7 +147,7 @@ class SessionBudgetSettingsBuilder {
     }
 
     fun warn() {
-        exhaustionBehavior = SessionBudgetExhaustionBehavior.Warn
+        exhaustionBehavior = SessionBudgetExhaustionBehavior.Ignore
     }
 
     fun build(): SessionBudgetSettings {

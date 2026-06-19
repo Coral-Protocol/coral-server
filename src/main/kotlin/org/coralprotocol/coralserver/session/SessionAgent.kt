@@ -678,7 +678,7 @@ class SessionAgent(
                         }
                     }
 
-                    SessionBudgetExhaustionBehavior.Warn -> {
+                    SessionBudgetExhaustionBehavior.Ignore -> {
                         // warning is already logged
                     }
                 }

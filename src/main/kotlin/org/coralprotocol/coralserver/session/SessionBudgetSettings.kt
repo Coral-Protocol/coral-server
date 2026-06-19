@@ -18,9 +18,9 @@ import kotlin.time.Duration.Companion.milliseconds
 @JsonClassDiscriminator("type")
 sealed interface SessionBudgetExhaustionBehavior {
     @Serializable
-    @SerialName("warn")
-    @Description("Once the session budget is exhausted and claimed from, a warning will be produced.  This behavior has a high risk of overclaiming.")
-    object Warn : SessionBudgetExhaustionBehavior
+    @SerialName("ignore")
+    @Description("The exhaustion of the session's budget will be ignored.  This has a high chance of overclaiming.")
+    object Ignore : SessionBudgetExhaustionBehavior
 
     @Serializable
     @SerialName("kill_agent")
