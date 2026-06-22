@@ -9,9 +9,7 @@ import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
-import org.coralprotocol.coralserver.agent.registry.option.compareTypeWithValue
-import org.coralprotocol.coralserver.agent.registry.option.requireValue
-import org.coralprotocol.coralserver.agent.registry.option.withValue
+import org.coralprotocol.coralserver.agent.registry.option.AnyAgentOptionWithValue
 import org.coralprotocol.coralserver.llmproxy.LlmProxyException
 import org.coralprotocol.coralserver.llmproxy.LlmProxyService
 import org.coralprotocol.coralserver.session.SessionResource
@@ -92,18 +90,27 @@ data class GraphAgentRequest(
             throw AgentRequestException("Agent $id contains unknown options: ${unknownOptions.keys.joinToString()}")
         }
 
-        val wrongTypes = options.filter { !registryAgent.options[it.key]!!.compareTypeWithValue(it.value) }
+        val wrongTypes = mutableMapOf<String, AgentOptionValue>()
+        val optionsWithValues = mutableMapOf<String, AnyAgentOptionWithValue>()
+        for ((optionName, optionValue) in options) {
+            val option = registryAgent.options[optionName]!!
+            val withValue = option.tryWithValue(optionValue)
+            if (withValue != null) {
+                optionsWithValues[optionName] = withValue
+            } else {
+                wrongTypes[optionName] = optionValue
+            }
+        }
+
         if (wrongTypes.isNotEmpty()) {
             throw AgentRequestException("Agent $id contains wrong types for options: ${wrongTypes.keys.joinToString()}")
         }
 
-        val allOptions = (registryAgent.defaultOptions + options)
-            .mapValues { registryAgent.options[it.key]!!.withValue(it.value) }
-            .toMutableMap()
+        val allOptions: Map<String, AnyAgentOptionWithValue> = registryAgent.defaultOptions + optionsWithValues
 
         allOptions.forEach { (optionName, optionValue) ->
             try {
-                optionValue.requireValue()
+                optionValue.validateValue()
             } catch (e: AgentOptionValidationException) {
                 throw AgentRequestException("Value given for option \"$optionName\" is invalid: ${e.message}")
             }
@@ -111,27 +118,29 @@ data class GraphAgentRequest(
 
         // Options that are specified in the export settings take the highest priority, but they should only be
         // considered in a remote context
-        allOptions += if (isRemote) {
-            val runtime = when (provider) {
-                is GraphAgentProvider.Local -> provider.runtime
-                is GraphAgentProvider.Linked -> provider.runtime
 
-                // Don't allow a remote request that requests another remote request
-                is GraphAgentProvider.RemoteRequest, is GraphAgentProvider.Remote -> {
-                    throw AgentRequestException("A request for a remote agent must also request a local provider")
-                }
-            }
-
-            // Export settings are validated (option name, value type, value validation) so it is safe to simply copy
-            // export settings in here
-            registryAgent.exportSettings[runtime]?.options
-                ?.mapValues {
-                    registryAgent.options[it.key]!!.withValue(it.value)
-                }
-                ?: throw AgentRequestException("Runtime $runtime is not exported by agent $id")
-        } else {
-            mapOf()
-        }
+        // TODO: remote stuff again
+//        allOptions += if (isRemote) {
+//            val runtime = when (provider) {
+//                is GraphAgentProvider.Local -> provider.runtime
+//                is GraphAgentProvider.Linked -> provider.runtime
+//
+//                // Don't allow a remote request that requests another remote request
+//                is GraphAgentProvider.RemoteRequest, is GraphAgentProvider.Remote -> {
+//                    throw AgentRequestException("A request for a remote agent must also request a local provider")
+//                }
+//            }
+//
+//            // Export settings are validated (option name, value type, value validation) so it is safe to simply copy
+//            // export settings in here
+//            registryAgent.exportSettings[runtime]?.options
+//                ?.mapValues {
+//                    registryAgent.options[it.key]!!.withValue(it.value)
+//                }
+//                ?: throw AgentRequestException("Runtime $runtime is not exported by agent $id")
+//        } else {
+//            mapOf()
+//        }
 
         val missingOptions = registryAgent.requiredOptions.filterKeys { !allOptions.containsKey(it) }
         if (missingOptions.isNotEmpty()) {

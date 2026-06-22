@@ -22,6 +22,8 @@ interface AgentOptionListValue<T> {
     val value: List<T>
 }
 
+interface AgentOptionIntegralValue
+
 typealias AgentOptionValue = PolymorphicAgentOptionValue<*>
 
 @Serializable(with = AgentOptionValueSerializer::class)
@@ -77,7 +79,8 @@ sealed interface PolymorphicAgentOptionValue<BackingType> {
 
     @Serializable
     @SerialName(TYPE_BYTE)
-    data class Byte(override val value: kotlin.Byte) : PolymorphicAgentOptionValue<kotlin.Byte> {
+    data class Byte(override val value: kotlin.Byte) : PolymorphicAgentOptionValue<kotlin.Byte>,
+        AgentOptionIntegralValue {
         override fun toFileSystemValue() = listOf(ByteBuffer.allocate(kotlin.Byte.SIZE_BYTES).put(value).array())
     }
 
@@ -90,7 +93,8 @@ sealed interface PolymorphicAgentOptionValue<BackingType> {
 
     @Serializable
     @SerialName(TYPE_SHORT)
-    data class Short(override val value: kotlin.Short) : PolymorphicAgentOptionValue<kotlin.Short> {
+    data class Short(override val value: kotlin.Short) : PolymorphicAgentOptionValue<kotlin.Short>,
+        AgentOptionIntegralValue {
         override fun toFileSystemValue() = listOf(ByteBuffer.allocate(kotlin.Short.SIZE_BYTES).putShort(value).array())
     }
 
@@ -104,7 +108,7 @@ sealed interface PolymorphicAgentOptionValue<BackingType> {
 
     @Serializable
     @SerialName(TYPE_INT)
-    data class Int(override val value: kotlin.Int) : PolymorphicAgentOptionValue<kotlin.Int> {
+    data class Int(override val value: kotlin.Int) : PolymorphicAgentOptionValue<kotlin.Int>, AgentOptionIntegralValue {
         override fun toFileSystemValue() = listOf(ByteBuffer.allocate(kotlin.Int.SIZE_BYTES).putInt(value).array())
     }
 
@@ -117,7 +121,8 @@ sealed interface PolymorphicAgentOptionValue<BackingType> {
 
     @Serializable
     @SerialName(TYPE_LONG)
-    data class Long(override val value: kotlin.Long) : PolymorphicAgentOptionValue<kotlin.Long> {
+    data class Long(override val value: kotlin.Long) : PolymorphicAgentOptionValue<kotlin.Long>,
+        AgentOptionIntegralValue {
         override fun toFileSystemValue() = listOf(ByteBuffer.allocate(kotlin.Long.SIZE_BYTES).putLong(value).array())
     }
 
@@ -130,7 +135,8 @@ sealed interface PolymorphicAgentOptionValue<BackingType> {
 
     @Serializable
     @SerialName(TYPE_UNSIGNED_BYTE)
-    data class UByte(override val value: kotlin.UByte) : PolymorphicAgentOptionValue<kotlin.UByte> {
+    data class UByte(override val value: kotlin.UByte) : PolymorphicAgentOptionValue<kotlin.UByte>,
+        AgentOptionIntegralValue {
         override fun toFileSystemValue() =
             listOf(ByteBuffer.allocate(kotlin.UByte.SIZE_BYTES).put(value.toByte()).array())
     }
@@ -145,7 +151,8 @@ sealed interface PolymorphicAgentOptionValue<BackingType> {
 
     @Serializable
     @SerialName(TYPE_UNSIGNED_SHORT)
-    data class UShort(override val value: kotlin.UShort) : PolymorphicAgentOptionValue<kotlin.UShort> {
+    data class UShort(override val value: kotlin.UShort) : PolymorphicAgentOptionValue<kotlin.UShort>,
+        AgentOptionIntegralValue {
         override fun toFileSystemValue() =
             listOf(ByteBuffer.allocate(kotlin.UShort.SIZE_BYTES).putShort(value.toShort()).array())
     }
@@ -160,7 +167,8 @@ sealed interface PolymorphicAgentOptionValue<BackingType> {
 
     @Serializable
     @SerialName(TYPE_UNSIGNED_INT)
-    data class UInt(override val value: kotlin.UInt) : PolymorphicAgentOptionValue<kotlin.UInt> {
+    data class UInt(override val value: kotlin.UInt) : PolymorphicAgentOptionValue<kotlin.UInt>,
+        AgentOptionIntegralValue {
         override fun toFileSystemValue() =
             listOf(ByteBuffer.allocate(kotlin.UInt.SIZE_BYTES).putInt(value.toInt()).array())
     }
@@ -178,7 +186,8 @@ sealed interface PolymorphicAgentOptionValue<BackingType> {
      */
     @Serializable
     @SerialName(TYPE_UNSIGNED_LONG)
-    data class ULong(override val value: kotlin.String) : PolymorphicAgentOptionValue<kotlin.String> {
+    data class ULong(override val value: kotlin.String) : PolymorphicAgentOptionValue<kotlin.String>,
+        AgentOptionIntegralValue {
         override fun toFileSystemValue() =
             listOf(ByteBuffer.allocate(kotlin.ULong.SIZE_BYTES).putLong(value.toULong().toLong()).array())
     }

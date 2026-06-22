@@ -5,9 +5,8 @@ import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
 import org.coralprotocol.coralserver.agent.payment.AgentBudgetUnit
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
-import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
-import org.coralprotocol.coralserver.agent.registry.option.option
+import org.coralprotocol.coralserver.agent.registry.option.AnyAgentOptionWithValue
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.llmproxy.LlmProxiedModel
 import org.coralprotocol.coralserver.x402.X402BudgetedResource
@@ -53,12 +52,12 @@ open class CommonGraphAgentBuilder(
 @CoralDsl
 class GraphAgentBuilder(name: String) : CommonGraphAgentBuilder(name) {
     private val registryAgentBuilder = RegistryAgentBuilder(name)
-    private val options = mutableMapOf<String, AgentOptionWithValue>()
+    private val options = mutableMapOf<String, AnyAgentOptionWithValue>()
     private val customTools = mutableMapOf<String, GraphAgentTool>()
 
-    fun option(key: String, value: AgentOptionWithValue) {
+    fun option(key: String, value: AnyAgentOptionWithValue) {
         options[key] = value
-        registryAgentBuilder.option(key, value.option())
+        registryAgentBuilder.option(key, value.option)
     }
 
     fun registryAgent(block: RegistryAgentBuilder.() -> Unit) {

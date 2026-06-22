@@ -13,9 +13,8 @@ import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.*
 import org.coralprotocol.coralserver.agent.exceptions.PrototypeRuntimeException
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentStringSerializer
+import org.coralprotocol.coralserver.agent.registry.option.AnyAgentOptionWithValue
 import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOptionValue
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
-import org.coralprotocol.coralserver.agent.registry.option.value
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 import kotlin.reflect.full.findAnnotation
 
@@ -24,22 +23,22 @@ import kotlin.reflect.full.findAnnotation
 @JsonClassDiscriminator("type")
 sealed class PrototypeString {
     fun resolve(executionContext: SessionAgentExecutionContext): String = resolve(executionContext.graphAgent.options)
-    abstract fun resolve(agentOptions: Map<String, AgentOptionWithValue> = mapOf()): String
+    abstract fun resolve(agentOptions: Map<String, AnyAgentOptionWithValue> = mapOf()): String
 
     @Serializable
     @SerialName("inline")
     data class Inline(val value: String) : PrototypeString() {
-        override fun resolve(agentOptions: Map<String, AgentOptionWithValue>): String = value
+        override fun resolve(agentOptions: Map<String, AnyAgentOptionWithValue>): String = value
     }
 
     @Serializable
     @SerialName("option")
     data class Option(val name: String) : PrototypeString() {
-        override fun resolve(agentOptions: Map<String, AgentOptionWithValue>): String {
+        override fun resolve(agentOptions: Map<String, AnyAgentOptionWithValue>): String {
             val option = agentOptions[name]
                 ?: throw PrototypeRuntimeException.BadOption("option \"$name\" wasn't found")
 
-            val optionValue = option.value()
+            val optionValue = option.value
             if (optionValue !is PolymorphicAgentOptionValue.String)
                 throw PrototypeRuntimeException.BadOption("option \"$name\" must have type=\"string\"")
 
@@ -53,7 +52,7 @@ sealed class PrototypeString {
         val parts: List<PrototypeString>,
         val separator: String = ""
     ) : PrototypeString() {
-        override fun resolve(agentOptions: Map<String, AgentOptionWithValue>): String =
+        override fun resolve(agentOptions: Map<String, AnyAgentOptionWithValue>): String =
             parts.joinToString(separator) { it.resolve(agentOptions) }
     }
 
@@ -63,7 +62,7 @@ sealed class PrototypeString {
         val base: String,
         val parts: List<PrototypeUrlPart>,
     ) : PrototypeString() {
-        override fun resolve(agentOptions: Map<String, AgentOptionWithValue>): String {
+        override fun resolve(agentOptions: Map<String, AnyAgentOptionWithValue>): String {
             val builder = URLBuilder(base)
             for (part in parts) {
                 when (part) {
@@ -193,8 +192,7 @@ object PrototypeStringSerializer : KSerializer<PrototypeString> {
         }
     }
 
-    override fun deserialize(decoder: Decoder
-                             ): PrototypeString {
+    override fun deserialize(decoder: Decoder): PrototypeString {
         // deserialization should allow inline strings to represent as string literals and should also
         // support PotentialStringReference deserialization
         return when (decoder) {

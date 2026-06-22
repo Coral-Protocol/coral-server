@@ -6,13 +6,12 @@ import dev.eav.tomlkt.TomlClassDiscriminator
 import io.github.smiley4.schemakenerator.core.annotations.Optional
 import kotlinx.serialization.*
 import kotlinx.serialization.builtins.serializer
-import kotlinx.serialization.descriptors.PolymorphicKind
-import kotlinx.serialization.descriptors.SerialDescriptor
-import kotlinx.serialization.descriptors.SerialKind
-import kotlinx.serialization.descriptors.buildSerialDescriptor
+import kotlinx.serialization.descriptors.*
+import kotlinx.serialization.encoding.CompositeDecoder
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonClassDiscriminator
+import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentBase64StringListSerializer
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentBase64StringSerializer
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentStringListSerializer
@@ -20,7 +19,6 @@ import org.coralprotocol.coralserver.agent.registry.RegistryAgentStringSerialize
 import org.coralprotocol.coralserver.util.decodeElement
 import org.coralprotocol.coralserver.util.decodeFromElement
 import org.coralprotocol.coralserver.util.encodeDiscriminatedElement
-import org.koin.core.component.KoinComponent
 import kotlin.io.encoding.Base64
 
 const val TYPE_STRING = "string"
@@ -53,19 +51,48 @@ private const val REQUIRED_DEFAULT = false
 private val DISPLAY_DEFAULT: AgentOptionDisplay? = null
 private val TRANSPORT_DEFAULT = AgentOptionTransport.ENVIRONMENT_VARIABLE
 
-typealias AgentOption = PolymorphicAgentOption<AgentOptionValue>
+interface AgentIntegralOption
+typealias AgentOption = PolymorphicAgentOption<*, *>
 
-@Serializable(with = AgentOptionSerializer::class)
-sealed interface PolymorphicAgentOption<out ValueType : PolymorphicAgentOptionValue<*>> : KoinComponent {
-    val required: kotlin.Boolean
-    val display: AgentOptionDisplay?
-    val transport: AgentOptionTransport
+sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<BackingType>, BackingType> {
+    abstract val default: BackingType?
+    abstract val defaultAsValue: ValueType?
+
+    abstract val required: kotlin.Boolean
+    abstract val display: AgentOptionDisplay?
+    abstract val transport: AgentOptionTransport
+
+    /**
+     * Attempts to create a [AgentOptionWithValue] type using the specified value, returning null if the specified value
+     * type is mismatched.
+     */
+    abstract fun tryWithValue(value: PolymorphicAgentOptionValue<*>): AgentOptionWithValue<*, ValueType, BackingType>?
+
+    /**
+     * Runs the validation functions for this option, throwing an exception if any validation fails.
+     */
+    abstract fun validateValue(value: ValueType)
+
+    /**
+     * Returns a string representation of the specified value.  This will mask values marked as secret.
+     */
+    abstract fun displayValue(value: ValueType): kotlin.String
+
+    /**
+     * Returns a [AgentOptionWithValue] with the default value, or null if there is no default value.
+     */
+    fun withDefaultValue() = defaultAsValue?.let { AgentOptionWithValue(this, it) }
+
+    /**
+     * Combines this option with the specified value, returning a [AgentOptionWithValue]
+     */
+    fun withValue(value: ValueType) = AgentOptionWithValue(this, value)
 
     @Serializable
     @SerialName(TYPE_STRING)
     data class String(
         @Serializable(with = RegistryAgentStringSerializer::class)
-        val default: kotlin.String? = null,
+        override val default: kotlin.String? = null,
 
         val validation: StringAgentOptionValidation? = null,
         @Optional val base64: kotlin.Boolean = false,
@@ -74,13 +101,30 @@ sealed interface PolymorphicAgentOption<out ValueType : PolymorphicAgentOptionVa
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.String>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.String, kotlin.String>() {
+        @Transient
+        override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.String(it) }
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.String)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.String) {
+            validation?.require(value.value)
+        }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.String): kotlin.String =
+            if (secret) {
+                "*".repeat(value.value.length)
+            } else {
+                value.value
+            }
+    }
 
     @Serializable
     @SerialName(TYPE_STRING_LIST)
     data class StringList(
         @Serializable(with = RegistryAgentStringListSerializer::class)
-        @Optional val default: List<kotlin.String> = listOf(),
+        @Optional override val default: List<kotlin.String> = listOf(),
 
         val validation: StringAgentOptionValidation? = null,
         @Optional val base64: kotlin.Boolean = false,
@@ -89,203 +133,434 @@ sealed interface PolymorphicAgentOption<out ValueType : PolymorphicAgentOptionVa
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.StringList>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.StringList, List<kotlin.String>>() {
+        @Transient
+        override val defaultAsValue = PolymorphicAgentOptionValue.StringList(default)
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.StringList)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.StringList) =
+            value.value.forEach { validation?.require(it) }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.StringList): kotlin.String =
+            value.value.joinToString(",") {
+                if (secret) {
+                    "*".repeat(it.length)
+                } else {
+                    it
+                }
+            }
+    }
 
     @Serializable
     @SerialName(TYPE_BLOB)
     data class Blob(
         @Serializable(with = RegistryAgentBase64StringSerializer::class)
-        val default: kotlin.String? = null,
+        override val default: kotlin.String? = null,
 
         val validation: BlobAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Blob> {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Blob, kotlin.String>() {
+        @Transient
+        override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.Blob(it) }
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.Blob)?.let { AgentOptionWithValue(this, it) }
+
         @Transient
         val defaultBytes = default?.let { Base64.decode(it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.Blob) {
+            validation?.require(value.bytes)
+        }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.Blob): kotlin.String =
+            "${value.bytes.size}b blob"
     }
 
     @Serializable
     @SerialName(TYPE_BLOB_LIST)
     data class BlobList(
         @Serializable(with = RegistryAgentBase64StringListSerializer::class)
-        @Optional val default: List<kotlin.String> = listOf(),
+        @Optional override val default: List<kotlin.String> = listOf(),
 
         val validation: BlobAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.BlobList> {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.BlobList, List<kotlin.String>>() {
+        @Transient
+        override val defaultAsValue = PolymorphicAgentOptionValue.BlobList(default)
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.BlobList)?.let { AgentOptionWithValue(this, it) }
+
         @Transient
         val defaultBytes = default.map { Base64.decode(it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.BlobList) =
+            value.bytes.forEach { validation?.require(it) }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.BlobList): kotlin.String =
+            value.bytes.joinToString(",") { "${it.size}b blob" }
     }
 
     @Serializable
     @SerialName(TYPE_BOOLEAN)
     data class Boolean(
-        val default: kotlin.Boolean? = null,
+        override val default: kotlin.Boolean? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Boolean>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Boolean, kotlin.Boolean>() {
+        @Transient
+        override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.Boolean(it) }
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.Boolean)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.Boolean) {
+
+        }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.Boolean): kotlin.String =
+            if (value.value) "1" else "0"
+    }
 
     @Serializable
     @SerialName(TYPE_BYTE)
     data class Byte(
-        val default: kotlin.Byte? = null,
+        override val default: kotlin.Byte? = null,
         val validation: ByteAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Byte>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Byte, kotlin.Byte>(), AgentIntegralOption {
+        @Transient
+        override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.Byte(it) }
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.Byte)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.Byte) {
+            validation?.require(value.value)
+        }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.Byte): kotlin.String =
+            value.value.toString()
+    }
 
     @Serializable
     @SerialName(TYPE_BYTE_LIST)
     data class ByteList(
-        @Optional val default: List<kotlin.Byte> = listOf(),
+        @Optional override val default: List<kotlin.Byte> = listOf(),
         val validation: ByteAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.ByteList>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.ByteList, List<kotlin.Byte>>() {
+        @Transient
+        override val defaultAsValue = PolymorphicAgentOptionValue.ByteList(default)
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.ByteList)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.ByteList) =
+            value.value.forEach { validation?.require(it) }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.ByteList): kotlin.String =
+            value.value.joinToString(",")
+    }
 
     @Serializable
     @SerialName(TYPE_SHORT)
     data class Short(
-        val default: kotlin.Short? = null,
+        override val default: kotlin.Short? = null,
         val validation: ShortAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Short>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Short, kotlin.Short>(), AgentIntegralOption {
+        @Transient
+        override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.Short(it) }
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.Short)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.Short) {
+            validation?.require(value.value)
+        }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.Short): kotlin.String =
+            value.value.toString()
+    }
 
     @Serializable
     @SerialName(TYPE_SHORT_LIST)
     data class ShortList(
-        @Optional val default: List<kotlin.Short> = listOf(),
+        @Optional override val default: List<kotlin.Short> = listOf(),
         val validation: ShortAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.ShortList>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.ShortList, List<kotlin.Short>>() {
+        @Transient
+        override val defaultAsValue = PolymorphicAgentOptionValue.ShortList(default)
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.ShortList)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.ShortList) =
+            value.value.forEach { validation?.require(it) }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.ShortList): kotlin.String =
+            value.value.joinToString(",")
+    }
 
     @Serializable
     @SerialName(TYPE_INT)
     data class Int(
-        val default: kotlin.Int? = null,
+        override val default: kotlin.Int? = null,
         val validation: IntAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Int>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Int, kotlin.Int>(), AgentIntegralOption {
+        @Transient
+        override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.Int(it) }
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.Int)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.Int) {
+            validation?.require(value.value)
+        }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.Int): kotlin.String =
+            value.value.toString()
+    }
 
     @Serializable
     @SerialName(TYPE_INT_LIST)
     data class IntList(
-        @Optional val default: List<kotlin.Int> = listOf(),
+        @Optional override val default: List<kotlin.Int> = listOf(),
         val validation: IntAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.IntList>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.IntList, List<kotlin.Int>>() {
+        @Transient
+        override val defaultAsValue = PolymorphicAgentOptionValue.IntList(default)
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.IntList)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.IntList) =
+            value.value.forEach { validation?.require(it) }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.IntList): kotlin.String =
+            value.value.joinToString(",")
+    }
 
     @Serializable
     @SerialName(TYPE_LONG)
     data class Long(
-        val default: kotlin.Long? = null,
+        override val default: kotlin.Long? = null,
         val validation: LongAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Long>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Long, kotlin.Long>(), AgentIntegralOption {
+        @Transient
+        override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.Long(it) }
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.Long)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.Long) {
+            validation?.require(value.value)
+        }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.Long): kotlin.String =
+            value.value.toString()
+    }
 
     @Serializable
     @SerialName(TYPE_LONG_LIST)
     data class LongList(
-        @Optional val default: List<kotlin.Long> = listOf(),
+        @Optional override val default: List<kotlin.Long> = listOf(),
         val validation: LongAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.LongList>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.LongList, List<kotlin.Long>>() {
+        @Transient
+        override val defaultAsValue = PolymorphicAgentOptionValue.LongList(default)
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.LongList)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.LongList) =
+            value.value.forEach { validation?.require(it) }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.LongList): kotlin.String =
+            value.value.joinToString(",")
+    }
 
     @Serializable
     @SerialName(TYPE_UNSIGNED_BYTE)
     data class UByte(
-        val default: kotlin.UByte? = null,
+        override val default: kotlin.UByte? = null,
         val validation: UByteAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UByte>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UByte, kotlin.UByte>(), AgentIntegralOption {
+        @Transient
+        override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.UByte(it) }
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.UByte)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.UByte) {
+            validation?.require(value.value)
+        }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.UByte): kotlin.String =
+            value.value.toString()
+    }
 
     @Serializable
     @SerialName(TYPE_UNSIGNED_BYTE_LIST)
     data class UByteList(
-        @Optional val default: List<kotlin.UByte> = listOf(),
+        @Optional override val default: List<kotlin.UByte> = listOf(),
         val validation: UByteAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UByteList>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UByteList, List<kotlin.UByte>>() {
+        @Transient
+        override val defaultAsValue = PolymorphicAgentOptionValue.UByteList(default)
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.UByteList)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.UByteList) =
+            value.value.forEach { validation?.require(it) }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.UByteList): kotlin.String =
+            value.value.joinToString(",")
+    }
 
     @Serializable
     @SerialName(TYPE_UNSIGNED_SHORT)
     data class UShort(
-        val default: kotlin.UShort? = null,
+        override val default: kotlin.UShort? = null,
         val validation: UShortAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UShort>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UShort, kotlin.UShort>(), AgentIntegralOption {
+        @Transient
+        override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.UShort(it) }
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.UShort)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.UShort) {
+            validation?.require(value.value)
+        }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.UShort): kotlin.String =
+            value.value.toString()
+    }
 
     @Serializable
     @SerialName(TYPE_UNSIGNED_SHORT_LIST)
     data class UShortList(
-        @Optional val default: List<kotlin.UShort> = listOf(),
+        @Optional override val default: List<kotlin.UShort> = listOf(),
         val validation: UShortAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UShortList>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UShortList, List<kotlin.UShort>>() {
+        @Transient
+        override val defaultAsValue = PolymorphicAgentOptionValue.UShortList(default)
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.UShortList)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.UShortList) =
+            value.value.forEach { validation?.require(it) }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.UShortList): kotlin.String =
+            value.value.joinToString(",")
+    }
 
     @Serializable
     @SerialName(TYPE_UNSIGNED_INT)
     data class UInt(
-        val default: kotlin.UInt? = null,
+        override val default: kotlin.UInt? = null,
         val validation: UIntAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UInt>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UInt, kotlin.UInt>(), AgentIntegralOption {
+        @Transient
+        override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.UInt(it) }
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.UInt)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.UInt) {
+            validation?.require(value.value)
+        }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.UInt): kotlin.String =
+            value.value.toString()
+    }
 
     @Serializable
     @SerialName(TYPE_UNSIGNED_INT_LIST)
     data class UIntList(
-        @Optional val default: List<kotlin.UInt> = listOf(),
+        @Optional override val default: List<kotlin.UInt> = listOf(),
         val validation: UIntAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UIntList>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UIntList, List<kotlin.UInt>>() {
+        @Transient
+        override val defaultAsValue = PolymorphicAgentOptionValue.UIntList(default)
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.UIntList)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.UIntList) =
+            value.value.forEach { validation?.require(it) }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.UIntList): kotlin.String =
+            value.value.joinToString(",")
+    }
 
     @Serializable
     @SerialName(TYPE_UNSIGNED_LONG)
@@ -293,13 +568,29 @@ sealed interface PolymorphicAgentOption<out ValueType : PolymorphicAgentOptionVa
         /**
          * OpenAPI does not support unsigned longs
          */
-        val default: kotlin.String? = null,
+        override val default: kotlin.String? = null,
         val validation: ULongAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.ULong>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.ULong, kotlin.String>(), AgentIntegralOption {
+        @Transient
+        override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.ULong(it) }
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.ULong)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.ULong) {
+            validation?.require(
+                value.value.toULongOrNull()
+                    ?: throw AgentOptionValidationException("${value.value} is not a valid u64")
+            )
+        }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.ULong): kotlin.String =
+            value.value
+    }
 
     @Serializable
     @SerialName(TYPE_UNSIGNED_LONG_LIST)
@@ -307,381 +598,131 @@ sealed interface PolymorphicAgentOption<out ValueType : PolymorphicAgentOptionVa
         /**
          * OpenAPI does not support unsigned longs
          */
-        @Optional val default: List<kotlin.String> = listOf(),
+        @Optional override val default: List<kotlin.String> = listOf(),
         val validation: ULongAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.ULongList>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.ULongList, List<kotlin.String>>() {
+        @Transient
+        override val defaultAsValue = PolymorphicAgentOptionValue.ULongList(default)
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.ULongList)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.ULongList) =
+            value.value.forEach {
+                validation?.require(
+                    it.toULongOrNull()
+                        ?: throw AgentOptionValidationException("${value.value} is not a valid u64")
+                )
+            }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.ULongList): kotlin.String =
+            value.value.joinToString(",")
+    }
 
     @Serializable
     @SerialName(TYPE_FLOAT)
     data class Float(
-        val default: kotlin.Float? = null,
+        override val default: kotlin.Float? = null,
         val validation: FloatAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Float>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Float, kotlin.Float>() {
+        @Transient
+        override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.Float(it) }
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.Float)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.Float) {
+            validation?.require(value.value)
+        }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.Float): kotlin.String =
+            value.value.toString()
+    }
 
     @Serializable
     @SerialName(TYPE_FLOAT_LIST)
     data class FloatList(
-        @Optional val default: List<kotlin.Float> = listOf(),
+        @Optional override val default: List<kotlin.Float> = listOf(),
         val validation: FloatAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.FloatList>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.FloatList, List<kotlin.Float>>() {
+        @Transient
+        override val defaultAsValue = PolymorphicAgentOptionValue.FloatList(default)
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.FloatList)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.FloatList) =
+            value.value.forEach { validation?.require(it) }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.FloatList): kotlin.String =
+            value.value.joinToString(",")
+    }
 
     @Serializable
     @SerialName(TYPE_DOUBLE)
     data class Double(
-        val default: kotlin.Double? = null,
+        override val default: kotlin.Double? = null,
         val validation: DoubleAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Double>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Double, kotlin.Double>() {
+        @Transient
+        override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.Double(it) }
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.Double)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.Double) {
+            validation?.require(value.value)
+        }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.Double): kotlin.String =
+            value.value.toString()
+    }
 
     @Serializable
     @SerialName(TYPE_DOUBLE_LIST)
     data class DoubleList(
-        @Optional val default: List<kotlin.Double> = listOf(),
+        @Optional override val default: List<kotlin.Double> = listOf(),
         val validation: DoubleAgentOptionValidation? = null,
 
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.DoubleList>
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.DoubleList, List<kotlin.Double>>() {
+        @Transient
+        override val defaultAsValue = PolymorphicAgentOptionValue.DoubleList(default)
+
+        override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
+            (value as? PolymorphicAgentOptionValue.DoubleList)?.let { AgentOptionWithValue(this, it) }
+
+        override fun validateValue(value: PolymorphicAgentOptionValue.DoubleList) =
+            value.value.forEach { validation?.require(it) }
+
+        override fun displayValue(value: PolymorphicAgentOptionValue.DoubleList): kotlin.String =
+            value.value.joinToString(",")
+    }
 }
 
-fun PolymorphicAgentOption<*>.defaultAsValue(): PolymorphicAgentOptionValue<*>? =
-    when (this) {
-        is PolymorphicAgentOption.Blob -> this.default?.let { PolymorphicAgentOptionValue.Blob(it) }
-        is PolymorphicAgentOption.BlobList -> PolymorphicAgentOptionValue.BlobList(this.default)
-        is PolymorphicAgentOption.Boolean -> this.default?.let { PolymorphicAgentOptionValue.Boolean(it) }
-        is PolymorphicAgentOption.Byte -> this.default?.let { PolymorphicAgentOptionValue.Byte(it) }
-        is PolymorphicAgentOption.ByteList -> PolymorphicAgentOptionValue.ByteList(this.default)
-        is PolymorphicAgentOption.Double -> this.default?.let { PolymorphicAgentOptionValue.Double(it) }
-        is PolymorphicAgentOption.DoubleList -> PolymorphicAgentOptionValue.DoubleList(this.default)
-        is PolymorphicAgentOption.Float -> this.default?.let { PolymorphicAgentOptionValue.Float(it) }
-        is PolymorphicAgentOption.FloatList -> PolymorphicAgentOptionValue.FloatList(this.default)
-        is PolymorphicAgentOption.Int -> this.default?.let { PolymorphicAgentOptionValue.Int(it) }
-        is PolymorphicAgentOption.IntList -> PolymorphicAgentOptionValue.IntList(this.default)
-        is PolymorphicAgentOption.Long -> this.default?.let { PolymorphicAgentOptionValue.Long(it) }
-        is PolymorphicAgentOption.LongList -> PolymorphicAgentOptionValue.LongList(this.default)
-        is PolymorphicAgentOption.Short -> this.default?.let { PolymorphicAgentOptionValue.Short(it) }
-        is PolymorphicAgentOption.ShortList -> PolymorphicAgentOptionValue.ShortList(this.default)
-        is PolymorphicAgentOption.String -> this.default?.let { PolymorphicAgentOptionValue.String(it) }
-        is PolymorphicAgentOption.StringList -> PolymorphicAgentOptionValue.StringList(this.default)
-        is PolymorphicAgentOption.UByte -> this.default?.let { PolymorphicAgentOptionValue.UByte(it) }
-        is PolymorphicAgentOption.UByteList -> PolymorphicAgentOptionValue.UByteList(this.default)
-        is PolymorphicAgentOption.UInt -> this.default?.let { PolymorphicAgentOptionValue.UInt(it) }
-        is PolymorphicAgentOption.UIntList -> PolymorphicAgentOptionValue.UIntList(this.default)
-        is PolymorphicAgentOption.ULong -> this.default?.let { PolymorphicAgentOptionValue.ULong(it) }
-        is PolymorphicAgentOption.ULongList -> PolymorphicAgentOptionValue.ULongList(this.default)
-        is PolymorphicAgentOption.UShort -> this.default?.let { PolymorphicAgentOptionValue.UShort(it) }
-        is PolymorphicAgentOption.UShortList -> PolymorphicAgentOptionValue.UShortList(this.default)
-    }
-
-fun PolymorphicAgentOption<*>.withValue(value: PolymorphicAgentOptionValue<*>) =
-    when (this) {
-        is PolymorphicAgentOption.Blob -> AgentOptionWithValue.Blob(this, (value as PolymorphicAgentOptionValue.Blob))
-        is PolymorphicAgentOption.BlobList -> AgentOptionWithValue.BlobList(
-            this,
-            (value as PolymorphicAgentOptionValue.BlobList)
-        )
-
-        is PolymorphicAgentOption.Boolean -> AgentOptionWithValue.Boolean(
-            this,
-            (value as PolymorphicAgentOptionValue.Boolean)
-        )
-
-        is PolymorphicAgentOption.Byte -> AgentOptionWithValue.Byte(this, (value as PolymorphicAgentOptionValue.Byte))
-        is PolymorphicAgentOption.ByteList -> AgentOptionWithValue.ByteList(
-            this,
-            (value as PolymorphicAgentOptionValue.ByteList)
-        )
-
-        is PolymorphicAgentOption.Double -> AgentOptionWithValue.Double(
-            this,
-            (value as PolymorphicAgentOptionValue.Double)
-        )
-
-        is PolymorphicAgentOption.DoubleList -> AgentOptionWithValue.DoubleList(
-            this,
-            (value as PolymorphicAgentOptionValue.DoubleList)
-        )
-
-        is PolymorphicAgentOption.Float -> AgentOptionWithValue.Float(
-            this,
-            (value as PolymorphicAgentOptionValue.Float)
-        )
-
-        is PolymorphicAgentOption.FloatList -> AgentOptionWithValue.FloatList(
-            this,
-            (value as PolymorphicAgentOptionValue.FloatList)
-        )
-
-        is PolymorphicAgentOption.Int -> AgentOptionWithValue.Int(this, (value as PolymorphicAgentOptionValue.Int))
-        is PolymorphicAgentOption.IntList -> AgentOptionWithValue.IntList(
-            this,
-            (value as PolymorphicAgentOptionValue.IntList)
-        )
-
-        is PolymorphicAgentOption.Long -> AgentOptionWithValue.Long(this, (value as PolymorphicAgentOptionValue.Long))
-        is PolymorphicAgentOption.LongList -> AgentOptionWithValue.LongList(
-            this,
-            (value as PolymorphicAgentOptionValue.LongList)
-        )
-
-        is PolymorphicAgentOption.Short -> AgentOptionWithValue.Short(
-            this,
-            (value as PolymorphicAgentOptionValue.Short)
-        )
-
-        is PolymorphicAgentOption.ShortList -> AgentOptionWithValue.ShortList(
-            this,
-            (value as PolymorphicAgentOptionValue.ShortList)
-        )
-
-        is PolymorphicAgentOption.String -> AgentOptionWithValue.String(
-            this,
-            (value as PolymorphicAgentOptionValue.String)
-        )
-
-        is PolymorphicAgentOption.StringList -> AgentOptionWithValue.StringList(
-            this,
-            (value as PolymorphicAgentOptionValue.StringList)
-        )
-
-        is PolymorphicAgentOption.UByte -> AgentOptionWithValue.UByte(
-            this,
-            (value as PolymorphicAgentOptionValue.UByte)
-        )
-
-        is PolymorphicAgentOption.UByteList -> AgentOptionWithValue.UByteList(
-            this,
-            (value as PolymorphicAgentOptionValue.UByteList)
-        )
-
-        is PolymorphicAgentOption.UInt -> AgentOptionWithValue.UInt(this, (value as PolymorphicAgentOptionValue.UInt))
-        is PolymorphicAgentOption.UIntList -> AgentOptionWithValue.UIntList(
-            this,
-            (value as PolymorphicAgentOptionValue.UIntList)
-        )
-
-        is PolymorphicAgentOption.ULong -> AgentOptionWithValue.ULong(
-            this,
-            (value as PolymorphicAgentOptionValue.ULong)
-        )
-
-        is PolymorphicAgentOption.ULongList -> AgentOptionWithValue.ULongList(
-            this,
-            (value as PolymorphicAgentOptionValue.ULongList)
-        )
-
-        is PolymorphicAgentOption.UShort -> AgentOptionWithValue.UShort(
-            this,
-            (value as PolymorphicAgentOptionValue.UShort)
-        )
-
-        is PolymorphicAgentOption.UShortList -> AgentOptionWithValue.UShortList(
-            this,
-            (value as PolymorphicAgentOptionValue.UShortList)
-        )
-    }
-
-fun PolymorphicAgentOption<*>.compareTypeWithValue(value: PolymorphicAgentOptionValue<*>) =
-    when (this) {
-        is PolymorphicAgentOption.Blob -> value is PolymorphicAgentOptionValue.Blob
-        is PolymorphicAgentOption.BlobList -> value is PolymorphicAgentOptionValue.BlobList
-        is PolymorphicAgentOption.Boolean -> value is PolymorphicAgentOptionValue.Boolean
-        is PolymorphicAgentOption.Byte -> value is PolymorphicAgentOptionValue.Byte
-        is PolymorphicAgentOption.ByteList -> value is PolymorphicAgentOptionValue.ByteList
-        is PolymorphicAgentOption.Double -> value is PolymorphicAgentOptionValue.Double
-        is PolymorphicAgentOption.DoubleList -> value is PolymorphicAgentOptionValue.DoubleList
-        is PolymorphicAgentOption.Float -> value is PolymorphicAgentOptionValue.Float
-        is PolymorphicAgentOption.FloatList -> value is PolymorphicAgentOptionValue.FloatList
-        is PolymorphicAgentOption.Int -> value is PolymorphicAgentOptionValue.Int
-        is PolymorphicAgentOption.IntList -> value is PolymorphicAgentOptionValue.IntList
-        is PolymorphicAgentOption.Long -> value is PolymorphicAgentOptionValue.Long
-        is PolymorphicAgentOption.LongList -> value is PolymorphicAgentOptionValue.LongList
-        is PolymorphicAgentOption.Short -> value is PolymorphicAgentOptionValue.Short
-        is PolymorphicAgentOption.ShortList -> value is PolymorphicAgentOptionValue.ShortList
-        is PolymorphicAgentOption.String -> value is PolymorphicAgentOptionValue.String
-        is PolymorphicAgentOption.StringList -> value is PolymorphicAgentOptionValue.StringList
-        is PolymorphicAgentOption.UByte -> value is PolymorphicAgentOptionValue.UByte
-        is PolymorphicAgentOption.UByteList -> value is PolymorphicAgentOptionValue.UByteList
-        is PolymorphicAgentOption.UInt -> value is PolymorphicAgentOptionValue.UInt
-        is PolymorphicAgentOption.UIntList -> value is PolymorphicAgentOptionValue.UIntList
-        is PolymorphicAgentOption.ULong -> value is PolymorphicAgentOptionValue.ULong
-        is PolymorphicAgentOption.ULongList -> value is PolymorphicAgentOptionValue.ULongList
-        is PolymorphicAgentOption.UShort -> value is PolymorphicAgentOptionValue.UShort
-        is PolymorphicAgentOption.UShortList -> value is PolymorphicAgentOptionValue.UShortList
-    }
-
-fun PolymorphicAgentOption<*>.buildFullOption(
-    name: String,
-    description: String,
-    required: Boolean
-): Pair<String, PolymorphicAgentOption<*>> {
-    val updatedOption = when (this) {
-        is PolymorphicAgentOption.String -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.StringList -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.Blob -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.BlobList -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.Boolean -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.Byte -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.ByteList -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.Short -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.ShortList -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.Int -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.IntList -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.Long -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.LongList -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.UByte -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.UByteList -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.UShort -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.UShortList -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.UInt -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.UIntList -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.ULong -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.ULongList -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.Float -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.FloatList -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.Double -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-
-        is PolymorphicAgentOption.DoubleList -> this.copy(
-            display = AgentOptionDisplay(description = description),
-            required = required
-        )
-    }
-    return name to updatedOption
-}
-
-fun PolymorphicAgentOption<*>.isIntegral() =
-    when (this) {
-        is PolymorphicAgentOption.Byte -> true
-        is PolymorphicAgentOption.Int -> true
-        is PolymorphicAgentOption.Long -> true
-        is PolymorphicAgentOption.Short -> true
-        is PolymorphicAgentOption.UByte -> true
-        is PolymorphicAgentOption.UInt -> true
-        is PolymorphicAgentOption.ULong -> true
-        is PolymorphicAgentOption.UShort -> true
-        else -> false
-    }
-
-fun PolymorphicAgentOption<*>.isFloat() =
-    when (this) {
-        is PolymorphicAgentOption.Float -> true
-        is PolymorphicAgentOption.Double -> true
-        else -> false
-    }
+fun AgentOption.isIntegral() =
+    this is AgentIntegralOption
 
 @OptIn(InternalSerializationApi::class)
-private val agentOptionSerializerMap: Map<String, KSerializer<out PolymorphicAgentOption<*>>> =
+private val agentOptionSerializerMap: Map<String, KSerializer<out PolymorphicAgentOption<*, *>>> =
     PolymorphicAgentOption::class.sealedSubclasses.associate { kClass ->
         val serializer = kClass.serializer()
         serializer.descriptor.serialName to serializer
@@ -694,7 +735,6 @@ private val agentOptionSerializerMap: Map<String, KSerializer<out PolymorphicAge
  *
  * Note this is also required for [PolymorphicAgentOptionValue] because it is a sealed generic class.
  */
-@OptIn(InternalSerializationApi::class)
 class AgentOptionSerializer : KSerializer<AgentOption> {
     private val discriminatorName = "type"
 
@@ -730,5 +770,48 @@ class AgentOptionSerializer : KSerializer<AgentOption> {
         val serializer = agentOptionSerializerMap[type] ?: throw SerializationException("Unsupported type: $type")
 
         return decoder.decodeFromElement(serializer, element)
+    }
+}
+
+/**
+ * Currently (Kotlinx 1.10.0, Kotlin 2.3.20) there is a bug where @Serializable(with = AgentOptionSerializer::class)
+ * is not picked up, causing compilation errors.  This is likely a compiler bug.  This type is only serialized in maps,
+ * so we can avoid the bug by using a custom map serializer in addition to [AgentOptionSerializer]
+ */
+class AgentOptionSerializerMap : KSerializer<Map<String, AgentOption>> {
+    private val keySerializer = String.serializer()
+    private val valueSerializer = AgentOptionSerializer()
+
+    override val descriptor: SerialDescriptor = mapSerialDescriptor(
+        keySerializer.descriptor,
+        valueSerializer.descriptor
+    )
+
+    override fun serialize(encoder: Encoder, value: Map<String, AgentOption>) {
+        val mapEncoder = encoder.beginStructure(descriptor)
+        var index = 0
+        value.forEach { (key, value) ->
+            mapEncoder.encodeSerializableElement(descriptor, index++, keySerializer, key)
+            mapEncoder.encodeSerializableElement(descriptor, index++, valueSerializer, value)
+        }
+        mapEncoder.endStructure(descriptor)
+    }
+
+    override fun deserialize(decoder: Decoder): Map<String, AgentOption> {
+        val mapDecoder = decoder.beginStructure(descriptor)
+        val result = mutableMapOf<String, AgentOption>()
+
+        while (true) {
+            val index = mapDecoder.decodeElementIndex(descriptor)
+            if (index == CompositeDecoder.DECODE_DONE) break
+
+            val key = mapDecoder.decodeSerializableElement(descriptor, index, keySerializer)
+            val valueIndex = mapDecoder.decodeElementIndex(descriptor)
+            val value = mapDecoder.decodeSerializableElement(descriptor, valueIndex, valueSerializer)
+            result[key] = value
+        }
+
+        mapDecoder.endStructure(descriptor)
+        return result
     }
 }

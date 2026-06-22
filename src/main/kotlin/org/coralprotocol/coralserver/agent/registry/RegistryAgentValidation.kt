@@ -11,7 +11,6 @@ import me.saket.bytesize.kibibytes
 import me.saket.bytesize.mebibytes
 import org.bitcoinj.core.AddressFormatException
 import org.bitcoinj.core.Base58
-import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOption
 import org.coralprotocol.coralserver.agent.registry.option.isIntegral
 import org.coralprotocol.coralserver.agent.runtime.PrototypeRuntime

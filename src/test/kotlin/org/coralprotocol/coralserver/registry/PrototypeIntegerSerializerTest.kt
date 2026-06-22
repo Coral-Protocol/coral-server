@@ -7,16 +7,14 @@ import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.serialization.InternalSerializationApi
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.serializer
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.registry.MAXIMUM_SUPPORTED_AGENT_VERSION
 import org.coralprotocol.coralserver.agent.registry.RegistryException
 import org.coralprotocol.coralserver.agent.registry.UnresolvedRegistryAgent
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
-import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOptionValue
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOption
+import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOptionValue
 import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeInteger
 
 class PrototypeIntegerSerializerTest : CoralTest({
@@ -71,105 +69,87 @@ class PrototypeIntegerSerializerTest : CoralTest({
 
         when (agentOptionValue) {
             is PolymorphicAgentOptionValue.Byte -> {
-                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.Byte>()
+                val option =
+                    agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.Byte>()
 
                 agent.runtimes.prototypeRuntime.shouldNotBeNull().iterationCount.resolve(
-                    mapOf(
-                        "ITERATIONS" to AgentOptionWithValue.Byte(
-                            option,
-                            agentOptionValue
-                        )
-                    )
+                    mapOf("ITERATIONS" to option.withValue(agentOptionValue))
                 ).toByte().shouldBeEqual(agentOptionValue.value)
             }
 
             is PolymorphicAgentOptionValue.Int -> {
-                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.Int>()
+                val option =
+                    agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.Int>()
 
                 agent.runtimes.prototypeRuntime.shouldNotBeNull().iterationCount.resolve(
                     mapOf(
-                        "ITERATIONS" to AgentOptionWithValue.Int(
-                            option,
-                            agentOptionValue
-                        )
+                        "ITERATIONS" to option.withValue(agentOptionValue)
                     )
                 ).toInt().shouldBeEqual(agentOptionValue.value)
             }
 
             is PolymorphicAgentOptionValue.Long -> {
-                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.Long>()
+                val option =
+                    agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.Long>()
 
                 agent.runtimes.prototypeRuntime.shouldNotBeNull().iterationCount.resolve(
                     mapOf(
-                        "ITERATIONS" to AgentOptionWithValue.Long(
-                            option,
-                            agentOptionValue
-                        )
+                        "ITERATIONS" to option.withValue(agentOptionValue)
                     )
                 ).shouldBeEqual(agentOptionValue.value)
             }
 
             is PolymorphicAgentOptionValue.Short -> {
-                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.Short>()
+                val option =
+                    agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.Short>()
 
                 agent.runtimes.prototypeRuntime.shouldNotBeNull().iterationCount.resolve(
                     mapOf(
-                        "ITERATIONS" to AgentOptionWithValue.Short(
-                            option,
-                            agentOptionValue
-                        )
+                        "ITERATIONS" to option.withValue(agentOptionValue)
                     )
                 ).toShort().shouldBeEqual(agentOptionValue.value)
             }
 
             is PolymorphicAgentOptionValue.UByte -> {
-                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.UByte>()
+                val option =
+                    agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.UByte>()
 
                 agent.runtimes.prototypeRuntime.shouldNotBeNull().iterationCount.resolve(
                     mapOf(
-                        "ITERATIONS" to AgentOptionWithValue.UByte(
-                            option,
-                            agentOptionValue
-                        )
+                        "ITERATIONS" to option.withValue(agentOptionValue)
                     )
                 ).toUByte().shouldBeEqual(agentOptionValue.value)
             }
 
             is PolymorphicAgentOptionValue.UInt -> {
-                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.UInt>()
+                val option =
+                    agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.UInt>()
 
                 agent.runtimes.prototypeRuntime.shouldNotBeNull().iterationCount.resolve(
                     mapOf(
-                        "ITERATIONS" to AgentOptionWithValue.UInt(
-                            option,
-                            agentOptionValue
-                        )
+                        "ITERATIONS" to option.withValue(agentOptionValue)
                     )
                 ).toUInt().shouldBeEqual(agentOptionValue.value)
             }
 
             is PolymorphicAgentOptionValue.ULong -> {
-                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.ULong>()
+                val option =
+                    agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.ULong>()
 
                 agent.runtimes.prototypeRuntime.shouldNotBeNull().iterationCount.resolve(
                     mapOf(
-                        "ITERATIONS" to AgentOptionWithValue.ULong(
-                            option,
-                            agentOptionValue
-                        )
+                        "ITERATIONS" to option.withValue(agentOptionValue)
                     )
                 ).toULong().shouldBeEqual(agentOptionValue.value.toULong())
             }
 
             is PolymorphicAgentOptionValue.UShort -> {
-                val option = agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.UShort>()
+                val option =
+                    agent.options["ITERATIONS"].shouldNotBeNull().shouldBeInstanceOf<PolymorphicAgentOption.UShort>()
 
                 agent.runtimes.prototypeRuntime.shouldNotBeNull().iterationCount.resolve(
                     mapOf(
-                        "ITERATIONS" to AgentOptionWithValue.UShort(
-                            option,
-                            agentOptionValue
-                        )
+                        "ITERATIONS" to option.withValue(agentOptionValue)
                     )
                 ).toUShort().shouldBeEqual(agentOptionValue.value)
             }

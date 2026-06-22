@@ -5,7 +5,7 @@ import org.coralprotocol.coralserver.agent.registry.AgentExportSettings
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.RegistryAgent
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
+import org.coralprotocol.coralserver.agent.registry.option.AnyAgentOptionWithValue
 import org.coralprotocol.coralserver.llmproxy.LlmProxiedModel
 import org.coralprotocol.coralserver.routes.api.v1.LocalSessions
 import org.coralprotocol.coralserver.session.LocalSession
@@ -58,7 +58,7 @@ data class GraphAgent(
     /**
      * @see GraphAgentRequest.options
      */
-    val options: Map<String, AgentOptionWithValue>,
+    val options: Map<String, AnyAgentOptionWithValue>,
 
     /**
      * @see GraphAgentRequest.systemPrompt

@@ -4,7 +4,7 @@ import me.saket.bytesize.ByteSize
 import org.coralprotocol.coralserver.agent.registry.option.*
 
 @CoralDsl
-abstract class AgentOptionBuilder<T : PolymorphicAgentOption<*>> {
+abstract class AgentOptionBuilder<T : AgentOption> {
     var required: Boolean = false
     var transport: AgentOptionTransport = AgentOptionTransport.ENVIRONMENT_VARIABLE
     var label: String? = null
@@ -108,7 +108,7 @@ class BooleanAgentOptionBuilder : AgentOptionBuilder<PolymorphicAgentOption.Bool
 }
 
 @CoralDsl
-abstract class NumericAgentOptionBuilder<Value : Comparable<Value>, Option : PolymorphicAgentOption<*>, Validation : NumericAgentOptionValidation<Value>> :
+abstract class NumericAgentOptionBuilder<Value : Comparable<Value>, Option : AgentOption, Validation : NumericAgentOptionValidation<Value>> :
     AgentOptionBuilder<Option>() {
     var default: Value? = null
     var variants: List<Value>? = null
@@ -133,7 +133,7 @@ abstract class NumericAgentOptionBuilder<Value : Comparable<Value>, Option : Pol
 }
 
 @CoralDsl
-abstract class NumericListAgentOptionBuilder<ValueType : Comparable<ValueType>, OptionType : PolymorphicAgentOption<*>, Validation : NumericAgentOptionValidation<ValueType>> :
+abstract class NumericListAgentOptionBuilder<ValueType : Comparable<ValueType>, OptionType : AgentOption, Validation : NumericAgentOptionValidation<ValueType>> :
     AgentOptionBuilder<OptionType>() {
     var default: List<ValueType> = listOf()
     var variants: List<ValueType>? = null

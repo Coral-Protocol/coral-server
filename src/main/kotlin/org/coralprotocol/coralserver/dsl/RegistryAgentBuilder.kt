@@ -6,7 +6,6 @@ import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOption
 import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOptionValue
-import org.coralprotocol.coralserver.agent.registry.option.value
 import org.coralprotocol.coralserver.agent.runtime.*
 import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeString
 import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeUrlPart
@@ -74,18 +73,18 @@ class UrlPartListBuilder {
     fun build() = parts.toList()
 }
 
-data class BuiltAgentOption<T>(val name: String, val option: T) where T : PolymorphicAgentOption<*>
+data class BuiltAgentOption<T>(val name: String, val option: T) where T : AgentOption
 
-inline fun <OptionType : PolymorphicAgentOption<ValueType>, reified ValueType : PolymorphicAgentOptionValue<BackingType>, BackingType> BuiltAgentOption<OptionType>.tryGet(
+inline fun <OptionType : PolymorphicAgentOption<ValueType, BackingType>, reified ValueType : PolymorphicAgentOptionValue<BackingType>, BackingType> BuiltAgentOption<OptionType>.tryGet(
     agent: SessionAgent
 ): BackingType? {
     val specifiedOptionValue = agent.graphAgent.options[name] ?: return null
-    val specifiedValue = specifiedOptionValue.value() as? ValueType ?: return null
+    val specifiedValue = specifiedOptionValue.value as? ValueType ?: return null
 
     return specifiedValue.value
 }
 
-inline fun <OptionType : PolymorphicAgentOption<ValueType>, reified ValueType : PolymorphicAgentOptionValue<BackingType>, BackingType> BuiltAgentOption<OptionType>.get(
+inline fun <OptionType : PolymorphicAgentOption<ValueType, BackingType>, reified ValueType : PolymorphicAgentOptionValue<BackingType>, BackingType> BuiltAgentOption<OptionType>.get(
     agent: SessionAgent
 ): BackingType =
     tryGet(agent) ?: throw IllegalArgumentException("Option \"$name\" was not set")
@@ -126,7 +125,7 @@ class RegistryAgentBuilder(
         capabilities.add(capability)
     }
 
-    fun <T> option(name: String, value: T): BuiltAgentOption<T> where T : PolymorphicAgentOption<*> {
+    fun <T> option(name: String, value: T): BuiltAgentOption<T> where T : AgentOption {
         options[name] = value
         return BuiltAgentOption(name, value)
     }

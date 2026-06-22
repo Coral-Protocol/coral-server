@@ -9,9 +9,9 @@ import io.ktor.client.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionSerializerMap
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
 import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOption
-import org.coralprotocol.coralserver.agent.registry.option.defaultAsValue
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.modules.LOGGER_CONFIG
@@ -48,6 +48,7 @@ data class UnresolvedRegistryAgent(
 
     @Description("The options that this agent supports, for example the API keys required for the agent to function")
     @Optional
+    @Serializable(with = AgentOptionSerializerMap::class)
     val options: Map<String, AgentOption> = mapOf(),
 
     @Description("LLM proxy configuration declaring which proxy endpoints this agent needs")
@@ -130,7 +131,7 @@ data class UnresolvedRegistryAgent(
         options.forEach { (name, option) ->
             val locator = "Option '${name} in agent ${context.path}"
 
-            if (option.required && option.defaultAsValue() != null)
+            if (option.required && option.default != null)
                 logger.warn { "$locator 'required = true' is not needed as the default value is set." }
 
             if ((option is PolymorphicAgentOption.String && option.base64 || option is PolymorphicAgentOption.StringList && option.base64) && option.transport == AgentOptionTransport.FILE_SYSTEM)

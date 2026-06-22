@@ -1,10 +1,9 @@
 package org.coralprotocol.coralserver.agent.registry
 
-import aws.smithy.kotlin.runtime.util.type
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
-import org.coralprotocol.coralserver.agent.registry.option.defaultAsValue
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionSerializerMap
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import java.nio.file.Path
@@ -24,6 +23,8 @@ data class RegistryAgent(
     private val info: RegistryAgentInfo,
     val edition: Int = MAXIMUM_SUPPORTED_AGENT_VERSION,
     val runtimes: LocalAgentRuntimes,
+
+    @Serializable(with = AgentOptionSerializerMap::class)
     val options: Map<String, AgentOption> = mapOf(),
     val llm: AgentLlmConfig? = null,
     val marketplace: RegistryAgentMarketplaceSettings? = null,
@@ -81,7 +82,7 @@ data class RegistryAgent(
 
     @Transient
     val defaultOptions = options
-        .mapNotNull { (name, option) -> option.defaultAsValue()?.let { name to it } }
+        .mapNotNull { (name, option) -> option.withDefaultValue()?.let { name to it } }
         .toMap()
 
     @Transient
@@ -93,6 +94,8 @@ data class RegistryAgent(
 data class PublicRegistryAgent(
     val id: RegistryAgentIdentifier,
     val runtimes: List<RuntimeId>,
+
+    @Serializable(with = AgentOptionSerializerMap::class)
     val options: Map<String, AgentOption>,
     val exportSettings: PublicAgentExportSettingsMap
 )
