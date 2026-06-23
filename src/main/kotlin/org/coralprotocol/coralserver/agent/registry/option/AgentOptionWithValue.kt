@@ -20,8 +20,8 @@ class AgentOptionWithValue<OptionType, ValueType, BackingType>(
     fun asEnvVarValue() = when (option) {
         is PolymorphicAgentOption.Blob -> value.asEnvVarValue(true)
         is PolymorphicAgentOption.BlobList -> value.asEnvVarValue(true)
-        is PolymorphicAgentOption.String -> value.asEnvVarValue(true)
-        is PolymorphicAgentOption.StringList -> value.asEnvVarValue(true)
+        is PolymorphicAgentOption.String -> value.asEnvVarValue(option.base64)
+        is PolymorphicAgentOption.StringList -> value.asEnvVarValue(option.base64)
         else -> value.asEnvVarValue()
     }
 
