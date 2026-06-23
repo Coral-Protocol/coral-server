@@ -4,6 +4,7 @@ import dev.eav.tomlkt.Toml
 import dev.eav.tomlkt.decodeFromString
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -15,8 +16,8 @@ import me.saket.bytesize.mebibytes
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
 import org.coralprotocol.coralserver.agent.registry.option.*
+import org.coralprotocol.coralserver.dsl.*
 import org.koin.test.inject
-import kotlin.reflect.KClass
 
 class AgentOptionsTest : CoralTest({
     test("testString") {
@@ -25,8 +26,8 @@ class AgentOptionsTest : CoralTest({
             AgentOptionSerializer(),
             """
             type = "string"
-            secret = true
             default = "test default value"
+            secret = true
             required = true
             base64 = true
         
@@ -43,118 +44,73 @@ class AgentOptionsTest : CoralTest({
         """.trimIndent()
         )
 
-
-        option.required.shouldBeTrue()
         option.shouldBeInstanceOf<PolymorphicAgentOption.String>()
         option.default.shouldNotBeNull().shouldBeEqual("test default value")
-        option.base64.shouldBeTrue()
+
         option.secret.shouldBeTrue()
+        option.required.shouldBeTrue()
+        option.base64.shouldBeTrue()
+
+
+        val display = option.display.shouldNotBeNull()
+        display.label.shouldNotBeNull().shouldBeEqual("Test Option")
+        display.description.shouldNotBeNull().shouldBeEqual("A test option")
+        display.group.shouldNotBeNull().shouldBeEqual("Test Group")
+        display.multiline.shouldBeFalse()
+
+        val validation = option.validation.shouldNotBeNull()
+        validation.variants.shouldNotBeNull().shouldBeEqual(listOf("test1", "test2"))
+        validation.minLength.shouldNotBeNull().shouldBeEqual(1)
+        validation.maxLength.shouldNotBeNull().shouldBeEqual(100)
     }
 
-    test("testNumeric") {
+    fun <OptionType, ValueType, BackingType> testNumeric(
+        builder: (
+            value: BackingType,
+            block: NumericAgentOptionBuilder<BackingType, OptionType, *>.() -> Unit
+        ) -> AgentOptionWithValue<OptionType, ValueType, BackingType>,
+        min: BackingType,
+        max: BackingType
+    ) where OptionType : PolymorphicAgentOption<ValueType, BackingType>,
+            ValueType : PolymorphicAgentOptionValue<BackingType>,
+            BackingType : Comparable<BackingType> {
         val toml by inject<Toml>()
+        val json by inject<Json>()
 
-        data class TestCase(
-            val typeName: String,
-            val `class`: KClass<*>,
-            val defaultValue: AgentOptionValue,
-        )
+        fun recode(option: AgentOptionWithValue<OptionType, ValueType, BackingType>) {
+            val optionJson = json.encodeToString(AgentOptionSerializer(), option.option)
+            json.decodeFromString(AgentOptionSerializer(), optionJson).shouldBeEqual(option.option)
 
-        val tests = listOf(
-            TestCase("i8", PolymorphicAgentOption.Byte::class, PolymorphicAgentOptionValue.Byte(Byte.MIN_VALUE)),
-            TestCase("i16", PolymorphicAgentOption.Short::class, PolymorphicAgentOptionValue.Short(Short.MIN_VALUE)),
-            TestCase("i32", PolymorphicAgentOption.Int::class, PolymorphicAgentOptionValue.Int(Int.MIN_VALUE)),
-            TestCase(
-                "i64",
-                PolymorphicAgentOption.Long::class,
-                PolymorphicAgentOptionValue.Long(Long.MIN_VALUE)
-            ),
-            TestCase("u8", PolymorphicAgentOption.UByte::class, PolymorphicAgentOptionValue.UByte(UByte.MAX_VALUE)),
-            TestCase("u16", PolymorphicAgentOption.UShort::class, PolymorphicAgentOptionValue.UShort(UShort.MAX_VALUE)),
-            TestCase("u32", PolymorphicAgentOption.UInt::class, PolymorphicAgentOptionValue.UInt(UInt.MAX_VALUE)),
-            TestCase(
-                "u64",
-                PolymorphicAgentOption.ULong::class,
-                PolymorphicAgentOptionValue.ULong(ULong.MAX_VALUE.toString())
-            ),
-            TestCase("f32", PolymorphicAgentOption.Float::class, PolymorphicAgentOptionValue.Float(1.0f)),
-            TestCase("f64", PolymorphicAgentOption.Double::class, PolymorphicAgentOptionValue.Double(1.0)),
+            val optionToml = toml.encodeToString(AgentOptionSerializer(), option.option)
+            toml.decodeFromString(AgentOptionSerializer(), optionToml).shouldBeEqual(option.option)
 
-            TestCase(
-                "list[i8]", PolymorphicAgentOption.ByteList::class, PolymorphicAgentOptionValue.ByteList(
-                    listOf(Byte.MIN_VALUE, Byte.MAX_VALUE)
-                )
-            ),
-            TestCase(
-                "list[i16]", PolymorphicAgentOption.ShortList::class, PolymorphicAgentOptionValue.ShortList(
-                    listOf(Short.MIN_VALUE, Short.MAX_VALUE)
-                )
-            ),
-            TestCase(
-                "list[i32]", PolymorphicAgentOption.IntList::class, PolymorphicAgentOptionValue.IntList(
-                    listOf(Int.MIN_VALUE, Int.MAX_VALUE)
-                )
-            ),
-            TestCase(
-                "list[i64]", PolymorphicAgentOption.LongList::class, PolymorphicAgentOptionValue.LongList(
-                    listOf(
-                        Long.MIN_VALUE,
-                        Long.MAX_VALUE
-                    )
-                )
-            ),
-            TestCase(
-                "list[u8]", PolymorphicAgentOption.UByteList::class, PolymorphicAgentOptionValue.UByteList(
-                    listOf(UByte.MIN_VALUE, UByte.MAX_VALUE)
-                )
-            ),
-            TestCase(
-                "list[u16]", PolymorphicAgentOption.UShortList::class, PolymorphicAgentOptionValue.UShortList(
-                    listOf(UShort.MIN_VALUE, UShort.MAX_VALUE)
-                )
-            ),
-            TestCase(
-                "list[u32]", PolymorphicAgentOption.UIntList::class, PolymorphicAgentOptionValue.UIntList(
-                    listOf(UInt.MIN_VALUE, UInt.MAX_VALUE)
-                )
-            ),
-            TestCase(
-                "list[u64]", PolymorphicAgentOption.ULongList::class, PolymorphicAgentOptionValue.ULongList(
-                    listOf(ULong.MIN_VALUE.toString(), ULong.MAX_VALUE.toString())
-                )
-            ),
-            TestCase(
-                "list[f32]", PolymorphicAgentOption.FloatList::class, PolymorphicAgentOptionValue.FloatList(
-                    listOf(-1.0f, 1.0f)
-                )
-            ),
-            TestCase(
-                "list[f64]", PolymorphicAgentOption.DoubleList::class, PolymorphicAgentOptionValue.DoubleList(
-                    listOf(-1.0, 1.0)
-                )
-            )
-        )
+            val valueJson = json.encodeToString(AgentOptionValueSerializer(), option.value)
+            json.decodeFromString(AgentOptionValueSerializer(), valueJson).shouldBeEqual(option.value)
 
-        for (test in tests) {
-            val defaultStr = if (test.typeName.startsWith("list")) {
-                "[${test.defaultValue.asEnvVarValue()}]"
-            } else {
-                test.defaultValue.asEnvVarValue()
-            }
-
-            val option = toml.decodeFromString(
-                AgentOptionSerializer(),
-                """
-                type = "${test.typeName}"
-                default = $defaultStr
-                """
-            )
-
-            test.`class`.isInstance(option).shouldBeTrue()
-            option.compareTypeWithValue(test.defaultValue).shouldBeTrue()
-            option.defaultAsValue().shouldNotBeNull().shouldBeEqual(test.defaultValue)
+            val valueToml = toml.encodeToString(AgentOptionValueSerializer(), option.value)
+            toml.decodeFromString(AgentOptionValueSerializer(), valueToml).shouldBeEqual(option.value)
         }
+
+        recode(builder(min) {
+            default = min
+        })
+
+        recode(builder(max) {
+            default = max
+        })
     }
+
+    test("testI8") { testNumeric(::byteOptionWithValue, Byte.MIN_VALUE, Byte.MAX_VALUE) }
+    test("testI16") { testNumeric(::shortOptionWithValue, Short.MIN_VALUE, Short.MAX_VALUE) }
+    test("testI32") { testNumeric(::intOptionWithValue, Int.MIN_VALUE, Int.MAX_VALUE) }
+    test("testI64") { testNumeric(::longOptionWithValue, Long.MIN_VALUE, Long.MAX_VALUE) }
+    test("testU8") { testNumeric(::unsignedByteOptionWithValue, UByte.MIN_VALUE, UByte.MAX_VALUE) }
+    test("testU16") { testNumeric(::unsignedShortOptionWithValue, UShort.MIN_VALUE, UShort.MAX_VALUE) }
+    test("testU32") { testNumeric(::unsignedIntOptionWithValue, UInt.MIN_VALUE, UInt.MAX_VALUE) }
+    test("testF32") { testNumeric(::floatOptionWithValue, Float.MIN_VALUE, Float.MAX_VALUE) }
+
+    // toml currently unable to deserialize min value double
+    test("testF64") { testNumeric(::doubleOptionWithValue, -1.0, Double.MAX_VALUE) }
 
     test("testValidateNumber") {
         val toml by inject<Toml>()
@@ -193,20 +149,22 @@ class AgentOptionsTest : CoralTest({
             """
         )
 
+        number.shouldBeInstanceOf<PolymorphicAgentOption.IntList>()
+
         shouldNotThrowAny {
-            number.withValue(PolymorphicAgentOptionValue.IntList(listOf(10, 20, 30))).requireValue()
+            number.withValue(PolymorphicAgentOptionValue.IntList(listOf(10, 20, 30))).validateValue()
         }
         shouldThrow<AgentOptionValidationException> {
-            number.withValue(PolymorphicAgentOptionValue.IntList(listOf(1000, 0))).requireValue()
+            number.withValue(PolymorphicAgentOptionValue.IntList(listOf(1000, 0))).validateValue()
         }
         shouldThrow<AgentOptionValidationException> {
-            number.withValue(PolymorphicAgentOptionValue.IntList(listOf(40, 50, 60))).requireValue()
+            number.withValue(PolymorphicAgentOptionValue.IntList(listOf(40, 50, 60))).validateValue()
         }
     }
 
     test("testValidateString") {
         val toml by inject<Toml>()
-        val number = toml.decodeFromString(
+        val string = toml.decodeFromString(
             AgentOptionSerializer(),
             """
             type = "string"
@@ -220,23 +178,25 @@ class AgentOptionsTest : CoralTest({
             """
         )
 
+        string.shouldBeInstanceOf<PolymorphicAgentOption.String>()
+
         shouldNotThrowAny {
-            number.withValue(PolymorphicAgentOptionValue.String("test@test.com")).requireValue()
+            string.withValue(PolymorphicAgentOptionValue.String("test@test.com")).validateValue()
         }
         shouldThrow<AgentOptionValidationException> {
-            number.withValue(PolymorphicAgentOptionValue.String("not an email address")).requireValue()
+            string.withValue(PolymorphicAgentOptionValue.String("not an email address")).validateValue()
         }
         shouldThrow<AgentOptionValidationException> {
-            number.withValue(PolymorphicAgentOptionValue.String("a@a.se")).requireValue()
+            string.withValue(PolymorphicAgentOptionValue.String("a@a.se")).validateValue()
         }
         shouldThrow<AgentOptionValidationException> {
-            number.withValue(PolymorphicAgentOptionValue.String("bad@email.com")).requireValue()
+            string.withValue(PolymorphicAgentOptionValue.String("bad@email.com")).validateValue()
         }
     }
 
     test("testValidateStringList") {
         val toml by inject<Toml>()
-        val number = toml.decodeFromString(
+        val stringList = toml.decodeFromString(
             AgentOptionSerializer(),
             """
             type = "list[string]"
@@ -247,8 +207,10 @@ class AgentOptionsTest : CoralTest({
             """
         )
 
+        stringList.shouldBeInstanceOf<PolymorphicAgentOption.StringList>()
+
         shouldNotThrowAny {
-            number.withValue(
+            stringList.withValue(
                 PolymorphicAgentOptionValue.StringList(
                     listOf(
                         "test@test.com",
@@ -257,11 +219,11 @@ class AgentOptionsTest : CoralTest({
                     )
                 )
             )
-                .requireValue()
+                .validateValue()
         }
         shouldThrow<AgentOptionValidationException> {
-            number.withValue(PolymorphicAgentOptionValue.StringList(listOf("bad-email.com", "good@email.com")))
-                .requireValue()
+            stringList.withValue(PolymorphicAgentOptionValue.StringList(listOf("bad-email.com", "good@email.com")))
+                .validateValue()
         }
     }
 
@@ -285,21 +247,21 @@ class AgentOptionsTest : CoralTest({
                 PolymorphicAgentOptionValue.Blob.fromBytes(
                     ByteArray(1.mebibytes.inWholeBytes.toInt())
                 )
-            ).requireValue()
+            ).validateValue()
         }
         shouldThrow<AgentOptionValidationException> {
             blob.withValue(
                 PolymorphicAgentOptionValue.Blob.fromBytes(
                     ByteArray(1.mebibytes.inWholeBytes.toInt() + 1)
                 )
-            ).requireValue()
+            ).validateValue()
         }
         shouldThrow<AgentOptionValidationException> {
             blob.withValue(
                 PolymorphicAgentOptionValue.Blob.fromBytes(
                     ByteArray(0)
                 )
-            ).requireValue()
+            ).validateValue()
         }
     }
 
@@ -391,5 +353,24 @@ class AgentOptionsTest : CoralTest({
             val tomlEncoded = toml.encodeToString(wrapped)
             toml.decodeFromString<Wrapped>(tomlEncoded).shouldBeEqual(wrapped)
         }
+    }
+
+    test("testIntegralGenericNarrowing") {
+        // integers
+        PolymorphicAgentOption.Byte(42).isIntegral().shouldBeTrue()
+        PolymorphicAgentOption.Short(1000).isIntegral().shouldBeTrue()
+        PolymorphicAgentOption.Int(123456).isIntegral().shouldBeTrue()
+        PolymorphicAgentOption.Long(9876543210L).isIntegral().shouldBeTrue()
+        PolymorphicAgentOption.UByte(255u).isIntegral().shouldBeTrue()
+        PolymorphicAgentOption.UShort(65535u).isIntegral().shouldBeTrue()
+        PolymorphicAgentOption.UInt(4294967295u).isIntegral().shouldBeTrue()
+        PolymorphicAgentOption.ULong("18446744073709551615").isIntegral().shouldBeTrue()
+
+        // floats (not integers)
+        PolymorphicAgentOption.Float(3.14f).isIntegral().shouldBeFalse()
+        PolymorphicAgentOption.Double(2.718281828459045).isIntegral().shouldBeFalse()
+
+        // definitely not integers
+        PolymorphicAgentOption.String("hello world").isIntegral().shouldBeFalse()
     }
 })
