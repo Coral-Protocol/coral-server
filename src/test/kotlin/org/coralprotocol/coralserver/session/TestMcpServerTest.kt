@@ -16,9 +16,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.encodeToJsonElement
 import org.coralprotocol.coralserver.CoralTest
-import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOptionValue
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
-import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOption
+import org.coralprotocol.coralserver.dsl.stringOptionWithValue
 import org.coralprotocol.coralserver.utils.TestMcpServer
 import org.coralprotocol.coralserver.utils.TestToolInput
 import org.koin.core.component.inject
@@ -28,15 +26,13 @@ import kotlin.time.Duration.Companion.seconds
 class TestMcpServerTest : CoralTest({
 
     suspend fun TestScope.testTransport(
-        testServer: TestMcpServer,
-        transport: StreamableHttpClientTransport
+        testServer: TestMcpServer, transport: StreamableHttpClientTransport
     ) {
         val json by inject<Json>()
 
         val mcpClient = Client(
             clientInfo = Implementation(
-                name = "test",
-                version = "1.0.0"
+                name = "test", version = "1.0.0"
             )
         )
         mcpClient.connect(transport)
@@ -45,8 +41,7 @@ class TestMcpServerTest : CoralTest({
             mcpClient.callTool(
                 CallToolRequest(
                     CallToolRequestParams(
-                        testServer.toolName,
-                        json.encodeToJsonElement(TestToolInput("test")) as JsonObject
+                        testServer.toolName, json.encodeToJsonElement(TestToolInput("test")) as JsonObject
                     )
                 )
             )
@@ -71,14 +66,7 @@ class TestMcpServerTest : CoralTest({
             testServer,
             StreamableHttpClientTransport(
                 get(),
-                toolServer.url.resolve(
-                    mapOf(
-                        testServer.authTokenOptionName to AgentOptionWithValue.String(
-                            PolymorphicAgentOption.String(),
-                            PolymorphicAgentOptionValue.String(testServer.authToken)
-                        )
-                    )
-                )
+                toolServer.url.resolve(mapOf(testServer.authTokenOptionName to stringOptionWithValue(testServer.authToken)))
             )
         )
     }
@@ -87,20 +75,12 @@ class TestMcpServerTest : CoralTest({
         val testServer = TestMcpServer()
         val toolServer = testServer.asPrototypeToolServerParamAuth(get())
 
-        // replacement isn't performed, query param for auth token should be invalid
         shouldThrow<McpException> {
             testTransport(
                 testServer,
                 StreamableHttpClientTransport(
                     get(),
-                    toolServer.url.resolve(
-                        mapOf(
-                            testServer.authTokenOptionName to AgentOptionWithValue.String(
-                                PolymorphicAgentOption.String(),
-                                PolymorphicAgentOptionValue.String("bad token")
-                            )
-                        )
-                    )
+                    toolServer.url.resolve(mapOf(testServer.authTokenOptionName to stringOptionWithValue("bad token")))
                 )
             )
         }
