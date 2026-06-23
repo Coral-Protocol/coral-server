@@ -23,7 +23,7 @@ data class RootConfig(
     val cacheConfig: CacheConfig = CacheConfig(),
 
     @param:ConfigAlias("security")
-    val securityConfig: SecurityConfig = SecurityConfig(),
+    val securityConfig: SecurityConfig = SecurityConfig,
 
     @param:ConfigAlias("auth")
     val authConfig: AuthConfig = AuthConfig(),

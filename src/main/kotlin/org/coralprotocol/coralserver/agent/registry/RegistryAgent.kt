@@ -33,9 +33,6 @@ data class RegistryAgent(
 
     @Transient
     val path: Path? = null,
-
-    @Transient
-    private val unresolvedExportSettings: Map<RuntimeId, UnresolvedAgentExportSettings> = mapOf(),
 ) {
     @Transient
     val description = info.description
@@ -76,10 +73,6 @@ data class RegistryAgent(
     @Transient
     val claimTypeMap = claimTypes.associateBy { it.name }
 
-    val exportSettings: AgentExportSettingsMap = unresolvedExportSettings.mapValues { (runtime, settings) ->
-        settings.resolve(runtime, this)
-    }
-
     @Transient
     val defaultOptions = options
         .mapNotNull { (name, option) -> option.withDefaultValue()?.let { name to it } }
@@ -97,12 +90,10 @@ data class PublicRegistryAgent(
 
     @Serializable(with = AgentOptionSerializerMap::class)
     val options: Map<String, AgentOption>,
-    val exportSettings: PublicAgentExportSettingsMap
 )
 
 fun RegistryAgent.toPublic(): PublicRegistryAgent = PublicRegistryAgent(
     id = identifier,
     runtimes = runtimes.toRuntimeIds(),
-    options = options,
-    exportSettings = exportSettings.mapValues { (_, settings) -> settings.toPublic() }
+    options = options
 )

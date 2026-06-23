@@ -13,7 +13,6 @@ import org.coralprotocol.coralserver.agent.graph.server.GraphAgentServer
 import org.coralprotocol.coralserver.agent.graph.server.GraphAgentServerScoring
 import org.coralprotocol.coralserver.agent.graph.server.GraphAgentServerSource
 import org.coralprotocol.coralserver.agent.payment.AgentClaimAmount
-import org.coralprotocol.coralserver.agent.registry.PublicAgentExportSettings
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.logging.Logger
@@ -99,29 +98,9 @@ suspend fun RemoteRequest.toRemote(
         is GraphAgentServerSource.Indexer -> throw AgentRequestException.NoServer("Server indexers are not supported yet")
     }
 
-    var selectedServer: GraphAgentServer? = null
-    var exportSettings: PublicAgentExportSettings? = null
-
-    for (server in rankedServers) {
-        try {
-            exportSettings = server.getAgentExportSettings(agentId)[runtime]
-
-            if (exportSettings == null)
-                logger.warn { "server $server does not export $agentId on with runtime $runtime" }
-
-            // A server must provide the required runtime, and it most not have a max cost outside the exported agent's
-            // comfortable max cost range
-            if (exportSettings != null && exportSettings.pricing.withinRange(maxCost, jupiterService)) {
-                selectedServer = server
-                break
-            }
-        } catch (e: Exception) {
-            logger.error(e) { "Exception throw when trying to get export settings for agent $agentId on server $server" }
-        }
-    }
-
-    if (selectedServer == null)
-        throw AgentRequestException.NoServer("No servers available for this remote agent")
+    // TODO: real delegation stuff
+    val selectedServer = rankedServers.firstOrNull()
+        ?: throw AgentRequestException.NoServer("No servers available for this remote agent")
 
     return GraphAgentProvider.Remote(
         server = selectedServer,

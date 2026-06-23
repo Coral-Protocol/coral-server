@@ -123,31 +123,6 @@ class AgentRegistry(build: AgentRegistrySourceBuilder.() -> Unit) : KoinComponen
     }
 
     /**
-     * Returns a list of all exported agents from all local sources.
-     *
-     * Exported agents are agents sourced in a local registry that have defined export settings.  Exported agents can be
-     * rented by other Coral servers, compensated via (currently) Solana-backed payments.  The presence of export
-     * settings fully controls an agents' export status.
-     */
-    suspend fun getExportedAgents(): List<RestrictedRegistryAgent> {
-        return sources
-            .filter { it.identifier == AgentRegistrySourceIdentifier.Local }
-            .flatMap { source ->
-                buildList {
-                    source.agents.forEach { catalog ->
-                        catalog.versions.forEach { version ->
-                            val agent =
-                                source.resolveAgent(RegistryAgentIdentifier(catalog.name, version, source.identifier))
-
-                            if (agent.registryAgent.exportSettings.isNotEmpty())
-                                add(agent)
-                        }
-                    }
-                }
-            }
-    }
-
-    /**
      * Resolves an agent using a [RegistryAgentIdentifier].  This identifier specifies the name, version, and registry
      * source of the requested agent.  If [id] contains a [AgentRegistrySourceIdentifier.Local] identifier, this
      * function is almost instant.  If [id] uses [AgentRegistrySourceIdentifier.Marketplace] or

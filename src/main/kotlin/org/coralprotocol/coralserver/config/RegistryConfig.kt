@@ -39,11 +39,6 @@ data class RegistryConfig(
     val includeDebugAgents: Boolean = false,
 
     /**
-     * If this is true and [includeDebugAgents] is true, the debug agents included will also be exported
-     */
-    val exportDebugAgents: Boolean = false,
-
-    /**
      * If this is true, the entire marketplace will be used as a potential agent registry source.
      */
     val enableMarketplaceAgentRegistrySource: Boolean = false,

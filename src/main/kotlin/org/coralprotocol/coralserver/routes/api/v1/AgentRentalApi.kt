@@ -145,20 +145,4 @@ fun Route.agentRentalApi() {
                 ?: throw RouteException(HttpStatusCode.Forbidden)
         )
     }
-
-    get<AgentRental.Catalog>({
-        summary = "Get available rental agents"
-        description = "Returns a list of all agents available to rent from this server"
-        operationId = "getRentalAgents"
-        response {
-            HttpStatusCode.OK to {
-                description = "Success"
-                body<List<PublicRestrictedRegistryAgent>> {
-                    description = "List of exported agents"
-                }
-            }
-        }
-    }) {
-        call.respond(HttpStatusCode.OK, registry.getExportedAgents().map { it.toPublic() })
-    }
 }

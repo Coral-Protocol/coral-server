@@ -116,32 +116,6 @@ data class GraphAgentRequest(
             }
         }
 
-        // Options that are specified in the export settings take the highest priority, but they should only be
-        // considered in a remote context
-
-        // TODO: remote stuff again
-//        allOptions += if (isRemote) {
-//            val runtime = when (provider) {
-//                is GraphAgentProvider.Local -> provider.runtime
-//                is GraphAgentProvider.Linked -> provider.runtime
-//
-//                // Don't allow a remote request that requests another remote request
-//                is GraphAgentProvider.RemoteRequest, is GraphAgentProvider.Remote -> {
-//                    throw AgentRequestException("A request for a remote agent must also request a local provider")
-//                }
-//            }
-//
-//            // Export settings are validated (option name, value type, value validation) so it is safe to simply copy
-//            // export settings in here
-//            registryAgent.exportSettings[runtime]?.options
-//                ?.mapValues {
-//                    registryAgent.options[it.key]!!.withValue(it.value)
-//                }
-//                ?: throw AgentRequestException("Runtime $runtime is not exported by agent $id")
-//        } else {
-//            mapOf()
-//        }
-
         val missingOptions = registryAgent.requiredOptions.filterKeys { !allOptions.containsKey(it) }
         if (missingOptions.isNotEmpty()) {
             throw AgentRequestException("Agent $id is missing required options: ${missingOptions.keys.joinToString()}")

@@ -1,7 +1,6 @@
 package org.coralprotocol.coralserver.agent.graph
 
 import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
-import org.coralprotocol.coralserver.agent.registry.AgentExportSettings
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.RegistryAgent
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
@@ -17,13 +16,10 @@ import org.coralprotocol.coralserver.x402.X402BudgetedResource
  * Coral agent modeling
  *
  * The life of an agent starts within the [AgentRegistry], the registry lists all [RegistryAgent]'s that are available
- * for the server to use.  No agent will ever exist in the server not defined in the registry.  The registry also lists
- * [AgentExportSettings]'s , these are agents that this server will provide as remote agents.  The [AgentExportSettings] type contains a
- * reference to the [RegistryAgent] that is to be exported and pricing information.  It is an invalid configuration to
- * export an agent that is not itself imported.
+ * for the server to use.  No agent will ever exist in the server not defined in the registry.
  *
  * Every agent in the registry is identified using [RegistryAgentIdentifier].  A registry is guaranteed to only have one agent
- * with a given identifier, it is an invalid configuration to have more than one agent with the same identifier.
+ * with a given identifier; it is an invalid configuration to have more than one agent with the same identifier.
  *
  * The use of agents in Coral server happens exclusively within sessions, either a [LocalSession] or a [RemoteSession].
  * To start a session, a POST request to [LocalSessions] must be made, the relevant member of the request body is a
