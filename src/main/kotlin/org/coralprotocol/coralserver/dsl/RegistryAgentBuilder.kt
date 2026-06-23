@@ -149,79 +149,79 @@ class RegistryAgentBuilder(
         AgentLlmConfigBuilder().apply(block).build().also { llm = it }
 
     fun stringOption(name: String, block: StringAgentOptionBuilder.() -> Unit = {}) =
-        option(name, StringAgentOptionBuilder().apply(block).build())
+        option(name, stringOption(block))
 
     fun stringListOption(name: String, block: StringListAgentOptionBuilder.() -> Unit = {}) =
-        option(name, StringListAgentOptionBuilder().apply(block).build())
+        option(name, stringListOption(block))
 
     fun blobOption(name: String, block: BlobAgentOptionBuilder.() -> Unit = {}) =
-        option(name, BlobAgentOptionBuilder().apply(block).build())
+        option(name, blobOption(block))
 
     fun blobListOption(name: String, block: BlobListAgentOptionBuilder.() -> Unit = {}) =
-        option(name, BlobListAgentOptionBuilder().apply(block).build())
+        option(name, blobListOption(block))
 
     fun booleanOption(name: String, block: BooleanAgentOptionBuilder.() -> Unit = {}) =
-        option(name, BooleanAgentOptionBuilder().apply(block).build())
+        option(name, booleanOption(block))
 
     fun byteOption(name: String, block: ByteAgentOptionBuilder.() -> Unit = {}) =
-        option(name, ByteAgentOptionBuilder().apply(block).build())
+        option(name, byteOption(block))
 
     fun byteListOption(name: String, block: ByteListAgentOptionBuilder.() -> Unit = {}) =
-        option(name, ByteListAgentOptionBuilder().apply(block).build())
+        option(name, byteListOption(block))
 
     fun shortOption(name: String, block: ShortAgentOptionBuilder.() -> Unit) =
-        option(name, ShortAgentOptionBuilder().apply(block).build())
+        option(name, shortOption(block))
 
     fun shortListOption(name: String, block: ShortListAgentOptionBuilder.() -> Unit = {}) =
-        option(name, ShortListAgentOptionBuilder().apply(block).build())
+        option(name, shortListOption(block))
 
     fun intOption(name: String, block: IntAgentOptionBuilder.() -> Unit = {}) =
-        option(name, IntAgentOptionBuilder().apply(block).build())
+        option(name, intOption(block))
 
     fun intListOption(name: String, block: IntListAgentOptionBuilder.() -> Unit = {}) =
-        option(name, IntListAgentOptionBuilder().apply(block).build())
+        option(name, intListOption(block))
 
     fun longOption(name: String, block: LongAgentOptionBuilder.() -> Unit = {}) =
-        option(name, LongAgentOptionBuilder().apply(block).build())
+        option(name, longOption(block))
 
     fun longListOption(name: String, block: LongListAgentOptionBuilder.() -> Unit = {}) =
-        option(name, LongListAgentOptionBuilder().apply(block).build())
+        option(name, longListOption(block))
 
     fun unsignedByteOption(name: String, block: UByteAgentOptionBuilder.() -> Unit = {}) =
-        option(name, UByteAgentOptionBuilder().apply(block).build())
+        option(name, unsignedByteOption(block))
 
     fun unsignedByteListOption(name: String, block: UByteListAgentOptionBuilder.() -> Unit = {}) =
-        option(name, UByteListAgentOptionBuilder().apply(block).build())
+        option(name, unsignedByteListOption(block))
 
     fun unsignedShortOption(name: String, block: UShortAgentOptionBuilder.() -> Unit = {}) =
-        option(name, UShortAgentOptionBuilder().apply(block).build())
+        option(name, unsignedShortOption(block))
 
     fun unsignedShortListOption(name: String, block: UShortListAgentOptionBuilder.() -> Unit = {}) =
-        option(name, UShortListAgentOptionBuilder().apply(block).build())
+        option(name, unsignedShortListOption(block))
 
     fun unsignedIntOption(name: String, block: UIntAgentOptionBuilder.() -> Unit = {}) =
-        option(name, UIntAgentOptionBuilder().apply(block).build())
+        option(name, unsignedIntOption(block))
 
     fun unsignedIntListOption(name: String, block: UIntListAgentOptionBuilder.() -> Unit = {}) =
-        option(name, UIntListAgentOptionBuilder().apply(block).build())
+        option(name, unsignedIntListOption(block))
 
     fun unsignedLongOption(name: String, block: ULongAgentOptionBuilder.() -> Unit = {}) =
-        option(name, ULongAgentOptionBuilder().apply(block).build())
+        option(name, unsignedLongOption(block))
 
     fun unsignedLongListOption(name: String, block: ULongListAgentOptionBuilder.() -> Unit = {}) =
-        option(name, ULongListAgentOptionBuilder().apply(block).build())
+        option(name, unsignedLongListOption(block))
 
     fun floatOption(name: String, block: FloatAgentOptionBuilder.() -> Unit = {}) =
-        option(name, FloatAgentOptionBuilder().apply(block).build())
+        option(name, floatOption(block))
 
     fun floatListOption(name: String, block: FloatListAgentOptionBuilder.() -> Unit = {}) =
-        option(name, FloatListAgentOptionBuilder().apply(block).build())
+        option(name, floatListOption(block))
 
     fun doubleOption(name: String, block: DoubleAgentOptionBuilder.() -> Unit = {}) =
-        option(name, DoubleAgentOptionBuilder().apply(block).build())
+        option(name, doubleOption(block))
 
     fun doubleListOption(name: String, block: DoubleListAgentOptionBuilder.() -> Unit = {}) =
-        option(name, DoubleListAgentOptionBuilder().apply(block).build())
+        option(name, doubleListOption(block))
 
     fun runtime(functionRuntime: FunctionRuntime) {
         runtimes = LocalAgentRuntimes(

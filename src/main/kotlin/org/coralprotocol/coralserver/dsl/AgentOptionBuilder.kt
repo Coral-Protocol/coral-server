@@ -464,3 +464,153 @@ class DoubleListAgentOptionBuilder :
         transport: AgentOptionTransport
     ) = PolymorphicAgentOption.DoubleList(default, validation, required, display, transport)
 }
+
+fun stringOption(block: StringAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.String =
+    StringAgentOptionBuilder().apply(block).build()
+
+fun stringListOption(block: StringListAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.StringList =
+    StringListAgentOptionBuilder().apply(block).build()
+
+fun blobOption(block: BlobAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.Blob =
+    BlobAgentOptionBuilder().apply(block).build()
+
+fun blobListOption(block: BlobListAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.BlobList =
+    BlobListAgentOptionBuilder().apply(block).build()
+
+fun booleanOption(block: BooleanAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.Boolean =
+    BooleanAgentOptionBuilder().apply(block).build()
+
+fun byteOption(block: ByteAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.Byte =
+    ByteAgentOptionBuilder().apply(block).build()
+
+fun byteListOption(block: ByteListAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.ByteList =
+    ByteListAgentOptionBuilder().apply(block).build()
+
+fun shortOption(block: ShortAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.Short =
+    ShortAgentOptionBuilder().apply(block).build()
+
+fun shortListOption(block: ShortListAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.ShortList =
+    ShortListAgentOptionBuilder().apply(block).build()
+
+fun intOption(block: IntAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.Int =
+    IntAgentOptionBuilder().apply(block).build()
+
+fun intListOption(block: IntListAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.IntList =
+    IntListAgentOptionBuilder().apply(block).build()
+
+fun longOption(block: LongAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.Long =
+    LongAgentOptionBuilder().apply(block).build()
+
+fun longListOption(block: LongListAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.LongList =
+    LongListAgentOptionBuilder().apply(block).build()
+
+fun unsignedByteOption(block: UByteAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.UByte =
+    UByteAgentOptionBuilder().apply(block).build()
+
+fun unsignedByteListOption(block: UByteListAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.UByteList =
+    UByteListAgentOptionBuilder().apply(block).build()
+
+fun unsignedShortOption(block: UShortAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.UShort =
+    UShortAgentOptionBuilder().apply(block).build()
+
+fun unsignedShortListOption(block: UShortListAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.UShortList =
+    UShortListAgentOptionBuilder().apply(block).build()
+
+fun unsignedIntOption(block: UIntAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.UInt =
+    UIntAgentOptionBuilder().apply(block).build()
+
+fun unsignedIntListOption(block: UIntListAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.UIntList =
+    UIntListAgentOptionBuilder().apply(block).build()
+
+fun unsignedLongOption(block: ULongAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.ULong =
+    ULongAgentOptionBuilder().apply(block).build()
+
+fun unsignedLongListOption(block: ULongListAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.ULongList =
+    ULongListAgentOptionBuilder().apply(block).build()
+
+fun floatOption(block: FloatAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.Float =
+    FloatAgentOptionBuilder().apply(block).build()
+
+fun floatListOption(block: FloatListAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.FloatList =
+    FloatListAgentOptionBuilder().apply(block).build()
+
+fun doubleOption(block: DoubleAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.Double =
+    DoubleAgentOptionBuilder().apply(block).build()
+
+fun doubleListOption(block: DoubleListAgentOptionBuilder.() -> Unit = {}): PolymorphicAgentOption.DoubleList =
+    DoubleListAgentOptionBuilder().apply(block).build()
+
+fun stringOptionWithValue(value: String, block: StringAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(stringOption(block), PolymorphicAgentOptionValue.String(value))
+
+fun stringListOptionWithValue(value: List<String>, block: StringListAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(stringListOption(block), PolymorphicAgentOptionValue.StringList(value))
+
+fun blobOptionWithValue(value: String, block: BlobAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(blobOption(block), PolymorphicAgentOptionValue.Blob(value))
+
+fun blobListOptionWithValue(value: List<String>, block: BlobListAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(blobListOption(block), PolymorphicAgentOptionValue.BlobList(value))
+
+fun booleanOptionWithValue(value: Boolean, block: BooleanAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(booleanOption(block), PolymorphicAgentOptionValue.Boolean(value))
+
+fun byteOptionWithValue(value: Byte, block: ByteAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(byteOption(block), PolymorphicAgentOptionValue.Byte(value))
+
+fun byteListOptionWithValue(value: List<Byte>, block: ByteListAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(byteListOption(block), PolymorphicAgentOptionValue.ByteList(value))
+
+fun shortOptionWithValue(value: Short, block: ShortAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(shortOption(block), PolymorphicAgentOptionValue.Short(value))
+
+fun shortListOptionWithValue(value: List<Short>, block: ShortListAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(shortListOption(block), PolymorphicAgentOptionValue.ShortList(value))
+
+fun intOptionWithValue(value: Int, block: IntAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(intOption(block), PolymorphicAgentOptionValue.Int(value))
+
+fun intListOptionWithValue(value: List<Int>, block: IntListAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(intListOption(block), PolymorphicAgentOptionValue.IntList(value))
+
+fun longOptionWithValue(value: Long, block: LongAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(longOption(block), PolymorphicAgentOptionValue.Long(value))
+
+fun longListOptionWithValue(value: List<Long>, block: LongListAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(longListOption(block), PolymorphicAgentOptionValue.LongList(value))
+
+fun unsignedByteOptionWithValue(value: UByte, block: UByteAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(unsignedByteOption(block), PolymorphicAgentOptionValue.UByte(value))
+
+fun unsignedByteListOptionWithValue(value: List<UByte>, block: UByteListAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(unsignedByteListOption(block), PolymorphicAgentOptionValue.UByteList(value))
+
+fun unsignedShortOptionWithValue(value: UShort, block: UShortAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(unsignedShortOption(block), PolymorphicAgentOptionValue.UShort(value))
+
+fun unsignedShortListOptionWithValue(value: List<UShort>, block: UShortListAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(unsignedShortListOption(block), PolymorphicAgentOptionValue.UShortList(value))
+
+fun unsignedIntOptionWithValue(value: UInt, block: UIntAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(unsignedIntOption(block), PolymorphicAgentOptionValue.UInt(value))
+
+fun unsignedIntListOptionWithValue(value: List<UInt>, block: UIntListAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(unsignedIntListOption(block), PolymorphicAgentOptionValue.UIntList(value))
+
+fun unsignedLongOptionWithValue(value: String, block: ULongAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(unsignedLongOption(block), PolymorphicAgentOptionValue.ULong(value))
+
+fun unsignedLongListOptionWithValue(value: List<String>, block: ULongListAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(unsignedLongListOption(block), PolymorphicAgentOptionValue.ULongList(value))
+
+fun floatOptionWithValue(value: Float, block: FloatAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(floatOption(block), PolymorphicAgentOptionValue.Float(value))
+
+fun floatListOptionWithValue(value: List<Float>, block: FloatListAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(floatListOption(block), PolymorphicAgentOptionValue.FloatList(value))
+
+fun doubleOptionWithValue(value: Double, block: DoubleAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(doubleOption(block), PolymorphicAgentOptionValue.Double(value))
+
+fun doubleListOptionWithValue(value: List<Double>, block: DoubleListAgentOptionBuilder.() -> Unit = {}) =
+    AgentOptionWithValue(doubleListOption(block), PolymorphicAgentOptionValue.DoubleList(value))
