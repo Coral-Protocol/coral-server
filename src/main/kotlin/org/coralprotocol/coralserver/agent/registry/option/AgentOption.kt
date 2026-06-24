@@ -54,7 +54,7 @@ private val TRANSPORT_DEFAULT = AgentOptionTransport.ENVIRONMENT_VARIABLE
 interface AgentIntegralOption
 typealias AgentOption = PolymorphicAgentOption<*, *>
 
-sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<BackingType>, BackingType> {
+sealed interface PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<BackingType>, BackingType> {
     abstract val default: BackingType?
     abstract val defaultAsValue: ValueType?
 
@@ -101,7 +101,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.String, kotlin.String>() {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.String, kotlin.String> {
         @Transient
         override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.String(it) }
 
@@ -133,7 +133,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.StringList, List<kotlin.String>>() {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.StringList, List<kotlin.String>> {
         @Transient
         override val defaultAsValue = PolymorphicAgentOptionValue.StringList(default)
 
@@ -164,7 +164,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Blob, kotlin.String>() {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Blob, kotlin.String> {
         @Transient
         override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.Blob(it) }
 
@@ -193,7 +193,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.BlobList, List<kotlin.String>>() {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.BlobList, List<kotlin.String>> {
         @Transient
         override val defaultAsValue = PolymorphicAgentOptionValue.BlobList(default)
 
@@ -218,7 +218,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Boolean, kotlin.Boolean>() {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Boolean, kotlin.Boolean> {
         @Transient
         override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.Boolean(it) }
 
@@ -242,7 +242,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Byte, kotlin.Byte>(), AgentIntegralOption {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Byte, kotlin.Byte>, AgentIntegralOption {
         @Transient
         override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.Byte(it) }
 
@@ -266,7 +266,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.ByteList, List<kotlin.Byte>>() {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.ByteList, List<kotlin.Byte>> {
         @Transient
         override val defaultAsValue = PolymorphicAgentOptionValue.ByteList(default)
 
@@ -289,7 +289,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Short, kotlin.Short>(), AgentIntegralOption {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Short, kotlin.Short>, AgentIntegralOption {
         @Transient
         override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.Short(it) }
 
@@ -313,7 +313,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.ShortList, List<kotlin.Short>>() {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.ShortList, List<kotlin.Short>> {
         @Transient
         override val defaultAsValue = PolymorphicAgentOptionValue.ShortList(default)
 
@@ -336,7 +336,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Int, kotlin.Int>(), AgentIntegralOption {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Int, kotlin.Int>, AgentIntegralOption {
         @Transient
         override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.Int(it) }
 
@@ -360,7 +360,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.IntList, List<kotlin.Int>>() {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.IntList, List<kotlin.Int>> {
         @Transient
         override val defaultAsValue = PolymorphicAgentOptionValue.IntList(default)
 
@@ -383,7 +383,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Long, kotlin.Long>(), AgentIntegralOption {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Long, kotlin.Long>, AgentIntegralOption {
         @Transient
         override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.Long(it) }
 
@@ -407,7 +407,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.LongList, List<kotlin.Long>>() {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.LongList, List<kotlin.Long>> {
         @Transient
         override val defaultAsValue = PolymorphicAgentOptionValue.LongList(default)
 
@@ -430,7 +430,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UByte, kotlin.UByte>(), AgentIntegralOption {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UByte, kotlin.UByte>, AgentIntegralOption {
         @Transient
         override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.UByte(it) }
 
@@ -454,7 +454,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UByteList, List<kotlin.UByte>>() {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UByteList, List<kotlin.UByte>> {
         @Transient
         override val defaultAsValue = PolymorphicAgentOptionValue.UByteList(default)
 
@@ -477,7 +477,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UShort, kotlin.UShort>(), AgentIntegralOption {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UShort, kotlin.UShort>, AgentIntegralOption {
         @Transient
         override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.UShort(it) }
 
@@ -501,7 +501,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UShortList, List<kotlin.UShort>>() {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UShortList, List<kotlin.UShort>> {
         @Transient
         override val defaultAsValue = PolymorphicAgentOptionValue.UShortList(default)
 
@@ -524,7 +524,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UInt, kotlin.UInt>(), AgentIntegralOption {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UInt, kotlin.UInt>, AgentIntegralOption {
         @Transient
         override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.UInt(it) }
 
@@ -548,7 +548,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UIntList, List<kotlin.UInt>>() {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.UIntList, List<kotlin.UInt>> {
         @Transient
         override val defaultAsValue = PolymorphicAgentOptionValue.UIntList(default)
 
@@ -574,7 +574,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.ULong, kotlin.String>(), AgentIntegralOption {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.ULong, kotlin.String>, AgentIntegralOption {
         @Transient
         override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.ULong(it) }
 
@@ -604,7 +604,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.ULongList, List<kotlin.String>>() {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.ULongList, List<kotlin.String>> {
         @Transient
         override val defaultAsValue = PolymorphicAgentOptionValue.ULongList(default)
 
@@ -632,7 +632,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Float, kotlin.Float>() {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Float, kotlin.Float> {
         @Transient
         override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.Float(it) }
 
@@ -656,7 +656,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.FloatList, List<kotlin.Float>>() {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.FloatList, List<kotlin.Float>> {
         @Transient
         override val defaultAsValue = PolymorphicAgentOptionValue.FloatList(default)
 
@@ -679,7 +679,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Double, kotlin.Double>() {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.Double, kotlin.Double> {
         @Transient
         override val defaultAsValue = default?.let { PolymorphicAgentOptionValue.Double(it) }
 
@@ -703,7 +703,7 @@ sealed class PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<Back
         @Optional override val required: kotlin.Boolean = REQUIRED_DEFAULT,
         @Optional override val display: AgentOptionDisplay? = DISPLAY_DEFAULT,
         @Optional override val transport: AgentOptionTransport = TRANSPORT_DEFAULT,
-    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.DoubleList, List<kotlin.Double>>() {
+    ) : PolymorphicAgentOption<PolymorphicAgentOptionValue.DoubleList, List<kotlin.Double>> {
         @Transient
         override val defaultAsValue = PolymorphicAgentOptionValue.DoubleList(default)
 
