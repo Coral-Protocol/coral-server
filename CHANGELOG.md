@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.4.0](https://github.com/Coral-Protocol/coral-server/compare/v1.3.0...v1.4.0) (2026-06-24)
+
+
+### Features
+
+* added claim debug agent for testing claims ([929631d](https://github.com/Coral-Protocol/coral-server/commit/929631d8a85f682ba32cd61742d5fbd184cd2553))
+* complete refactor of agent options, soon to become it's own module with useful dsl for agent and application development ([929631d](https://github.com/Coral-Protocol/coral-server/commit/929631d8a85f682ba32cd61742d5fbd184cd2553))
+* dsl types moved out of test, soon to become a module of it's own ([929631d](https://github.com/Coral-Protocol/coral-server/commit/929631d8a85f682ba32cd61742d5fbd184cd2553))
+* kotlinx 1.8.1 -&gt; 1.10.0 ([929631d](https://github.com/Coral-Protocol/coral-server/commit/929631d8a85f682ba32cd61742d5fbd184cd2553))
+* more dsl types for more objects related to agents and requests ([929631d](https://github.com/Coral-Protocol/coral-server/commit/929631d8a85f682ba32cd61742d5fbd184cd2553))
+* registry agent latest edition is now 5 ([929631d](https://github.com/Coral-Protocol/coral-server/commit/929631d8a85f682ba32cd61742d5fbd184cd2553))
+* registry agents now have claims and dependencies ([929631d](https://github.com/Coral-Protocol/coral-server/commit/929631d8a85f682ba32cd61742d5fbd184cd2553))
+* session now has full budget support, support configurable spending control for agents ([929631d](https://github.com/Coral-Protocol/coral-server/commit/929631d8a85f682ba32cd61742d5fbd184cd2553))
+* session request now specifies values of claims made by agents ([929631d](https://github.com/Coral-Protocol/coral-server/commit/929631d8a85f682ba32cd61742d5fbd184cd2553))
+* session states now contain a receipt of all claims made by all agents and their values and associated dependencies ([929631d](https://github.com/Coral-Protocol/coral-server/commit/929631d8a85f682ba32cd61742d5fbd184cd2553))
+* session states now include running budgets for the session and every agent ([929631d](https://github.com/Coral-Protocol/coral-server/commit/929631d8a85f682ba32cd61742d5fbd184cd2553))
+
 ## [1.3.0](https://github.com/Coral-Protocol/coral-server/compare/v1.2.0...v1.3.0) (2026-05-29)
 
 
