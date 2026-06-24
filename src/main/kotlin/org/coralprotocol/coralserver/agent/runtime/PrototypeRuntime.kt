@@ -234,7 +234,7 @@ data class PrototypeRuntime(
                                 }
 
                                 llm.readSession { readSession -> postRequestToLLMCallback(readSession) }
-                                executionContext.logger.debug { "$proxiedModel responded in $llmResponseTime, with: ${response.content}" }
+                                executionContext.logger.debug { "${proxiedModel.providerConfig.name} responded in $llmResponseTime, with: ${response.content}" }
 
                                 val toolCalls = extractToolCalls(listOf(response))
                                 executionContext.logger.debug { "Extracted tool calls: ${toolCalls.joinToString { it.tool }}" }

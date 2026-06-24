@@ -548,7 +548,7 @@ class SessionAgent(
         val agentBudgetSettings = graphAgent.budgetSettings
         val sessionBudgetSettings = session.budgetSettings
 
-        logger.info { "processing $claim for remainingClaim" }
+        logger.info { "processing $claim for $remainingClaim" }
 
         val result = run {
             if (remainingClaim.isZero()) {

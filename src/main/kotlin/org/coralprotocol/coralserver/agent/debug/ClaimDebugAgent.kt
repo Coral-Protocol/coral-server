@@ -43,7 +43,7 @@ val claimAgentModule = module {
                     lists must be equal.  The entries from each list make pairs.
                     
                     For every pair, a claim will be made with the specified quantity and description.  The delay between claims is controlled by CLAIM_DELAY.
-                """.trimMargin()
+                """.trimIndent()
 
             val claimDelay = unsignedIntOption("CLAIM_DELAY") {
                 description = "Milliseconds of delay between each claim"
