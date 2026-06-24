@@ -206,6 +206,7 @@ val Int.cents: AgentBudgetUnit
 val Double.cents: AgentBudgetUnit
     get() = AgentBudgetUnit((this * MICRO_CENTS_TO_CENTS.toDouble()).toULong())
 
+// TODO: do something to avoid future accidents around negatives
 val Int.dollars: AgentBudgetUnit
     get() = AgentBudgetUnit(this.toULong() * MICRO_CENTS_TO_DOLLARS)
 

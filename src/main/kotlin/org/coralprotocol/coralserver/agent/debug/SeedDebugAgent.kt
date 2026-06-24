@@ -39,12 +39,12 @@ val seedAgentModule = module {
             val seedThreadCount = unsignedIntOption("SEED_THREAD_COUNT") {
                 description = "The number of threads to create"
                 default = 1u
-                // TODO: validation min = 1u
             }
 
             val seedMessageCount = unsignedIntOption("SEED_MESSAGE_COUNT") {
                 description = "The number of messages to send in each created thread"
                 default = 0u
+                min = 0u
             }
 
             val participants = stringListOption("PARTICIPANTS") {

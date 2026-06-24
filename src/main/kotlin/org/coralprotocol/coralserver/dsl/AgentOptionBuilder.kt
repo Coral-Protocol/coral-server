@@ -111,6 +111,8 @@ class BooleanAgentOptionBuilder : AgentOptionBuilder<PolymorphicAgentOption.Bool
 abstract class NumericAgentOptionBuilder<Value : Comparable<Value>, Option : AgentOption, Validation : NumericAgentOptionValidation<Value>> :
     AgentOptionBuilder<Option>() {
     var default: Value? = null
+
+    // TODO: categorize validation
     var variants: List<Value>? = null
     var min: Value? = null
     var max: Value? = null

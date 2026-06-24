@@ -42,7 +42,7 @@ sealed interface AgentBudgetExhaustionBehavior {
 data class GraphAgentBudgetSettings(
     @Description("The budget for this specific agent.  The value is specified in micro cents. $1.00 is $MICRO_CENTS_TO_DOLLARS and $0.01 is $MICRO_CENTS_TO_CENTS.")
     @Optional
-    val budget: AgentBudgetUnit = AgentBudgetUnit(),
+    val budget: AgentBudgetUnit = AgentBudgetUnit.ZERO,
 
     @Description("A map where each key is a claim type name and the value the cost for that claim. Claims that do not have default values set must have their values set in this map or else they will not contribute to the budget.")
     @Optional

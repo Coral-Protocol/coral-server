@@ -35,7 +35,7 @@ sealed class PrototypeInteger {
         override fun resolve(agentOptions: Map<String, AnyAgentOptionWithValue>): Long {
             val option = agentOptions[name]
                 ?: throw PrototypeRuntimeException.BadOption("option \"$name\" wasn't found")
-
+            // TODO: generify interface providing toLong()
             return when (val optionValue = option.value) {
                 is PolymorphicAgentOptionValue.Int -> optionValue.value.toLong()
                 is PolymorphicAgentOptionValue.Long -> optionValue.value

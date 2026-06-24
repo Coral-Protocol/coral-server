@@ -137,7 +137,7 @@ data class UnresolvedRegistryAgent(
             if ((option is PolymorphicAgentOption.String && option.base64 || option is PolymorphicAgentOption.StringList && option.base64) && option.transport == AgentOptionTransport.FILE_SYSTEM)
                 logger.warn { "$locator has 'base64 = true' and 'transport = 'fs''.  The base64 field will be ignored" }
 
-            // ugly just like the rest of AgentOption.*'s hideous mess of when statements!
+            // TODO: generify interface providing isEmpty()
             val emptyVariants = when (option) {
                 is PolymorphicAgentOption.Byte -> option.validation?.variants?.isEmpty() ?: false
                 is PolymorphicAgentOption.ByteList -> option.validation?.variants?.isEmpty() ?: false
