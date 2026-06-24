@@ -10,6 +10,7 @@ import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.should
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.client.*
+import io.ktor.client.call.*
 import io.ktor.client.request.*
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
@@ -24,13 +25,17 @@ import org.coralprotocol.coralserver.dsl.SessionRequestBuilder
 import org.coralprotocol.coralserver.dsl.cents
 import org.coralprotocol.coralserver.dsl.dollars
 import org.coralprotocol.coralserver.dsl.sessionRequest
+import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.routes.api.v1.LocalSessions
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
 import org.coralprotocol.coralserver.session.state.SessionState
 import org.coralprotocol.coralserver.util.signatureVerifiedBody
+import org.coralprotocol.coralserver.utils.TestEvent
+import org.coralprotocol.coralserver.utils.shouldPostEvents
 import org.koin.core.component.inject
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 class TestAgentBudgets : CoralTest({
     suspend fun sessionEndReport(block: SessionRequestBuilder.() -> Unit): SessionEndReport {
@@ -656,6 +661,59 @@ class TestAgentBudgets : CoralTest({
             it.cost.shouldBeEqual(amount)
             it.claim.shouldBeInstanceOf<SessionAgentClaim.RpcClaim>().additionalDescription.shouldNotBeNull()
                 .shouldBeEqual(claimDescription)
+        }
+    }
+
+    test("testClaimEvents") {
+        val client by inject<HttpClient>()
+        val localSessionManager by inject<LocalSessionManager>()
+        val amount = 1.dollars
+        val claims = List(10) { amount to "claim $it" }
+        val sessionBudget = amount * claims.size.toUInt()
+
+        val sid = client.authenticatedPost(LocalSessions.Session()) {
+            setBody(
+                sessionRequest {
+                    deferExecution()
+                    agentGraphRequest {
+                        claimAgent("agent1") {
+                            claims.forEach { claimBudgetUnit(it.first, it.second) }
+                        }
+                    }
+                    budgetSettings {
+                        budget = sessionBudget
+                    }
+                }
+            )
+        }.shouldBeOK().body<SessionIdentifier>()
+
+        val session = localSessionManager.getSession(sid.namespace, sid.sessionId)
+
+        session.shouldPostEvents(
+            timeout = 3.seconds,
+            allowUnexpectedEvents = true,
+            events = claims.mapIndexed { index, claim ->
+                TestEvent<SessionEvent>(claim.second) {
+                    if (it is SessionEvent.AgentBudgetClaim && it.claim is SessionAgentClaim.RpcClaim) {
+                        // clue for this failing is quite bad...
+                        it.result.fulfilledAmount == amount
+                                && it.claim.additionalDescription == claim.second
+                                && it.result.remainingSessionBudget == amount * (claims.size - index - 1).toUInt()
+                                && it.result.claimId == index
+                                && it.result.shouldExit == (index == claims.size - 1)
+                    } else
+                        false
+                }
+            }.toMutableList()
+        ) {
+            client.authenticatedPost(
+                LocalSessions.Session.Existing(
+                    namespace = sid.namespace,
+                    sessionId = sid.sessionId
+                )
+            ) {
+                setBody(SessionRuntimeSettings())
+            }
         }
     }
 })
