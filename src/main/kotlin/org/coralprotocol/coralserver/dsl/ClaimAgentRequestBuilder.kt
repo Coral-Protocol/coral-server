@@ -29,6 +29,9 @@ class ClaimAgentRequestBuilder(name: String) : GraphAgentRequestBuilder(
         microCentClaims.add(budgetUnit.value.toUInt() to description)
     }
 
+    fun claimQuantity(quantity: UInt, description: String) {
+        microCentClaims.add(quantity to description)
+    }
 
     override fun buildRequest(): GraphAgentRequest {
         unsignedIntOption("CLAIM_DELAY", claimDelay.inWholeMilliseconds.toUInt())

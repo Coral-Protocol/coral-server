@@ -16,6 +16,7 @@ import io.ktor.server.routing.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.CoralTest
+import org.coralprotocol.coralserver.agent.debug.DEBUG_CLAIM_NAME
 import org.coralprotocol.coralserver.agent.graph.AgentBudgetExhaustionBehavior
 import org.coralprotocol.coralserver.agent.payment.AgentBudgetUnit
 import org.coralprotocol.coralserver.config.NetworkConfig
@@ -626,5 +627,35 @@ class TestAgentBudgets : CoralTest({
             claimAmount * (delayFactor - 1).toUInt(),
             claimAmount * (delayFactor + 1).toUInt()
         )
+    }
+
+    test("testNonDefaultClaimPrice") {
+        val amount = 1.dollars
+        val claimDescription = "singular 1 dollar claim"
+
+        val report = sessionEndReport {
+            agentGraphRequest {
+                claimAgent("agent1") {
+                    claimQuantity(1u, claimDescription)
+                    budgetSettings {
+                        claimTypeCost(DEBUG_CLAIM_NAME, amount)
+                        budget = amount
+                    }
+                }
+            }
+        }
+
+        val state = report.sessionState.shouldBeInstanceOf<SessionState.Extended>().state
+        state.agents.shouldHaveSize(1).first().should {
+            it.runningBudget.startBudget.shouldBeEqual(amount)
+            it.runningBudget.remaining.shouldBeEqual(AgentBudgetUnit.ZERO)
+            it.runningBudget.overclaim.shouldBeEqual(AgentBudgetUnit.ZERO)
+        }
+
+        state.agentClaimReceipts.shouldHaveSize(1).first().should {
+            it.cost.shouldBeEqual(amount)
+            it.claim.shouldBeInstanceOf<SessionAgentClaim.RpcClaim>().additionalDescription.shouldNotBeNull()
+                .shouldBeEqual(claimDescription)
+        }
     }
 })

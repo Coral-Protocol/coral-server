@@ -24,7 +24,7 @@ const val CLAIM_AGENT_VERSION = "1.0.1"
 val CLAIM_AGENT_IDENTIFIER =
     RegistryAgentIdentifier(CLAIM_AGENT_ID, CLAIM_AGENT_VERSION, AgentRegistrySourceIdentifier.Local)
 
-const val DEBUG_CLAIM_MICRO_CENT = "MICRO_CENT"
+const val DEBUG_CLAIM_NAME = "DEBUG_CLAIM"
 const val DEBUG_CLAIM_DEPENDENCY = "DEBUG_DEPENDENCY"
 
 val claimAgentModule = module {
@@ -37,7 +37,7 @@ val claimAgentModule = module {
 
             readme =
                 """
-                    This agent defines one claim type called $DEBUG_CLAIM_MICRO_CENT. The default value of this claim is 1 micro cent.
+                    This agent defines one claim type called $DEBUG_CLAIM_NAME. The default value of this claim is 1 micro cent.
                     
                     This agent takes two options.  A list of quantities (CLAIM_QUANTITIES) and a list of descriptions (CLAIM_DESCRIPTIONS), the lengths of these 
                     lists must be equal.  The entries from each list make pairs.
@@ -77,7 +77,7 @@ val claimAgentModule = module {
             }
 
             dependency(DEBUG_CLAIM_DEPENDENCY)
-            claimType(DEBUG_CLAIM_MICRO_CENT, "A debug claim", DEBUG_CLAIM_DEPENDENCY, AgentBudgetUnit(1u))
+            claimType(DEBUG_CLAIM_NAME, "A debug claim", DEBUG_CLAIM_DEPENDENCY, AgentBudgetUnit(1u))
 
             debugRuntime(get()) { _, _, agent ->
                 val claimDelay = claimDelay.get(agent).toInt().milliseconds
@@ -102,7 +102,7 @@ val claimAgentModule = module {
                         setBody(
                             AgentClaimRequest(
                                 quantity = quantity,
-                                claimTypeName = DEBUG_CLAIM_MICRO_CENT,
+                                claimTypeName = DEBUG_CLAIM_NAME,
                                 additionalDescription = description,
                                 autoKill = autoKill,
                             )
