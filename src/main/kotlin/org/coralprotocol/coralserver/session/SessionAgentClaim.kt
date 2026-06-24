@@ -23,19 +23,19 @@ sealed class SessionAgentClaim {
     @Serializable
     @SerialName("rpc_claim")
     data class RpcClaim(
-        val type: RegistryAgentClaimType,
+        val claimType: RegistryAgentClaimType,
         val quantity: UInt = 1u,
         val additionalDescription: String? = null
     ) : SessionAgentClaim() {
         override fun calculateCost(agent: SessionAgent): AgentBudgetUnit {
             val unitCost =
-                agent.graphAgent.budgetSettings.claimTypeCosts[type.name] ?: type.cost ?: return AgentBudgetUnit.ZERO
+                agent.graphAgent.budgetSettings.claimTypeCosts[claimType.name] ?: claimType.cost ?: return AgentBudgetUnit.ZERO
 
             return unitCost * quantity
         }
 
         override fun toString(): String {
-            return "${quantity}x claim of type ${type.name}, \"${type.description}\"${additionalDescription?.let { ", \"$it\"" } ?: ""}"
+            return "${quantity}x claim of type ${claimType.name}, \"${claimType.description}\"${additionalDescription?.let { ", \"$it\"" } ?: ""}"
         }
     }
 

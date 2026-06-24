@@ -1,12 +1,12 @@
 package org.coralprotocol.coralserver.session
 
 import io.kotest.assertions.ktor.client.shouldBeOK
-import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.comparables.shouldBeBetween
 import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.comparables.shouldBeLessThanOrEqualTo
 import io.kotest.matchers.equals.shouldBeEqual
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.should
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.client.*
@@ -19,14 +19,14 @@ import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.graph.AgentBudgetExhaustionBehavior
 import org.coralprotocol.coralserver.agent.payment.AgentBudgetUnit
 import org.coralprotocol.coralserver.config.NetworkConfig
+import org.coralprotocol.coralserver.dsl.SessionRequestBuilder
+import org.coralprotocol.coralserver.dsl.cents
+import org.coralprotocol.coralserver.dsl.dollars
+import org.coralprotocol.coralserver.dsl.sessionRequest
 import org.coralprotocol.coralserver.routes.api.v1.LocalSessions
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
 import org.coralprotocol.coralserver.session.state.SessionState
 import org.coralprotocol.coralserver.util.signatureVerifiedBody
-import org.coralprotocol.coralserver.utils.dsl.SessionRequestBuilder
-import org.coralprotocol.coralserver.utils.dsl.cents
-import org.coralprotocol.coralserver.utils.dsl.dollars
-import org.coralprotocol.coralserver.utils.dsl.sessionRequest
 import org.koin.core.component.inject
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -80,12 +80,12 @@ class TestAgentBudgets : CoralTest({
         val report = sessionEndReport {
             agentGraphRequest {
                 claimAgent("agent1") {
-                    claims.forEach { claim(it) }
+                    claims.forEach { claimBudgetUnit(it.first, it.second) }
                 }
             }
             budgetSettings {
                 budget = sessionStartBudget
-                exhaustionBehavior = SessionBudgetExhaustionBehavior.Warn
+                exhaustionBehavior = SessionBudgetExhaustionBehavior.Ignore
             }
         }
 
@@ -94,13 +94,14 @@ class TestAgentBudgets : CoralTest({
         sessionRunningBudget.remaining.shouldBeEqual(sessionStartBudget - AgentBudgetUnit(claims.sumOf { it.first.value }))
         sessionRunningBudget.overclaim.shouldBeEqual(AgentBudgetUnit.ZERO)
 
-        sessionRunningBudget.claims.shouldHaveSize(2)
+        val receipts = report.sessionState.state.agentClaimReceipts
+        receipts.shouldHaveSize(claims.size)
 
-        sessionRunningBudget.claims[0].amount.shouldBeEqual(claims[0].first)
-        sessionRunningBudget.claims[0].description.shouldBeEqual(claims[0].second)
-
-        sessionRunningBudget.claims[1].amount.shouldBeEqual(claims[1].first)
-        sessionRunningBudget.claims[1].description.shouldBeEqual(claims[1].second)
+        for (i in claims.indices) {
+            receipts[i].cost.shouldBeEqual(claims[i].first)
+            receipts[i].claim.shouldBeInstanceOf<SessionAgentClaim.RpcClaim>().additionalDescription.shouldNotBeNull()
+                .shouldBeEqual(claims[i].second)
+        }
     }
 
     test("testSessionWarnedOverclaim") {
@@ -111,12 +112,12 @@ class TestAgentBudgets : CoralTest({
         val report = sessionEndReport {
             agentGraphRequest {
                 claimAgent("agent1") {
-                    claim(claimAmount, claimDescription)
+                    claimBudgetUnit(claimAmount, claimDescription)
                 }
             }
             budgetSettings {
                 budget = sessionStartBudget
-                exhaustionBehavior = SessionBudgetExhaustionBehavior.Warn
+                exhaustionBehavior = SessionBudgetExhaustionBehavior.Ignore
             }
         }
 
@@ -125,9 +126,12 @@ class TestAgentBudgets : CoralTest({
         sessionRunningBudget.remaining.shouldBeEqual(AgentBudgetUnit.ZERO)
         sessionRunningBudget.overclaim.shouldBeEqual(claimAmount - sessionStartBudget)
 
-        sessionRunningBudget.claims.shouldHaveSize(1)
-        sessionRunningBudget.claims[0].amount.shouldBeEqual(claimAmount)
-        sessionRunningBudget.claims[0].description.shouldBeEqual(claimDescription)
+        val receipts = report.sessionState.state.agentClaimReceipts
+        receipts.shouldHaveSize(1).first().should {
+            it.cost.shouldBeEqual(claimAmount)
+            it.claim.shouldBeInstanceOf<SessionAgentClaim.RpcClaim>().additionalDescription.shouldNotBeNull()
+                .shouldBeEqual(claimDescription)
+        }
     }
 
     test("testSessionKillAgent") {
@@ -139,7 +143,7 @@ class TestAgentBudgets : CoralTest({
             agentGraphRequest {
                 claimAgent("agent1") {
                     claimDelay = 200.milliseconds
-                    claims.forEach { claim(it) }
+                    claims.forEach { claimBudgetUnit(it.first, it.second) }
                 }
             }
             budgetSettings {
@@ -154,7 +158,11 @@ class TestAgentBudgets : CoralTest({
         sessionRunningBudget.overclaim.shouldBeEqual(AgentBudgetUnit.ZERO)
 
         // the first claim of 1 dollar should cause the agent to exit, making no more claims
-        sessionRunningBudget.claims.shouldHaveSize(1)
+        report.sessionState.state.agentClaimReceipts.shouldHaveSize(1).first().should {
+            it.cost.shouldBeEqual(claims[0].first)
+            it.claim.shouldBeInstanceOf<SessionAgentClaim.RpcClaim>().additionalDescription.shouldNotBeNull()
+                .shouldBeEqual(claims[0].second)
+        }
     }
 
     test("testSessionKillAgentIgnored") {
@@ -166,7 +174,7 @@ class TestAgentBudgets : CoralTest({
             agentGraphRequest {
                 claimAgent("agent1") {
                     ignoreShouldExit = true
-                    claims.forEach { claim(it) }
+                    claims.forEach { claimBudgetUnit(it.first, it.second) }
                 }
             }
             budgetSettings {
@@ -180,8 +188,15 @@ class TestAgentBudgets : CoralTest({
         sessionRunningBudget.remaining.shouldBeEqual(AgentBudgetUnit.ZERO)
         sessionRunningBudget.overclaim.shouldBeEqual(AgentBudgetUnit(claims.sumOf { it.first.value }) - sessionStartBudget)
 
+        val receipts = report.sessionState.state.agentClaimReceipts
+
         // the agent ignores the shouldExit response and all 10 claims go through
-        sessionRunningBudget.claims.shouldHaveSize(10)
+        receipts.shouldHaveSize(claims.size)
+        for (i in claims.indices) {
+            receipts[i].cost.shouldBeEqual(claims[i].first)
+            receipts[i].claim.shouldBeInstanceOf<SessionAgentClaim.RpcClaim>().additionalDescription.shouldNotBeNull()
+                .shouldBeEqual(claims[i].second)
+        }
     }
 
     test("testSessionKillAgentIgnoredWithForce") {
@@ -194,7 +209,7 @@ class TestAgentBudgets : CoralTest({
                 claimAgent("agent1") {
                     ignoreShouldExit = true
                     claimDelay = 200.milliseconds
-                    claims.forEach { claim(it) }
+                    claims.forEach { claimBudgetUnit(it.first, it.second) }
                 }
             }
             budgetSettings {
@@ -210,12 +225,19 @@ class TestAgentBudgets : CoralTest({
 
         // the agent ignores the exit request, but the agent is forcefully killed by the server once the budget is
         // exhausted
-        sessionRunningBudget.claims.shouldHaveSize(1)
+        report.sessionState.state.agentClaimReceipts.shouldHaveSize(1).first().should {
+            it.cost.shouldBeEqual(claims[0].first)
+            it.claim.shouldBeInstanceOf<SessionAgentClaim.RpcClaim>().additionalDescription.shouldNotBeNull()
+                .shouldBeEqual(claims[0].second)
+        }
     }
 
     test("testAgentBudgetNoSession") {
-        val claimAmount = 1.dollars
+        val agentClaimAmount = 1.dollars
         val agentClaimDescription = "agent claim"
+
+        val sessionClaimAmount = 2.dollars
+        val sessionClaimDescription = "session claim"
 
         val sessionStartBudget = 1.dollars
         val agentStartBudget = 1.dollars
@@ -223,8 +245,8 @@ class TestAgentBudgets : CoralTest({
         val report = sessionEndReport {
             agentGraphRequest {
                 claimAgent("agent1") {
-                    claim(claimAmount, agentClaimDescription)
-                    claim(2.dollars, "second claim")
+                    claimBudgetUnit(agentClaimAmount, agentClaimDescription)
+                    claimBudgetUnit(sessionClaimAmount, sessionClaimDescription)
                     budgetSettings {
                         budget = agentStartBudget
                         exhaustionBehavior = AgentBudgetExhaustionBehavior.Kill()
@@ -233,7 +255,7 @@ class TestAgentBudgets : CoralTest({
             }
             budgetSettings {
                 budget = sessionStartBudget
-                exhaustionBehavior = SessionBudgetExhaustionBehavior.Warn
+                exhaustionBehavior = SessionBudgetExhaustionBehavior.Ignore
             }
         }
 
@@ -243,12 +265,17 @@ class TestAgentBudgets : CoralTest({
         sessionRunningBudget.remaining.shouldBeEqual(sessionStartBudget)
         sessionRunningBudget.overclaim.shouldBeEqual(AgentBudgetUnit.ZERO)
 
-        sessionRunningBudget.claims.shouldBeEmpty()
-
         val agentState = sessionState.agents.shouldHaveSize(1).first()
         agentState.runningBudget.startBudget.shouldBeEqual(agentStartBudget)
-        agentState.runningBudget.remaining.shouldBeEqual(agentStartBudget - claimAmount)
+        agentState.runningBudget.remaining.shouldBeEqual(agentStartBudget - agentClaimAmount)
         agentState.runningBudget.overclaim.shouldBeEqual(AgentBudgetUnit.ZERO)
+
+        // only the agent claim should make it through
+        sessionState.agentClaimReceipts.shouldHaveSize(1).first().should {
+            it.cost.shouldBeEqual(agentClaimAmount)
+            it.claim.shouldBeInstanceOf<SessionAgentClaim.RpcClaim>().additionalDescription.shouldNotBeNull()
+                .shouldBeEqual(agentClaimDescription)
+        }
     }
 
     test("testAgentBudgetWithSession") {
@@ -262,8 +289,8 @@ class TestAgentBudgets : CoralTest({
         val report = sessionEndReport {
             agentGraphRequest {
                 claimAgent("agent1") {
-                    claim(claimAmount, agentClaimDescription)
-                    claim(claimAmount, sessionClaimDescription)
+                    claimBudgetUnit(claimAmount, agentClaimDescription)
+                    claimBudgetUnit(claimAmount, sessionClaimDescription)
                     budgetSettings {
                         budget = agentStartBudget
                         exhaustionBehavior = AgentBudgetExhaustionBehavior.ConsumeSession
@@ -272,7 +299,7 @@ class TestAgentBudgets : CoralTest({
             }
             budgetSettings {
                 budget = sessionStartBudget
-                exhaustionBehavior = SessionBudgetExhaustionBehavior.Warn
+                exhaustionBehavior = SessionBudgetExhaustionBehavior.Ignore
             }
         }
 
@@ -282,19 +309,21 @@ class TestAgentBudgets : CoralTest({
         sessionRunningBudget.remaining.shouldBeEqual(sessionStartBudget - claimAmount)
         sessionRunningBudget.overclaim.shouldBeEqual(AgentBudgetUnit.ZERO)
 
-        sessionRunningBudget.claims.shouldHaveSize(1).first().should {
-            it.amount.shouldBeEqual(claimAmount)
-            it.description.shouldBeEqual(sessionClaimDescription)
-        }
-
         val agentState = sessionState.agents.shouldHaveSize(1).first()
         agentState.runningBudget.startBudget.shouldBeEqual(agentStartBudget)
         agentState.runningBudget.remaining.shouldBeEqual(agentStartBudget - claimAmount)
         agentState.runningBudget.overclaim.shouldBeEqual(AgentBudgetUnit.ZERO)
 
-        agentState.runningBudget.claims.shouldHaveSize(1).first().should {
-            it.amount.shouldBeEqual(claimAmount)
-            it.description.shouldBeEqual(agentClaimDescription)
+        sessionState.agentClaimReceipts.shouldHaveSize(2)
+        sessionState.agentClaimReceipts[0].should {
+            it.cost.shouldBeEqual(claimAmount)
+            it.claim.shouldBeInstanceOf<SessionAgentClaim.RpcClaim>().additionalDescription.shouldNotBeNull()
+                .shouldBeEqual(agentClaimDescription)
+        }
+        sessionState.agentClaimReceipts[1].should {
+            it.cost.shouldBeEqual(claimAmount)
+            it.claim.shouldBeInstanceOf<SessionAgentClaim.RpcClaim>().additionalDescription.shouldNotBeNull()
+                .shouldBeEqual(sessionClaimDescription)
         }
     }
 
@@ -310,7 +339,7 @@ class TestAgentBudgets : CoralTest({
         val report = sessionEndReport {
             agentGraphRequest {
                 claimAgent("agent1") {
-                    claim(claimAmount, claimDescription)
+                    claimBudgetUnit(claimAmount, claimDescription)
                     budgetSettings {
                         budget = agentStartBudget
                         exhaustionBehavior = AgentBudgetExhaustionBehavior.ConsumeSession
@@ -319,7 +348,7 @@ class TestAgentBudgets : CoralTest({
             }
             budgetSettings {
                 budget = sessionStartBudget
-                exhaustionBehavior = SessionBudgetExhaustionBehavior.Warn
+                exhaustionBehavior = SessionBudgetExhaustionBehavior.Ignore
             }
         }
 
@@ -329,20 +358,15 @@ class TestAgentBudgets : CoralTest({
         sessionRunningBudget.remaining.shouldBeEqual(AgentBudgetUnit.ZERO)
         sessionRunningBudget.overclaim.shouldBeEqual(claimAmount - sessionStartBudget - agentStartBudget)
 
-        sessionRunningBudget.claims.shouldHaveSize(1).first().should {
-            // overclaimed!
-            it.amount.shouldBeEqual(claimAmount - agentStartBudget)
-            it.description.shouldBeEqual(claimDescription)
-        }
-
         val agentState = sessionState.agents.shouldHaveSize(1).first()
         agentState.runningBudget.startBudget.shouldBeEqual(agentStartBudget)
         agentState.runningBudget.remaining.shouldBeEqual(AgentBudgetUnit.ZERO)
         agentState.runningBudget.overclaim.shouldBeEqual(AgentBudgetUnit.ZERO)
 
-        agentState.runningBudget.claims.shouldHaveSize(1).first().should {
-            it.amount.shouldBeEqual(claimAmount.coerceAtMost(agentStartBudget))
-            it.description.shouldBeEqual(claimDescription)
+        sessionState.agentClaimReceipts.shouldHaveSize(1).first().should {
+            it.cost.shouldBeEqual(claimAmount)
+            it.claim.shouldBeInstanceOf<SessionAgentClaim.RpcClaim>().additionalDescription.shouldNotBeNull()
+                .shouldBeEqual(claimDescription)
         }
     }
 
@@ -355,18 +379,18 @@ class TestAgentBudgets : CoralTest({
         val report = sessionEndReport {
             agentGraphRequest {
                 claimAgent("agent1") {
-                    claim(claimAmount, claimDescription)
+                    claimBudgetUnit(claimAmount, claimDescription)
                 }
                 claimAgent("agent2") {
-                    claim(claimAmount, claimDescription)
+                    claimBudgetUnit(claimAmount, claimDescription)
                 }
                 claimAgent("agent3") {
-                    claim(claimAmount, claimDescription)
+                    claimBudgetUnit(claimAmount, claimDescription)
                 }
             }
             budgetSettings {
                 budget = sessionStartBudget
-                exhaustionBehavior = SessionBudgetExhaustionBehavior.Warn
+                exhaustionBehavior = SessionBudgetExhaustionBehavior.Ignore
             }
         }
 
@@ -385,15 +409,15 @@ class TestAgentBudgets : CoralTest({
         val report = sessionEndReport {
             agentGraphRequest {
                 claimAgent("agent1") {
-                    claims.forEach { claim(it) }
+                    claims.forEach { claimBudgetUnit(it.first, it.second) }
                     claimDelay = 100.milliseconds
                 }
                 claimAgent("agent2") {
-                    claims.forEach { claim(it) }
+                    claims.forEach { claimBudgetUnit(it.first, it.second) }
                     claimDelay = 100.milliseconds
                 }
                 claimAgent("agent3") {
-                    claims.forEach { claim(it) }
+                    claims.forEach { claimBudgetUnit(it.first, it.second) }
                     claimDelay = 100.milliseconds
                 }
             }
@@ -423,7 +447,7 @@ class TestAgentBudgets : CoralTest({
         val report = sessionEndReport {
             agentGraphRequest {
                 claimAgent("chill agent") {
-                    agentClaims.forEach { claim(it) }
+                    agentClaims.forEach { claimBudgetUnit(it.first, it.second) }
                     claimDelay = 100.milliseconds
                     budgetSettings {
                         budget = agentStartBudget
@@ -432,7 +456,7 @@ class TestAgentBudgets : CoralTest({
                 }
                 claimAgent("session killing agent") {
                     claimDelay = 200.milliseconds
-                    claim(claimAmount * 2u, "killing claim")
+                    claimBudgetUnit(claimAmount * 2u, "killing claim")
                 }
             }
             budgetSettings {
@@ -464,7 +488,7 @@ class TestAgentBudgets : CoralTest({
         val report = sessionEndReport {
             agentGraphRequest {
                 claimAgent("agent1") {
-                    claims.forEach { claim(it) }
+                    claims.forEach { claimBudgetUnit(it.first, it.second) }
                 }
             }
             budgetSettings {
@@ -487,7 +511,7 @@ class TestAgentBudgets : CoralTest({
         val report = sessionEndReport {
             agentGraphRequest {
                 claimAgent("agent1") {
-                    claims.forEach { claim(it) }
+                    claims.forEach { claimBudgetUnit(it.first, it.second) }
 
                     budgetSettings {
                         budget = agentStartBudget
@@ -518,7 +542,7 @@ class TestAgentBudgets : CoralTest({
                 claimAgent("agent1") {
                     ignoreShouldExit = true
                     claimDelay = agentClaimDelay
-                    claims.forEach { claim(it) }
+                    claims.forEach { claimBudgetUnit(it.first, it.second) }
                 }
             }
             budgetSettings {
@@ -549,7 +573,7 @@ class TestAgentBudgets : CoralTest({
                 claimAgent("agent1") {
                     ignoreShouldExit = true
                     claimDelay = agentClaimDelay
-                    claims.forEach { claim(it) }
+                    claims.forEach { claimBudgetUnit(it.first, it.second) }
                 }
             }
             budgetSettings {
@@ -581,7 +605,7 @@ class TestAgentBudgets : CoralTest({
                 claimAgent("agent1") {
                     ignoreShouldExit = true
                     claimDelay = agentClaimDelay
-                    claims.forEach { claim(it) }
+                    claims.forEach { claimBudgetUnit(it.first, it.second) }
                     budgetSettings {
                         exhaustionBehavior = AgentBudgetExhaustionBehavior.Kill(
                             force = true,

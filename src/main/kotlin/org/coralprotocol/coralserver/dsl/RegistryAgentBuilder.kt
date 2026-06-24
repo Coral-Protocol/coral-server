@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.dsl
 
 import io.ktor.client.*
 import io.modelcontextprotocol.kotlin.sdk.client.Client
+import org.coralprotocol.coralserver.agent.payment.AgentBudgetUnit
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOption
@@ -129,8 +130,13 @@ class RegistryAgentBuilder(
         return BuiltAgentOption(name, value)
     }
 
-    fun claimType(name: String, description: String, dependencyName: String) {
-        claimTypes += RegistryAgentClaimType(name = name, description = description, dependencyName = dependencyName)
+    fun claimType(name: String, description: String, dependencyName: String, cost: AgentBudgetUnit? = null) {
+        claimTypes += RegistryAgentClaimType(
+            name = name,
+            description = description,
+            dependencyName = dependencyName,
+            cost
+        )
     }
 
     fun dependency(name: String, vararg options: String) {

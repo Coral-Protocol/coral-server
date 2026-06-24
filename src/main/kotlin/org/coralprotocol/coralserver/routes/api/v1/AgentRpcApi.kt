@@ -84,8 +84,9 @@ fun Route.agentRpcApi() {
         call.respond(
             agent.processClaim(
                 SessionAgentClaim.RpcClaim(
-                    type = claim,
-                    additionalDescription = request.additionalDescription.take(
+                    claimType = claim,
+                    quantity = request.quantity,
+                    additionalDescription = request.additionalDescription?.take(
                         BUDGET_CLAIM_ADDITIONAL_DESCRIPTION_MAX_LENGTH
                     )
                 ),

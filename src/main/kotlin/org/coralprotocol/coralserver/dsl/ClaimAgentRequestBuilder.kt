@@ -5,7 +5,6 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
 import org.coralprotocol.coralserver.agent.payment.AgentBudgetUnit
 import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
-import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOptionValue
 import kotlin.time.Duration
 
 @CoralDsl
@@ -20,32 +19,25 @@ class ClaimAgentRequestBuilder(name: String) : GraphAgentRequestBuilder(
     var ignoreShouldExit = false
     var keepAlive = false
 
-    val claims = mutableListOf<Pair<AgentBudgetUnit, String>>()
-    fun claim(amount: AgentBudgetUnit, description: String) = claims.add(amount to description)
-    fun claim(claim: Pair<AgentBudgetUnit, String>) = claims.add(claim)
+    val microCentClaims: MutableList<Pair<UInt, String>> = mutableListOf()
+
+    /**
+     * Note: this will only actually claim the specified amount if the claim DEBUG_CLAIM_MICRO_CENT was just changed
+     * from its default value.
+     */
+    fun claimBudgetUnit(budgetUnit: AgentBudgetUnit, description: String) {
+        microCentClaims.add(budgetUnit.value.toUInt() to description)
+    }
+
 
     override fun buildRequest(): GraphAgentRequest {
-        return GraphAgentRequest(
-            id = identifier,
-            name = name,
-            description = description,
-            options = options + mapOf(
-                "CLAIM_DELAY" to PolymorphicAgentOptionValue.UInt(claimDelay.inWholeMilliseconds.toUInt()),
-                "CLAIM_QUANTITIES" to PolymorphicAgentOptionValue.ULongList(claims.map { it.first.value.toString() }),
-                "CLAIM_DESCRIPTIONS" to PolymorphicAgentOptionValue.StringList(claims.map { it.second }),
-                "AUTO_KILL" to PolymorphicAgentOptionValue.Boolean(autoKill),
-                "IGNORE_SHOULD_EXIT" to PolymorphicAgentOptionValue.Boolean(ignoreShouldExit),
-                "KEEP_ALIVE" to PolymorphicAgentOptionValue.Boolean(keepAlive),
-            ),
-            systemPrompt = systemPrompt,
-            blocking = blocking,
-            customToolAccess = customToolAccess,
-            plugins = plugins,
-            provider = provider,
-            x402Budgets = x402Budgets,
-            budgetSettings = budgetSettings,
-            annotations = annotations.toMap(),
-            proxies = proxyOverrideMap
-        )
+        unsignedIntOption("CLAIM_DELAY", claimDelay.inWholeMilliseconds.toUInt())
+        unsignedIntListOption("CLAIM_QUANTITIES", microCentClaims.map { it.first })
+        stringListOption("CLAIM_DESCRIPTIONS", microCentClaims.map { it.second })
+        booleanOption("AUTO_KILL", autoKill)
+        booleanOption("IGNORE_SHOULD_EXIT", ignoreShouldExit)
+        booleanOption("KEEP_ALIVE", keepAlive)
+
+        return super.buildRequest()
     }
 }
