@@ -11,7 +11,7 @@ import me.saket.bytesize.kibibytes
 import me.saket.bytesize.mebibytes
 import org.bitcoinj.core.AddressFormatException
 import org.bitcoinj.core.Base58
-import org.coralprotocol.coralserver.agent.registry.option.AgentOption
+import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOption
 import org.coralprotocol.coralserver.agent.registry.option.isIntegral
 import org.coralprotocol.coralserver.agent.runtime.PrototypeRuntime
 import org.coralprotocol.coralserver.agent.runtime.prototype.*
@@ -82,6 +82,16 @@ const val AGENT_MARKETPLACE_ERC8004_ENDPOINTS_MAX_ENTRIES = 32
 val AGENT_MARKETPLACE_ERC8004_ENDPOINTS_NAME_LENGTH = 1..32
 val AGENT_MARKETPLACE_ERC8004_ENDPOINTS_NAME_PATTERN = "^[a-zA-Z][a-zA-Z_\\-0-9]*$".toRegex()
 val AGENT_MARKETPLACE_ERC8004_ENDPOINTS_ENDPOINT_LENGTH = 1..256
+
+// [[claims]]
+const val AGENT_CLAIM_TYPES_MAX_ENTRIES = 64
+val AGENT_CLAIM_TYPE_NAME_LENGTH = 1..32
+val AGENT_CLAIM_TYPE_NAME_PATTERN = "^[a-zA-Z_][a-zA-Z_$0-9]*$".toRegex()
+val AGENT_CLAIM_TYPE_DESCRIPTION_LENGTH = 1..256
+
+// [[dependencies]]
+const val AGENT_DEPENDENCIES_MAX_ENTRIES = 16
+val AGENT_DEPENDENCY_NAME_LENGTH = 1..128
 
 private sealed interface StringSizeValidator {
     fun validate(name: String, length: Int): Int
@@ -221,7 +231,7 @@ private fun PrototypeString.validatePrototypeString(
             val option = agent.options[this.name]
                 ?: throw RegistryException("\"$name\" references option \"${this.name}\" which is not defined")
 
-            if (option !is AgentOption.String)
+            if (option !is PolymorphicAgentOption.String)
                 throw RegistryException("\"$name\" references option \"${this.name}\" which must be a string type, was ${option::class.serializer().descriptor.serialName}")
 
             0
@@ -509,31 +519,31 @@ private fun RegistryAgent.validateOptions() {
 
         accumulatedDefaultSize += BinaryByteSize(
             when (option) {
-                is AgentOption.Blob -> option.defaultBytes?.size ?: 0
-                is AgentOption.BlobList -> option.defaultBytes.sumOf { it.size }
-                is AgentOption.Boolean -> option.default?.let { 1 } ?: 0
-                is AgentOption.Byte -> option.default?.let { Byte.SIZE_BYTES } ?: 0
-                is AgentOption.ByteList -> option.default.size
-                is AgentOption.Double -> option.default?.let { Double.SIZE_BYTES } ?: 0
-                is AgentOption.DoubleList -> option.default.size * Double.SIZE_BYTES
-                is AgentOption.Float -> option.default?.let { Float.SIZE_BYTES } ?: 0
-                is AgentOption.FloatList -> option.default.size * Float.SIZE_BYTES
-                is AgentOption.Int -> option.default?.let { Int.SIZE_BYTES } ?: 0
-                is AgentOption.IntList -> option.default.size * Int.SIZE_BYTES
-                is AgentOption.Long -> option.default?.let { Long.SIZE_BYTES } ?: 0
-                is AgentOption.LongList -> option.default.size * Long.SIZE_BYTES
-                is AgentOption.Short -> option.default?.let { Short.SIZE_BYTES } ?: 0
-                is AgentOption.ShortList -> option.default.size * Short.SIZE_BYTES
-                is AgentOption.String -> option.default?.toByteArray()?.size ?: 0
-                is AgentOption.StringList -> option.default.sumOf { it.toByteArray().size }
-                is AgentOption.UByte -> option.default?.let { UByte.SIZE_BYTES } ?: 0
-                is AgentOption.UByteList -> option.default.size * UByte.SIZE_BYTES
-                is AgentOption.UInt -> option.default?.let { UInt.SIZE_BYTES } ?: 0
-                is AgentOption.UIntList -> option.default.size * UInt.SIZE_BYTES
-                is AgentOption.ULong -> option.default?.toByteArray()?.size ?: 0
-                is AgentOption.ULongList -> option.default.sumOf { it.toByteArray().size }
-                is AgentOption.UShort -> option.default?.let { UShort.SIZE_BYTES } ?: 0
-                is AgentOption.UShortList -> option.default.size * UShort.SIZE_BYTES
+                is PolymorphicAgentOption.Blob -> option.defaultBytes?.size ?: 0
+                is PolymorphicAgentOption.BlobList -> option.defaultBytes.sumOf { it.size }
+                is PolymorphicAgentOption.Boolean -> option.default?.let { 1 } ?: 0
+                is PolymorphicAgentOption.Byte -> option.default?.let { Byte.SIZE_BYTES } ?: 0
+                is PolymorphicAgentOption.ByteList -> option.default.size
+                is PolymorphicAgentOption.Double -> option.default?.let { Double.SIZE_BYTES } ?: 0
+                is PolymorphicAgentOption.DoubleList -> option.default.size * Double.SIZE_BYTES
+                is PolymorphicAgentOption.Float -> option.default?.let { Float.SIZE_BYTES } ?: 0
+                is PolymorphicAgentOption.FloatList -> option.default.size * Float.SIZE_BYTES
+                is PolymorphicAgentOption.Int -> option.default?.let { Int.SIZE_BYTES } ?: 0
+                is PolymorphicAgentOption.IntList -> option.default.size * Int.SIZE_BYTES
+                is PolymorphicAgentOption.Long -> option.default?.let { Long.SIZE_BYTES } ?: 0
+                is PolymorphicAgentOption.LongList -> option.default.size * Long.SIZE_BYTES
+                is PolymorphicAgentOption.Short -> option.default?.let { Short.SIZE_BYTES } ?: 0
+                is PolymorphicAgentOption.ShortList -> option.default.size * Short.SIZE_BYTES
+                is PolymorphicAgentOption.String -> option.default?.toByteArray()?.size ?: 0
+                is PolymorphicAgentOption.StringList -> option.default.sumOf { it.toByteArray().size }
+                is PolymorphicAgentOption.UByte -> option.default?.let { UByte.SIZE_BYTES } ?: 0
+                is PolymorphicAgentOption.UByteList -> option.default.size * UByte.SIZE_BYTES
+                is PolymorphicAgentOption.UInt -> option.default?.let { UInt.SIZE_BYTES } ?: 0
+                is PolymorphicAgentOption.UIntList -> option.default.size * UInt.SIZE_BYTES
+                is PolymorphicAgentOption.ULong -> option.default?.toByteArray()?.size ?: 0
+                is PolymorphicAgentOption.ULongList -> option.default.sumOf { it.toByteArray().size }
+                is PolymorphicAgentOption.UShort -> option.default?.let { UShort.SIZE_BYTES } ?: 0
+                is PolymorphicAgentOption.UShortList -> option.default.size * UShort.SIZE_BYTES
             })
     }
 
@@ -629,6 +639,48 @@ private fun RegistryAgent.validateLlm() {
     }
 }
 
+private fun RegistryAgent.validateDependencies() {
+    if (dependencies.size > AGENT_DEPENDENCIES_MAX_ENTRIES)
+        throw RegistryException("agent dependency count cannot exceed $AGENT_DEPENDENCIES_MAX_ENTRIES, was ${dependencies.size}")
+
+    val names = mutableSetOf<String>()
+    for ((index, dependency) in dependencies.withIndex()) {
+        validateStringLength("dependencies[$index].name", dependency.name, AGENT_DEPENDENCY_NAME_LENGTH)
+
+        if (names.contains(dependency.name))
+            throw RegistryException("dependency name \"${dependency.name}\" is already defined")
+
+        names.add(dependency.name)
+
+        for (optionName in dependency.options) {
+            if (!options.containsKey(optionName))
+                throw RegistryException("dependency \"${dependency.name}\" references option \"${optionName}\" which is not defined")
+        }
+    }
+}
+
+private fun RegistryAgent.validateClaimTypes() {
+    if (claimTypes.size > AGENT_CLAIM_TYPES_MAX_ENTRIES)
+        throw RegistryException("agent claim types count cannot exceed $AGENT_CLAIM_TYPES_MAX_ENTRIES, was ${claimTypes.size}")
+
+    val names = mutableSetOf<String>()
+    for ((index, claimType) in claimTypes.withIndex()) {
+        validateStringLength("claims[$index].name", claimType.name, AGENT_CLAIM_TYPE_NAME_LENGTH)
+        if (!claimType.name.matches(AGENT_CLAIM_TYPE_NAME_PATTERN))
+            throw RegistryException("claims[$index].name (\"${claimType.name}\") must start with an alphabetic character or underscore and contain only alphanumeric characters or underscores")
+
+        validateStringLength("claims[$index].description", claimType.description, AGENT_CLAIM_TYPE_DESCRIPTION_LENGTH)
+
+        if (names.contains(claimType.name))
+            throw RegistryException("claim type name \"${claimType.name}\" is already defined")
+
+        names.add(claimType.name)
+
+        if (!dependencyMap.containsKey(claimType.dependencyName))
+            throw RegistryException("claim type \"${claimType.name}\" references dependency \"${claimType.dependencyName}\" which is not defined")
+    }
+}
+
 fun RegistryAgent.validate() {
     validateName()
     validateVersion()
@@ -637,4 +689,6 @@ fun RegistryAgent.validate() {
     validateOptions()
     validateLlm()
     validateMarketplace()
+    validateDependencies()
+    validateClaimTypes()
 }

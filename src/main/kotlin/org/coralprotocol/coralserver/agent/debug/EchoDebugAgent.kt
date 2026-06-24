@@ -1,93 +1,76 @@
 package org.coralprotocol.coralserver.agent.debug
 
-import io.ktor.client.*
-import io.modelcontextprotocol.kotlin.sdk.client.Client
 import kotlinx.coroutines.delay
 import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
-import org.coralprotocol.coralserver.agent.registry.UnresolvedAgentExportSettings
-import org.coralprotocol.coralserver.agent.registry.option.AgentOption
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
-import org.coralprotocol.coralserver.agent.registry.option.buildFullOption
-import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.dsl.get
+import org.coralprotocol.coralserver.dsl.registryAgent
+import org.coralprotocol.coralserver.dsl.tryGet
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.mcp.tools.SendMessageInput
 import org.coralprotocol.coralserver.mcp.tools.WaitForSingleMessageInput
-import org.coralprotocol.coralserver.session.LocalSession
-import org.coralprotocol.coralserver.session.SessionAgent
-import org.koin.core.component.inject
+import org.koin.core.qualifier.named
+import org.koin.dsl.module
+import kotlin.time.Duration.Companion.milliseconds
 
-class EchoDebugAgent(client: HttpClient) : DebugAgent(client) {
-    override val companion: DebugAgentIdHolder
-        get() = Companion
+const val ECHO_AGENT_ID = "echo"
+const val ECHO_AGENT_VERSION = "1.0.1"
+val ECHO_AGENT_IDENTIFIER =
+    RegistryAgentIdentifier(ECHO_AGENT_ID, ECHO_AGENT_VERSION, AgentRegistrySourceIdentifier.Local)
 
-    companion object : DebugAgentIdHolder {
-        override val identifier: RegistryAgentIdentifier
-            get() = RegistryAgentIdentifier("echo", "1.0.0", AgentRegistrySourceIdentifier.Local)
-    }
 
-    override val options: Map<String, AgentOption>
-        get() = mapOf(
-            AgentOption.UInt().buildFullOption(
-                name = "START_DELAY",
-                description = "Milliseconds to wait before starting the iteration cycle",
-                required = false
-            ),
-            AgentOption.UInt(20u).buildFullOption(
-                name = "ITERATION_COUNT",
-                description = "The number of times to iterate",
-                required = false
-            ),
-            AgentOption.String().buildFullOption(
-                name = "FROM_AGENT",
-                description = "Filter: the name of the agent sending the message",
-                required = false
-            ),
-            AgentOption.Boolean().buildFullOption(
-                name = "MENTIONS",
-                description = "Filter: messages that mention this agent",
-                required = false
-            ),
-        )
+val echoAgentModule = module {
+    single(named(ECHO_AGENT_ID)) {
+        registryAgent(ECHO_AGENT_ID) {
+            version = ECHO_AGENT_VERSION
 
-    override val description: String
-        get() = "For each iteration this agent will wait for a message that matches the specified options and respond to it.  Exits when the iteration count is exhausted."
+            description = "Debug agent, echoes messages"
+            summary = description
+            readme =
+                "For each iteration this agent will wait for a message that matches filters specified via options and respond to it.  Exits when the iteration count is exhausted."
 
-    override val readme: String
-        get() = "TODO"
+            val startDelay = unsignedIntOption("START_DELAY") {
+                description = "Milliseconds to wait before starting the iteration cycle"
+            }
 
-    override val summary: String
-        get() = "TODO"
+            val iterationCount = unsignedIntOption("ITERATION_COUNT") {
+                default = 20u
+                description = "Milliseconds to wait before starting the iteration cycle"
+            }
 
-    override val exportSettings: Map<RuntimeId, UnresolvedAgentExportSettings>
-        get() = genericExportSettings
+            val fromAgent = stringOption("FROM_AGENT") {
+                description = "Filter: the name of the agent sending the message"
+            }
 
-    private val mcpToolManager by inject<McpToolManager>()
+            val mentions = booleanOption("MENTIONS") {
+                description = "Filter: messages that mention this agent"
+                default = false
+            }
 
-    override suspend fun execute(
-        client: Client,
-        session: LocalSession,
-        agent: SessionAgent
-    ) {
-        val iterationCount = getRequiredOption<AgentOptionValue.UInt>(agent, "ITERATION_COUNT").value
-        val fromAgent = getOption<AgentOptionValue.String>(agent, "FROM_AGENT")?.value
-        val mentions = getOption<AgentOptionValue.Boolean>(agent, "MENTIONS")?.value == true
-        val startDelay = getOption<AgentOptionValue.UInt>(agent, "START_DELAY")
+            debugRuntime(get()) { client, _, agent ->
+                val mcpToolManager = get<McpToolManager>()
 
-        if (startDelay != null)
-            delay(startDelay.value.toLong())
+                val startDelay = startDelay.tryGet(agent)
+                val iterationCount = iterationCount.get(agent)
+                val fromAgent = fromAgent.tryGet(agent)
+                val mentions = mentions.get(agent)
 
-        repeat(iterationCount.toInt()) {
-            while (true) {
-                val msg = mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput())
-                    .message
+                if (startDelay != null)
+                    delay(startDelay.toLong().milliseconds)
 
-                if (msg != null && (!mentions || msg.mentionNames.contains(agent.name)) && (fromAgent == null || msg.senderName == fromAgent)) {
-                    mcpToolManager.sendMessageTool.executeOn(
-                        client,
-                        SendMessageInput(msg.threadId, "nice message!", listOf(msg.senderName))
-                    )
-                    break;
+                repeat(iterationCount.toInt()) {
+                    while (true) {
+                        val msg = mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput())
+                            .message
+
+                        if (msg != null && (!mentions || msg.mentionNames.contains(agent.name)) && (fromAgent == null || msg.senderName == fromAgent)) {
+                            mcpToolManager.sendMessageTool.executeOn(
+                                client,
+                                SendMessageInput(msg.threadId, "nice message!", listOf(msg.senderName))
+                            )
+                            break;
+                        }
+                    }
                 }
             }
         }

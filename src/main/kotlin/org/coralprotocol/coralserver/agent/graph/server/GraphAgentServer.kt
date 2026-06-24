@@ -7,7 +7,6 @@ import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.resources.*
-import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -15,9 +14,6 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
-import org.coralprotocol.coralserver.agent.graph.PaidGraphAgentRequest
-import org.coralprotocol.coralserver.agent.registry.PublicAgentExportSettingsMap
-import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.routes.api.v1.AgentRental
 import org.koin.core.component.KoinComponent
@@ -28,7 +24,7 @@ import org.koin.core.component.inject
  * now only another Coral server.
  */
 @Serializable
-class GraphAgentServer (
+class GraphAgentServer(
     val address: String,
     val port: UShort,
     val secure: Boolean, // true = https, false = http
@@ -66,56 +62,12 @@ class GraphAgentServer (
         val body = response.bodyAsText()
         if (response.status == HttpStatusCode.OK) {
             return body
-        }
-        else {
+        } else {
             throw json.decodeFromString<RouteException>(body)
         }
-    }
-
-    /**
-     * Gets the export map for a specified agent in this server
-     * @throws RouteException if the request fails.
-     * @see Agents.ExportedAgent
-     */
-    suspend fun getAgentExportSettings(id: RegistryAgentIdentifier): PublicAgentExportSettingsMap {
-        TODO()
-//        val resource = AgentRental.Catalog.Details(
-//            agentName = id.name,
-//            agentVersion = id.version,
-//        )
-//        val response = client.get(resource)
-//        println("Getting export settings from $this for agent $id")
-//
-//        val body = response.bodyAsText()
-//        if (response.status == HttpStatusCode.OK) {
-//            return apiJsonConfig.decodeFromString<PublicAgentExportSettingsMap>(body)
-//        }
-//        else {
-//            throw apiJsonConfig.decodeFromString<RouteException>(body)
-//        }
     }
 
     override fun toString(): String {
         return "${if (secure) "https://" else "http://"}$address:$port"
-    }
-
-    /**
-     * Creates a claim for an agent, returning the claim ID
-     * @throws RouteException if the request fails.
-     * @see Agents.ExportedAgent
-     */
-    suspend fun createClaim(paidGraphAgentRequest: PaidGraphAgentRequest): String {
-        val response = client.post(AgentRental.Reserve) {
-            contentType(ContentType.Application.Json)
-            setBody(paidGraphAgentRequest)
-        }
-
-        val body = response.bodyAsText()
-        if (response.status == HttpStatusCode.OK) {
-            return body // claim ID
-        }
-        else {
-            throw json.decodeFromString<RouteException>(body)
-        }
     }
 }

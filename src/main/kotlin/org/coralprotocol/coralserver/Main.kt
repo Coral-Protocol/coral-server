@@ -3,13 +3,13 @@
 package org.coralprotocol.coralserver
 
 import com.sksamuel.hoplite.ExperimentalHoplite
+import dev.eav.tomlkt.Toml
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import kotlinx.serialization.json.Json
-import dev.eav.tomlkt.Toml
+import org.coralprotocol.coralserver.agent.debug.*
 import org.coralprotocol.coralserver.config.CommandLineArgs
 import org.coralprotocol.coralserver.config.NetworkConfig
-import org.coralprotocol.coralserver.llmproxy.LlmProxyService
 import org.coralprotocol.coralserver.modules.*
 import org.coralprotocol.coralserver.util.isWindows
 import org.koin.core.context.startKoin
@@ -29,6 +29,12 @@ fun main(args: Array<String>) {
             namedLoggingModule,
             blockchainModule,
             networkModule,
+            echoAgentModule,
+            puppetAgentModule,
+            seedAgentModule,
+            socketAgentModule,
+            toolAgentModule,
+            claimAgentModule,
             agentModule,
             llmProxyModule(true),
             sessionModule,

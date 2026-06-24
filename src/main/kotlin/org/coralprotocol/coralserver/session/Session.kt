@@ -18,6 +18,11 @@ abstract class Session(parentScope: CoroutineScope, supervisedSessions: Boolean 
     abstract val id: SessionId
 
     /**
+     * Budget settings for this session
+     */
+    abstract val budgetSettings: SessionBudgetSettings
+
+    /**
      * Optional payment session ID for this session, attached if there are paid agents involved.
      */
     open val paymentSessionId: PaymentSessionId? = null

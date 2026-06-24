@@ -63,6 +63,10 @@ data class SessionRequest(
     @Optional
     val execution: SessionRequestExecution = SessionRequestExecution.Execute(),
 
+    @Description("Budget settings for this session.  See SessionBudgetSettings for more information")
+    @Optional
+    val budgetSettings: SessionBudgetSettings = SessionBudgetSettings(),
+
     @Optional
     override val annotations: Map<String, String> = mapOf()
 ) : SessionResource

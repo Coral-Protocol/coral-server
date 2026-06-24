@@ -31,7 +31,7 @@ import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.routes.mcp.v1.Sse
-import org.coralprotocol.coralserver.utils.dsl.graphAgentPair
+import org.coralprotocol.coralserver.dsl.graphAgentPair
 import org.coralprotocol.coralserver.utils.synchronizedMessageTransaction
 import org.koin.test.inject
 import kotlin.time.Duration.Companion.seconds

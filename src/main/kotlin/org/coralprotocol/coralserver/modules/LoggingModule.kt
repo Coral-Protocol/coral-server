@@ -60,7 +60,7 @@ val loggingModule = module {
 
         val consoleEncoder = PatternLayoutEncoder()
         consoleEncoder.setContext(logCtx)
-        consoleEncoder.setPattern("%highlight(%5level) %logger {%green(%d{yyyy-MM-dd HH:mm:ss.SSS})}%mdc{ns, sid, agent, io, pnum} %msgHighlight(%msg%n)")
+        consoleEncoder.setPattern("%highlight(%5level) %logger {%green(%d{yyyy-MM-dd HH:mm:ss.SSS})}%mdc{ns, sid, agent, io, pnum, claim} %msgHighlight(%msg%n)")
         consoleEncoder.charset = StandardCharsets.UTF_8
         consoleEncoder.start()
 
@@ -76,9 +76,10 @@ val loggingModule = module {
         logConsoleAppender.addFilter(consoleFilter)
         logConsoleAppender.start()
 
+        //TODO: replace with opentelemetry
         val fileEncoder = PatternLayoutEncoder()
         fileEncoder.setContext(logCtx)
-        fileEncoder.setPattern("%level %d{yyyy-MM-dd HH:mm:ss.SSS} -%mdcPlain{ns, sid, agent, io} %msg%n")
+        fileEncoder.setPattern("%level %d{yyyy-MM-dd HH:mm:ss.SSS} -%mdcPlain{ns, sid, agent, io, pnum, claim} %msg%n")
         fileEncoder.start()
 
         val logFilePolicy = SizeAndTimeBasedRollingPolicy<ILoggingEvent>()

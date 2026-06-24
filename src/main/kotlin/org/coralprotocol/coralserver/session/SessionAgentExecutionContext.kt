@@ -5,7 +5,7 @@ package org.coralprotocol.coralserver.session
 import io.ktor.utils.io.*
 import kotlinx.coroutines.flow.update
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
-import org.coralprotocol.coralserver.agent.registry.option.*
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.agent.runtime.DEFAULT_AGENT_RUNTIME_TRANSPORT
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
@@ -88,7 +88,7 @@ class SessionAgentExecutionContext(
 
             // User options
             options.forEach { (name, value) ->
-                when (value.option().transport) {
+                when (value.option.transport) {
                     AgentOptionTransport.ENVIRONMENT_VARIABLE -> {
                         this[name] = value.asEnvVarValue()
                     }
@@ -107,7 +107,7 @@ class SessionAgentExecutionContext(
                     }
                 }
 
-                logger.info { "Setting option \"$name\" = \"${value.toDisplayString()}\" for agent $name" }
+                logger.info { "Setting option \"$name\" = \"${value.displayValue()}\" for agent $name" }
             }
 
             // Coral environment variables
@@ -134,7 +134,7 @@ class SessionAgentExecutionContext(
                     addressConsumer,
                     name
                 ).toString()
-                
+
                 this["CORAL_PROXY_FORMAT_$name"] = model.providerConfig.format.toString()
                 this["CORAL_PROXY_MODEL_$name"] = model.modelName
             }

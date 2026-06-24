@@ -7,6 +7,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
+import org.coralprotocol.coralserver.agent.payment.AgentClaimResult
 import org.coralprotocol.coralserver.llmproxy.LlmUsage
 import org.coralprotocol.coralserver.session.*
 import org.coralprotocol.coralserver.util.InstantSerializer
@@ -87,5 +88,13 @@ sealed class SessionEvent {
         val providerRequestName: String,
         val statusCode: Int,
         val usage: LlmUsage,
+    ) : SessionEvent()
+
+    @Serializable
+    @SerialName("agent_budget_claim")
+    data class AgentBudgetClaim(
+        val agent: UniqueAgentName,
+        val claim: SessionAgentClaim,
+        val result: AgentClaimResult,
     ) : SessionEvent()
 }

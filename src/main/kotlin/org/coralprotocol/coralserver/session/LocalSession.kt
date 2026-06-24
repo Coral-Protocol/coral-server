@@ -1,16 +1,13 @@
-@file:OptIn(ExperimentalTime::class)
+@file:OptIn(ExperimentalTime::class, ExperimentalAtomicApi::class)
 
 package org.coralprotocol.coralserver.session
 
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.joinAll
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
 import org.coralprotocol.coralserver.events.SessionEvent
@@ -27,6 +24,8 @@ import org.jetbrains.annotations.TestOnly
 import org.koin.core.component.get
 import org.koin.core.qualifier.named
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.concurrent.atomics.ExperimentalAtomicApi
+import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 
 /**
@@ -58,6 +57,7 @@ class LocalSession(
     agentGraph: AgentGraph,
     sessionManager: LocalSessionManager,
     override val annotations: Map<String, String> = mapOf(),
+    override val budgetSettings: SessionBudgetSettings,
 ) : Session(sessionManager.managementScope, sessionManager.supervisedSessions) {
     val logger =
         get<Logger>(named(LOGGER_LOCAL_SESSION)).withTags(LoggingTag.Namespace(namespace.name), LoggingTag.Session(id))
@@ -77,6 +77,16 @@ class LocalSession(
      * todo: make a kotlin version of this
      */
     val threads: ConcurrentHashMap<ThreadId, SessionThread> = ConcurrentHashMap()
+
+    /**
+     * A running budget for this session
+     */
+    val runningBudget = SessionRunningBudget(budgetSettings.budget, clamp = false)
+
+    /**
+     * A list of receipts for all claims made by all agents in this session.
+     */
+    val agentClaimReceipts = MutableStateFlow<List<SessionAgentClaimReceipt>>(emptyList())
 
     // Create links between agents from the groups in the agent graph
     init {
@@ -190,7 +200,10 @@ class LocalSession(
                 annotations = annotations
             ),
             agents = agents.map { (_, agent) -> agent.getState() },
-            threads = threads.values.toList()
+            threads = threads.values.toList(),
+            runningBudget = runningBudget,
+            budgetSettings = budgetSettings,
+            agentClaimReceipts = agentClaimReceipts.value,
         )
 
     @TestOnly
@@ -242,11 +255,11 @@ class LocalSession(
      *
      * @throws SessionException.NotLaunchedException if [launchAgents] has not been called yet.
      */
-    suspend fun cancelAndJoinAgents() {
+    suspend fun cancelAndJoinAgents(delay: Duration = Duration.ZERO) {
         if (agentJobs.value.isEmpty())
             throw SessionException.NotLaunchedException("This session's agents have not been launched yet")
 
-        agentJobs.value.values.forEach { it.cancelAndJoin() }
+        agents.values.forEach { cancelAndJoinAgent(it.name, delay) }
     }
 
     /**
@@ -255,14 +268,23 @@ class LocalSession(
      * @throws SessionException.MissingAgentException if the agent does not exist in this session
      * @throws SessionException.NotLaunchedException if [launchAgents] has not been called yet.
      */
-    suspend fun cancelAndJoinAgent(agentName: UniqueAgentName) {
-        if (!agents.containsKey(agentName))
-            throw SessionException.MissingAgentException("No agent named $agentName")
+    suspend fun cancelAndJoinAgent(agentName: UniqueAgentName, delay: Duration = Duration.ZERO) {
+        val agent = agents[agentName]
+            ?: throw SessionException.MissingAgentException("No agent named $agentName")
 
         val job = agentJobs.value[agentName]
             ?: throw SessionException.NotLaunchedException("Agent $agentName has not been launched yet")
 
-        job.cancelAndJoin()
+        if (delay > Duration.ZERO) {
+            if (agent.exitScheduled.exchange(true))
+                return
+
+            sessionScope.launch {
+                delay(delay)
+                job.cancelAndJoin()
+            }
+        } else
+            job.cancelAndJoin()
     }
 
     /**

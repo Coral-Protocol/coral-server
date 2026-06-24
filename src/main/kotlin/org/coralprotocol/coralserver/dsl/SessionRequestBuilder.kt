@@ -1,20 +1,25 @@
-package org.coralprotocol.coralserver.utils.dsl
+package org.coralprotocol.coralserver.dsl
 
 import org.coralprotocol.coralserver.agent.graph.AgentGraphRequest
 import org.coralprotocol.coralserver.agent.graph.GraphAgentRequest
 import org.coralprotocol.coralserver.agent.graph.GraphAgentTool
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
+import org.coralprotocol.coralserver.agent.payment.AgentBudgetUnit
+import org.coralprotocol.coralserver.agent.payment.MICRO_CENTS_TO_CENTS
+import org.coralprotocol.coralserver.agent.payment.MICRO_CENTS_TO_DOLLARS
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.session.*
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
-@TestDsl
+@CoralDsl
 class SessionRequestBuilder {
     private var agentGraphRequest: AgentGraphRequest = AgentGraphRequest(listOf())
     private var namespaceRequest: SessionNamespaceProvider = SessionNamespaceProvider.CreateIfNotExists(
         SessionNamespaceRequest("default")
     )
     private var executionSettings: SessionRequestExecution = SessionRequestExecution.Execute(SessionRuntimeSettings())
+    private var budgetSettings: SessionBudgetSettings = SessionBudgetSettings()
 
     private val annotations: MutableMap<String, String> = mutableMapOf()
 
@@ -39,6 +44,10 @@ class SessionRequestBuilder {
         executionSettings = SessionRequestExecution.Defer
     }
 
+    fun budgetSettings(block: SessionBudgetSettingsBuilder.() -> Unit) {
+        budgetSettings = SessionBudgetSettingsBuilder().apply(block).build()
+    }
+
     fun annotation(name: String, value: String) {
         annotations[name] = value
     }
@@ -48,12 +57,13 @@ class SessionRequestBuilder {
             agentGraphRequest,
             namespaceRequest,
             executionSettings,
+            budgetSettings,
             annotations
         )
     }
 }
 
-@TestDsl
+@CoralDsl
 class AgentGraphRequestBuilder {
     private val agents = mutableListOf<GraphAgentRequest>()
     private val groups = mutableSetOf<Set<UniqueAgentName>>()
@@ -61,6 +71,10 @@ class AgentGraphRequestBuilder {
 
     fun agent(identifier: RegistryAgentIdentifier, block: GraphAgentRequestBuilder.() -> Unit) {
         agents.add(graphAgentRequest(identifier, block))
+    }
+
+    fun claimAgent(name: String, block: ClaimAgentRequestBuilder.() -> Unit) {
+        agents.add(ClaimAgentRequestBuilder(name).apply(block).buildRequest())
     }
 
     fun tool(name: String, tool: GraphAgentTool) {
@@ -90,7 +104,7 @@ class AgentGraphRequestBuilder {
     }
 }
 
-@TestDsl
+@CoralDsl
 class SessionRuntimeSettingsBuilder {
     var ttl: Duration? = null
     var persistenceMode: SessionPersistenceMode = SessionPersistenceMode.None
@@ -106,7 +120,7 @@ class SessionRuntimeSettingsBuilder {
     }
 }
 
-@TestDsl
+@CoralDsl
 class SessionWebhooksBuilder {
     private var sessionEnd: SessionEndWebhook? = null
 
@@ -119,7 +133,50 @@ class SessionWebhooksBuilder {
     }
 }
 
-@TestDsl
+@CoralDsl
+class SessionBudgetSettingsBuilder {
+    var budget: AgentBudgetUnit = AgentBudgetUnit()
+    var exhaustionBehavior: SessionBudgetExhaustionBehavior = SessionBudgetExhaustionBehavior.KillAgent()
+
+    fun killAgent(block: SessionBudgetKillAgentBuilder.() -> Unit) {
+        exhaustionBehavior = SessionBudgetKillAgentBuilder().apply(block).build()
+    }
+
+    fun killSession(block: SessionBudgetKillSessionBuilder.() -> Unit) {
+        exhaustionBehavior = SessionBudgetKillSessionBuilder().apply(block).build()
+    }
+
+    fun warn() {
+        exhaustionBehavior = SessionBudgetExhaustionBehavior.Ignore
+    }
+
+    fun build(): SessionBudgetSettings {
+        return SessionBudgetSettings(budget, exhaustionBehavior)
+    }
+}
+
+@CoralDsl
+class SessionBudgetKillAgentBuilder {
+    var minimum: AgentBudgetUnit = AgentBudgetUnit()
+    var force: Boolean = false
+    var delay: Duration = 100.milliseconds
+
+    fun build(): SessionBudgetExhaustionBehavior.KillAgent {
+        return SessionBudgetExhaustionBehavior.KillAgent(minimum, force, delay)
+    }
+}
+
+@CoralDsl
+class SessionBudgetKillSessionBuilder {
+    var minimum: AgentBudgetUnit = AgentBudgetUnit()
+    var delay: Duration = 200.milliseconds
+
+    fun build(): SessionBudgetExhaustionBehavior.KillSession {
+        return SessionBudgetExhaustionBehavior.KillSession(minimum, delay)
+    }
+}
+
+@CoralDsl
 class SessionNamespaceRequestBuilder {
     var name: String = "default"
     var deleteOnLastSessionExit = true
@@ -142,3 +199,16 @@ fun runtimeSettings(block: SessionRuntimeSettingsBuilder.() -> Unit) =
 
 fun sessionRequest(block: SessionRequestBuilder.() -> Unit): SessionRequest =
     SessionRequestBuilder().apply(block).build()
+
+val Int.cents: AgentBudgetUnit
+    get() = AgentBudgetUnit(this.toULong() * MICRO_CENTS_TO_CENTS)
+
+val Double.cents: AgentBudgetUnit
+    get() = AgentBudgetUnit((this * MICRO_CENTS_TO_CENTS.toDouble()).toULong())
+
+// TODO: do something to avoid future accidents around negatives
+val Int.dollars: AgentBudgetUnit
+    get() = AgentBudgetUnit(this.toULong() * MICRO_CENTS_TO_DOLLARS)
+
+val Double.dollars: AgentBudgetUnit
+    get() = AgentBudgetUnit((this * MICRO_CENTS_TO_DOLLARS.toDouble()).toULong())

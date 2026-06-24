@@ -22,6 +22,7 @@ import io.ktor.server.testing.*
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.plus
 import kotlinx.serialization.json.Json
+import org.coralprotocol.coralserver.agent.debug.*
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.config.*
 import org.coralprotocol.coralserver.logging.Logger
@@ -212,6 +213,12 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                         }
                                     },
                                     blockchainModule,
+                                    echoAgentModule,
+                                    puppetAgentModule,
+                                    seedAgentModule,
+                                    socketAgentModule,
+                                    toolAgentModule,
+                                    claimAgentModule,
                                     agentModule,
                                     module {
                                         single {

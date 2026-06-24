@@ -3,7 +3,7 @@ package org.coralprotocol.coralserver.agent.registry
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
-import org.coralprotocol.coralserver.agent.registry.option.defaultAsValue
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionSerializerMap
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import java.nio.file.Path
@@ -16,22 +16,23 @@ const val MINIMUM_SUPPORTED_AGENT_EDITION = 3
 /**
  * The maximum (and current) supported agent edition.
  */
-const val MAXIMUM_SUPPORTED_AGENT_VERSION = 4
+const val MAXIMUM_SUPPORTED_AGENT_VERSION = 5
 
 @Serializable
 data class RegistryAgent(
     private val info: RegistryAgentInfo,
     val edition: Int = MAXIMUM_SUPPORTED_AGENT_VERSION,
     val runtimes: LocalAgentRuntimes,
+
+    @Serializable(with = AgentOptionSerializerMap::class)
     val options: Map<String, AgentOption> = mapOf(),
     val llm: AgentLlmConfig? = null,
     val marketplace: RegistryAgentMarketplaceSettings? = null,
+    val dependencies: List<RegistryAgentDependency> = listOf(),
+    val claimTypes: List<RegistryAgentClaimType> = listOf(),
 
     @Transient
     val path: Path? = null,
-
-    @Transient
-    private val unresolvedExportSettings: Map<RuntimeId, UnresolvedAgentExportSettings> = mapOf(),
 ) {
     @Transient
     val description = info.description
@@ -66,13 +67,15 @@ data class RegistryAgent(
     @Transient
     val llmProxies = llm?.proxies ?: listOf()
 
-    val exportSettings: AgentExportSettingsMap = unresolvedExportSettings.mapValues { (runtime, settings) ->
-        settings.resolve(runtime, this)
-    }
+    @Transient
+    val dependencyMap = dependencies.associateBy { it.name }
+
+    @Transient
+    val claimTypeMap = claimTypes.associateBy { it.name }
 
     @Transient
     val defaultOptions = options
-        .mapNotNull { (name, option) -> option.defaultAsValue()?.let { name to it } }
+        .mapNotNull { (name, option) -> option.withDefaultValue()?.let { name to it } }
         .toMap()
 
     @Transient
@@ -84,13 +87,13 @@ data class RegistryAgent(
 data class PublicRegistryAgent(
     val id: RegistryAgentIdentifier,
     val runtimes: List<RuntimeId>,
+
+    @Serializable(with = AgentOptionSerializerMap::class)
     val options: Map<String, AgentOption>,
-    val exportSettings: PublicAgentExportSettingsMap
 )
 
 fun RegistryAgent.toPublic(): PublicRegistryAgent = PublicRegistryAgent(
     id = identifier,
     runtimes = runtimes.toRuntimeIds(),
-    options = options,
-    exportSettings = exportSettings.mapValues { (_, settings) -> settings.toPublic() }
+    options = options
 )

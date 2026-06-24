@@ -16,20 +16,17 @@ import kotlinx.coroutines.withContext
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
-import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.agent.runtime.DockerRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.RootConfig
+import org.coralprotocol.coralserver.dsl.graphAgentPair
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.logging.LoggingEvent
 import org.coralprotocol.coralserver.modules.LOGGER_LOCAL_SESSION
 import org.coralprotocol.coralserver.utils.TestEvent
-import org.coralprotocol.coralserver.utils.dsl.graphAgentPair
 import org.coralprotocol.coralserver.utils.shouldPostEvents
 import org.koin.core.qualifier.named
 import org.koin.test.inject
@@ -133,36 +130,24 @@ class DockerRuntimeTest : CoralTest({
                                 DockerRuntime(
                                     image = image,
                                     command = listOf(
-                                        "sh", "-c", """
+                                        "sh", "-c", $$"""
                                             echo TEST_OPTION:
-                                            echo ${'$'}TEST_OPTION
+                                            echo $TEST_OPTION
 
                                             echo UNIT_TEST_SECRET:
-                                            echo ${'$'}UNIT_TEST_SECRET
+                                            echo $UNIT_TEST_SECRET
 
                                             echo TEST_FS_OPTION:
-                                            cat ${'$'}TEST_FS_OPTION
+                                            cat $TEST_FS_OPTION
                                         """.trimIndent()
                                     )
                                 )
                             )
                         }
-                        option(
-                            "TEST_OPTION", AgentOptionWithValue.String(
-                                option = AgentOption.String(),
-                                value = AgentOptionValue.String(optionValue1)
-                            )
-                        )
-                        option(
-                            "TEST_FS_OPTION", AgentOptionWithValue.String(
-                                option = run {
-                                    val opt = AgentOption.String()
-                                    opt.transport = AgentOptionTransport.FILE_SYSTEM
-                                    opt
-                                },
-                                value = AgentOptionValue.String(optionValue2)
-                            )
-                        )
+                        stringOption("TEST_OPTION", optionValue1)
+                        stringOption("TEST_FS_OPTION", optionValue2) {
+                            transport = AgentOptionTransport.FILE_SYSTEM
+                        }
                     }
                 )
             )

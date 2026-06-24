@@ -2,212 +2,302 @@
 
 package org.coralprotocol.coralserver.agent.registry.option
 
-import io.ktor.util.*
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
+import dev.eav.tomlkt.TomlClassDiscriminator
+import kotlinx.serialization.*
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.descriptors.PolymorphicKind
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.descriptors.SerialKind
+import kotlinx.serialization.descriptors.buildSerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.JsonClassDiscriminator
+import org.coralprotocol.coralserver.util.decodeElement
+import org.coralprotocol.coralserver.util.decodeFromElement
+import org.coralprotocol.coralserver.util.encodeDiscriminatedElement
 import java.nio.ByteBuffer
 import kotlin.io.encoding.Base64
 
-@Serializable
-@JsonClassDiscriminator("type")
-sealed interface AgentOptionValue {
-    @Serializable
-    @SerialName("string")
-    data class String(val value: kotlin.String) : AgentOptionValue
+interface AgentOptionListValue<T> {
+    val value: List<T>
+}
+
+interface AgentOptionIntegralValue
+
+typealias AgentOptionValue = PolymorphicAgentOptionValue<*>
+
+@Serializable(with = AgentOptionValueSerializer::class)
+sealed interface PolymorphicAgentOptionValue<BackingType> {
+    val value: BackingType
+    fun toFileSystemValue(): List<ByteArray>
 
     @Serializable
-    @SerialName("list[string]")
-    data class StringList(val value: List<kotlin.String>) : AgentOptionValue
+    @SerialName(TYPE_STRING)
+    data class String(override val value: kotlin.String) : PolymorphicAgentOptionValue<kotlin.String> {
+        override fun toFileSystemValue() = listOf(value.encodeToByteArray())
+    }
 
     @Serializable
-    @SerialName("blob")
-    data class Blob(val value: kotlin.String) : AgentOptionValue {
+    @SerialName(TYPE_STRING_LIST)
+    data class StringList(override val value: List<kotlin.String>) : PolymorphicAgentOptionValue<List<kotlin.String>>,
+        AgentOptionListValue<kotlin.String> {
+        override fun toFileSystemValue() = value.map { it.encodeToByteArray() }
+    }
+
+    @Serializable
+    @SerialName(TYPE_BLOB)
+    data class Blob(override val value: kotlin.String) : PolymorphicAgentOptionValue<kotlin.String> {
         companion object {
             fun fromBytes(bytes: ByteArray) = Blob(Base64.encode(bytes))
         }
 
         @Transient
         val bytes = Base64.decode(value)
+
+        override fun toFileSystemValue() = listOf(bytes)
     }
 
     @Serializable
-    @SerialName("list[blob]")
-    data class BlobList(val value: List<kotlin.String>) : AgentOptionValue {
+    @SerialName(TYPE_BLOB_LIST)
+    data class BlobList(override val value: List<kotlin.String>) : PolymorphicAgentOptionValue<List<kotlin.String>>,
+        AgentOptionListValue<kotlin.String> {
         companion object {
             fun fromByteList(byteList: List<ByteArray>) = BlobList(byteList.map { Base64.encode(it) })
         }
 
         @Transient
         val bytes = value.map { Base64.decode(it) }
+        override fun toFileSystemValue() = bytes
     }
 
     @Serializable
-    @SerialName("bool")
-    data class Boolean(val value: kotlin.Boolean) : AgentOptionValue
+    @SerialName(TYPE_BOOLEAN)
+    data class Boolean(override val value: kotlin.Boolean) : PolymorphicAgentOptionValue<kotlin.Boolean> {
+        override fun toFileSystemValue() =
+            listOf(ByteBuffer.allocate(kotlin.Byte.SIZE_BYTES).put(if (value) 1 else 0).array())
+    }
 
     @Serializable
-    @SerialName("i8")
-    data class Byte(val value: kotlin.Byte) : AgentOptionValue
+    @SerialName(TYPE_BYTE)
+    data class Byte(override val value: kotlin.Byte) : PolymorphicAgentOptionValue<kotlin.Byte>,
+        AgentOptionIntegralValue {
+        override fun toFileSystemValue() = listOf(ByteBuffer.allocate(kotlin.Byte.SIZE_BYTES).put(value).array())
+    }
 
     @Serializable
-    @SerialName("list[i8]")
-    data class ByteList(val value: List<kotlin.Byte>) : AgentOptionValue
+    @SerialName(TYPE_BYTE_LIST)
+    data class ByteList(override val value: List<kotlin.Byte>) : PolymorphicAgentOptionValue<List<kotlin.Byte>>,
+        AgentOptionListValue<kotlin.Byte> {
+        override fun toFileSystemValue() = value.map { ByteBuffer.allocate(kotlin.Byte.SIZE_BYTES).put(it).array() }
+    }
 
     @Serializable
-    @SerialName("i16")
-    data class Short(val value: kotlin.Short) : AgentOptionValue
+    @SerialName(TYPE_SHORT)
+    data class Short(override val value: kotlin.Short) : PolymorphicAgentOptionValue<kotlin.Short>,
+        AgentOptionIntegralValue {
+        override fun toFileSystemValue() = listOf(ByteBuffer.allocate(kotlin.Short.SIZE_BYTES).putShort(value).array())
+    }
 
     @Serializable
-    @SerialName("list[i16]")
-    data class ShortList(val value: List<kotlin.Short>) : AgentOptionValue
+    @SerialName(TYPE_SHORT_LIST)
+    data class ShortList(override val value: List<kotlin.Short>) : PolymorphicAgentOptionValue<List<kotlin.Short>>,
+        AgentOptionListValue<kotlin.Short> {
+        override fun toFileSystemValue() =
+            value.map { ByteBuffer.allocate(kotlin.Short.SIZE_BYTES).putShort(it).array() }
+    }
 
     @Serializable
-    @SerialName("i32")
-    data class Int(val value: kotlin.Int) : AgentOptionValue
+    @SerialName(TYPE_INT)
+    data class Int(override val value: kotlin.Int) : PolymorphicAgentOptionValue<kotlin.Int>, AgentOptionIntegralValue {
+        override fun toFileSystemValue() = listOf(ByteBuffer.allocate(kotlin.Int.SIZE_BYTES).putInt(value).array())
+    }
 
     @Serializable
-    @SerialName("list[i32]")
-    data class IntList(val value: List<kotlin.Int>) : AgentOptionValue
+    @SerialName(TYPE_INT_LIST)
+    data class IntList(override val value: List<kotlin.Int>) : PolymorphicAgentOptionValue<List<kotlin.Int>>,
+        AgentOptionListValue<kotlin.Int> {
+        override fun toFileSystemValue() = value.map { ByteBuffer.allocate(kotlin.Int.SIZE_BYTES).putInt(it).array() }
+    }
 
     @Serializable
-    @SerialName("i64")
-    data class Long(val value: kotlin.Long) : AgentOptionValue
+    @SerialName(TYPE_LONG)
+    data class Long(override val value: kotlin.Long) : PolymorphicAgentOptionValue<kotlin.Long>,
+        AgentOptionIntegralValue {
+        override fun toFileSystemValue() = listOf(ByteBuffer.allocate(kotlin.Long.SIZE_BYTES).putLong(value).array())
+    }
 
     @Serializable
-    @SerialName("list[i64]")
-    data class LongList(val value: List<kotlin.Long>) : AgentOptionValue
+    @SerialName(TYPE_LONG_LIST)
+    data class LongList(override val value: List<kotlin.Long>) : PolymorphicAgentOptionValue<List<kotlin.Long>>,
+        AgentOptionListValue<kotlin.Long> {
+        override fun toFileSystemValue() = value.map { ByteBuffer.allocate(kotlin.Long.SIZE_BYTES).putLong(it).array() }
+    }
 
     @Serializable
-    @SerialName("u8")
-    data class UByte(val value: kotlin.UByte) : AgentOptionValue
+    @SerialName(TYPE_UNSIGNED_BYTE)
+    data class UByte(override val value: kotlin.UByte) : PolymorphicAgentOptionValue<kotlin.UByte>,
+        AgentOptionIntegralValue {
+        override fun toFileSystemValue() =
+            listOf(ByteBuffer.allocate(kotlin.UByte.SIZE_BYTES).put(value.toByte()).array())
+    }
 
     @Serializable
-    @SerialName("list[u8]")
-    data class UByteList(val value: List<kotlin.UByte>) : AgentOptionValue
+    @SerialName(TYPE_UNSIGNED_BYTE_LIST)
+    data class UByteList(override val value: List<kotlin.UByte>) : PolymorphicAgentOptionValue<List<kotlin.UByte>>,
+        AgentOptionListValue<kotlin.UByte> {
+        override fun toFileSystemValue() =
+            value.map { ByteBuffer.allocate(kotlin.UByte.SIZE_BYTES).put(it.toByte()).array() }
+    }
 
     @Serializable
-    @SerialName("u16")
-    data class UShort(val value: kotlin.UShort) : AgentOptionValue
+    @SerialName(TYPE_UNSIGNED_SHORT)
+    data class UShort(override val value: kotlin.UShort) : PolymorphicAgentOptionValue<kotlin.UShort>,
+        AgentOptionIntegralValue {
+        override fun toFileSystemValue() =
+            listOf(ByteBuffer.allocate(kotlin.UShort.SIZE_BYTES).putShort(value.toShort()).array())
+    }
 
     @Serializable
-    @SerialName("list[u16]")
-    data class UShortList(val value: List<kotlin.UShort>) : AgentOptionValue
+    @SerialName(TYPE_UNSIGNED_SHORT_LIST)
+    data class UShortList(override val value: List<kotlin.UShort>) : PolymorphicAgentOptionValue<List<kotlin.UShort>>,
+        AgentOptionListValue<kotlin.UShort> {
+        override fun toFileSystemValue() =
+            value.map { ByteBuffer.allocate(kotlin.UShort.SIZE_BYTES).putShort(it.toShort()).array() }
+    }
 
     @Serializable
-    @SerialName("u32")
-    data class UInt(val value: kotlin.UInt) : AgentOptionValue
+    @SerialName(TYPE_UNSIGNED_INT)
+    data class UInt(override val value: kotlin.UInt) : PolymorphicAgentOptionValue<kotlin.UInt>,
+        AgentOptionIntegralValue {
+        override fun toFileSystemValue() =
+            listOf(ByteBuffer.allocate(kotlin.UInt.SIZE_BYTES).putInt(value.toInt()).array())
+    }
 
     @Serializable
-    @SerialName("list[u32]")
-    data class UIntList(val value: List<kotlin.UInt>) : AgentOptionValue
+    @SerialName(TYPE_UNSIGNED_INT_LIST)
+    data class UIntList(override val value: List<kotlin.UInt>) : PolymorphicAgentOptionValue<List<kotlin.UInt>>,
+        AgentOptionListValue<kotlin.UInt> {
+        override fun toFileSystemValue() =
+            value.map { ByteBuffer.allocate(kotlin.UInt.SIZE_BYTES).putInt(it.toInt()).array() }
+    }
 
     /**
      * OpenAPI does not support unsigned long
      */
     @Serializable
-    @SerialName("u64")
-    data class ULong(val value: kotlin.String) : AgentOptionValue
+    @SerialName(TYPE_UNSIGNED_LONG)
+    data class ULong(override val value: kotlin.String) : PolymorphicAgentOptionValue<kotlin.String>,
+        AgentOptionIntegralValue {
+        override fun toFileSystemValue() =
+            listOf(ByteBuffer.allocate(kotlin.ULong.SIZE_BYTES).putLong(value.toULong().toLong()).array())
+    }
 
     /**
      * OpenAPI does not support unsigned long
      */
     @Serializable
-    @SerialName("list[u64]")
-    data class ULongList(val value: List<kotlin.String>) : AgentOptionValue
+    @SerialName(TYPE_UNSIGNED_LONG_LIST)
+    data class ULongList(override val value: List<kotlin.String>) : PolymorphicAgentOptionValue<List<kotlin.String>>,
+        AgentOptionListValue<kotlin.String> {
+        override fun toFileSystemValue() =
+            value.map { ByteBuffer.allocate(kotlin.ULong.SIZE_BYTES).putLong(it.toULong().toLong()).array() }
+    }
 
     @Serializable
-    @SerialName("f32")
-    data class Float(val value: kotlin.Float) : AgentOptionValue
+    @SerialName(TYPE_FLOAT)
+    data class Float(override val value: kotlin.Float) : PolymorphicAgentOptionValue<kotlin.Float> {
+        override fun toFileSystemValue() = listOf(ByteBuffer.allocate(kotlin.Float.SIZE_BYTES).putFloat(value).array())
+    }
 
     @Serializable
-    @SerialName("list[f32]")
-    data class FloatList(val value: List<kotlin.Float>) : AgentOptionValue
+    @SerialName(TYPE_FLOAT_LIST)
+    data class FloatList(override val value: List<kotlin.Float>) : PolymorphicAgentOptionValue<List<kotlin.Float>>,
+        AgentOptionListValue<kotlin.Float> {
+        override fun toFileSystemValue() =
+            value.map { ByteBuffer.allocate(kotlin.Float.SIZE_BYTES).putFloat(it).array() }
+    }
 
     @Serializable
-    @SerialName("f64")
-    data class Double(val value: kotlin.Double) : AgentOptionValue
+    @SerialName(TYPE_DOUBLE)
+    data class Double(override val value: kotlin.Double) : PolymorphicAgentOptionValue<kotlin.Double> {
+        override fun toFileSystemValue() =
+            listOf(ByteBuffer.allocate(kotlin.Double.SIZE_BYTES).putDouble(value).array())
+    }
 
     @Serializable
-    @SerialName("list[f64]")
-    data class DoubleList(val value: List<kotlin.Double>) : AgentOptionValue
+    @SerialName(TYPE_DOUBLE_LIST)
+    data class DoubleList(override val value: List<kotlin.Double>) : PolymorphicAgentOptionValue<List<kotlin.Double>>,
+        AgentOptionListValue<kotlin.Double> {
+        override fun toFileSystemValue() =
+            value.map { ByteBuffer.allocate(kotlin.Double.SIZE_BYTES).putDouble(it).array() }
+    }
 }
 
 /**
- * Returns a string representation of the [AgentOptionValue] suitable for use as an environment variable.
+ * Returns a string representation of the [PolymorphicAgentOptionValue] suitable for use as an environment variable.
  *
- * Note that unlike [AgentOptionValue.toFileSystemValue] this function returns a single string that represents all
- * values.  Note also that a comma separates items in a list ",".  For [AgentOptionValue.StringList] make sure
+ * Note that unlike [PolymorphicAgentOptionValue.toFileSystemValue] this function returns a single string that represents all
+ * values.  Note also that a comma separates items in a list ",".  For [PolymorphicAgentOptionValue.StringList] make sure
  * `base64 = true` if it is at all possible a given value contains a comma.
  */
-fun AgentOptionValue.asEnvVarValue(base64: Boolean = false): String = when (this) {
-    is AgentOptionValue.Blob -> value // base64
-    is AgentOptionValue.BlobList -> value.joinToString(",") { it } // base64
-    is AgentOptionValue.Boolean -> if (value) "1" else "0"
-    is AgentOptionValue.Byte -> value.toString()
-    is AgentOptionValue.ByteList -> value.joinToString(",")
-    is AgentOptionValue.Double -> value.toString()
-    is AgentOptionValue.DoubleList -> value.joinToString(",")
-    is AgentOptionValue.Float -> value.toString()
-    is AgentOptionValue.FloatList -> value.joinToString(",")
-    is AgentOptionValue.Int -> value.toString()
-    is AgentOptionValue.IntList -> value.joinToString(",")
-    is AgentOptionValue.Long -> value.toString()
-    is AgentOptionValue.LongList -> value.joinToString(",")
-    is AgentOptionValue.Short -> value.toString()
-    is AgentOptionValue.ShortList -> value.joinToString(",")
-    is AgentOptionValue.String -> if (base64) Base64.encode(value.encodeToByteArray()) else value
-    is AgentOptionValue.StringList -> value.joinToString(",") {
+fun <T> PolymorphicAgentOptionValue<T>.asEnvVarValue(base64: Boolean = false): String = when (this) {
+    is PolymorphicAgentOptionValue.StringList -> value.joinToString(",") {
         if (base64) Base64.encode(it.encodeToByteArray()) else it
     }
 
-    is AgentOptionValue.UByte -> value.toString()
-    is AgentOptionValue.UByteList -> value.joinToString(",")
-    is AgentOptionValue.UInt -> value.toString()
-    is AgentOptionValue.UIntList -> value.joinToString(",")
-    is AgentOptionValue.ULong -> value
-    is AgentOptionValue.ULongList -> value.joinToString(",")
-    is AgentOptionValue.UShort -> value.toString()
-    is AgentOptionValue.UShortList -> value.joinToString(",")
+    is AgentOptionListValue<*> -> value.joinToString(",")
+    is PolymorphicAgentOptionValue.Boolean -> if (value) "1" else "0"
+    is PolymorphicAgentOptionValue.String -> if (base64) Base64.encode(value.encodeToByteArray()) else value
+    else -> value.toString()
 }
 
+@OptIn(InternalSerializationApi::class)
+private val agentOptionValueSerializerMap: Map<String, KSerializer<out PolymorphicAgentOptionValue<*>>> =
+    PolymorphicAgentOptionValue::class.sealedSubclasses.associate { kClass ->
+        val serializer = kClass.serializer() as KSerializer<out PolymorphicAgentOptionValue<*>>
+        serializer.descriptor.serialName to serializer
+    }
+
 /**
- * Returns a list of byte arrays that represent the [AgentOptionValue] suitable for use written to a file on the
- * filesystem.  Because value lists are likely to be written to separate files, this function will return a list in all
- * cases.  When the wrapped type is not a list, a list with one value will be returned.
- *
- * Encoding notes:
- * - [AgentOptionValue.Blob] and [AgentOptionValue.BlobList] will write their bytes directly to file.
- * - [AgentOptionValue.String] and [AgentOptionValue.StringList] will be in UTF-8.
- * - [AgentOptionValue.Boolean] will be written as a single byte of the value '1' for true and '0' for false.
- * - Numeric types are written in binary, in big-endian order.
+ * Kotlinx won't serialize sealed classes that are generic with star projection.  [PolymorphicAgentOptionValue] is a
+ * sealed generic class but the type parameter does not affect serialization.  This custom serializer pretty much does
+ * what the generated one would have without throwing errors for star projection.
  */
-fun AgentOptionValue.toFileSystemValue(): List<ByteArray> = when (this) {
-    is AgentOptionValue.Blob -> listOf(bytes)
-    is AgentOptionValue.BlobList -> bytes
-    is AgentOptionValue.Boolean -> listOf(ByteBuffer.allocate(Byte.SIZE_BYTES).put(if (value) 1 else 0).array())
-    is AgentOptionValue.Byte -> listOf(ByteBuffer.allocate(Byte.SIZE_BYTES).put(value).array())
-    is AgentOptionValue.ByteList -> value.map { ByteBuffer.allocate(Byte.SIZE_BYTES).put(it).array() }
-    is AgentOptionValue.Double -> listOf(ByteBuffer.allocate(Double.SIZE_BYTES).putDouble(value).array())
-    is AgentOptionValue.DoubleList -> value.map { ByteBuffer.allocate(Double.SIZE_BYTES).putDouble(it).array() }
-    is AgentOptionValue.Float -> listOf(ByteBuffer.allocate(Float.SIZE_BYTES).putFloat(value).array())
-    is AgentOptionValue.FloatList -> value.map { ByteBuffer.allocate(Float.SIZE_BYTES).putFloat(it).array() }
-    is AgentOptionValue.Int -> listOf(ByteBuffer.allocate(Int.SIZE_BYTES).putInt(value).array())
-    is AgentOptionValue.IntList -> value.map { ByteBuffer.allocate(Int.SIZE_BYTES).putInt(it).array() }
-    is AgentOptionValue.Long -> listOf(ByteBuffer.allocate(Long.SIZE_BYTES).putLong(value).array())
-    is AgentOptionValue.LongList -> value.map { ByteBuffer.allocate(Long.SIZE_BYTES).putLong(it).array() }
-    is AgentOptionValue.Short -> listOf(ByteBuffer.allocate(Short.SIZE_BYTES).putShort(value).array())
-    is AgentOptionValue.ShortList -> value.map { ByteBuffer.allocate(Short.SIZE_BYTES).putShort(it).array() }
-    is AgentOptionValue.String -> listOf(value.encodeToByteArray())
-    is AgentOptionValue.StringList -> value.map { it.encodeToByteArray() }
-    is AgentOptionValue.UByte -> listOf(ByteBuffer.allocate(UByte.SIZE_BYTES).put(value.toByte()).array())
-    is AgentOptionValue.UByteList -> value.map { ByteBuffer.allocate(UByte.SIZE_BYTES).put(it.toByte()).array() }
-    is AgentOptionValue.UInt -> listOf(ByteBuffer.allocate(UInt.SIZE_BYTES).putInt(value.toInt()).array())
-    is AgentOptionValue.UIntList -> value.map { ByteBuffer.allocate(UInt.SIZE_BYTES).putInt(it.toInt()).array() }
-    is AgentOptionValue.ULong -> listOf(ByteBuffer.allocate(ULong.SIZE_BYTES).putLong(value.toULong().toLong()).array())
-    is AgentOptionValue.ULongList -> value.map { ByteBuffer.allocate(ULong.SIZE_BYTES).putLong(it.toULong().toLong()).array() }
-    is AgentOptionValue.UShort -> listOf(ByteBuffer.allocate(UShort.SIZE_BYTES).putShort(value.toShort()).array())
-    is AgentOptionValue.UShortList -> value.map { ByteBuffer.allocate(UShort.SIZE_BYTES).putShort(it.toShort()).array() }
+@OptIn(InternalSerializationApi::class)
+class AgentOptionValueSerializer : KSerializer<AgentOptionValue> {
+    private val discriminatorName = "type"
+
+    // Same descriptor generated by SealedClassSerializer
+    override val descriptor: SerialDescriptor = buildSerialDescriptor(
+        "AgentOptionValue",
+        PolymorphicKind.SEALED
+    ) {
+        annotations = listOf(JsonClassDiscriminator(discriminatorName), TomlClassDiscriminator(discriminatorName))
+
+        element(discriminatorName, String.serializer().descriptor)
+        element(
+            "value",
+            buildSerialDescriptor("kotlinx.serialization.Sealed<AgentOptionValue>", SerialKind.CONTEXTUAL) {
+                agentOptionValueSerializerMap.forEach { (name, serializer) ->
+                    element(name, serializer.descriptor)
+                }
+            })
+    }
+
+    override fun serialize(
+        encoder: Encoder,
+        value: AgentOptionValue
+    ) {
+        @Suppress("UNCHECKED_CAST")
+        val serializer = value::class.serializer() as KSerializer<Any>
+        encoder.encodeDiscriminatedElement(serializer, value, discriminatorName)
+    }
+
+    override fun deserialize(decoder: Decoder): AgentOptionValue {
+        val element = decoder.decodeElement()
+        val type = element.takeDiscriminator(discriminatorName)
+        val serializer = agentOptionValueSerializerMap[type] ?: throw SerializationException("Unsupported type: $type")
+
+        return decoder.decodeFromElement(serializer, element)
+    }
 }

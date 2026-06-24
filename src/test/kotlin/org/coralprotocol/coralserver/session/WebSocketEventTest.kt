@@ -14,10 +14,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.CoralTest
-import org.coralprotocol.coralserver.agent.debug.SeedDebugAgent
+import org.coralprotocol.coralserver.agent.debug.SEED_AGENT_IDENTIFIER
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.dsl.sessionRequest
 import org.coralprotocol.coralserver.events.LocalSessionManagerEvent
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.modules.WEBSOCKET_COROUTINE_SCOPE_NAME
@@ -27,7 +27,6 @@ import org.coralprotocol.coralserver.util.filterIsInstance
 import org.coralprotocol.coralserver.util.fromWsFrame
 import org.coralprotocol.coralserver.util.map
 import org.coralprotocol.coralserver.utils.TestEvent
-import org.coralprotocol.coralserver.utils.dsl.sessionRequest
 import org.coralprotocol.coralserver.utils.shouldPostEventsFromBody
 import org.koin.core.qualifier.named
 import org.koin.test.inject
@@ -48,13 +47,13 @@ class WebSocketEventTest : CoralTest({
             setBody(
                 sessionRequest {
                     agentGraphRequest {
-                        agent(SeedDebugAgent.identifier) {
+                        agent(SEED_AGENT_IDENTIFIER) {
                             provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
 
-                            option("START_DELAY", AgentOptionValue.UInt(100u))
-                            option("OPERATION_DELAY", AgentOptionValue.UInt(1u))
-                            option("SEED_THREAD_COUNT", AgentOptionValue.UInt(threadCount))
-                            option("SEED_MESSAGE_COUNT", AgentOptionValue.UInt(messageCount))
+                            unsignedIntOption("START_DELAY", 100u)
+                            unsignedIntOption("OPERATION_DELAY", 1u)
+                            unsignedIntOption("SEED_THREAD_COUNT", threadCount)
+                            unsignedIntOption("SEED_MESSAGE_COUNT", messageCount)
                         }
                         isolateAllAgents()
                     }
@@ -156,12 +155,12 @@ class WebSocketEventTest : CoralTest({
                                 name = namespaceName
                             }
                             agentGraphRequest {
-                                agent(SeedDebugAgent.identifier) {
+                                agent(SEED_AGENT_IDENTIFIER) {
                                     provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
 
-                                    option("START_DELAY", AgentOptionValue.UInt(1000u))
-                                    option("SEED_THREAD_COUNT", AgentOptionValue.UInt(1u))
-                                    option("SEED_MESSAGE_COUNT", AgentOptionValue.UInt(1u))
+                                    unsignedIntOption("START_DELAY", 1000u)
+                                    unsignedIntOption("SEED_THREAD_COUNT", 1u)
+                                    unsignedIntOption("SEED_MESSAGE_COUNT", 1u)
                                 }
                                 isolateAllAgents()
                             }
@@ -197,12 +196,12 @@ class WebSocketEventTest : CoralTest({
                         annotation("filtered", "true")
                 }
                 agentGraphRequest {
-                    agent(SeedDebugAgent.identifier) {
+                    agent(SEED_AGENT_IDENTIFIER) {
                         provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
 
-                        option("START_DELAY", AgentOptionValue.UInt(1000u))
-                        option("SEED_THREAD_COUNT", AgentOptionValue.UInt(1u))
-                        option("SEED_MESSAGE_COUNT", AgentOptionValue.UInt(1u))
+                        unsignedIntOption("START_DELAY", 1000u)
+                        unsignedIntOption("SEED_THREAD_COUNT", 1u)
+                        unsignedIntOption("SEED_MESSAGE_COUNT", 1u)
                     }
                     isolateAllAgents()
                 }

@@ -1,21 +1,28 @@
-package org.coralprotocol.coralserver.utils.dsl
+package org.coralprotocol.coralserver.dsl
 
+import io.ktor.client.*
+import io.modelcontextprotocol.kotlin.sdk.client.Client
+import org.coralprotocol.coralserver.agent.payment.AgentBudgetUnit
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
+import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOption
+import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOptionValue
 import org.coralprotocol.coralserver.agent.runtime.*
 import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeString
 import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeUrlPart
 import org.coralprotocol.coralserver.llmproxy.LlmProviderFormat
-import org.coralprotocol.coralserver.utils.TestProxy
+import org.coralprotocol.coralserver.session.LocalSession
+import org.coralprotocol.coralserver.session.SessionAgent
+import org.coralprotocol.coralserver.util.streamableHttpFunctionRuntime
 import java.nio.file.Path
 
-@TestDsl
+@CoralDsl
 class PrototypeStringBuilder {
     fun inline(value: String): PrototypeString = PrototypeString.Inline(value)
     fun option(name: String): PrototypeString = PrototypeString.Option(name)
 }
 
-@TestDsl
+@CoralDsl
 class PrototypeStringListBuilder {
     private val parts = mutableListOf<PrototypeString>()
 
@@ -44,7 +51,7 @@ class PrototypeStringListBuilder {
     fun build() = parts.toList()
 }
 
-@TestDsl
+@CoralDsl
 class UrlPartListBuilder {
     private val parts = mutableListOf<PrototypeUrlPart>()
 
@@ -67,7 +74,24 @@ class UrlPartListBuilder {
     fun build() = parts.toList()
 }
 
-@TestDsl
+data class BuiltAgentOption<T>(val name: String, val option: T) where T : AgentOption
+
+inline fun <OptionType : PolymorphicAgentOption<ValueType, BackingType>, reified ValueType : PolymorphicAgentOptionValue<BackingType>, BackingType> BuiltAgentOption<OptionType>.tryGet(
+    agent: SessionAgent
+): BackingType? {
+    val specifiedOptionValue = agent.graphAgent.options[name] ?: return null
+    val specifiedValue = specifiedOptionValue.value as? ValueType ?: return null
+
+    return specifiedValue.value
+}
+
+inline fun <OptionType : PolymorphicAgentOption<ValueType, BackingType>, reified ValueType : PolymorphicAgentOptionValue<BackingType>, BackingType> BuiltAgentOption<OptionType>.get(
+    agent: SessionAgent
+): BackingType =
+    tryGet(agent) ?: throw IllegalArgumentException("Option \"$name\" was not set")
+
+
+@CoralDsl
 class RegistryAgentBuilder(
     var name: String,
 ) {
@@ -84,7 +108,8 @@ class RegistryAgentBuilder(
     private val links: MutableMap<String, String> = linkedMapOf()
     private val capabilities: MutableSet<AgentCapability> = mutableSetOf()
     private val options: MutableMap<String, AgentOption> = mutableMapOf()
-    private val unresolvedExportSettings: MutableMap<RuntimeId, UnresolvedAgentExportSettings> = mutableMapOf()
+    private val claimTypes: MutableList<RegistryAgentClaimType> = mutableListOf()
+    private val dependencies: MutableList<RegistryAgentDependency> = mutableListOf()
     private var marketplace: RegistryAgentMarketplaceSettings? = null
     private var llm: AgentLlmConfig? = null
 
@@ -100,22 +125,104 @@ class RegistryAgentBuilder(
         capabilities.add(capability)
     }
 
-    fun option(key: String, value: AgentOption) {
-        options[key] = value
+    fun <T> option(name: String, value: T): BuiltAgentOption<T> where T : AgentOption {
+        options[name] = value
+        return BuiltAgentOption(name, value)
     }
 
-    fun exportSetting(runtime: RuntimeId, value: UnresolvedAgentExportSettings) {
-        unresolvedExportSettings[runtime] = value
+    fun claimType(name: String, description: String, dependencyName: String, cost: AgentBudgetUnit? = null) {
+        claimTypes += RegistryAgentClaimType(
+            name = name,
+            description = description,
+            dependencyName = dependencyName,
+            cost
+        )
     }
 
-    fun marketplace(block: RegistryAgentMarketplaceSettingsBuilder.() -> Unit) {
-        marketplace = RegistryAgentMarketplaceSettingsBuilder().apply(block).build()
+    fun dependency(name: String, vararg options: String) {
+        dependencies += RegistryAgentDependency(name = name, options = options.toList())
     }
 
-    fun llm(block: AgentLlmConfigBuilder.() -> Unit) {
-        llm = AgentLlmConfigBuilder().apply(block).build()
-    }
+    fun marketplace(block: RegistryAgentMarketplaceSettingsBuilder.() -> Unit) =
+        RegistryAgentMarketplaceSettingsBuilder().apply(block).build().also { marketplace = it }
 
+    fun llm(block: AgentLlmConfigBuilder.() -> Unit) =
+        AgentLlmConfigBuilder().apply(block).build().also { llm = it }
+
+    fun stringOption(name: String, block: StringAgentOptionBuilder.() -> Unit = {}) =
+        option(name, stringOption(block))
+
+    fun stringListOption(name: String, block: StringListAgentOptionBuilder.() -> Unit = {}) =
+        option(name, stringListOption(block))
+
+    fun blobOption(name: String, block: BlobAgentOptionBuilder.() -> Unit = {}) =
+        option(name, blobOption(block))
+
+    fun blobListOption(name: String, block: BlobListAgentOptionBuilder.() -> Unit = {}) =
+        option(name, blobListOption(block))
+
+    fun booleanOption(name: String, block: BooleanAgentOptionBuilder.() -> Unit = {}) =
+        option(name, booleanOption(block))
+
+    fun byteOption(name: String, block: ByteAgentOptionBuilder.() -> Unit = {}) =
+        option(name, byteOption(block))
+
+    fun byteListOption(name: String, block: ByteListAgentOptionBuilder.() -> Unit = {}) =
+        option(name, byteListOption(block))
+
+    fun shortOption(name: String, block: ShortAgentOptionBuilder.() -> Unit) =
+        option(name, shortOption(block))
+
+    fun shortListOption(name: String, block: ShortListAgentOptionBuilder.() -> Unit = {}) =
+        option(name, shortListOption(block))
+
+    fun intOption(name: String, block: IntAgentOptionBuilder.() -> Unit = {}) =
+        option(name, intOption(block))
+
+    fun intListOption(name: String, block: IntListAgentOptionBuilder.() -> Unit = {}) =
+        option(name, intListOption(block))
+
+    fun longOption(name: String, block: LongAgentOptionBuilder.() -> Unit = {}) =
+        option(name, longOption(block))
+
+    fun longListOption(name: String, block: LongListAgentOptionBuilder.() -> Unit = {}) =
+        option(name, longListOption(block))
+
+    fun unsignedByteOption(name: String, block: UByteAgentOptionBuilder.() -> Unit = {}) =
+        option(name, unsignedByteOption(block))
+
+    fun unsignedByteListOption(name: String, block: UByteListAgentOptionBuilder.() -> Unit = {}) =
+        option(name, unsignedByteListOption(block))
+
+    fun unsignedShortOption(name: String, block: UShortAgentOptionBuilder.() -> Unit = {}) =
+        option(name, unsignedShortOption(block))
+
+    fun unsignedShortListOption(name: String, block: UShortListAgentOptionBuilder.() -> Unit = {}) =
+        option(name, unsignedShortListOption(block))
+
+    fun unsignedIntOption(name: String, block: UIntAgentOptionBuilder.() -> Unit = {}) =
+        option(name, unsignedIntOption(block))
+
+    fun unsignedIntListOption(name: String, block: UIntListAgentOptionBuilder.() -> Unit = {}) =
+        option(name, unsignedIntListOption(block))
+
+    fun unsignedLongOption(name: String, block: ULongAgentOptionBuilder.() -> Unit = {}) =
+        option(name, unsignedLongOption(block))
+
+    fun unsignedLongListOption(name: String, block: ULongListAgentOptionBuilder.() -> Unit = {}) =
+        option(name, unsignedLongListOption(block))
+
+    fun floatOption(name: String, block: FloatAgentOptionBuilder.() -> Unit = {}) =
+        option(name, floatOption(block))
+
+    fun floatListOption(name: String, block: FloatListAgentOptionBuilder.() -> Unit = {}) =
+        option(name, floatListOption(block))
+
+    fun doubleOption(name: String, block: DoubleAgentOptionBuilder.() -> Unit = {}) =
+        option(name, doubleOption(block))
+
+    fun doubleListOption(name: String, block: DoubleListAgentOptionBuilder.() -> Unit = {}) =
+        option(name, doubleListOption(block))
 
     fun runtime(functionRuntime: FunctionRuntime) {
         runtimes = LocalAgentRuntimes(
@@ -124,6 +231,20 @@ class RegistryAgentBuilder(
             functionRuntime = functionRuntime,
             prototypeRuntime = runtimes.prototypeRuntime
         )
+    }
+
+    fun debugRuntime(
+        httpClient: HttpClient,
+        body: suspend (client: Client, session: LocalSession, agent: SessionAgent) -> Unit
+    ) {
+        runtime(FunctionRuntime { executionContext, runtimeContext ->
+            httpClient.streamableHttpFunctionRuntime(
+                name,
+                version
+            ) { client, session ->
+                body(client, session, executionContext.agent)
+            }.execute(executionContext, runtimeContext)
+        })
     }
 
     fun runtime(dockerRuntime: DockerRuntime) {
@@ -171,34 +292,27 @@ class RegistryAgentBuilder(
             ),
             runtimes = runtimes,
             options = options,
-            path = path,
-            unresolvedExportSettings = unresolvedExportSettings,
+            llm = llm,
             marketplace = marketplace,
-            llm = llm
+            path = path,
+            claimTypes = claimTypes,
+            dependencies = dependencies,
         )
     }
 }
 
-@TestDsl
+@CoralDsl
 class AgentLlmConfigBuilder {
-    private val proxies = mutableListOf<AgentLlmProxyRequest>()
+    val proxies = mutableListOf<AgentLlmProxyRequest>()
 
     fun proxy(name: String, format: LlmProviderFormat, vararg models: String) {
         proxies += AgentLlmProxyRequest(name, format, models.toSet())
     }
 
-    fun testProxy(testProxy: TestProxy) {
-        proxies += AgentLlmProxyRequest(
-            testProxy.providerConfig.name,
-            testProxy.providerConfig.format,
-            testProxy.providerConfig.models
-        )
-    }
-
     fun build() = AgentLlmConfig(proxies = proxies.toList())
 }
 
-@TestDsl
+@CoralDsl
 class RegistryAgentMarketplaceSettingsBuilder {
     private var pricing: RegistryAgentMarketplacePricing? = null
     private var identities: RegistryAgentMarketplaceIdentities? = null
@@ -223,7 +337,7 @@ class RegistryAgentMarketplaceSettingsBuilder {
     }
 }
 
-@TestDsl
+@CoralDsl
 class RegistryAgentMarketplacePricingBuilder(
     val description: String,
     val recommendations: RegistryAgentMarketplacePricingRecommendations
@@ -239,7 +353,7 @@ class RegistryAgentMarketplacePricingBuilder(
     }
 }
 
-@TestDsl
+@CoralDsl
 class RegistryAgentMarketplaceIdentitiesBuilder {
     private var erc8004: RegistryAgentMarketplaceIdentityErc8004? = null
 
@@ -251,7 +365,7 @@ class RegistryAgentMarketplaceIdentitiesBuilder {
         RegistryAgentMarketplaceIdentities(erc8004 = erc8004)
 }
 
-@TestDsl
+@CoralDsl
 class RegistryAgentMarketplaceIdentityErc8004Builder(val wallet: String) {
     private val endpoints: MutableList<Erc8004Endpoint> = mutableListOf()
 

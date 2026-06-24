@@ -27,7 +27,7 @@ import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.modules.LLM_PROXY_HTTP_CLIENT
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
-import org.coralprotocol.coralserver.utils.dsl.graphAgentPair
+import org.coralprotocol.coralserver.dsl.graphAgentPair
 import org.coralprotocol.coralserver.utils.shouldPostEvent
 import org.koin.core.context.loadKoinModules
 import org.koin.core.qualifier.named

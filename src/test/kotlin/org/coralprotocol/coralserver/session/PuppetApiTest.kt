@@ -11,13 +11,13 @@ import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
 import org.coralprotocol.coralserver.CoralTest
-import org.coralprotocol.coralserver.agent.debug.PuppetDebugAgent
+import org.coralprotocol.coralserver.agent.debug.PUPPET_AGENT_IDENTIFIER
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.dsl.sessionRequest
 import org.coralprotocol.coralserver.mcp.tools.*
-import org.coralprotocol.coralserver.routes.api.v1.Puppet
 import org.coralprotocol.coralserver.routes.api.v1.LocalSessions
-import org.coralprotocol.coralserver.utils.dsl.sessionRequest
+import org.coralprotocol.coralserver.routes.api.v1.Puppet
 import org.koin.test.inject
 import kotlin.time.Duration.Companion.seconds
 
@@ -38,11 +38,11 @@ class PuppetApiTest : CoralTest({
                         name = namespaceName
                     }
                     agentGraphRequest {
-                        agent(PuppetDebugAgent.identifier) {
+                        agent(PUPPET_AGENT_IDENTIFIER) {
                             name = agent1Name
                             provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
                         }
-                        agent(PuppetDebugAgent.identifier) {
+                        agent(PUPPET_AGENT_IDENTIFIER) {
                             name = agent2Name
                             provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
                         }

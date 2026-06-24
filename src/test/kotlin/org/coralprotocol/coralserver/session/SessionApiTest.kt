@@ -32,8 +32,8 @@ import kotlinx.coroutines.delay
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.CoralTest
-import org.coralprotocol.coralserver.agent.debug.SeedDebugAgent
-import org.coralprotocol.coralserver.agent.debug.ToolDebugAgent
+import org.coralprotocol.coralserver.agent.debug.SEED_AGENT_IDENTIFIER
+import org.coralprotocol.coralserver.agent.debug.TOOL_AGENT_IDENTIFIER
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentTool
 import org.coralprotocol.coralserver.agent.graph.GraphAgentToolTransport
@@ -41,18 +41,15 @@ import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
 import org.coralprotocol.coralserver.agent.registry.ListAgentRegistrySource
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
-import org.coralprotocol.coralserver.agent.registry.option.AgentOption
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.NetworkConfig
+import org.coralprotocol.coralserver.dsl.*
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.routes.api.v1.LocalSessions
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
 import org.coralprotocol.coralserver.session.state.*
 import org.coralprotocol.coralserver.util.signatureVerifiedBody
-import org.coralprotocol.coralserver.utils.dsl.*
 import org.koin.core.component.inject
 import java.util.*
 import kotlin.time.Duration.Companion.milliseconds
@@ -76,17 +73,22 @@ class SessionApiTest : CoralTest({
                 "test agents",
                 listOf(registryAgent(agentName) {
                     version = agentVersion
-                    runtime(FunctionRuntime { executionContext, _ ->
-                        val opt = executionContext.options["DELAY"]
-                        val mustCancel = executionContext.options["MUST_CANCEL"]
-                        if (opt is AgentOptionWithValue.Long)
-                            delay(opt.value.value)
 
-                        if (mustCancel is AgentOptionWithValue.Boolean && mustCancel.value.value)
+                    val delay = longOption("DELAY") {
+                        default = 200
+                    }
+                    val cancel = booleanOption("MUST_CANCEL") {
+                        default = false
+                    }
+
+                    runtime(FunctionRuntime { executionContext, _ ->
+                        val opt = delay.tryGet(executionContext.agent)
+                        if (opt != null)
+                            delay(opt.milliseconds)
+
+                        if (cancel.tryGet(executionContext.agent) == true)
                             throw AssertionError("Agent did not cancel")
                     })
-                    option("DELAY", AgentOption.Long(default = 200))
-                    option("MUST_CANCEL", AgentOption.Boolean(false))
                 })
             )
         )
@@ -96,8 +98,8 @@ class SessionApiTest : CoralTest({
                 sessionRequest {
                     agentGraphRequest {
                         agent(agentIdentifier) {
-                            option("DELAY", AgentOptionValue.Long(delay))
-                            option("MUST_CANCEL", AgentOptionValue.Boolean(cancel))
+                            longOption("DELAY", delay)
+                            booleanOption("MUST_CANCEL", cancel)
                         }
                         isolateAllAgents()
                     }
@@ -163,9 +165,9 @@ class SessionApiTest : CoralTest({
             setBody(
                 sessionRequest {
                     agentGraphRequest {
-                        agent(SeedDebugAgent.identifier) {
-                            option("SEED_THREAD_COUNT", AgentOptionValue.UInt(threadCount))
-                            option("SEED_MESSAGE_COUNT", AgentOptionValue.UInt(messageCount))
+                        agent(SEED_AGENT_IDENTIFIER) {
+                            unsignedIntOption("SEED_THREAD_COUNT", threadCount)
+                            unsignedIntOption("SEED_MESSAGE_COUNT", messageCount)
                         }
                         isolateAllAgents()
                     }
@@ -216,10 +218,12 @@ class SessionApiTest : CoralTest({
             setBody(
                 sessionRequest {
                     agentGraphRequest {
-                        agent(SeedDebugAgent.identifier) {
-                            option("OPERATION_DELAY", AgentOptionValue.UInt(1000u)) // should take 25 seconds naturally
-                            option("SEED_THREAD_COUNT", AgentOptionValue.UInt(threadCount))
-                            option("SEED_MESSAGE_COUNT", AgentOptionValue.UInt(messageCount))
+                        agent(SEED_AGENT_IDENTIFIER) {
+                            // should take 25 seconds naturally
+                            unsignedIntOption("OPERATION_DELAY", 1000u)
+
+                            unsignedIntOption("SEED_THREAD_COUNT", threadCount)
+                            unsignedIntOption("SEED_MESSAGE_COUNT", messageCount)
                         }
                         isolateAllAgents()
                     }
@@ -329,9 +333,9 @@ class SessionApiTest : CoralTest({
             setBody(
                 sessionRequest {
                     agentGraphRequest {
-                        agent(SeedDebugAgent.identifier) {
-                            option("START_DELAY", AgentOptionValue.UInt(100u))
-                            option("SEED_MESSAGE_COUNT", AgentOptionValue.UInt(1u))
+                        agent(SEED_AGENT_IDENTIFIER) {
+                            unsignedIntOption("START_DELAY", 100u)
+                            unsignedIntOption("SEED_MESSAGE_COUNT", 1u)
                             annotation("agentAnnotation", "123")
                         }
                         isolateAllAgents()
@@ -418,10 +422,10 @@ class SessionApiTest : CoralTest({
             setBody(
                 sessionRequest {
                     agentGraphRequest {
-                        agent(ToolDebugAgent.identifier) {
+                        agent(TOOL_AGENT_IDENTIFIER) {
                             provider = GraphAgentProvider.Local(RuntimeId.FUNCTION)
-                            option("TOOL_NAME", AgentOptionValue.String(toolName))
-                            option("TOOL_INPUT", AgentOptionValue.String(json.encodeToString(toolPayload)))
+                            stringOption("TOOL_NAME", toolName)
+                            stringOption("TOOL_INPUT", json.encodeToString(toolPayload))
                             toolAccess(toolName)
                         }
                         tool(
@@ -455,8 +459,8 @@ class SessionApiTest : CoralTest({
             setBody(
                 sessionRequest {
                     agentGraphRequest {
-                        agent(SeedDebugAgent.identifier) {
-                            option("START_DELAY", AgentOptionValue.UInt(250u))
+                        agent(SEED_AGENT_IDENTIFIER) {
+                            unsignedIntOption("START_DELAY", 250u)
                         }
                         isolateAllAgents()
                     }
@@ -525,10 +529,10 @@ class SessionApiTest : CoralTest({
                 setBody(
                     sessionRequest {
                         agentGraphRequest {
-                            agent(SeedDebugAgent.identifier) {
-                                option("SEED_THREAD_COUNT", AgentOptionValue.UInt(1u))
-                                option("SEED_MESSAGE_COUNT", AgentOptionValue.UInt(10u))
-                                option("OPERATION_DELAY", AgentOptionValue.UInt(100u))
+                            agent(SEED_AGENT_IDENTIFIER) {
+                                unsignedIntOption("SEED_THREAD_COUNT", 1u)
+                                unsignedIntOption("SEED_MESSAGE_COUNT", 10u)
+                                unsignedIntOption("OPERATION_DELAY", 100u)
                             }
                             isolateAllAgents()
                         }
@@ -594,8 +598,8 @@ class SessionApiTest : CoralTest({
                     setBody(
                         sessionRequest {
                             agentGraphRequest {
-                                agent(SeedDebugAgent.identifier) {
-                                    option("START_DELAY", AgentOptionValue.UInt(200u))
+                                agent(SEED_AGENT_IDENTIFIER) {
+                                    unsignedIntOption("START_DELAY", 200u)
                                 }
                                 isolateAllAgents()
                             }
@@ -656,8 +660,8 @@ class SessionApiTest : CoralTest({
                     setBody(
                         sessionRequest {
                             agentGraphRequest {
-                                agent(SeedDebugAgent.identifier) {
-                                    option("START_DELAY", AgentOptionValue.UInt(250u))
+                                agent(SEED_AGENT_IDENTIFIER) {
+                                    unsignedIntOption("START_DELAY", 250u)
                                 }
                                 isolateAllAgents()
                             }

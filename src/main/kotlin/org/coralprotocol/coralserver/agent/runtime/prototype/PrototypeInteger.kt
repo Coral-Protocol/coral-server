@@ -11,9 +11,8 @@ import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.*
 import org.coralprotocol.coralserver.agent.exceptions.PrototypeRuntimeException
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
-import org.coralprotocol.coralserver.agent.registry.option.value
+import org.coralprotocol.coralserver.agent.registry.option.AnyAgentOptionWithValue
+import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOptionValue
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 import kotlin.reflect.full.findAnnotation
 
@@ -22,30 +21,30 @@ import kotlin.reflect.full.findAnnotation
 @TomlClassDiscriminator("type")
 sealed class PrototypeInteger {
     fun resolve(executionContext: SessionAgentExecutionContext): Long = resolve(executionContext.graphAgent.options)
-    abstract fun resolve(agentOptions: Map<String, AgentOptionWithValue> = mapOf()): Long
+    abstract fun resolve(agentOptions: Map<String, AnyAgentOptionWithValue> = mapOf()): Long
 
     @Serializable
     @SerialName("inline")
     data class Inline(val value: Long) : PrototypeInteger() {
-        override fun resolve(agentOptions: Map<String, AgentOptionWithValue>): Long = value
+        override fun resolve(agentOptions: Map<String, AnyAgentOptionWithValue>): Long = value
     }
 
     @Serializable
     @SerialName("option")
     data class Option(val name: String) : PrototypeInteger() {
-        override fun resolve(agentOptions: Map<String, AgentOptionWithValue>): Long {
+        override fun resolve(agentOptions: Map<String, AnyAgentOptionWithValue>): Long {
             val option = agentOptions[name]
                 ?: throw PrototypeRuntimeException.BadOption("option \"$name\" wasn't found")
-
-            return when (val optionValue = option.value()) {
-                is AgentOptionValue.Int -> optionValue.value.toLong()
-                is AgentOptionValue.Long -> optionValue.value
-                is AgentOptionValue.Short -> optionValue.value.toLong()
-                is AgentOptionValue.UByte -> optionValue.value.toLong()
-                is AgentOptionValue.Byte -> optionValue.value.toLong()
-                is AgentOptionValue.UInt -> optionValue.value.toLong()
-                is AgentOptionValue.ULong -> optionValue.value.toULong().toLong()
-                is AgentOptionValue.UShort -> optionValue.value.toLong()
+            // TODO: generify interface providing toLong()
+            return when (val optionValue = option.value) {
+                is PolymorphicAgentOptionValue.Int -> optionValue.value.toLong()
+                is PolymorphicAgentOptionValue.Long -> optionValue.value
+                is PolymorphicAgentOptionValue.Short -> optionValue.value.toLong()
+                is PolymorphicAgentOptionValue.UByte -> optionValue.value.toLong()
+                is PolymorphicAgentOptionValue.Byte -> optionValue.value.toLong()
+                is PolymorphicAgentOptionValue.UInt -> optionValue.value.toLong()
+                is PolymorphicAgentOptionValue.ULong -> optionValue.value.toULong().toLong()
+                is PolymorphicAgentOptionValue.UShort -> optionValue.value.toLong()
                 else -> throw PrototypeRuntimeException.BadOption("option \"$name\" must have an integral type")
             }
         }

@@ -47,6 +47,12 @@ sealed interface LoggingTag {
     }
 
     @Serializable
+    @SerialName("agent_claim")
+    data class AgentClaim(val claimId: Int) : LoggingTag {
+        override val mdcMap: Map<String, String> = mapOf("claim" to claimId.toString())
+    }
+
+    @Serializable
     @SerialName("stdout")
     data class Io(val io: LoggingTagIo) : LoggingTag {
         override val mdcMap: Map<String, String> = when (io) {

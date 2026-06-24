@@ -15,12 +15,14 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.json.Json
-import org.coralprotocol.coralserver.agent.payment.AgentPaymentClaimRequest
-import org.coralprotocol.coralserver.agent.payment.AgentRemainingBudget
+import org.coralprotocol.coralserver.agent.payment.AgentClaimRequest
+import org.coralprotocol.coralserver.agent.payment.AgentClaimResult
+import org.coralprotocol.coralserver.agent.payment.BUDGET_CLAIM_ADDITIONAL_DESCRIPTION_MAX_LENGTH
 import org.coralprotocol.coralserver.payment.BlankX402Service
 import org.coralprotocol.coralserver.routes.ApiV1
 import org.coralprotocol.coralserver.routes.RouteException
 import org.coralprotocol.coralserver.session.SessionAgent
+import org.coralprotocol.coralserver.session.SessionAgentClaim
 import org.coralprotocol.coralserver.x402.X402PaymentRequired
 import org.coralprotocol.coralserver.x402.X402ProxiedResponse
 import org.coralprotocol.coralserver.x402.X402ProxyRequest
@@ -30,8 +32,8 @@ import org.koin.ktor.ext.inject
 
 @Resource("agent-rpc")
 class Rpc(val parent: ApiV1 = ApiV1()) {
-    @Resource("rental-claim")
-    class RentalClaim(val parent: Rpc = Rpc())
+    @Resource("claim")
+    class Claim(val parent: Rpc = Rpc())
 
     @Resource("x402")
     class X402(val parent: Rpc = Rpc())
@@ -41,62 +43,56 @@ fun Route.agentRpcApi() {
     val x402Service by inject<X402Service>()
     val json by inject<Json>()
 
-    post<Rpc.RentalClaim>({
-        summary = "Submit rental agent claim"
-        description = "Requests a certain amount of money to be paid for a work done by a rental agent"
-        operationId = "submitRentalClaim"
+    post<Rpc.Claim>({
+        summary = "Submit an agent claim"
+        description = "Submits a claim for work performed"
+        operationId = "submitClaim"
         securitySchemeNames("agentSecret")
         request {
-            pathParameter<String>("remoteSessionId") {
-                description = "The remote session ID"
-            }
-            body<AgentPaymentClaimRequest> {
+            body<AgentClaimRequest> {
                 description = "A description of the work done and the payment required"
             }
         }
         response {
             HttpStatusCode.OK to {
                 description = "Success"
-                body<AgentRemainingBudget> {
-                    description = "The remaining budget associated with the session"
+                body<AgentClaimResult> {
+                    description = "A response to the claim request"
                 }
             }
-            HttpStatusCode.NotFound to {
-                description = "Remote session not found"
+            HttpStatusCode.Unauthorized to {
+                description = "Bad agent secret provided"
                 body<RouteException> {
-                    description = "Exact error message and stack trace"
+                    description = "Error message"
                 }
             }
             HttpStatusCode.BadRequest to {
-                description = "No payment associated with the session"
+                description = "Invalid claim type provided"
                 body<RouteException> {
-                    description = "Exact error message and stack trace"
+                    description = "Error message"
                 }
             }
         }
-    }) { claim ->
+    }) {
         val agent = call.principal<SessionAgent>()
             ?: throw RouteException(HttpStatusCode.Unauthorized, "Unauthorized")
 
-        TODO()
-//        if (remoteSessionManager == null || aggregatedPaymentClaimManager == null)
-//            throw RouteException(HttpStatusCode.InternalServerError, "Remote sessions are disabled")
-//
-//        val request = call.receive<AgentPaymentClaimRequest>()
-//        val session = remoteSessionManager.findSession(claim.remoteSessionId)
-//            ?: throw RouteException(HttpStatusCode.NotFound, "Session not found")
-//
-//        val remainingToClaim = try {
-//           aggregatedPaymentClaimManager.addClaim(request, session)
-//        }
-//        catch (e: IllegalArgumentException) {
-//            throw RouteException(HttpStatusCode.BadRequest, e)
-//        }
-//
-//        call.respond(AgentRemainingBudget(
-//            remainingBudget = remainingToClaim,
-//            coralUsdPrice = jupiterService.coralToUsd(1.0)
-//        ))
+        val request = call.receive<AgentClaimRequest>()
+        val claim = agent.graphAgent.registryAgent.claimTypeMap[request.claimTypeName]
+            ?: throw RouteException(HttpStatusCode.BadRequest, "Invalid claim type")
+
+        call.respond(
+            agent.processClaim(
+                SessionAgentClaim.RpcClaim(
+                    claimType = claim,
+                    quantity = request.quantity,
+                    additionalDescription = request.additionalDescription?.take(
+                        BUDGET_CLAIM_ADDITIONAL_DESCRIPTION_MAX_LENGTH
+                    )
+                ),
+                autoKill = request.autoKill
+            )
+        )
     }
 
     post<Rpc.X402>({

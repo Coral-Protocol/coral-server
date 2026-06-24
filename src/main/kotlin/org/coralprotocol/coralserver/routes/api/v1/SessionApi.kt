@@ -8,7 +8,6 @@ import io.ktor.resources.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.modules.LOGGER_ROUTES
 import org.coralprotocol.coralserver.routes.ApiV1
@@ -102,7 +101,8 @@ fun Route.localSessionApi() {
         val (session, _) = localSessionManager.createSession(
             namespace,
             agentGraph,
-            sessionRequest.annotations
+            sessionRequest.annotations,
+            sessionRequest.budgetSettings
         )
 
         when (sessionRequest.execution) {

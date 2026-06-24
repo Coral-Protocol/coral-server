@@ -4,18 +4,15 @@ import io.kotest.engine.spec.tempfile
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
-import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
-import org.coralprotocol.coralserver.agent.registry.option.AgentOptionWithValue
 import org.coralprotocol.coralserver.agent.runtime.ExecutableRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.dsl.graphAgentPair
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.logging.LoggingEvent
 import org.coralprotocol.coralserver.modules.LOGGER_LOCAL_SESSION
 import org.coralprotocol.coralserver.util.isWindows
 import org.coralprotocol.coralserver.utils.TestEvent
-import org.coralprotocol.coralserver.utils.dsl.graphAgentPair
 import org.coralprotocol.coralserver.utils.shouldPostEvents
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
@@ -48,36 +45,24 @@ class ExecutableRuntimeTest : CoralTest({
                                 ExecutableRuntime(
                                     path = "powershell.exe",
                                     listOf(
-                                        "-command", """
+                                        "-command", $$"""
                                             write-output TEST_OPTION:
-                                            write-output ${'$'}env:TEST_OPTION
+                                            write-output $env:TEST_OPTION
 
                                             write-output UNIT_TEST_SECRET:
-                                            write-output ${'$'}env:UNIT_TEST_SECRET
+                                            write-output $env:UNIT_TEST_SECRET
 
                                             write-output TEST_FS_OPTION:
-                                            get-content ${'$'}env:TEST_FS_OPTION
+                                            get-content $env:TEST_FS_OPTION
                                         """.trimIndent()
                                     )
                                 )
                             )
                         }
-                        option(
-                            "TEST_OPTION", AgentOptionWithValue.String(
-                                option = AgentOption.String(),
-                                value = AgentOptionValue.String(optionValue1)
-                            )
-                        )
-                        option(
-                            "TEST_FS_OPTION", AgentOptionWithValue.String(
-                                option = run {
-                                    val opt = AgentOption.String()
-                                    opt.transport = AgentOptionTransport.FILE_SYSTEM
-                                    opt
-                                },
-                                value = AgentOptionValue.String(optionValue2)
-                            )
-                        )
+                        stringOption("TEST_OPTION", optionValue1)
+                        stringOption("TEST_FS_OPTION", optionValue2) {
+                            transport = AgentOptionTransport.FILE_SYSTEM
+                        }
                         provider = GraphAgentProvider.Local(RuntimeId.EXECUTABLE)
                     }
                 )

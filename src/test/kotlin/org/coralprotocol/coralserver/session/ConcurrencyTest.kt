@@ -7,7 +7,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.yield
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
-import org.coralprotocol.coralserver.utils.dsl.graphAgentPair
+import org.coralprotocol.coralserver.dsl.graphAgentPair
 import org.koin.core.component.inject
 
 
