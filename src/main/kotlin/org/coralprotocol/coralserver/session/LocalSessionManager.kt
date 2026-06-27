@@ -13,14 +13,12 @@ import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.events.LocalSessionManagerEvent
 import org.coralprotocol.coralserver.logging.Logger
-import org.coralprotocol.coralserver.payment.JupiterService
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
 import org.coralprotocol.coralserver.session.state.SessionNamespaceStateBase
 import org.coralprotocol.coralserver.session.state.SessionNamespaceStateExtended
 import org.coralprotocol.coralserver.session.state.SessionState
 import org.coralprotocol.coralserver.util.addJsonBodyWithSignature
 import org.coralprotocol.coralserver.util.utcTimeNow
-import org.coralprotocol.payment.blockchain.BlockchainService
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
@@ -55,8 +53,6 @@ data class AgentLocator(
 )
 
 class LocalSessionManager(
-    private val blockchainService: BlockchainService,
-    private val jupiterService: JupiterService,
     private val httpClient: HttpClient,
     private val config: NetworkConfig,
     private val json: Json,
@@ -237,9 +233,9 @@ class LocalSessionManager(
 
         // It's important that this function doesn't return until the namespace is deleted, even if
         // deleteOnLastSessionExit is true, that logic is performed on the session's invokeOnCompletion callback, so it
-        // is possible the above code for cancelling and joining agents in the sessions does NOT delete the namespace
+        // is possible the above code for cancelling and joining agents in the sessions does NOT delete the namespace.
         //
-        // namespace must be marked as deleted too to avoid double deletion
+        // The namespace must be marked as deleted too to avoid double deletion
         events.emit(LocalSessionManagerEvent.NamespaceClosed(namespace.getState().base))
         sessionNamespaces.remove(namespace.name)
     }
@@ -300,7 +296,7 @@ class LocalSessionManager(
         }
 
         // Secrets must be relinquished so that no more references to this session exist
-        session.agents.forEach { (name, agent) ->
+        session.agents.values.forEach { agent ->
             agentSecretLookup.remove(agent.secret)
         }
 

@@ -46,10 +46,12 @@ sealed class SessionEvent {
 
     @Serializable
     @SerialName("agent_sleep_start")
+    @Suppress("unused")
     data class AgentSleepStart(val name: UniqueAgentName) : SessionEvent()
 
     @Serializable
     @SerialName("agent_sleep_stop")
+    @Suppress("unused")
     data class AgentSleepStop(val name: UniqueAgentName) : SessionEvent()
 
     @Serializable

@@ -134,6 +134,7 @@ class SessionWebhooksBuilder {
 }
 
 @CoralDsl
+@Suppress("unused")
 class SessionBudgetSettingsBuilder {
     var budget: AgentBudgetUnit = AgentBudgetUnit()
     var exhaustionBehavior: SessionBudgetExhaustionBehavior = SessionBudgetExhaustionBehavior.KillAgent()
@@ -203,6 +204,7 @@ fun sessionRequest(block: SessionRequestBuilder.() -> Unit): SessionRequest =
 val Int.cents: AgentBudgetUnit
     get() = AgentBudgetUnit(this.toULong() * MICRO_CENTS_TO_CENTS)
 
+@Suppress("unused")
 val Double.cents: AgentBudgetUnit
     get() = AgentBudgetUnit((this * MICRO_CENTS_TO_CENTS.toDouble()).toULong())
 

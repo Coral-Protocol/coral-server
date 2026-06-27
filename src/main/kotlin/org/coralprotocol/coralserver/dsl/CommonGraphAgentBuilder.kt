@@ -413,6 +413,7 @@ open class GraphAgentRequestBuilder(
 }
 
 @CoralDsl
+@Suppress("unused")
 class GraphAgentBudgetSettingsBuilder {
     var budget: AgentBudgetUnit = AgentBudgetUnit()
     var exhaustionBehavior: AgentBudgetExhaustionBehavior = AgentBudgetExhaustionBehavior.ConsumeSession

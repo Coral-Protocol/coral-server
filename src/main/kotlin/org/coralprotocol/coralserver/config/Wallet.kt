@@ -8,6 +8,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 import org.coralprotocol.payment.blockchain.models.SignerConfig
 
+@Suppress("unused")
 enum class SolanaCluster(val rpcUrl: String) {
     MAIN_NET("https://api.mainnet-beta.solana.com"),
     DEV_NET("https://api.devnet.solana.com"),
@@ -30,7 +31,7 @@ sealed interface Wallet {
     val signerConfig: SignerConfig
 
     @Serializable
-    @Suppress("SpellCheckingInspection")
+    @Suppress("SpellCheckingInspection", "unused")
     @SerialName("crossmint-solana")
     data class CrossmintSolana(
         override val name: String,

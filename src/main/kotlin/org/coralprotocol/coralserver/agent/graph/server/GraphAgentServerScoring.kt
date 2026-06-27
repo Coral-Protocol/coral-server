@@ -136,6 +136,7 @@ sealed interface GraphAgentServerCustomScorer {
 
 @Serializable
 @JsonClassDiscriminator("type")
+@Suppress("unused")
 sealed interface GraphAgentServerScoring {
     fun getScore(server: GraphAgentServer): Double
 

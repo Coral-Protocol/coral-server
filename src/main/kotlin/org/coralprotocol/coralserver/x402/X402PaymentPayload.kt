@@ -3,6 +3,7 @@ package org.coralprotocol.coralserver.x402
 import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.json.JsonObject
 
+@Suppress("unused")
 data class X402PaymentPayload(
     @Description("Version of the x402 payment protocol")
     val x402Version: Int,

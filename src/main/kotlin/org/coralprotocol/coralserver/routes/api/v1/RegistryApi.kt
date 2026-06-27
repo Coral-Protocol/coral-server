@@ -51,6 +51,7 @@ fun Route.registryApi() {
         summary = "Inspect local registry agent"
         description = "Returns all details about a specific agent in the local registry"
         operationId = "inspectLocalAgent"
+        @Suppress("DuplicatedCode")
         securitySchemeNames("token")
         request {
             pathParameter<String>("agentName") {
@@ -82,6 +83,7 @@ fun Route.registryApi() {
         summary = "Inspect marketplace registry agent"
         description = "Returns all details about a specific agent in the marketplace"
         operationId = "inspectMarketplaceAgent"
+        @Suppress("DuplicatedCode")
         securitySchemeNames("token")
         request {
             pathParameter<String>("agentName") {

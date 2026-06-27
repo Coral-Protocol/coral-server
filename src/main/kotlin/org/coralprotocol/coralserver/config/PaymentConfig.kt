@@ -2,7 +2,10 @@ package org.coralprotocol.coralserver.config
 
 import kotlinx.serialization.Transient
 
+@Suppress("unused")
 const val CORAL_MAINNET_MINT = "CoRAitPvr9seu5F9Hk39vbjqA1o1XuoryHjSk1Z1q2mo"
+
+@Suppress("unused")
 const val CORAL_DEV_NET_MINT = "FBrR4v7NSoEdEE9sdRN1aE5yDeop2cseaBbfPVbJmPhf"
 
 data class PaymentConfig(

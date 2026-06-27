@@ -21,6 +21,8 @@ import kotlin.time.Duration.Companion.milliseconds
 
 const val CLAIM_AGENT_ID = "claim"
 const val CLAIM_AGENT_VERSION = "1.0.1"
+
+@Suppress("unused")
 val CLAIM_AGENT_IDENTIFIER =
     RegistryAgentIdentifier(CLAIM_AGENT_ID, CLAIM_AGENT_VERSION, AgentRegistrySourceIdentifier.Local)
 

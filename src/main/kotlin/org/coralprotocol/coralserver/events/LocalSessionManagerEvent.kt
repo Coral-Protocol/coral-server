@@ -60,6 +60,7 @@ sealed class LocalSessionManagerEvent {
         val finalState: SessionNamespaceStateBase
     ) : LocalSessionManagerEvent()
 
+    @Suppress("unused")
     fun hasSessionAnnotation(key: String, value: String): Boolean {
         return try {
             when (this) {

@@ -163,7 +163,8 @@ class LlmProxyService(
     }
 
     /**
-     * Methods: GET, POST
+     * Methods: GET and POST
+     *
      * POST body: JSON only (application/json and application/+json)
      * Responses: JSON or SSE
      * Forwarded: path, query params, provider auth, most normal headers
@@ -420,7 +421,7 @@ class LlmProxyService(
         val body = channel.readRemaining(maxRequestSize.inWholeBytes).readText()
 
         if (channel.availableForRead > 0 || !channel.isClosedForRead)
-            throw LlmProxyException.BufferOverflow("Upstream response exceeded ${maxRequestSize} limit")
+            throw LlmProxyException.BufferOverflow("Upstream response exceeded $maxRequestSize limit")
 
         return body
     }

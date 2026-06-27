@@ -14,6 +14,7 @@ import kotlin.time.Instant
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
 @JsonClassDiscriminator("type")
+@Suppress("unused")
 sealed interface RegistryAgentExtension {
     @Serializable
     @SerialName("marketplace")

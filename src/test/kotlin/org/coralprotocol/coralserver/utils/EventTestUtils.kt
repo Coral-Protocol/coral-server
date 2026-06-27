@@ -102,6 +102,7 @@ suspend fun <Event, R> CoroutineScope.shouldPostEventsFromBody(
     return shouldPostEvents(timeout, allowUnexpectedEvents, events, flow, block)
 }
 
+@Suppress("unused")
 fun <Event> Iterable<Event>.shouldHaveEvents(events: MutableList<TestEvent<Event>>) {
     this.forEach { event ->
         events.removeAll { it.predicate(event) }

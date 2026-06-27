@@ -8,6 +8,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 
 @Serializable
+@Suppress("unused")
 enum class GraphAgentServerAttributeType {
     // possibly represented as a timezone
     @SerialName("geographic_location")

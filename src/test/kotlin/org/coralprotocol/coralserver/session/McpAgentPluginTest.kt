@@ -18,6 +18,7 @@ import org.coralprotocol.coralserver.util.sseFunctionRuntime
 import org.coralprotocol.coralserver.util.streamableHttpFunctionRuntime
 import org.coralprotocol.coralserver.dsl.graphAgentPair
 import org.koin.test.inject
+import kotlin.time.Duration.Companion.seconds
 
 class McpAgentPluginTest : CoralTest({
     suspend fun testCloseSessionTool(
@@ -63,7 +64,7 @@ class McpAgentPluginTest : CoralTest({
                                 agent2Ready.complete(Unit)
 
                                 // agent1 should close the session, cancelling this coroutine
-                                delay(1000)
+                                delay(1.seconds)
                                 throw AssertionError("session should close before this exception is thrown")
                             })
                         }

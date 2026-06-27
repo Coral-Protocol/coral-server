@@ -29,7 +29,8 @@ sealed class SessionAgentClaim {
     ) : SessionAgentClaim() {
         override fun calculateCost(agent: SessionAgent): AgentBudgetUnit {
             val unitCost =
-                agent.graphAgent.budgetSettings.claimTypeCosts[claimType.name] ?: claimType.cost ?: return AgentBudgetUnit.ZERO
+                agent.graphAgent.budgetSettings.claimTypeCosts[claimType.name] ?: claimType.cost
+                ?: return AgentBudgetUnit.ZERO
 
             return unitCost * quantity
         }
@@ -41,6 +42,7 @@ sealed class SessionAgentClaim {
 
     @Serializable
     @SerialName("llm_proxy_claim")
+    @Suppress("unused")
     data class LlmProxyClaim(
         val inputTokenCount: ULong,
         val inputTokenCost: AgentBudgetUnit,

@@ -98,15 +98,15 @@ fun Application.coralServerModule(isTest: Boolean = false) {
                         }
                         .addMissingSupertypeSubtypeRelations()
                         .addJsonClassDiscriminatorProperty()
-                        .generateSwaggerSchema({
+                        .generateSwaggerSchema {
                             strictDiscriminatorProperty = true
-                        })
+                        }
                         .handleCoreAnnotations()
                         .handleSchemaAnnotations()
                         .customizeTypes { _, schema ->
                             // Mapping is broken, and one of the code generation libraries I am using checks the
                             // references here
-                            schema.discriminator?.mapping = null;
+                            schema.discriminator?.mapping = null
                         }
                         .withTitle(TitleType.SIMPLE)
                         .compileReferencingRoot(

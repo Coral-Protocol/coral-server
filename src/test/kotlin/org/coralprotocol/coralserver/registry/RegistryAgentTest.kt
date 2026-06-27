@@ -466,6 +466,7 @@ class RegistryAgentTest : CoralTest({
 
         // not secure (not https)
         shouldThrow<RegistryException> {
+            @Suppress("HttpUrlsUsage")
             agentWithLinks(mapOf("bad" to "http://example.com")).validate()
         }
 

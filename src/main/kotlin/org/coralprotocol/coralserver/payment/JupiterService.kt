@@ -82,6 +82,7 @@ class JupiterService(private val json: Json) {
      *
      *  @param coralAmount The Coral amount to convert.
      */
+    @Suppress("unused")
     suspend fun coralToUsd(coralAmount: Double): Double {
         return coralAmount * getPrice().usdPrice
     }
@@ -90,6 +91,7 @@ class JupiterService(private val json: Json) {
      * Converts a given Coral token count to USD cents.
      * Important notes: @see coralToUsdCents
      */
+    @Suppress("unused")
     suspend fun usdToCoral(usdAmount: Double): Double {
         return usdAmount / getPrice().usdPrice
     }

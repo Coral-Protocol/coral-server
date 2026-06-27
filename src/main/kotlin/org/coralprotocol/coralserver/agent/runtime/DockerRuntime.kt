@@ -42,7 +42,7 @@ data class DockerRuntime(
 
         val docker = applicationRuntimeContext.dockerClient
         val sanitisedImageName =
-            docker.sanitizeDockerImageName(image, executionContext.registryAgent.identifier, executionContext.logger)
+            sanitizeDockerImageName(image, executionContext.registryAgent.identifier, executionContext.logger)
         var containerId: String? = null
 
         try {
@@ -135,7 +135,7 @@ data class DockerRuntime(
     }
 }
 
-private fun DockerClient.sanitizeDockerImageName(
+private fun sanitizeDockerImageName(
     imageName: String,
     id: RegistryAgentIdentifier,
     logger: LoggingInterface

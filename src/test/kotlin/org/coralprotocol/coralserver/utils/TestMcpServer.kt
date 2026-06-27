@@ -51,6 +51,7 @@ data class TestToolInput(
 )
 
 @Resource("test-mcp-server")
+@Suppress("unused")
 class TestMcpResource {
     @Resource("no-auth")
     class NoAuth {
@@ -74,7 +75,7 @@ class TestMcpResource {
 /**
  * A test MCP that can be used for testing prototype runtimes toolServer configuration.  Note that SSE is not used here
  * because of a kotlin-sdk bug where rejecting a client for having the incorrect authentication will result in the
- * client waiting for it's timeout before failing.
+ * client waiting for its timeout before failing.
  */
 class TestMcpServer(
     val toolName: String = "test_tool",

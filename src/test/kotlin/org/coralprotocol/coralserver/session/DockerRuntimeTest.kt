@@ -65,7 +65,7 @@ class DockerRuntimeTest : CoralTest({
             DockerClientImpl.getInstance(dockerClientConfig, httpClient)
                 .pingCmd().exec()
 
-            return true;
+            return true
         } catch (_: Exception) {
             return false
         }

@@ -9,6 +9,7 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 
 @Serializable
 @JsonClassDiscriminator("type")
+@Suppress("unused")
 sealed interface GraphAgentServerSource {
     @Serializable
     @SerialName("servers")

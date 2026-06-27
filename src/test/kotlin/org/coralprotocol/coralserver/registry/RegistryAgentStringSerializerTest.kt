@@ -15,7 +15,6 @@ import kotlinx.serialization.SerializationException
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.registry.MAXIMUM_SUPPORTED_AGENT_VERSION
 import org.coralprotocol.coralserver.agent.registry.UnresolvedRegistryAgent
-import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOption
 import org.coralprotocol.coralserver.agent.registry.stringReferenceConstants
 import org.koin.test.inject

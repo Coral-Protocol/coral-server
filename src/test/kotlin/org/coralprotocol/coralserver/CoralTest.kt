@@ -223,8 +223,6 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
                                     module {
                                         single {
                                             LocalSessionManager(
-                                                blockchainService = get(),
-                                                jupiterService = get(),
                                                 httpClient = get(),
                                                 config = get(),
                                                 json = get(),
