@@ -10,19 +10,10 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
-import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
-import org.coralprotocol.coralserver.agent.graph.toRemote
-import org.coralprotocol.coralserver.agent.payment.AgentClaimAmount
-import org.coralprotocol.coralserver.agent.payment.PaidAgent
-import org.coralprotocol.coralserver.agent.payment.toMicroCoral
-import org.coralprotocol.coralserver.agent.payment.toUsd
-import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
 import org.coralprotocol.coralserver.config.NetworkConfig
 import org.coralprotocol.coralserver.events.LocalSessionManagerEvent
 import org.coralprotocol.coralserver.logging.Logger
-import org.coralprotocol.coralserver.payment.BlankBlockchainService
 import org.coralprotocol.coralserver.payment.JupiterService
-import org.coralprotocol.coralserver.payment.utils.SessionIdUtils
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
 import org.coralprotocol.coralserver.session.state.SessionNamespaceStateBase
 import org.coralprotocol.coralserver.session.state.SessionNamespaceStateExtended
@@ -30,7 +21,6 @@ import org.coralprotocol.coralserver.session.state.SessionState
 import org.coralprotocol.coralserver.util.addJsonBodyWithSignature
 import org.coralprotocol.coralserver.util.utcTimeNow
 import org.coralprotocol.payment.blockchain.BlockchainService
-import org.coralprotocol.payment.blockchain.models.SessionInfo
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
@@ -115,56 +105,6 @@ class LocalSessionManager(
     }
 
     /**
-     * Creates a payment session for an [AgentGraph] if [blockchainService] is not null (meaning wallet information was
-     * set up on the server) and there are paid agents in the graph.  Null will be returned otherwise.
-     */
-    suspend fun createPaymentSession(agentGraph: AgentGraph): SessionInfo? {
-        val paymentGraph = agentGraph.toPayment()
-        if (paymentGraph.paidAgents.isEmpty())
-            return null
-
-        if (blockchainService is BlankBlockchainService)
-            throw IllegalStateException("Payment services are disabled")
-
-        val paymentSessionId = UUID.randomUUID().toString()
-        val agents = mutableListOf<PaidAgent>()
-
-        var fundAmount = 0L
-        for (agent in paymentGraph.paidAgents) {
-            val id = agent.registryAgent.identifier
-            val provider = agent.provider
-            if (provider !is GraphAgentProvider.RemoteRequest)
-                throw IllegalArgumentException("createPaymentSession given non remote agent ${agent.name}")
-
-            val maxCostMicro = provider.maxCost.toMicroCoral(jupiterService)
-            fundAmount += maxCostMicro
-
-            val resolvedRemote = provider.toRemote(id, paymentSessionId)
-
-            agents.add(
-                PaidAgent(
-                    id = agent.name,
-                    cap = maxCostMicro,
-                    developer = resolvedRemote.wallet
-                )
-            )
-
-            // Important! Replace the RemoteRequest with the resolved Remote type
-            agent.provider = resolvedRemote
-        }
-
-        val maxCostUsd = AgentClaimAmount.MicroCoral(fundAmount).toUsd(jupiterService)
-        logger.info { "Created funded payment session with maxCost = $fundAmount ($maxCostUsd USD)" }
-
-        return blockchainService.createAndFundEscrowSession(
-            agents = agents.map { it.toBlockchainModel() },
-            mintPubkey = CORAL_MAINNET_MINT,
-            sessionId = SessionIdUtils.uuidToSessionId(SessionIdUtils.generateSessionUuid()),
-            fundingAmount = fundAmount,
-        ).getOrThrow()
-    }
-
-    /**
      * Creates a new namespace with settings specified by a [SessionNamespaceRequest]
      *
      * @throws SessionException.InvalidNamespace if name specified in [SessionNamespaceRequest.name] is already taken
@@ -199,7 +139,6 @@ class LocalSessionManager(
         val session = LocalSession(
             id = sessionId,
             namespace = namespace,
-            paymentSessionId = createPaymentSession(agentGraph)?.sessionId,
             agentGraph = agentGraph,
             sessionManager = this,
             annotations = sessionAnnotations,
@@ -348,7 +287,7 @@ class LocalSessionManager(
     suspend fun handleSessionClose(
         session: LocalSession,
         namespace: LocalSessionNamespace,
-        cause: Throwable?,
+        @Suppress("unused") cause: Throwable?,
         settings: SessionRuntimeSettings
     ) {
         session.status.update {

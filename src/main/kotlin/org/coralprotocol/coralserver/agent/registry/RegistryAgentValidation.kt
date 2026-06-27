@@ -79,6 +79,7 @@ val AGENT_LLM_PROXY_MODEL_LENGTH = 1..128
 
 // [marketplace.identities.erc8004]
 const val AGENT_MARKETPLACE_ERC8004_ENDPOINTS_MAX_ENTRIES = 32
+val AGENT_MARKETPLACE_ERC8004_WALLET_SIZE = 25..32
 val AGENT_MARKETPLACE_ERC8004_ENDPOINTS_NAME_LENGTH = 1..32
 val AGENT_MARKETPLACE_ERC8004_ENDPOINTS_NAME_PATTERN = "^[a-zA-Z][a-zA-Z_\\-0-9]*$".toRegex()
 val AGENT_MARKETPLACE_ERC8004_ENDPOINTS_ENDPOINT_LENGTH = 1..256
@@ -183,7 +184,7 @@ private fun validateUri(
             )
         }
     } catch (e: URISyntaxException) {
-        throw RegistryException("\"$name\" is not a valid URL: ${e.message}")
+        throw RegistryException("\"$name\" is not a valid URL: ${e.message}", e)
     }
 }
 
@@ -309,7 +310,7 @@ private fun RegistryAgent.validateVersion() {
     try {
         Version.parse(version)
     } catch (e: VersionFormatException) {
-        throw RegistryException("invalid version provided for \"agent.version\": ${e.message}")
+        throw RegistryException("invalid version provided for \"agent.version\": ${e.message}", e)
     }
 }
 
@@ -580,10 +581,13 @@ private fun RegistryAgent.validateMarketplace() {
     if (erc8004 != null) {
         try {
             val bytes = Base58.decode(erc8004.wallet)
-            if (bytes.size !in 25..32)
+            if (bytes.size !in AGENT_MARKETPLACE_ERC8004_WALLET_SIZE)
                 throw RegistryException("marketplace.identities.erc8004.wallet must be between 25 and 32 bytes long, was ${bytes.size}")
         } catch (e: AddressFormatException) {
-            throw RegistryException("marketplace.identities.erc8004.wallet is not a valid Base58-encoded wallet address: ${e.message}")
+            throw RegistryException(
+                "marketplace.identities.erc8004.wallet is not a valid Base58-encoded wallet address: ${e.message}",
+                e
+            )
         }
 
         if (erc8004.endpoints.size > AGENT_MARKETPLACE_ERC8004_ENDPOINTS_MAX_ENTRIES)

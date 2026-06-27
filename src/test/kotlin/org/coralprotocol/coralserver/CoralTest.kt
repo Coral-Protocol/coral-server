@@ -70,8 +70,8 @@ abstract class CoralTest(body: CoralTest.() -> Unit) : KoinTest, FunSpec(body as
 
     // Test cases that rely on proxies must use these functions with the `enabledIf` config instead of `enabled` because
     // the config is evaluated before the above proxies are initialized
-    fun hasOpenAIProxy(testCase: TestCase) = openAIProxy != null
-    fun hasAnthropicProxy(testCase: TestCase) = anthropicProxy != null
+    fun hasOpenAIProxy(@Suppress("unused") testCase: TestCase) = openAIProxy != null
+    fun hasAnthropicProxy(@Suppress("unused") testCase: TestCase) = anthropicProxy != null
 
     fun HttpRequestBuilder.withAuthToken() {
         headers.append(HttpHeaders.Authorization, "Bearer $authToken")

@@ -1,0 +1,42 @@
+config:
+  validation: true
+  warningsAsErrors: true
+
+style:
+  active: true
+  NewLineAtEndOfFile:
+    active: false
+  WildcardImport:
+    active: false
+  MaxLineLength:
+    active: false
+  ThrowsCount:
+    active: false
+  LoopWithTooManyJumpStatements:
+    active: false
+  ReturnCount:
+    max: 7
+  ForbiddenComment:
+    severity: "Warning"
+
+naming:
+  MatchingDeclarationName:
+    active: false
+
+complexity:
+  ComplexCondition:
+    allowedConditions: 10
+  LongMethod:
+    active: false
+  CyclomaticComplexMethod:
+    active: false
+
+  # dsl classes make this near impossible to set a meaningful threshold for
+  TooManyFunctions:
+    active: false
+
+exceptions:
+  PrintStackTrace:
+    active: false
+  TooGenericExceptionCaught:
+    active: false

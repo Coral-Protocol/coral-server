@@ -58,7 +58,7 @@ object LlmProxyHeaders {
         }
     }
 
-    fun extractAgentKey(call: ApplicationCall, request: LlmProxyRequest): String? {
+    internal fun extractAgentKey(call: ApplicationCall, request: LlmProxyRequest): String? {
         return when (val authStyle = request.model.providerConfig.format.authStyle) {
             is LlmProviderAuthStyle.Bearer -> {
                 val authHeader = call.request.headers[HttpHeaders.Authorization] ?: return null

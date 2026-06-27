@@ -1,13 +1,7 @@
 package org.coralprotocol.coralserver.util
 
 import io.github.smiley4.schemakenerator.jsonschema.data.CompiledJsonSchemaData
-import io.github.smiley4.schemakenerator.jsonschema.jsonDsl.JsonArray
-import io.github.smiley4.schemakenerator.jsonschema.jsonDsl.JsonBooleanValue
-import io.github.smiley4.schemakenerator.jsonschema.jsonDsl.JsonNode
-import io.github.smiley4.schemakenerator.jsonschema.jsonDsl.JsonNullValue
-import io.github.smiley4.schemakenerator.jsonschema.jsonDsl.JsonNumericValue
-import io.github.smiley4.schemakenerator.jsonschema.jsonDsl.JsonObject
-import io.github.smiley4.schemakenerator.jsonschema.jsonDsl.JsonTextValue
+import io.github.smiley4.schemakenerator.jsonschema.jsonDsl.*
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 

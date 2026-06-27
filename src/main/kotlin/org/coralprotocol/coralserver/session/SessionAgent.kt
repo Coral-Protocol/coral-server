@@ -531,6 +531,7 @@ class SessionAgent(
      * configured to kill the agent or session, calling this function may result in the exit of the agent or the
      * session.
      */
+    @Suppress("NestedBlockDepth")
     suspend fun processClaim(claim: SessionAgentClaim, autoKill: Boolean): AgentClaimResult {
         var remainingClaim = claim.calculateCost(this)
         var totalClaimed = AgentBudgetUnit.ZERO

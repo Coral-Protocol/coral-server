@@ -38,8 +38,7 @@ sealed interface RegistryAgentRestriction {
     @Description("This agent can only be run on remote servers")
     object RemoteOnly : RegistryAgentRestriction {
         override fun requireNotRestricted(request: GraphAgentRequest) {
-            if (request.provider !is GraphAgentProvider.RemoteRequest)
-                throw SessionException.RestrictedRegistry("Agent ${request.id} may only be run on remote servers")
+            TODO("Not yet implemented")
         }
     }
 

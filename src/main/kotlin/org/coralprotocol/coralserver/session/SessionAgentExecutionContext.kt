@@ -12,7 +12,6 @@ import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.DebugConfig
 import org.coralprotocol.coralserver.config.DockerConfig
-import org.coralprotocol.coralserver.config.LlmProxyConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.session.reporting.SessionAgentUsageReport
@@ -41,8 +40,6 @@ class SessionAgentExecutionContext(
 
     val debugConfig by inject<DebugConfig>()
     val dockerConfig by inject<DockerConfig>()
-    val llmProxyConfig by inject<LlmProxyConfig>()
-
     val disposableResources = mutableListOf<SessionAgentDisposableResource>()
 
     var lastLaunchTime: Instant? = null
@@ -124,10 +121,6 @@ class SessionAgentExecutionContext(
             if (agent.graphAgent.systemPrompt != null)
                 this["CORAL_PROMPT_SYSTEM"] = agent.graphAgent.systemPrompt
 
-            if (agent.graphAgent.provider is GraphAgentProvider.Remote)
-                this["CORAL_REMOTE_AGENT"] = "1"
-
-
             for ((name, model) in agent.graphAgent.proxies) {
                 this["CORAL_PROXY_URL_${name}"] = applicationRuntimeContext.getLlmProxyUrl(
                     this@SessionAgentExecutionContext,
@@ -145,16 +138,10 @@ class SessionAgentExecutionContext(
      * Routing function to call [executeLocal] or [executeRemote]
      */
     suspend fun launch() {
-        if (provider is GraphAgentProvider.RemoteRequest)
-            throw IllegalArgumentException("SessionAgent tried to execute an unresolved RemoteRequest")
-
         try {
             handleRuntimeStarted()
             if (provider is GraphAgentProvider.Local)
                 launchLocal(provider)
-
-            if (provider is GraphAgentProvider.Remote)
-                launchRemote(provider)
         } catch (_: CancellationException) {
             logger.info { "Agent ${agent.name} cancelled" }
         } catch (e: Exception) {
@@ -176,13 +163,6 @@ class SessionAgentExecutionContext(
             ?: throw java.lang.IllegalArgumentException("The requested runtime: ${provider.runtime} is not supported")
 
         runtime.execute(this@SessionAgentExecutionContext, applicationRuntimeContext)
-    }
-
-    /**
-     * Execution logic for [GraphAgentProvider.Remote]
-     */
-    suspend fun launchRemote(provider: GraphAgentProvider.Remote) {
-        TODO()
     }
 
     /**

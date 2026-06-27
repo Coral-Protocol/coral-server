@@ -6,6 +6,7 @@ import java.util.*
 
 const val MICRO_CENTS_TO_CENTS: ULong = 1_000_000U
 const val MICRO_CENTS_TO_DOLLARS: ULong = 100_000_000U
+const val AGENT_BUDGET_UNIT_FRACTION_DIGITS = 8
 
 /**
  * Micro-cents (one-millionth of a cent) are used because of token cost.  LLM providers often choose to price their
@@ -41,7 +42,7 @@ value class AgentBudgetUnit(val value: ULong = 0UL) : Comparable<AgentBudgetUnit
 
     override fun toString(): String =
         NumberFormat.getCurrencyInstance(Locale.US).apply {
-            maximumFractionDigits = 8
+            maximumFractionDigits = AGENT_BUDGET_UNIT_FRACTION_DIGITS
         }.format(value.toDouble() / MICRO_CENTS_TO_DOLLARS.toDouble())
 
     companion object {

@@ -235,7 +235,6 @@ fun Application.coralServerModule(isTest: Boolean = false) {
         }
 
         // safe interfaces, not subject to auth
-        agentRentalApi()
         if (!isTest)
             documentationInterface()
 

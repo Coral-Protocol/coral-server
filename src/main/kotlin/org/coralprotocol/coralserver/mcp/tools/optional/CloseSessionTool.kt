@@ -13,7 +13,7 @@ data class CloseSessionInput(
     val reason: String,
 )
 
-fun closeSessionExecutor(agent: SessionAgent, arguments: CloseSessionInput): GenericSuccessOutput {
+fun closeSessionExecutor(agent: SessionAgent, @Suppress("unused") arguments: CloseSessionInput): GenericSuccessOutput {
     try {
         agent.session.cancelAgents()
 

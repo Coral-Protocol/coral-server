@@ -254,7 +254,7 @@ fun <T> PolymorphicAgentOptionValue<T>.asEnvVarValue(base64: Boolean = false): S
 @OptIn(InternalSerializationApi::class)
 private val agentOptionValueSerializerMap: Map<String, KSerializer<out PolymorphicAgentOptionValue<*>>> =
     PolymorphicAgentOptionValue::class.sealedSubclasses.associate { kClass ->
-        val serializer = kClass.serializer() as KSerializer<out PolymorphicAgentOptionValue<*>>
+        val serializer = kClass.serializer()
         serializer.descriptor.serialName to serializer
     }
 

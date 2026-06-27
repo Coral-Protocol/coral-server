@@ -7,11 +7,13 @@ data class LoggingConfig(
     /**
      * The number of logging events to store in memory
      */
+    @Suppress("MagicNumber")
     val logBufferSize: UInt = 32u * 1024u,
 
     /**
      * Maximum number of logging events to replay to a new subscriber, regardless of what they requested
      */
+    @Suppress("MagicNumber")
     val maxReplay: UInt = 2048u,
 
     /**

@@ -9,18 +9,15 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 
 @Serializable
 @JsonClassDiscriminator("type")
-sealed class GraphAgentServerSource {
+sealed interface GraphAgentServerSource {
     @Serializable
     @SerialName("servers")
     data class Servers(
         val servers: List<GraphAgentServer>
-    ) : GraphAgentServerSource()
+    ) : GraphAgentServerSource
 
-    // TODO: implement this properly!
-    // an indexer will be a server that will provide another list of servers to query.  We will allow people to host
-    // their own indexers and we will also provide an indexer connected to our agent marketplace.
+
     @Serializable
-    data class Indexer(
-        val indexer: String
-    ) : GraphAgentServerSource()
+    @SerialName("marketplace")
+    object Marketplace : GraphAgentServerSource
 }

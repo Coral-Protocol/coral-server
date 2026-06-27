@@ -4,7 +4,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
-import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.koin.core.component.KoinComponent
 
 typealias SessionId = String
@@ -21,11 +20,6 @@ abstract class Session(parentScope: CoroutineScope, supervisedSessions: Boolean 
      * Budget settings for this session
      */
     abstract val budgetSettings: SessionBudgetSettings
-
-    /**
-     * Optional payment session ID for this session, attached if there are paid agents involved.
-     */
-    open val paymentSessionId: PaymentSessionId? = null
 
     /**
      * Coroutine scope for this session

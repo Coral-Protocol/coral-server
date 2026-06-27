@@ -1,8 +1,5 @@
 package org.coralprotocol.coralserver.config
 
-import com.sksamuel.hoplite.ConfigAlias
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.util.isWindows
 import java.io.File
 

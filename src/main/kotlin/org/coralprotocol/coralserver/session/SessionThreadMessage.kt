@@ -5,10 +5,8 @@ package org.coralprotocol.coralserver.session
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import kotlinx.serialization.json.*
 import org.coralprotocol.coralserver.agent.graph.UniqueAgentName
-import org.coralprotocol.coralserver.models.Telemetry
 import org.coralprotocol.coralserver.util.InstantSerializer
 import org.coralprotocol.coralserver.util.utcTimeNow
 import java.util.*
@@ -25,9 +23,6 @@ data class SessionThreadMessage(
     val text: String,
     val senderName: UniqueAgentName,
     val mentionNames: Set<UniqueAgentName>,
-
-    @Transient
-    val telemetry: Telemetry? = null,
 
     @Serializable(with = InstantSerializer::class)
     @Suppress("unused")

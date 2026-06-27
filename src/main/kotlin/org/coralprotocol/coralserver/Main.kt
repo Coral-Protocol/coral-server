@@ -64,7 +64,7 @@ fun main(args: Array<String>) {
             server.stop()
         })
         server.start(wait = true)
-    } catch (e: Exception) {
+    } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
         if (e.hasCause(BindException::class)) {
             // Those familiar with cause-first style Exceptions will see stacktrace first and don't need guidance.
             e.printStackTrace()
@@ -77,8 +77,9 @@ fun main(args: Array<String>) {
     }
 }
 
+private const val SEPARATOR_LENGTH = 60
 private fun printBindExceptionGuidance(port: UShort) {
-    println("\n\n${"=".repeat(60)}")
+    println("\n\n${"=".repeat(SEPARATOR_LENGTH)}")
     println("Probably port $port is already in use.")
     println("Likely another Coral instance is already running.")
     println("Please close the other instance and try again.")
@@ -92,7 +93,7 @@ private fun printBindExceptionGuidance(port: UShort) {
         println("lsof -t -i :$port | xargs kill -9")
         println()
     }
-    println("${"=".repeat(60)}\n\n")
+    println("${"=".repeat(SEPARATOR_LENGTH)}\n\n")
 }
 
 private fun Throwable.hasCause(type: KClass<out Throwable>) =

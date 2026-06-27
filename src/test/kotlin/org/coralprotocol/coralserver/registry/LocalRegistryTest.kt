@@ -27,7 +27,9 @@ class LocalRegistryTest : CoralTest({
             mutableListOf(RegistryAgentCatalog(testAgentName, listOf(testAgentVersion)))
 
         override suspend fun resolveAgent(agent: RegistryAgentIdentifier): RestrictedRegistryAgent {
-            if (agent.name != testAgentName) throw Exception("Agent not found")
+            if (agent.name != testAgentName)
+                throw RegistryException("Agent not found")
+
             return RestrictedRegistryAgent(testAgent, setOf(RegistryAgentRestriction.RemoteOnly))
         }
     }

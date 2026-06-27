@@ -1,6 +1,5 @@
 package org.coralprotocol.coralserver.config
 
-import java.nio.file.Path
 import kotlin.time.Duration
 
 data class RegistryConfig(

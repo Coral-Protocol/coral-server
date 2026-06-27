@@ -14,9 +14,7 @@ import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.logging.LoggingTag
 import org.coralprotocol.coralserver.modules.LOGGER_LOCAL_SESSION
-import org.coralprotocol.coralserver.payment.PaymentSessionId
 import org.coralprotocol.coralserver.routes.api.v1.LocalSessions
-import org.coralprotocol.coralserver.session.remote.RemoteSession
 import org.coralprotocol.coralserver.session.state.SessionStateBase
 import org.coralprotocol.coralserver.session.state.SessionStateExtended
 import org.coralprotocol.coralserver.util.utcTimeNow
@@ -52,7 +50,6 @@ import kotlin.time.ExperimentalTime
  */
 class LocalSession(
     override val id: SessionId,
-    override val paymentSessionId: PaymentSessionId? = null,
     val namespace: LocalSessionNamespace,
     agentGraph: AgentGraph,
     sessionManager: LocalSessionManager,
