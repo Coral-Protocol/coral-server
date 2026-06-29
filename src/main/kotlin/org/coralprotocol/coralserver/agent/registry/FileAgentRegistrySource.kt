@@ -278,14 +278,14 @@ class FileAgentRegistrySource(
                     addAgent(agent)
                     watchSingleAgent(agentFile, agent)
                     logger.info { "agent updated: ${agent.identifier} - ${normalizedPathString(agentFile)}" }
-                    return
                 } else {
                     logger.warn { "cannot add agent from file \"${normalizedPathString(agentFile)}\" because the identifier \"${agent.identifier}\" is already taken" }
 
                     // can still watch this agent though
                     watchSingleAgent(agentFile, null)
-                    return
                 }
+
+                return
             }
 
             addAgent(agent)
@@ -341,7 +341,6 @@ class FileAgentRegistrySource(
                     for (event in channel) {
                         try {
                             // Receiver scope is this coroutine; cancel() inside handler will cancel this job
-                            @Suppress("DeferredResultUnused")
                             handler(this, event)
                         } catch (_: CancellationException) {
                             break

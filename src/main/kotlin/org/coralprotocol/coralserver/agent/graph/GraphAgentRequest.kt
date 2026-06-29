@@ -75,10 +75,7 @@ data class GraphAgentRequest(
      *
      * @throws IllegalArgumentException if the agent registry cannot be resolved.
      */
-    suspend fun toGraphAgent(
-        customTools: Map<String, GraphAgentTool> = mapOf(),
-        isRemote: Boolean = false
-    ): GraphAgent {
+    suspend fun toGraphAgent(customTools: Map<String, GraphAgentTool> = mapOf()): GraphAgent {
         val restrictedRegistryAgent = agentRegistry.resolveAgent(id)
         restrictedRegistryAgent.restrictions.forEach { it.requireNotRestricted(this) }
 
@@ -112,7 +109,7 @@ data class GraphAgentRequest(
             try {
                 optionValue.validateValue()
             } catch (e: AgentOptionValidationException) {
-                throw AgentRequestException("Value given for option \"$optionName\" is invalid: ${e.message}")
+                throw AgentRequestException("Value given for option \"$optionName\" is invalid: ${e.message}", e)
             }
         }
 
@@ -126,7 +123,7 @@ data class GraphAgentRequest(
                 null -> try {
                     request.name to llmProxyService.resolveAgentProxyRequest(request)
                 } catch (e: LlmProxyException) {
-                    throw AgentRequestException("Could not resolve proxy request for agent $id: ${e.message}")
+                    throw AgentRequestException("Could not resolve proxy request for agent $id: ${e.message}", e)
                 }
 
                 else -> {

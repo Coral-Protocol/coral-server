@@ -16,20 +16,11 @@ data class RestrictedRegistryAgent(
     val registryAgent: RegistryAgent,
     val restrictions: Set<RegistryAgentRestriction> = setOf(),
     val extension: RegistryAgentExtension? = null
-) {
-    fun toPublic() = PublicRestrictedRegistryAgent(registryAgent.toPublic(), restrictions, extension)
-}
-
-@Serializable
-@Description("Represents an agent that can have restrictions on where it can run.")
-data class PublicRestrictedRegistryAgent(
-    val registryAgent: PublicRegistryAgent,
-    val restrictions: Set<RegistryAgentRestriction>,
-    val extension: RegistryAgentExtension? = null
 )
 
 @Serializable
 @JsonClassDiscriminator("type")
+@Suppress("unused")
 sealed interface RegistryAgentRestriction {
     fun requireNotRestricted(request: GraphAgentRequest)
 
@@ -38,8 +29,7 @@ sealed interface RegistryAgentRestriction {
     @Description("This agent can only be run on remote servers")
     object RemoteOnly : RegistryAgentRestriction {
         override fun requireNotRestricted(request: GraphAgentRequest) {
-            if (request.provider !is GraphAgentProvider.RemoteRequest)
-                throw SessionException.RestrictedRegistry("Agent ${request.id} may only be run on remote servers")
+            TODO("Not yet implemented")
         }
     }
 

@@ -20,16 +20,15 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgentToolTransport
 import org.coralprotocol.coralserver.agent.runtime.PrototypeRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.agent.runtime.prototype.*
-import org.coralprotocol.coralserver.agent.runtime.prototype.PrototypeInteger
 import org.coralprotocol.coralserver.config.LlmProxyProviderConfig
 import org.coralprotocol.coralserver.config.NetworkConfig
+import org.coralprotocol.coralserver.dsl.graphAgentPair
 import org.coralprotocol.coralserver.llmproxy.LlmProxiedModel
 import org.coralprotocol.coralserver.logging.Logger
 import org.coralprotocol.coralserver.mcp.buildToolSchema
 import org.coralprotocol.coralserver.modules.LOGGER_TEST
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.util.signatureVerifiedBody
-import org.coralprotocol.coralserver.dsl.graphAgentPair
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named

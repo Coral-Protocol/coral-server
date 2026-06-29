@@ -42,7 +42,6 @@ sealed class AgentRegistrySourceIdentifier {
  */
 @Serializable
 open class AgentRegistrySource(val identifier: AgentRegistrySourceIdentifier) : KoinComponent {
-    @Suppress("unused")
     @Serializable(with = InstantSerializer::class)
     val timestamp = utcTimeNow()
 

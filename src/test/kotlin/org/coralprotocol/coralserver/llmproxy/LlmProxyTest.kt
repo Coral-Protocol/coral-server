@@ -23,11 +23,11 @@ import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.LlmProxyProviderConfig
+import org.coralprotocol.coralserver.dsl.graphAgentPair
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.modules.LLM_PROXY_HTTP_CLIENT
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
-import org.coralprotocol.coralserver.dsl.graphAgentPair
 import org.coralprotocol.coralserver.utils.shouldPostEvent
 import org.koin.core.context.loadKoinModules
 import org.koin.core.qualifier.named
@@ -37,9 +37,9 @@ import org.koin.test.inject
 import java.util.*
 import kotlin.time.Duration.Companion.seconds
 
-private const val totalTokens = 20L
-private const val outputTokens = 5L
-private const val inputTokens = 15L;
+private const val TOTAL_TOKENS = 20L
+private const val OUTPUT_TOKENS = 5L
+private const val INPUT_TOKENS = 15L
 
 private val MOCK_OPENAI_RESPONSE = buildJsonObject {
     put("id", "chatcmpl-test")
@@ -56,9 +56,9 @@ private val MOCK_OPENAI_RESPONSE = buildJsonObject {
         }
     }
     putJsonObject("usage") {
-        put("prompt_tokens", inputTokens)
-        put("completion_tokens", outputTokens)
-        put("total_tokens", totalTokens)
+        put("prompt_tokens", INPUT_TOKENS)
+        put("completion_tokens", OUTPUT_TOKENS)
+        put("total_tokens", TOTAL_TOKENS)
     }
 }
 
@@ -166,8 +166,8 @@ class LlmProxyTest : CoralTest({
             proxyCall.modelName.shouldBeEqual(modelName)
             proxyCall.providerRequestName.shouldBeEqual(proxyName)
             proxyCall.statusCode.shouldBeEqual(200)
-            proxyCall.usage.shouldNotBeNull().inputTokens.shouldNotBeNull().shouldBeEqual(inputTokens)
-            proxyCall.usage.shouldNotBeNull().outputTokens.shouldNotBeNull().shouldBeEqual(outputTokens)
+            proxyCall.usage.shouldNotBeNull().inputTokens.shouldNotBeNull().shouldBeEqual(INPUT_TOKENS)
+            proxyCall.usage.shouldNotBeNull().outputTokens.shouldNotBeNull().shouldBeEqual(OUTPUT_TOKENS)
         }
     }
 

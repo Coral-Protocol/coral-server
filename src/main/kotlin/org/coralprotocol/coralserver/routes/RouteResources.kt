@@ -1,6 +1,6 @@
 package org.coralprotocol.coralserver.routes
 
-import io.ktor.resources.Resource
+import io.ktor.resources.*
 
 @Resource("api/v1")
 class ApiV1

@@ -8,10 +8,9 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import org.coralprotocol.coralserver.config.AuthConfig
-import org.coralprotocol.coralserver.config.RootConfig
 import org.coralprotocol.coralserver.routes.ApiV1
-import org.coralprotocol.coralserver.server.AuthSession
 import org.coralprotocol.coralserver.routes.RouteException
+import org.coralprotocol.coralserver.server.AuthSession
 import org.koin.ktor.ext.inject
 
 @Resource("auth")

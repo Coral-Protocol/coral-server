@@ -68,7 +68,7 @@ val echoAgentModule = module {
                                 client,
                                 SendMessageInput(msg.threadId, "nice message!", listOf(msg.senderName))
                             )
-                            break;
+                            break
                         }
                     }
                 }

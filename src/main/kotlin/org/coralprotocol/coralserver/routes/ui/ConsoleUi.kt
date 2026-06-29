@@ -109,6 +109,7 @@ fun Route.consoleUi() {
     // see https://developer.mozilla.org/en-US/docs/Web/Security/Defenses/Secure_Contexts
     val consoleServingHost = "localhost"
     logger.info {
+        @Suppress("HttpUrlsUsage")
         "\n\n For Coral console, navigate to http://$consoleServingHost:${networkConfig.bindPort}/ui/console\n" +
                 " Login using an API key matching one set in auth.keys in the server configuration.\n"
     }

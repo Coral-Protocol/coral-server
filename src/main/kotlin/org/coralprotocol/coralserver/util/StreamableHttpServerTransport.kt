@@ -46,7 +46,7 @@ class StreamableHttpServerTransport(
     AbstractTransport() {
     /**
      * A map of requests that are waiting for responses.  If a message sent in [send] does not match an item in this
-     * map, it will instead be sent to [messageQueue], which must be depleted in a SSE stream
+     * map, it will instead be sent to [messageQueue], which must be depleted in an SSE stream
      */
     private val pendingResponses = ConcurrentHashMap<String, CompletableDeferred<JSONRPCMessage>>()
 

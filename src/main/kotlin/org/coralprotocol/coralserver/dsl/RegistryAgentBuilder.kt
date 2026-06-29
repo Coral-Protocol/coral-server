@@ -17,12 +17,14 @@ import org.coralprotocol.coralserver.util.streamableHttpFunctionRuntime
 import java.nio.file.Path
 
 @CoralDsl
+@Suppress("unused")
 class PrototypeStringBuilder {
     fun inline(value: String): PrototypeString = PrototypeString.Inline(value)
     fun option(name: String): PrototypeString = PrototypeString.Option(name)
 }
 
 @CoralDsl
+@Suppress("unused")
 class PrototypeStringListBuilder {
     private val parts = mutableListOf<PrototypeString>()
 
@@ -52,6 +54,7 @@ class PrototypeStringListBuilder {
 }
 
 @CoralDsl
+@Suppress("unused")
 class UrlPartListBuilder {
     private val parts = mutableListOf<PrototypeUrlPart>()
 
@@ -92,6 +95,7 @@ inline fun <OptionType : PolymorphicAgentOption<ValueType, BackingType>, reified
 
 
 @CoralDsl
+@Suppress("unused")
 class RegistryAgentBuilder(
     var name: String,
 ) {

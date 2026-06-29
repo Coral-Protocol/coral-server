@@ -9,7 +9,6 @@ import org.coralprotocol.coralserver.llmproxy.LlmProxiedModel
 import org.coralprotocol.coralserver.routes.api.v1.LocalSessions
 import org.coralprotocol.coralserver.session.LocalSession
 import org.coralprotocol.coralserver.session.SessionResource
-import org.coralprotocol.coralserver.session.remote.RemoteSession
 import org.coralprotocol.coralserver.x402.X402BudgetedResource
 
 /**

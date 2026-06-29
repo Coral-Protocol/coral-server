@@ -282,7 +282,7 @@ class SessionApiTest : CoralTest({
         ) {
             persistenceMode = SessionPersistenceMode.None
         }
-        delay(100)
+        delay(100.milliseconds)
 
         client.authenticatedGet(
             LocalSessions.Session.Existing(
@@ -298,7 +298,7 @@ class SessionApiTest : CoralTest({
         ) {
             persistenceMode = SessionPersistenceMode.HoldAfterExit(1000)
         }
-        delay(100)
+        delay(100.milliseconds)
 
         client.authenticatedGet(
             LocalSessions.Session.Existing(

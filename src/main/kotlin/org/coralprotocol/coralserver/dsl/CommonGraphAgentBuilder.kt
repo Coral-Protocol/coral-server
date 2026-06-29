@@ -14,6 +14,7 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 @CoralDsl
+@Suppress("unused")
 open class CommonGraphAgentBuilder(
     open var name: String,
 ) {
@@ -50,6 +51,7 @@ open class CommonGraphAgentBuilder(
 }
 
 @CoralDsl
+@Suppress("unused")
 class GraphAgentBuilder(name: String) : CommonGraphAgentBuilder(name) {
     private val registryAgentBuilder = RegistryAgentBuilder(name)
     private val options = mutableMapOf<String, AnyAgentOptionWithValue>()
@@ -269,6 +271,7 @@ class GraphAgentBuilder(name: String) : CommonGraphAgentBuilder(name) {
 }
 
 @CoralDsl
+@Suppress("unused")
 open class GraphAgentRequestBuilder(
     val identifier: RegistryAgentIdentifier,
     override var name: String = identifier.name
@@ -413,6 +416,7 @@ open class GraphAgentRequestBuilder(
 }
 
 @CoralDsl
+@Suppress("unused")
 class GraphAgentBudgetSettingsBuilder {
     var budget: AgentBudgetUnit = AgentBudgetUnit()
     var exhaustionBehavior: AgentBudgetExhaustionBehavior = AgentBudgetExhaustionBehavior.ConsumeSession

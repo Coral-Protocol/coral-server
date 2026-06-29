@@ -16,6 +16,8 @@ private enum class EnvironmentFormat {
 
 const val SOCKET_AGENT_ID = "socket"
 const val SOCKET_AGENT_VERSION = "1.0.1"
+
+@Suppress("unused")
 val SOCKET_AGENT_IDENTIFIER =
     RegistryAgentIdentifier(SOCKET_AGENT_ID, SOCKET_AGENT_VERSION, AgentRegistrySourceIdentifier.Local)
 

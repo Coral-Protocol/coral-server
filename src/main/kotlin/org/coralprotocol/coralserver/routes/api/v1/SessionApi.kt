@@ -313,6 +313,7 @@ fun Route.localSessionApi() {
         summary = "Get base session state"
         description = "Returns a session's state"
         operationId = "getSessionState"
+        @Suppress("DuplicatedCode")
         securitySchemeNames("token")
         request {
             pathParameter<String>("namespace") {
@@ -353,6 +354,7 @@ fun Route.localSessionApi() {
         summary = "Get extended session state"
         description = "Returns a session's extended state"
         operationId = "getSessionStateExtended"
+        @Suppress("DuplicatedCode")
         securitySchemeNames("token")
         request {
             pathParameter<String>("namespace") {

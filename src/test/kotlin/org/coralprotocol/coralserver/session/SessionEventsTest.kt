@@ -9,11 +9,11 @@ import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.runtime.ExecutableRuntime
 import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.dsl.graphAgentPair
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.util.sseFunctionRuntime
 import org.coralprotocol.coralserver.util.streamableHttpFunctionRuntime
 import org.coralprotocol.coralserver.utils.TestEvent
-import org.coralprotocol.coralserver.dsl.graphAgentPair
 import org.coralprotocol.coralserver.utils.shouldPostEvents
 import org.koin.core.component.inject
 import kotlin.time.Duration.Companion.seconds

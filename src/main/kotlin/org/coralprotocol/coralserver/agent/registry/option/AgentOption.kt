@@ -55,28 +55,28 @@ interface AgentIntegralOption
 typealias AgentOption = PolymorphicAgentOption<*, *>
 
 sealed interface PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<BackingType>, BackingType> {
-    abstract val default: BackingType?
-    abstract val defaultAsValue: ValueType?
+    val default: BackingType?
+    val defaultAsValue: ValueType?
 
-    abstract val required: kotlin.Boolean
-    abstract val display: AgentOptionDisplay?
-    abstract val transport: AgentOptionTransport
+    val required: kotlin.Boolean
+    val display: AgentOptionDisplay?
+    val transport: AgentOptionTransport
 
     /**
      * Attempts to create a [AgentOptionWithValue] type using the specified value, returning null if the specified value
      * type is mismatched.
      */
-    abstract fun tryWithValue(value: PolymorphicAgentOptionValue<*>): AgentOptionWithValue<*, ValueType, BackingType>?
+    fun tryWithValue(value: PolymorphicAgentOptionValue<*>): AgentOptionWithValue<*, ValueType, BackingType>?
 
     /**
      * Runs the validation functions for this option, throwing an exception if any validation fails.
      */
-    abstract fun validateValue(value: ValueType)
+    fun validateValue(value: ValueType)
 
     /**
      * Returns a string representation of the specified value.  This will mask values marked as secret.
      */
-    abstract fun displayValue(value: ValueType): kotlin.String
+    fun displayValue(value: ValueType): kotlin.String
 
     /**
      * Returns a [AgentOptionWithValue] with the default value, or null if there is no default value.
@@ -225,9 +225,7 @@ sealed interface PolymorphicAgentOption<ValueType : PolymorphicAgentOptionValue<
         override fun tryWithValue(value: PolymorphicAgentOptionValue<*>) =
             (value as? PolymorphicAgentOptionValue.Boolean)?.let { AgentOptionWithValue(this, it) }
 
-        override fun validateValue(value: PolymorphicAgentOptionValue.Boolean) {
-
-        }
+        override fun validateValue(value: PolymorphicAgentOptionValue.Boolean) = Unit
 
         override fun displayValue(value: PolymorphicAgentOptionValue.Boolean): kotlin.String =
             if (value.value) "1" else "0"

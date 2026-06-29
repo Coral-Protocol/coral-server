@@ -44,6 +44,7 @@ data class LocalAgentRuntimes(
             RuntimeId.PROTOTYPE -> prototypeRuntime
         }
 
+    @Suppress("unused")
     fun toRuntimeIds(): List<RuntimeId> {
         return buildList {
             executableRuntime?.let { add(RuntimeId.EXECUTABLE) }

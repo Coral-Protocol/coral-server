@@ -15,6 +15,7 @@ import ai.koog.agents.mcp.McpToolRegistryProvider
 import ai.koog.agents.mcp.metadata.McpServerInfo
 import ai.koog.prompt.message.Message
 import ai.koog.prompt.message.RequestMetaInfo
+import ai.koog.serialization.JSONObject
 import dev.eav.tomlkt.TomlClassDiscriminator
 import io.ktor.client.*
 import io.modelcontextprotocol.kotlin.sdk.client.Client
@@ -30,7 +31,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonClassDiscriminator
-import kotlinx.serialization.json.JsonObject
 import org.coralprotocol.coralserver.agent.exceptions.PrototypeRuntimeException
 import org.coralprotocol.coralserver.agent.runtime.prototype.*
 import org.coralprotocol.coralserver.config.AddressConsumer
@@ -47,6 +47,9 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.measureTime
 import kotlin.time.measureTimedValue
 
+const val PROTOTYPE_DEFAULT_ITERATION_COUNT = 20L
+const val PROTOTYPE_DEFAULT_ITERATION_DELAY = 0L
+
 @Serializable
 @JsonClassDiscriminator("prototype")
 @TomlClassDiscriminator("prototype")
@@ -59,10 +62,10 @@ data class PrototypeRuntime(
     val client: PrototypeClient? = null,
 
     @SerialName("iterations")
-    val iterationCount: PrototypeInteger = PrototypeInteger.Inline(20),
+    val iterationCount: PrototypeInteger = PrototypeInteger.Inline(PROTOTYPE_DEFAULT_ITERATION_COUNT),
 
     @SerialName("delay")
-    val iterationDelay: PrototypeInteger = PrototypeInteger.Inline(0),
+    val iterationDelay: PrototypeInteger = PrototypeInteger.Inline(PROTOTYPE_DEFAULT_ITERATION_DELAY),
 
     val prompts: PrototypePrompts = PrototypePrompts(),
 
@@ -118,7 +121,7 @@ data class PrototypeRuntime(
                 ReceivedToolResult(
                     it.id,
                     it.tool,
-                    toolArgs = JsonObject(emptyMap()),
+                    toolArgs = JSONObject(emptyMap()),
                     null,
                     result,
                     ToolResultKind.Failure(AIAgentError(e)),

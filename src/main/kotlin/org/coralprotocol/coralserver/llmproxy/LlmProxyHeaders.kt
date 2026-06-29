@@ -57,19 +57,4 @@ object LlmProxyHeaders {
             values.forEach { call.response.header(name, it) }
         }
     }
-
-    fun extractAgentKey(call: ApplicationCall, request: LlmProxyRequest): String? {
-        return when (val authStyle = request.model.providerConfig.format.authStyle) {
-            is LlmProviderAuthStyle.Bearer -> {
-                val authHeader = call.request.headers[HttpHeaders.Authorization] ?: return null
-                if (authHeader.startsWith("Bearer ", ignoreCase = true)) {
-                    authHeader.substring(7).trim().ifEmpty { null }
-                } else null
-            }
-
-            is LlmProviderAuthStyle.Custom -> {
-                call.request.headers[authStyle.headerName]?.trim()?.ifEmpty { null }
-            }
-        }
-    }
 }

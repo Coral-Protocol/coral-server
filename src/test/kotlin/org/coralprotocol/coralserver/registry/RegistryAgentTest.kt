@@ -31,6 +31,7 @@ import org.koin.test.inject
 import java.io.File
 import kotlin.io.encoding.Base64
 
+@Suppress("LargeClass")
 class RegistryAgentTest : CoralTest({
     fun testJsonRecode(agent: RegistryAgent) {
         val json by inject<Json>()
@@ -465,6 +466,7 @@ class RegistryAgentTest : CoralTest({
 
         // not secure (not https)
         shouldThrow<RegistryException> {
+            @Suppress("HttpUrlsUsage")
             agentWithLinks(mapOf("bad" to "http://example.com")).validate()
         }
 

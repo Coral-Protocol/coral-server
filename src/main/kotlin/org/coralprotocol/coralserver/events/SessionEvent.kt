@@ -20,6 +20,7 @@ import kotlin.time.Instant
  */
 @Serializable
 @JsonClassDiscriminator("type")
+@Suppress("unused")
 sealed class SessionEvent {
     @Serializable(with = InstantSerializer::class)
     val timestamp: Instant = utcTimeNow()
@@ -46,10 +47,12 @@ sealed class SessionEvent {
 
     @Serializable
     @SerialName("agent_sleep_start")
+    @Suppress("unused")
     data class AgentSleepStart(val name: UniqueAgentName) : SessionEvent()
 
     @Serializable
     @SerialName("agent_sleep_stop")
+    @Suppress("unused")
     data class AgentSleepStop(val name: UniqueAgentName) : SessionEvent()
 
     @Serializable

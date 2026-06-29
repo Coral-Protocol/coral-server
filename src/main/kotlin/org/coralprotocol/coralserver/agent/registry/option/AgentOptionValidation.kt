@@ -90,6 +90,7 @@ abstract class NumericAgentOptionValidation<T : Comparable<T>> {
 }
 
 @Serializable
+@Suppress("unused")
 data class ByteAgentOptionValidation(
     override val variants: List<Byte>? = null,
     override val min: Byte? = null,
@@ -97,6 +98,7 @@ data class ByteAgentOptionValidation(
 ) : NumericAgentOptionValidation<Byte>()
 
 @Serializable
+@Suppress("unused")
 data class ShortAgentOptionValidation(
     override val variants: List<Short>? = null,
     override val min: Short? = null,
@@ -104,6 +106,7 @@ data class ShortAgentOptionValidation(
 ) : NumericAgentOptionValidation<Short>()
 
 @Serializable
+@Suppress("unused")
 data class IntAgentOptionValidation(
     override val variants: List<Int>? = null,
     override val min: Int? = null,
@@ -111,6 +114,7 @@ data class IntAgentOptionValidation(
 ) : NumericAgentOptionValidation<Int>()
 
 @Serializable
+@Suppress("unused")
 data class LongAgentOptionValidation(
     override val variants: List<Long>? = null,
     override val min: Long? = null,
@@ -118,6 +122,7 @@ data class LongAgentOptionValidation(
 ) : NumericAgentOptionValidation<Long>()
 
 @Serializable
+@Suppress("unused")
 data class UByteAgentOptionValidation(
     override val variants: List<UByte>? = null,
     override val min: UByte? = null,
@@ -125,6 +130,7 @@ data class UByteAgentOptionValidation(
 ) : NumericAgentOptionValidation<UByte>()
 
 @Serializable
+@Suppress("unused")
 data class UShortAgentOptionValidation(
     override val variants: List<UShort>? = null,
     override val min: UShort? = null,
@@ -132,6 +138,7 @@ data class UShortAgentOptionValidation(
 ) : NumericAgentOptionValidation<UShort>()
 
 @Serializable
+@Suppress("unused")
 data class UIntAgentOptionValidation(
     override val variants: List<UInt>? = null,
     override val min: UInt? = null,
@@ -139,6 +146,7 @@ data class UIntAgentOptionValidation(
 ) : NumericAgentOptionValidation<UInt>()
 
 @Serializable
+@Suppress("unused")
 data class ULongAgentOptionValidation(
     override val variants: List<ULong>? = null,
     override val min: ULong? = null,
@@ -146,6 +154,7 @@ data class ULongAgentOptionValidation(
 ) : NumericAgentOptionValidation<ULong>()
 
 @Serializable
+@Suppress("unused")
 data class FloatAgentOptionValidation(
     override val variants: List<Float>? = null,
     override val min: Float? = null,
@@ -153,6 +162,7 @@ data class FloatAgentOptionValidation(
 ) : NumericAgentOptionValidation<Float>()
 
 @Serializable
+@Suppress("unused")
 data class DoubleAgentOptionValidation(
     override val variants: List<Double>? = null,
     override val min: Double? = null,

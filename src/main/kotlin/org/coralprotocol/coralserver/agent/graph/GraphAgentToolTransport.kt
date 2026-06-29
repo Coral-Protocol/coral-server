@@ -49,7 +49,7 @@ sealed interface GraphAgentToolTransport : KoinComponent {
             agent: SessionAgent,
             request: CallToolRequest,
         ): CallToolResult {
-            try {
+            return try {
                 val sessionId = agent.session.id
                 val agentName = agent.name
 
@@ -75,13 +75,13 @@ sealed interface GraphAgentToolTransport : KoinComponent {
                 }
 
                 val body = response.bodyAsText()
-                return CallToolResult(
+                CallToolResult(
                     content = listOf(TextContent(body))
                 )
             } catch (e: Exception) {
                 agent.logger.error(e) { "Error executing custom tool $name" }
 
-                return CallToolResult(
+                CallToolResult(
                     isError = true,
 
                     // best not to leak the exception to the agent.  non-200 statuses are reported without this catch

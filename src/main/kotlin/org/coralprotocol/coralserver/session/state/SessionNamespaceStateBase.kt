@@ -33,6 +33,7 @@ data class SessionNamespaceStateExtended(
 
 @Serializable
 @JsonClassDiscriminator("type")
+@Suppress("unused")
 sealed interface SessionNamespaceState {
     @Serializable
     @SerialName("base")

@@ -41,7 +41,9 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
 import kotlin.time.Clock
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 import kotlin.time.measureTimedValue
 
@@ -112,7 +114,7 @@ class SessionAgent(
     /**
      * The full status of this agent.  This is a nested status type: runtime -> connection -> waiting/sleeping/thinking.
      *
-     * This means that an agent that is not connected cannot be waiting, sleeping or thinking.  An agent that is not
+     * This means that an agent that is not connected cannot be waiting, sleeping, or thinking.  An agent that is not
      * running cannot be connected.
      */
     var status: MutableStateFlow<SessionAgentStatus> = MutableStateFlow(SessionAgentStatus.Waiting)
@@ -124,7 +126,7 @@ class SessionAgent(
     val mcpSessions = ConcurrentHashMap<String, ServerSession>()
 
     /**
-     * The number of *potential* mcp sessions.  Note that this number will increase before the client is accepted, to
+     * The number of *potential* mcp sessions.  Note that this number will increase before the client is accepted to
      * facilitate blocking agents.
      */
     private val mcpSessionCount = MutableStateFlow(0)
@@ -220,7 +222,7 @@ class SessionAgent(
     /**
      * Helper function for setting the connection status as connected
      *
-     * The agent's status will only be updated by this function if the agent's previous status was running.
+     * This function will only update the agent's status if the agent's previous status was running.
      */
     fun setConnectionStatusConnected() {
         status.update {
@@ -241,7 +243,7 @@ class SessionAgent(
     /**
      * Helper function for setting the communication status
      *
-     * The agent's status can only be updated by this function if the agent's previous status is running and connected.
+     * This function can only update the agent's status if the agent's previous status is running and connected.
      */
     fun setCommunicationStatus(communicationStatus: SessionAgentCommunicationStatus) {
         status.update {
@@ -278,10 +280,10 @@ class SessionAgent(
      * If [GraphAgent.blocking] is false, this function will return immediately.
      * If [GraphAgent.blocking] is true, this function will collect every connected agent using a recursive depth-first
      * search on [links] (that has [GraphAgent.blocking] == true) and call [waitForMcpConnection] on each
-     * of them, returning either when all connected blocking agents are trying to connect to their respective MCP
-     * servers, or when the [timeoutMs] is reached.
+     * of them.  Returning either when all connected blocking agents are trying to connect to their respective MCP
+     * servers, or if [timeout] is reached.
      */
-    suspend fun handleBlocking(timeoutMs: Long = 60_000L) {
+    suspend fun handleBlocking(timeout: Duration = 60.seconds) {
         val connectedBlockingAgents = buildSet {
             fun dfs(agent: SessionAgent, visited: MutableSet<SessionAgent> = mutableSetOf()) {
                 if (!visited.add(agent)) return
@@ -304,8 +306,8 @@ class SessionAgent(
         }
 
         logger.info { "waiting for blocking agents: ${connectedBlockingAgents.joinToString(", ") { it.name }}" }
-        val timeout = withTimeoutOrNull(timeoutMs) {
-            connectedBlockingAgents.forEach { it.waitForMcpConnection(timeoutMs / connectedBlockingAgents.size) }
+        val timeout = withTimeoutOrNull(timeout) {
+            connectedBlockingAgents.forEach { it.waitForMcpConnection(timeout / connectedBlockingAgents.size) }
         } == null
 
         if (timeout)
@@ -319,7 +321,7 @@ class SessionAgent(
     /**
      * Returns true when the first connection MCP connection is made to this agent
      */
-    suspend fun waitForMcpConnection(timeoutMs: Long = 10_000L): Boolean {
+    suspend fun waitForMcpConnection(timeoutMs: Duration = 10.seconds): Boolean {
         if (mcpSessions.isNotEmpty())
             return true
 
@@ -497,7 +499,7 @@ class SessionAgent(
      * Responds to the MCP read resource of [McpResourceName.STATE_RESOURCE_URI] with various resources describing the
      * observable state of the session from the perspective of this agent.
      *
-     * This resource is how the agent knows about past messages, threads and other agents.
+     * This resource is how the agent knows about past messages, threads, and other agents.
      */
     suspend fun handleStateResource(request: ReadResourceRequest): ReadResourceResult {
         return ReadResourceResult(
@@ -531,6 +533,7 @@ class SessionAgent(
      * configured to kill the agent or session, calling this function may result in the exit of the agent or the
      * session.
      */
+    @Suppress("NestedBlockDepth")
     suspend fun processClaim(claim: SessionAgentClaim, autoKill: Boolean): AgentClaimResult {
         var remainingClaim = claim.calculateCost(this)
         var totalClaimed = AgentBudgetUnit.ZERO

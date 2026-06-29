@@ -46,7 +46,7 @@ import kotlin.time.Duration.Companion.seconds
 class DockerRuntimeTest : CoralTest({
     val image = "alpine:3.23.0"
 
-    fun isDockerAvailable(testCase: TestCase): Boolean {
+    fun isDockerAvailable(@Suppress("unused") testCase: TestCase): Boolean {
         try {
             // sessionTest will not configure Docker past the defaults
             val config = RootConfig()
@@ -65,7 +65,7 @@ class DockerRuntimeTest : CoralTest({
             DockerClientImpl.getInstance(dockerClientConfig, httpClient)
                 .pingCmd().exec()
 
-            return true;
+            return true
         } catch (_: Exception) {
             return false
         }

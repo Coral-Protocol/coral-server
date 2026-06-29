@@ -10,8 +10,6 @@ val sessionModule = module {
     singleOf(::ApplicationRuntimeContext)
     single(createdAtStart = true) {
         LocalSessionManager(
-            blockchainService = get(),
-            jupiterService = get(),
             httpClient = get(),
             config = get(),
             json = get(),

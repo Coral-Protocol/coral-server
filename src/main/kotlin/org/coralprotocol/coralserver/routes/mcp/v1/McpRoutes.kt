@@ -101,7 +101,7 @@ fun Route.mcpRoutes() {
                 if (sessionId != null) {
                     agent.findMcpTransport(sessionId)
                 } else {
-                    val transportSessionId = UUID.randomUUID().toString();
+                    val transportSessionId = UUID.randomUUID().toString()
                     agent.connectTransport(
                         StreamableHttpServerTransport(
                             messageQueueCapacity = 4096,

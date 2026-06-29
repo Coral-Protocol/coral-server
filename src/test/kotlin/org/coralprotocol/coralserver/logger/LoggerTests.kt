@@ -147,7 +147,7 @@ class LoggerTests : CoralTest({
             ),
         ) {
             warn { "test" }
-            delay(1000)
+            delay(1.seconds)
         }
     }
 

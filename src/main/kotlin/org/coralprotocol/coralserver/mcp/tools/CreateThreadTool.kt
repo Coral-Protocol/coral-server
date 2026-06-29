@@ -23,13 +23,12 @@ data class CreateThreadOutput(
     val thread: SessionThread
 )
 
-suspend fun createThreadExecutor(agent: SessionAgent, arguments: CreateThreadInput): CreateThreadOutput {
+fun createThreadExecutor(agent: SessionAgent, arguments: CreateThreadInput): CreateThreadOutput {
     try {
         return CreateThreadOutput(
             agent.session.createThread(arguments.threadName, agent.name, arguments.participantNames.toSet())
         )
-    }
-    catch (e: SessionException) {
+    } catch (e: SessionException) {
         throw e.toMcpToolException()
     }
 }

@@ -13,12 +13,12 @@ import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.ListAgentRegistrySource
 import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.config.LlmProxyProviderConfig
-import org.coralprotocol.coralserver.routes.api.v1.LocalSessions
-import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.dsl.AgentLlmConfigBuilder
 import org.coralprotocol.coralserver.dsl.GraphAgentRequestBuilder
 import org.coralprotocol.coralserver.dsl.registryAgent
 import org.coralprotocol.coralserver.dsl.sessionRequest
+import org.coralprotocol.coralserver.routes.api.v1.LocalSessions
+import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.koin.core.component.inject
 
 private sealed interface ExpectedResponse {

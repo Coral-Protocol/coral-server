@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     kotlin("jvm") version "2.3.20"
     kotlin("plugin.serialization") version "2.3.20"
+    id("dev.detekt") version("2.0.0-alpha.5")
     application
 }
 
@@ -126,8 +127,24 @@ tasks.test {
     }
 }
 
-tasks.withType<JavaExec>() {
+detekt {
+    toolVersion = "2.0.0-alpha.5"
+    config.setFrom(file("detekt.yml"))
+    buildUponDefaultConfig = true
+}
+
+tasks.withType<JavaExec> {
     standardInput = System.`in`
+}
+
+tasks.withType<KotlinCompile> {
+    compilerOptions {
+        allWarningsAsErrors = true
+    }
+}
+
+tasks.named("check") {
+    dependsOn("detekt")
 }
 
 tasks.jar {
