@@ -13,15 +13,16 @@ import org.koin.core.component.KoinComponent
 @Serializable
 @JsonClassDiscriminator("type")
 @Description("A local or remote provider for an agent")
-sealed class GraphAgentProvider : KoinComponent {
-    abstract val runtime: RuntimeId
+@Suppress("unused")
+sealed interface GraphAgentProvider : KoinComponent {
+    val runtime: RuntimeId
 
     @Serializable
     @SerialName("local")
     @Description("The agent will be provided by this server")
     data class Local(
         override val runtime: RuntimeId,
-    ) : GraphAgentProvider()
+    ) : GraphAgentProvider
 
     @Serializable
     @SerialName("linked")
@@ -29,5 +30,5 @@ sealed class GraphAgentProvider : KoinComponent {
     data class Linked(
         val linkedServerName: String,
         override val runtime: RuntimeId,
-    ) : GraphAgentProvider()
+    ) : GraphAgentProvider
 }

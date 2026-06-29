@@ -26,7 +26,6 @@ import org.coralprotocol.coralserver.utils.shouldPostEventsFromBody
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import java.util.*
-import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class LoggerTests : CoralTest({

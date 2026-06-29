@@ -212,5 +212,6 @@ val Double.cents: AgentBudgetUnit
 val Int.dollars: AgentBudgetUnit
     get() = AgentBudgetUnit(this.toULong() * MICRO_CENTS_TO_DOLLARS)
 
+@Suppress("unused")
 val Double.dollars: AgentBudgetUnit
     get() = AgentBudgetUnit((this * MICRO_CENTS_TO_DOLLARS.toDouble()).toULong())

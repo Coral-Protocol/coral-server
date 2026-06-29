@@ -5,7 +5,6 @@ import kotlinx.serialization.Transient
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionSerializerMap
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
-import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import java.nio.file.Path
 
 /**
@@ -82,18 +81,3 @@ data class RegistryAgent(
     val requiredOptions = options
         .filterValues { it.required }
 }
-
-@Serializable
-data class PublicRegistryAgent(
-    val id: RegistryAgentIdentifier,
-    val runtimes: List<RuntimeId>,
-
-    @Serializable(with = AgentOptionSerializerMap::class)
-    val options: Map<String, AgentOption>,
-)
-
-fun RegistryAgent.toPublic(): PublicRegistryAgent = PublicRegistryAgent(
-    id = identifier,
-    runtimes = runtimes.toRuntimeIds(),
-    options = options
-)

@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.payment
 
+import aws.smithy.kotlin.runtime.time.Instant
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -10,6 +11,9 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.config.CORAL_MAINNET_MINT
 import org.coralprotocol.coralserver.routes.RouteException
+import kotlin.time.Duration.Companion.seconds
+
+val PRICE_CACHE_DURATION = 6.seconds
 
 @Serializable
 private class Price(
@@ -25,7 +29,7 @@ private class Price(
 )
 
 class JupiterService(private val json: Json) {
-    private var lastUpdate: Long? = null
+    private var lastUpdate: Instant? = null
     private var lastPrice: Price? = null
 
     private val httpClass = HttpClient(CIO) {
@@ -39,7 +43,7 @@ class JupiterService(private val json: Json) {
             }
         }
 
-        if (response.status.value != 200) {
+        if (response.status.isSuccess()) {
             throw RouteException(response.status, "Unexpected response from Jupiter API")
         }
 
@@ -50,7 +54,7 @@ class JupiterService(private val json: Json) {
             )
 
         lastPrice = price
-        lastUpdate = System.currentTimeMillis()
+        lastUpdate = Instant.now()
 
         return price
     }
@@ -61,7 +65,7 @@ class JupiterService(private val json: Json) {
         return if (lastPrice == null) {
             fetchPrice()
         } else {
-            if (lastUpdate == null || lastUpdate + 6000 < System.currentTimeMillis()) {
+            if (lastUpdate == null || lastUpdate + PRICE_CACHE_DURATION < Instant.now()) {
                 fetchPrice()
             } else {
                 lastPrice

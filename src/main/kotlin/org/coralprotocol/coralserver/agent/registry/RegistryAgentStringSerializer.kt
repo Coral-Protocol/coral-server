@@ -84,10 +84,10 @@ sealed interface PotentialStringReference {
 }
 
 open class RegistryAgentStringSerializer : KSerializer<String>, KoinComponent {
-    open fun defaultInputEncodingOptions(reference: PotentialStringReference) =
+    open fun defaultInputEncodingOptions(@Suppress("unused") reference: PotentialStringReference) =
         EncodingOptions()
 
-    open fun defaultOutputEncodingOptions(reference: PotentialStringReference) =
+    open fun defaultOutputEncodingOptions(@Suppress("unused") reference: PotentialStringReference) =
         EncodingOptions()
 
     private val stringSerializer = PotentialStringReference.String.serializer()

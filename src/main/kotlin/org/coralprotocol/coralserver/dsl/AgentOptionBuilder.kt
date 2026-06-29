@@ -561,7 +561,6 @@ fun blobListOptionWithValue(value: List<String>, block: BlobListAgentOptionBuild
 fun booleanOptionWithValue(value: Boolean, block: BooleanAgentOptionBuilder.() -> Unit = {}) =
     AgentOptionWithValue(booleanOption(block), PolymorphicAgentOptionValue.Boolean(value))
 
-@Suppress("unused")
 fun byteOptionWithValue(value: Byte, block: ByteAgentOptionBuilder.() -> Unit = {}) =
     AgentOptionWithValue(byteOption(block), PolymorphicAgentOptionValue.Byte(value))
 
@@ -569,7 +568,6 @@ fun byteOptionWithValue(value: Byte, block: ByteAgentOptionBuilder.() -> Unit = 
 fun byteListOptionWithValue(value: List<Byte>, block: ByteListAgentOptionBuilder.() -> Unit = {}) =
     AgentOptionWithValue(byteListOption(block), PolymorphicAgentOptionValue.ByteList(value))
 
-@Suppress("unused")
 fun shortOptionWithValue(value: Short, block: ShortAgentOptionBuilder.() -> Unit = {}) =
     AgentOptionWithValue(shortOption(block), PolymorphicAgentOptionValue.Short(value))
 
@@ -577,7 +575,6 @@ fun shortOptionWithValue(value: Short, block: ShortAgentOptionBuilder.() -> Unit
 fun shortListOptionWithValue(value: List<Short>, block: ShortListAgentOptionBuilder.() -> Unit = {}) =
     AgentOptionWithValue(shortListOption(block), PolymorphicAgentOptionValue.ShortList(value))
 
-@Suppress("unused")
 fun intOptionWithValue(value: Int, block: IntAgentOptionBuilder.() -> Unit = {}) =
     AgentOptionWithValue(intOption(block), PolymorphicAgentOptionValue.Int(value))
 
@@ -585,7 +582,6 @@ fun intOptionWithValue(value: Int, block: IntAgentOptionBuilder.() -> Unit = {})
 fun intListOptionWithValue(value: List<Int>, block: IntListAgentOptionBuilder.() -> Unit = {}) =
     AgentOptionWithValue(intListOption(block), PolymorphicAgentOptionValue.IntList(value))
 
-@Suppress("unused")
 fun longOptionWithValue(value: Long, block: LongAgentOptionBuilder.() -> Unit = {}) =
     AgentOptionWithValue(longOption(block), PolymorphicAgentOptionValue.Long(value))
 
@@ -593,7 +589,6 @@ fun longOptionWithValue(value: Long, block: LongAgentOptionBuilder.() -> Unit = 
 fun longListOptionWithValue(value: List<Long>, block: LongListAgentOptionBuilder.() -> Unit = {}) =
     AgentOptionWithValue(longListOption(block), PolymorphicAgentOptionValue.LongList(value))
 
-@Suppress("unused")
 fun unsignedByteOptionWithValue(value: UByte, block: UByteAgentOptionBuilder.() -> Unit = {}) =
     AgentOptionWithValue(unsignedByteOption(block), PolymorphicAgentOptionValue.UByte(value))
 
@@ -601,7 +596,6 @@ fun unsignedByteOptionWithValue(value: UByte, block: UByteAgentOptionBuilder.() 
 fun unsignedByteListOptionWithValue(value: List<UByte>, block: UByteListAgentOptionBuilder.() -> Unit = {}) =
     AgentOptionWithValue(unsignedByteListOption(block), PolymorphicAgentOptionValue.UByteList(value))
 
-@Suppress("unused")
 fun unsignedShortOptionWithValue(value: UShort, block: UShortAgentOptionBuilder.() -> Unit = {}) =
     AgentOptionWithValue(unsignedShortOption(block), PolymorphicAgentOptionValue.UShort(value))
 
@@ -609,7 +603,6 @@ fun unsignedShortOptionWithValue(value: UShort, block: UShortAgentOptionBuilder.
 fun unsignedShortListOptionWithValue(value: List<UShort>, block: UShortListAgentOptionBuilder.() -> Unit = {}) =
     AgentOptionWithValue(unsignedShortListOption(block), PolymorphicAgentOptionValue.UShortList(value))
 
-@Suppress("unused")
 fun unsignedIntOptionWithValue(value: UInt, block: UIntAgentOptionBuilder.() -> Unit = {}) =
     AgentOptionWithValue(unsignedIntOption(block), PolymorphicAgentOptionValue.UInt(value))
 
@@ -625,7 +618,6 @@ fun unsignedLongOptionWithValue(value: String, block: ULongAgentOptionBuilder.()
 fun unsignedLongListOptionWithValue(value: List<String>, block: ULongListAgentOptionBuilder.() -> Unit = {}) =
     AgentOptionWithValue(unsignedLongListOption(block), PolymorphicAgentOptionValue.ULongList(value))
 
-@Suppress("unused")
 fun floatOptionWithValue(value: Float, block: FloatAgentOptionBuilder.() -> Unit = {}) =
     AgentOptionWithValue(floatOption(block), PolymorphicAgentOptionValue.Float(value))
 
@@ -633,7 +625,6 @@ fun floatOptionWithValue(value: Float, block: FloatAgentOptionBuilder.() -> Unit
 fun floatListOptionWithValue(value: List<Float>, block: FloatListAgentOptionBuilder.() -> Unit = {}) =
     AgentOptionWithValue(floatListOption(block), PolymorphicAgentOptionValue.FloatList(value))
 
-@Suppress("unused")
 fun doubleOptionWithValue(value: Double, block: DoubleAgentOptionBuilder.() -> Unit = {}) =
     AgentOptionWithValue(doubleOption(block), PolymorphicAgentOptionValue.Double(value))
 

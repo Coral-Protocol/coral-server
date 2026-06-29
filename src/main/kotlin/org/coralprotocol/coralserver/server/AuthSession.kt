@@ -9,7 +9,6 @@ import kotlin.time.ExperimentalTime
 
 @Serializable
 abstract class AuthSession {
-    @Suppress("unused")
     @Serializable(with = InstantSerializer::class)
     val timestamp = utcTimeNow()
 

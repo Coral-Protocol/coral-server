@@ -7,23 +7,25 @@ import org.coralprotocol.coralserver.session.SessionThreadMessage
 import org.coralprotocol.coralserver.session.SessionThreadMessageFilter
 import kotlin.time.Instant
 
+const val MAX_WAIT_MILLISECONDS = 60000L
+
 @Serializable
 data class WaitForSingleMessageInput(
     val currentUnixTime: Long = System.currentTimeMillis(),
-    val maxWaitMs: Long = 60000
+    val maxWaitMs: Long = MAX_WAIT_MILLISECONDS
 )
 
 @Serializable
 data class WaitForMentioningMessageInput(
     val currentUnixTime: Long = System.currentTimeMillis(),
-    val maxWaitMs: Long = 60000
+    val maxWaitMs: Long = MAX_WAIT_MILLISECONDS
 )
 
 @Serializable
 data class WaitForAgentMessageInput(
     val currentUnixTime: Long = System.currentTimeMillis(),
     val agentName: UniqueAgentName,
-    val maxWaitMs: Long = 60000
+    val maxWaitMs: Long = MAX_WAIT_MILLISECONDS
 )
 
 @Serializable
@@ -40,7 +42,7 @@ suspend fun waitForSingleMessageExecutor(
     return WaitForMessageOutput(
         agent.waitForMessage(
             replayAfter = Instant.fromEpochMilliseconds(arguments.currentUnixTime),
-            timeoutMs = arguments.maxWaitMs.coerceAtMost(60000)
+            timeoutMs = arguments.maxWaitMs.coerceAtMost(MAX_WAIT_MILLISECONDS)
         )
     )
 }
@@ -59,7 +61,7 @@ suspend fun waitForMentioningMessageExecutor(
                     name = agent.name
                 )
             ),
-            timeoutMs = arguments.maxWaitMs.coerceAtMost(60000)
+            timeoutMs = arguments.maxWaitMs.coerceAtMost(MAX_WAIT_MILLISECONDS)
         )
     )
 }
@@ -76,7 +78,7 @@ suspend fun waitForAgentMessageExecutor(
                     name = arguments.agentName
                 )
             ),
-            timeoutMs = arguments.maxWaitMs.coerceAtMost(60000)
+            timeoutMs = arguments.maxWaitMs.coerceAtMost(MAX_WAIT_MILLISECONDS)
         )
     )
 }

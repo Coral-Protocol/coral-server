@@ -23,11 +23,11 @@ import org.coralprotocol.coralserver.agent.runtime.FunctionRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.LlmProxyProviderConfig
+import org.coralprotocol.coralserver.dsl.graphAgentPair
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.modules.LLM_PROXY_HTTP_CLIENT
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
-import org.coralprotocol.coralserver.dsl.graphAgentPair
 import org.coralprotocol.coralserver.utils.shouldPostEvent
 import org.koin.core.context.loadKoinModules
 import org.koin.core.qualifier.named
@@ -39,7 +39,7 @@ import kotlin.time.Duration.Companion.seconds
 
 private const val TOTAL_TOKENS = 20L
 private const val OUTPUT_TOKENS = 5L
-private const val INPUT_TOKENS = 15L;
+private const val INPUT_TOKENS = 15L
 
 private val MOCK_OPENAI_RESPONSE = buildJsonObject {
     put("id", "chatcmpl-test")

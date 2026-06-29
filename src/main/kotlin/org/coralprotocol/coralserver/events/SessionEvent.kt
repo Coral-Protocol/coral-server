@@ -20,6 +20,7 @@ import kotlin.time.Instant
  */
 @Serializable
 @JsonClassDiscriminator("type")
+@Suppress("unused")
 sealed class SessionEvent {
     @Serializable(with = InstantSerializer::class)
     val timestamp: Instant = utcTimeNow()
