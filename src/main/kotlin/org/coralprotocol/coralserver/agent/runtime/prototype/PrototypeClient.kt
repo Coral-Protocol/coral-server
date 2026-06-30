@@ -3,6 +3,9 @@ package org.coralprotocol.coralserver.agent.runtime.prototype
 import ai.koog.prompt.executor.clients.anthropic.AnthropicClientSettings
 import ai.koog.prompt.executor.clients.anthropic.AnthropicLLMClient
 import ai.koog.prompt.executor.clients.anthropic.AnthropicModels
+import ai.koog.prompt.executor.clients.deepseek.DeepSeekClientSettings
+import ai.koog.prompt.executor.clients.deepseek.DeepSeekLLMClient
+import ai.koog.prompt.executor.clients.deepseek.DeepSeekModels
 import ai.koog.prompt.executor.clients.openai.OpenAIClientSettings
 import ai.koog.prompt.executor.clients.openai.OpenAILLMClient
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
@@ -16,7 +19,6 @@ import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.exceptions.PrototypeRuntimeException
 import org.coralprotocol.coralserver.llmproxy.LlmProxiedModel
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.get
 
 @Serializable
 enum class PrototypeClient(val models: Any) : KoinComponent {
@@ -27,14 +29,16 @@ enum class PrototypeClient(val models: Any) : KoinComponent {
     OPEN_ROUTER(OpenRouterModels),
 
     @SerialName("anthropic")
-    ANTHROPIC(AnthropicModels);
+    ANTHROPIC(AnthropicModels),
+
+    @SerialName("deepseek")
+    DEEPSEEK(DeepSeekModels);
 
     fun getPromptExecutor(baseUrl: String, apiKey: String) =
         when (this) {
             OPEN_AI -> MultiLLMPromptExecutor(
                 OpenAILLMClient(
                     apiKey = apiKey,
-                    baseClient = get(),
                     settings = OpenAIClientSettings(baseUrl = "$baseUrl/")
                 )
             )
@@ -42,7 +46,6 @@ enum class PrototypeClient(val models: Any) : KoinComponent {
             OPEN_ROUTER -> MultiLLMPromptExecutor(
                 OpenRouterLLMClient(
                     apiKey = apiKey,
-                    baseClient = get(),
                     settings = OpenRouterClientSettings(baseUrl = baseUrl)
                 )
             )
@@ -50,8 +53,14 @@ enum class PrototypeClient(val models: Any) : KoinComponent {
             ANTHROPIC -> MultiLLMPromptExecutor(
                 AnthropicLLMClient(
                     apiKey = apiKey,
-                    baseClient = get(),
                     settings = AnthropicClientSettings(baseUrl = baseUrl)
+                )
+            )
+
+            DEEPSEEK -> MultiLLMPromptExecutor(
+                DeepSeekLLMClient(
+                    apiKey = apiKey,
+                    settings = DeepSeekClientSettings(baseUrl = baseUrl)
                 )
             )
         }
