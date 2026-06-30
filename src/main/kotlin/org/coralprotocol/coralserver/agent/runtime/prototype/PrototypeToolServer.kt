@@ -2,7 +2,7 @@
 
 package org.coralprotocol.coralserver.agent.runtime.prototype
 
-import ai.koog.agents.core.tools.Tool
+import ai.koog.agents.core.tools.ToolBase
 import dev.eav.tomlkt.TomlClassDiscriminator
 import io.ktor.client.*
 import io.ktor.client.plugins.*
@@ -53,7 +53,7 @@ sealed interface PrototypeToolServerAuth {
 }
 
 interface ResolvedPrototypeToolServer {
-    val resolvedTools: List<Tool<*, *>>
+    val resolvedTools: List<ToolBase<*, *>>
     suspend fun close()
 }
 

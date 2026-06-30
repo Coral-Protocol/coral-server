@@ -105,9 +105,8 @@ dependencies {
     implementation("com.sksamuel.hoplite:hoplite-core:${hopliteVersion}")
     implementation("com.sksamuel.hoplite:hoplite-toml:${hopliteVersion}")
 
-    val koogVersion = "0.8.0"
-    api("ai.koog:koog-agents:$koogVersion")
-    api("ai.koog:agents-mcp:$koogVersion")
+    val koogVersion = "1.0.0-beta"
+    implementation("ai.koog:koog-agents-additions:${koogVersion}")
 }
 
 tasks.test {

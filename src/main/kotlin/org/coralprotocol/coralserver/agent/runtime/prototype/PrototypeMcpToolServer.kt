@@ -1,6 +1,6 @@
 package org.coralprotocol.coralserver.agent.runtime.prototype
 
-import ai.koog.agents.core.tools.Tool
+import ai.koog.agents.core.tools.ToolBase
 import ai.koog.agents.mcp.McpToolRegistryProvider
 import ai.koog.agents.mcp.metadata.McpServerInfo
 import io.ktor.client.*
@@ -37,7 +37,7 @@ class McpResolver(
 }
 
 class ResolvedMcpToolServer(
-    override val resolvedTools: List<Tool<*, *>>,
+    override val resolvedTools: List<ToolBase<*, *>>,
     private val client: Client,
 ) : ResolvedPrototypeToolServer {
     override suspend fun close() {
