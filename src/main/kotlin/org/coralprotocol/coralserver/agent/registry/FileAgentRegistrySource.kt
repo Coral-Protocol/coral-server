@@ -360,7 +360,12 @@ class FileAgentRegistrySource(
                 handlersMap.remove(watchJobKey)
                 if (handlersMap.isEmpty()) {
                     watchHandlers.remove(key)
-                    key.cancel()
+                    try {
+                        key.cancel()
+                    } catch (_: ClosedWatchServiceException) {
+                        // ignored
+                    }
+
                     val p = key.watchable() as? Path
                     if (p != null) {
                         watchKeysByPath.remove(p)
