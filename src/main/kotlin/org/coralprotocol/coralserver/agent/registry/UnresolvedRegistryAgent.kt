@@ -8,6 +8,7 @@ import io.github.smiley4.schemakenerator.core.annotations.Optional
 import io.ktor.client.*
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.agent.execution.ExecutionConfig
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionSerializerMap
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
@@ -67,6 +68,10 @@ data class UnresolvedRegistryAgent(
     @Optional
     @SerialName("claims")
     val claimTypes: List<RegistryAgentClaimType> = emptyList(),
+
+    @Description("Declared isolation and network needs")
+    @Optional
+    val execution: ExecutionConfig? = null
 ) : KoinComponent {
     private val logger by inject<Logger>(named(LOGGER_CONFIG))
 
@@ -180,7 +185,8 @@ data class UnresolvedRegistryAgent(
             path = context.path,
             marketplace = marketplace,
             dependencies = dependencies,
-            claimTypes = claimTypes
+            claimTypes = claimTypes,
+            execution = execution
         )
         registryAgent.validate()
 

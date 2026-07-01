@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.agent.registry
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import org.coralprotocol.coralserver.agent.execution.ExecutionConfig
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionSerializerMap
 import org.coralprotocol.coralserver.agent.runtime.LocalAgentRuntimes
@@ -29,6 +30,7 @@ data class RegistryAgent(
     val marketplace: RegistryAgentMarketplaceSettings? = null,
     val dependencies: List<RegistryAgentDependency> = listOf(),
     val claimTypes: List<RegistryAgentClaimType> = listOf(),
+    val execution: ExecutionConfig? = null,
 
     @Transient
     val path: Path? = null,

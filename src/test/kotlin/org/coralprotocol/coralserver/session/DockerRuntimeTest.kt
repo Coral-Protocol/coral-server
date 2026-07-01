@@ -30,7 +30,6 @@ import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.agent.runtime.DockerRuntime
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.DockerConfig
-import org.coralprotocol.coralserver.config.SecurityConfig
 import org.coralprotocol.coralserver.config.RootConfig
 import org.coralprotocol.coralserver.dsl.graphAgentPair
 import org.coralprotocol.coralserver.events.SessionEvent
@@ -230,10 +229,9 @@ class DockerRuntimeTest : CoralTest({
     test("testDockerHostConfigHardeningDefaults") {
         val logger by inject<Logger>(named(LOGGER_LOCAL_SESSION))
         val dockerConfig by inject<DockerConfig>()
-        val securityConfig by inject<SecurityConfig>()
 
         val tier = AgentRegistrySourceIdentifier.Local
-            .resolveTrustPolicy(dockerConfig, securityConfig).docker
+            .resolveTrustPolicy(dockerConfig).docker
         val hostConfig = tier.buildHostConfig(emptyList(), logger)
 
         hostConfig.privileged shouldBe false
@@ -243,6 +241,26 @@ class DockerRuntimeTest : CoralTest({
         hostConfig.pidsLimit shouldBe tier.pidsLimit
         hostConfig.nanoCPUs shouldBe tier.nanoCpus
         hostConfig.memory shouldBe tier.memoryLimitBytes
+    }
+
+    test("testExtraCapsAreAddedAlongsideDroppedCapabilities") {
+        val logger by inject<Logger>(named(LOGGER_LOCAL_SESSION))
+        val dockerConfig by inject<DockerConfig>()
+
+        val tier = AgentRegistrySourceIdentifier.Local
+            .resolveTrustPolicy(dockerConfig).docker
+        val extraCaps = listOf(
+            Capability.SYS_ADMIN,
+            Capability.NET_ADMIN,
+            Capability.SYS_PTRACE,
+            Capability.SETUID,
+            Capability.SETGID,
+            Capability.DAC_READ_SEARCH,
+        )
+        val hostConfig = tier.buildHostConfig(emptyList(), logger, extraCaps)
+
+        hostConfig.capDrop?.toSet() shouldBe setOf(Capability.ALL)
+        hostConfig.capAdd?.toSet() shouldBe extraCaps.toSet()
     }
 
     test("testDockerImageDigestRequiredForMarketplaceAgents") {

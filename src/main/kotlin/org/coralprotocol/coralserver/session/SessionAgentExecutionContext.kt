@@ -15,7 +15,7 @@ import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.DebugConfig
 import org.coralprotocol.coralserver.config.DockerConfig
 import org.coralprotocol.coralserver.config.LlmProxyConfig
-import org.coralprotocol.coralserver.config.SecurityConfig
+import org.coralprotocol.coralserver.config.OpenShellConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.session.reporting.SessionAgentUsageReport
@@ -45,14 +45,14 @@ class SessionAgentExecutionContext(
     val debugConfig by inject<DebugConfig>()
     val dockerConfig by inject<DockerConfig>()
     val llmProxyConfig by inject<LlmProxyConfig>()
-    val securityConfig by inject<SecurityConfig>()
+    val openShellConfig by inject<OpenShellConfig>()
 
     val disposableResources = mutableListOf<SessionAgentDisposableResource>()
 
     var lastLaunchTime: Instant? = null
 
     val executionPolicy: ExecutionTrustPolicy =
-        registryAgent.identifier.registrySourceId.resolveTrustPolicy(dockerConfig, securityConfig)
+        registryAgent.identifier.registrySourceId.resolveTrustPolicy(dockerConfig)
 
     /**
      * A list of usage reports for this agent.  When a session ends, all usage reports for each agent will be sent to
@@ -72,14 +72,8 @@ class SessionAgentExecutionContext(
      */
     fun buildEnvironment(transport: McpTransportType = DEFAULT_AGENT_RUNTIME_TRANSPORT): Map<String, String> {
         return buildMap {
-            val addressConsumer = when (provider.runtime) {
-                RuntimeId.EXECUTABLE -> AddressConsumer.LOCAL
-                RuntimeId.DOCKER -> AddressConsumer.CONTAINER
-                RuntimeId.FUNCTION -> AddressConsumer.LOCAL
-                RuntimeId.PROTOTYPE -> AddressConsumer.LOCAL
-            }
-
-            val isContainer = provider.runtime == RuntimeId.DOCKER
+            val isContainer = provider.runtime.providesContainerIsolation
+            val addressConsumer = if (isContainer) AddressConsumer.CONTAINER else AddressConsumer.LOCAL
 
             val filePathSeparator = if (isContainer) {
                 dockerConfig.containerPathSeparator
@@ -89,7 +83,7 @@ class SessionAgentExecutionContext(
 
             if (provider.runtime == RuntimeId.EXECUTABLE) {
                 putAll(debugConfig.additionalExecutableEnvironment)
-            } else if (provider.runtime == RuntimeId.DOCKER) {
+            } else if (isContainer) {
                 putAll(debugConfig.additionalDockerEnvironment)
             }
 
