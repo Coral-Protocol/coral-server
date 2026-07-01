@@ -1,4 +1,5 @@
 package org.coralprotocol.coralserver.config
 
-//TODO: merge openshell config options in
-object SecurityConfig
+data class SecurityConfig(
+    val allowUntrustedExecutableRuntime: Boolean = false,
+)
