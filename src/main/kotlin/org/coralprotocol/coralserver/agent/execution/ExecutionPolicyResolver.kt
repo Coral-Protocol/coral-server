@@ -16,13 +16,14 @@ object ExecutionPolicyResolver {
         trust: ExecutionTrustPolicy,
         openShellConfig: OpenShellConfig,
         sandboxConfig: SandboxConfig,
+        fileSystemOptions: Set<String> = emptySet(),
     ): List<ExecutionRejection> = buildList {
         val tier = policy.forSource(source)
         if (declared != null) {
             validateIsolation(declared.minIsolation, tier.maxSupportedIsolation, runtime)
             validateHosts(declared.externalHosts, tier)
         }
-        validateRuntime(runtime, tier, trust, openShellConfig, sandboxConfig)
+        validateRuntime(runtime, tier, trust, openShellConfig, sandboxConfig, fileSystemOptions)
     }
 
     private fun MutableList<ExecutionRejection>.validateIsolation(
@@ -54,6 +55,7 @@ object ExecutionPolicyResolver {
         trust: ExecutionTrustPolicy,
         openShellConfig: OpenShellConfig,
         sandboxConfig: SandboxConfig,
+        fileSystemOptions: Set<String>,
     ) {
         if (runtime !in tier.allowedRuntimes) {
             add(ExecutionRejection.RuntimeDisabled(runtime, trust.profileName, tier.allowedRuntimes))
@@ -63,6 +65,10 @@ object ExecutionPolicyResolver {
         if (runtime == RuntimeId.SANDBOX) {
             if (sandboxConfig.provisionUrl == null)
                 add(ExecutionRejection.SandboxUnavailable("sandbox.provision_url (cloud /provision URL) is not configured"))
+            // The agent runs off-host, so file-system options would materialise as coral-server-local
+            // mount paths the remote VM cannot see — reject up front instead of emitting broken paths.
+            if (fileSystemOptions.isNotEmpty())
+                add(ExecutionRejection.SandboxFileTransportUnsupported(fileSystemOptions))
             return
         }
 

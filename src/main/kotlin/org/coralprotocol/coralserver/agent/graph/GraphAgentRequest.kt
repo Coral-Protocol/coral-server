@@ -10,6 +10,7 @@ import org.coralprotocol.coralserver.agent.execution.resolveTrustPolicy
 import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.AnyAgentOptionWithValue
 import org.coralprotocol.coralserver.config.DockerConfig
@@ -97,6 +98,9 @@ data class GraphAgentRequest(
         }
         if (localRuntime != null) {
             val trust = id.registrySourceId.resolveTrustPolicy(dockerConfig)
+            val fileSystemOptions = registryAgent.options
+                .filterValues { it.transport == AgentOptionTransport.FILE_SYSTEM }
+                .keys
             val rejections = ExecutionPolicyResolver.validate(
                 declared = registryAgent.execution,
                 policy = executionPolicyConfig,
@@ -105,6 +109,7 @@ data class GraphAgentRequest(
                 trust = trust,
                 openShellConfig = openShellConfig,
                 sandboxConfig = sandboxConfig,
+                fileSystemOptions = fileSystemOptions,
             )
             if (rejections.isNotEmpty()) {
                 throw AgentRequestException(

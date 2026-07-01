@@ -407,10 +407,6 @@ private fun RegistryAgent.validateRuntimes() {
         }
     }
 
-    val sandbox = runtimes.sandboxRuntime
-    if (sandbox != null) {
-        validateStringLength("runtimes.sandbox.image", sandbox.image, AGENT_DOCKER_IMAGE_LENGTH)
-    }
 }
 
 // [execution]

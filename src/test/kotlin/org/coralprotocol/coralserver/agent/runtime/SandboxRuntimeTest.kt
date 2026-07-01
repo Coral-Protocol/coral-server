@@ -12,6 +12,7 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.coralprotocol.coralserver.agent.execution.DockerExecutionTrustPolicy
 import org.coralprotocol.coralserver.cloud.Egress
 import org.coralprotocol.coralserver.cloud.Endpoint
 import org.coralprotocol.coralserver.cloud.ProvisionRequest
@@ -45,19 +46,11 @@ class SandboxRuntimeTest : FunSpec({
             "https://cloud.example.com/sandbox/mcp/v1/SEKRET/sse/"
     }
 
-    test("external LLM proxy URL keeps the /sandbox prefix") {
-        val builder = URLBuilder(Url("https://cloud.example.com/sandbox"))
-        builder.appendPathSegments("llm-proxy", "SEKRET")
-        builder.appendPathSegments("default")
-        builder.build().toString() shouldBe "https://cloud.example.com/sandbox/llm-proxy/SEKRET/default"
-    }
-
     test("ProvisionRequest serializes to cloud's snake_case wire shape") {
         val json = Json { encodeDefaults = true; explicitNulls = false }
         val request = ProvisionRequest(
             agentName = "researcher",
             coralSession = "sess-1",
-            image = "registry/agent:1",
             env = mapOf("CORAL_AGENT_SECRET" to "SEKRET"),
             egress = Egress(declared = listOf(Endpoint("api.firecrawl.dev", 443))),
             resources = Resources(cpus = 1, memoryMb = 512),
@@ -69,5 +62,18 @@ class SandboxRuntimeTest : FunSpec({
         obj["egress"]!!.jsonObject["declared"]!!.jsonArray[0]
             .jsonObject["host"]!!.jsonPrimitive.content shouldBe "api.firecrawl.dev"
         obj["resources"]!!.jsonObject["memory_mb"]!!.jsonPrimitive.int shouldBe 512
+    }
+
+    test("sandboxResources maps docker limits to Fly guest sizing, flooring sub-1 vCPU") {
+        sandboxResources(
+            DockerExecutionTrustPolicy(nanoCpus = 2_000_000_000L, memoryLimitBytes = 1024L * 1024 * 1024)
+        ) shouldBe Resources(cpus = 2, memoryMb = 1024)
+
+        sandboxResources(DockerExecutionTrustPolicy(nanoCpus = 500_000_000L)) shouldBe
+            Resources(cpus = 1, memoryMb = 512)
+    }
+
+    test("sandboxResources is null when the trust profile sets no limits") {
+        sandboxResources(DockerExecutionTrustPolicy()) shouldBe null
     }
 })

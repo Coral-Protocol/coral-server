@@ -3,6 +3,7 @@ package org.coralprotocol.coralserver.agent.runtime
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.coralprotocol.coralserver.agent.execution.DockerExecutionTrustPolicy
 import org.coralprotocol.coralserver.agent.execution.compileEgressPolicy
 import org.coralprotocol.coralserver.cloud.Egress
 import org.coralprotocol.coralserver.cloud.Endpoint
@@ -20,11 +21,15 @@ private const val BYTES_PER_MIB = 1024L * 1024L
  * delegates provisioning to coral-cloud (which owns the Fly fleet + the gateway the agent connects
  * back through). The agent's callback URLs use [AddressConsumer.EXTERNAL] → cloud's public gateway,
  * with the per-agent secret in the path.
+ *
+ * There is deliberately no author-supplied image: cloud runs its own base image, whose entrypoint
+ * applies the egress firewall before dropping to the agent. Running an arbitrary author image while
+ * still enforcing egress via that entrypoint is unsolved (needs platform-level egress or an init
+ * wrapper), so it is out of scope for the MVP.
  */
 @Serializable
 @SerialName("sandbox")
 data class SandboxRuntime(
-    val image: String,
     override val transport: McpTransportType = DEFAULT_AGENT_RUNTIME_TRANSPORT,
 ) : AgentRuntime {
     override suspend fun execute(
@@ -40,19 +45,12 @@ data class SandboxRuntime(
             coralUrls = emptySet(),
         ).declared.map { Endpoint(host = it.host, port = it.port) }
 
-        val resources = executionContext.executionPolicy.docker.let { trust ->
-            if (trust.nanoCpus == null && trust.memoryLimitBytes == null) null
-            else Resources(
-                cpus = ((trust.nanoCpus ?: NANOS_PER_CPU) / NANOS_PER_CPU).toInt().coerceAtLeast(1),
-                memoryMb = ((trust.memoryLimitBytes ?: (512L * BYTES_PER_MIB)) / BYTES_PER_MIB).toInt(),
-            )
-        }
+        val resources = sandboxResources(executionContext.executionPolicy.docker)
 
         val handle = executionContext.sandboxProvider.provision(
             ProvisionRequest(
                 agentName = executionContext.agent.name,
                 coralSession = executionContext.agent.session.id,
-                image = image,
                 env = environment,
                 egress = Egress(declared = declared),
                 resources = resources,
@@ -68,3 +66,15 @@ data class SandboxRuntime(
         awaitCancellation()
     }
 }
+
+/**
+ * Maps the trust profile's Docker CPU/memory limits to Fly guest sizing, or null when the profile
+ * sets no limits (cloud then applies its own defaults). Lossy by design: integer division floors, and
+ * a sub-1 vCPU limit is raised to the 1-vCPU minimum Fly requires.
+ */
+internal fun sandboxResources(docker: DockerExecutionTrustPolicy): Resources? =
+    if (docker.nanoCpus == null && docker.memoryLimitBytes == null) null
+    else Resources(
+        cpus = ((docker.nanoCpus ?: NANOS_PER_CPU) / NANOS_PER_CPU).toInt().coerceAtLeast(1),
+        memoryMb = ((docker.memoryLimitBytes ?: (512L * BYTES_PER_MIB)) / BYTES_PER_MIB).toInt(),
+    )

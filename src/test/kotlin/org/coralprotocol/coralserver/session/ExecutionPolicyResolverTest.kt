@@ -48,7 +48,10 @@ class ExecutionPolicyResolverTest : FunSpec({
         trust: ExecutionTrustPolicy = trustedProfile,
         openShellConfig: OpenShellConfig = availableSupervisor,
         sandboxConfig: SandboxConfig = configuredSandbox,
-    ) = ExecutionPolicyResolver.validate(declared, policy, source, runtime, trust, openShellConfig, sandboxConfig)
+        fileSystemOptions: Set<String> = emptySet(),
+    ) = ExecutionPolicyResolver.validate(
+        declared, policy, source, runtime, trust, openShellConfig, sandboxConfig, fileSystemOptions,
+    )
 
     test("missingDeclarationSkipsValidation") {
         validate(declared = null).shouldBeEmpty()
@@ -298,5 +301,18 @@ class ExecutionPolicyResolverTest : FunSpec({
             trust = marketplaceProfile,
             sandboxConfig = configuredSandbox,
         ).shouldBeEmpty()
+    }
+
+    test("sandboxRuntimeRejectsFileSystemOptions") {
+        validate(
+            declared = null,
+            source = AgentRegistrySourceIdentifier.Marketplace,
+            runtime = RuntimeId.SANDBOX,
+            trust = marketplaceProfile,
+            sandboxConfig = configuredSandbox,
+            fileSystemOptions = setOf("config_blob"),
+        ) shouldContainExactly listOf(
+            ExecutionRejection.SandboxFileTransportUnsupported(setOf("config_blob"))
+        )
     }
 })

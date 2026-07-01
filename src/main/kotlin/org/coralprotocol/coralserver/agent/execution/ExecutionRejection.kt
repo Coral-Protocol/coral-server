@@ -31,6 +31,12 @@ sealed class ExecutionRejection {
             get() = "sandbox backend unavailable: $detail"
     }
 
+    data class SandboxFileTransportUnsupported(val options: Set<String>) : ExecutionRejection() {
+        override val reason: String
+            get() = "sandbox runtime runs off-host and cannot deliver file-system options: " +
+                options.sorted().joinToString()
+    }
+
     data class RuntimeIncompatibleWithTrust(
         val runtime: RuntimeId,
         val profileName: String,

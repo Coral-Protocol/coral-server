@@ -17,8 +17,6 @@ interface SandboxProvider {
 data class ProvisionRequest(
     @SerialName("agent_name") val agentName: String,
     @SerialName("coral_session") val coralSession: String,
-    // Forward-compat: cloud uses its controlled base image for the MVP and ignores this.
-    val image: String? = null,
     // Opaque env built by coral-server (CORAL_CONNECTION_URL/CORAL_AGENT_SECRET/CORAL_PROXY_URL_*…).
     val env: Map<String, String>,
     val egress: Egress,
@@ -38,5 +36,4 @@ data class Resources(val cpus: Int, @SerialName("memory_mb") val memoryMb: Int)
 @Serializable
 data class MachineHandle(
     @SerialName("machine_id") val machineId: String,
-    @SerialName("private_ip") val privateIp: String? = null,
 )
