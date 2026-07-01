@@ -15,6 +15,7 @@ import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.ExecutionPolicyConfig
 import org.coralprotocol.coralserver.config.ExecutionTierPolicy
 import org.coralprotocol.coralserver.config.OpenShellConfig
+import org.coralprotocol.coralserver.config.SandboxConfig
 import java.nio.file.Paths
 
 class ExecutionPolicyResolverTest : FunSpec({
@@ -36,6 +37,9 @@ class ExecutionPolicyResolverTest : FunSpec({
     val availableSupervisor = OpenShellConfig(supervisorPath = Paths.get("/bin/sh"))
     val missingSupervisor = OpenShellConfig(supervisorPath = null)
 
+    val configuredSandbox = SandboxConfig(provisionUrl = "https://cloud.example.com/api/internal/coral/provision")
+    val unconfiguredSandbox = SandboxConfig()
+
     fun validate(
         declared: ExecutionConfig?,
         policy: ExecutionPolicyConfig = ExecutionPolicyConfig(),
@@ -43,7 +47,8 @@ class ExecutionPolicyResolverTest : FunSpec({
         runtime: RuntimeId = RuntimeId.DOCKER,
         trust: ExecutionTrustPolicy = trustedProfile,
         openShellConfig: OpenShellConfig = availableSupervisor,
-    ) = ExecutionPolicyResolver.validate(declared, policy, source, runtime, trust, openShellConfig)
+        sandboxConfig: SandboxConfig = configuredSandbox,
+    ) = ExecutionPolicyResolver.validate(declared, policy, source, runtime, trust, openShellConfig, sandboxConfig)
 
     test("missingDeclarationSkipsValidation") {
         validate(declared = null).shouldBeEmpty()
@@ -207,7 +212,7 @@ class ExecutionPolicyResolverTest : FunSpec({
             ExecutionRejection.RuntimeDisabled(
                 runtime = RuntimeId.EXECUTABLE,
                 profileName = "marketplace_untrusted",
-                allowedRuntimes = setOf(RuntimeId.DOCKER, RuntimeId.OPENSHELL),
+                allowedRuntimes = setOf(RuntimeId.DOCKER, RuntimeId.OPENSHELL, RuntimeId.SANDBOX),
             )
         )
     }
@@ -271,5 +276,27 @@ class ExecutionPolicyResolverTest : FunSpec({
                 allowedRuntimes = setOf(RuntimeId.DOCKER),
             )
         )
+    }
+
+    test("sandboxRuntimeRejectedWhenProvisionUrlMissing") {
+        validate(
+            declared = null,
+            source = AgentRegistrySourceIdentifier.Marketplace,
+            runtime = RuntimeId.SANDBOX,
+            trust = marketplaceProfile,
+            sandboxConfig = unconfiguredSandbox,
+        ) shouldContainExactly listOf(
+            ExecutionRejection.SandboxUnavailable("sandbox.provision_url (cloud /provision URL) is not configured")
+        )
+    }
+
+    test("sandboxRuntimeAcceptedWhenConfigured") {
+        validate(
+            declared = ExecutionConfig(minIsolation = MinIsolation.CONTAINER),
+            source = AgentRegistrySourceIdentifier.Marketplace,
+            runtime = RuntimeId.SANDBOX,
+            trust = marketplaceProfile,
+            sandboxConfig = configuredSandbox,
+        ).shouldBeEmpty()
     }
 })

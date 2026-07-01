@@ -21,10 +21,13 @@ enum class RuntimeId {
     PROTOTYPE,
 
     @SerialName("openshell")
-    OPENSHELL;
+    OPENSHELL,
+
+    @SerialName("sandbox")
+    SANDBOX;
 
     val providesContainerIsolation: Boolean
-        get() = this == DOCKER || this == OPENSHELL
+        get() = this == DOCKER || this == OPENSHELL || this == SANDBOX
 }
 
 @Serializable
@@ -44,6 +47,9 @@ data class LocalAgentRuntimes(
 
     @SerialName("openshell")
     val openShellRuntime: OpenShellRuntime? = null,
+
+    @SerialName("sandbox")
+    val sandboxRuntime: SandboxRuntime? = null,
 ) {
     fun getById(runtimeId: RuntimeId): AgentRuntime? =
         when (runtimeId) {
@@ -52,6 +58,7 @@ data class LocalAgentRuntimes(
             RuntimeId.FUNCTION -> functionRuntime
             RuntimeId.PROTOTYPE -> prototypeRuntime
             RuntimeId.OPENSHELL -> openShellRuntime
+            RuntimeId.SANDBOX -> sandboxRuntime
         }
 
     @Suppress("unused")
@@ -62,6 +69,7 @@ data class LocalAgentRuntimes(
             functionRuntime?.let { add(RuntimeId.FUNCTION) }
             prototypeRuntime?.let { add(RuntimeId.PROTOTYPE) }
             openShellRuntime?.let { add(RuntimeId.OPENSHELL) }
+            sandboxRuntime?.let { add(RuntimeId.SANDBOX) }
         }
     }
 }

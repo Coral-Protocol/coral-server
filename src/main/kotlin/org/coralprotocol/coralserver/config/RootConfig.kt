@@ -51,6 +51,9 @@ data class RootConfig(
 
     @param:ConfigAlias("openshell")
     val openShellConfig: OpenShellConfig = OpenShellConfig(),
+
+    @param:ConfigAlias("sandbox")
+    val sandboxConfig: SandboxConfig = SandboxConfig(),
 ) {
     /**
      * Calculates the address required to access the server for a given consumer.
@@ -67,11 +70,23 @@ data class RootConfig(
      * Calculates the base URL required to access the server for a given consumer.
      */
     fun resolveBaseUrl(consumer: AddressConsumer): Url =
-        URLBuilder(
-            protocol = URLProtocol.HTTP,
-            host = resolveAddress(consumer),
-            port = networkConfig.bindPort.toInt()
-        ).build()
+        when (consumer) {
+            // Off-host agents reach coral-server through cloud's public gateway (https + the
+            // /sandbox path), not the local bind port.
+            AddressConsumer.EXTERNAL ->
+                sandboxConfig.agentGatewayUrl?.let { Url(it) }
+                    ?: URLBuilder(
+                        protocol = URLProtocol.HTTPS,
+                        host = networkConfig.externalAddress,
+                        port = 443,
+                    ).build()
+
+            else -> URLBuilder(
+                protocol = URLProtocol.HTTP,
+                host = resolveAddress(consumer),
+                port = networkConfig.bindPort.toInt()
+            ).build()
+        }
 }
 
 enum class AddressConsumer {

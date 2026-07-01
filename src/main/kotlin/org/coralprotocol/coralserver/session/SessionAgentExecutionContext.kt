@@ -11,6 +11,7 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.agent.runtime.DEFAULT_AGENT_RUNTIME_TRANSPORT
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.cloud.SandboxProvider
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.DebugConfig
 import org.coralprotocol.coralserver.config.DockerConfig
@@ -46,6 +47,7 @@ class SessionAgentExecutionContext(
     val dockerConfig by inject<DockerConfig>()
     val llmProxyConfig by inject<LlmProxyConfig>()
     val openShellConfig by inject<OpenShellConfig>()
+    val sandboxProvider by inject<SandboxProvider>()
 
     val disposableResources = mutableListOf<SessionAgentDisposableResource>()
 
@@ -70,10 +72,13 @@ class SessionAgentExecutionContext(
      *
      * If the [provider] uses a [RuntimeId.DOCKER] runtime, the temporary files path will be translated by
      */
-    fun buildEnvironment(transport: McpTransportType = DEFAULT_AGENT_RUNTIME_TRANSPORT): Map<String, String> {
+    fun buildEnvironment(
+        transport: McpTransportType = DEFAULT_AGENT_RUNTIME_TRANSPORT,
+        addressConsumer: AddressConsumer =
+            if (provider.runtime.providesContainerIsolation) AddressConsumer.CONTAINER else AddressConsumer.LOCAL,
+    ): Map<String, String> {
         return buildMap {
             val isContainer = provider.runtime.providesContainerIsolation
-            val addressConsumer = if (isContainer) AddressConsumer.CONTAINER else AddressConsumer.LOCAL
 
             val filePathSeparator = if (isContainer) {
                 dockerConfig.containerPathSeparator

@@ -15,6 +15,7 @@ import org.coralprotocol.coralserver.agent.registry.option.AnyAgentOptionWithVal
 import org.coralprotocol.coralserver.config.DockerConfig
 import org.coralprotocol.coralserver.config.ExecutionPolicyConfig
 import org.coralprotocol.coralserver.config.OpenShellConfig
+import org.coralprotocol.coralserver.config.SandboxConfig
 import org.coralprotocol.coralserver.llmproxy.LlmProxyException
 import org.coralprotocol.coralserver.llmproxy.LlmProxyService
 import org.coralprotocol.coralserver.session.SessionResource
@@ -75,6 +76,7 @@ data class GraphAgentRequest(
     val executionPolicyConfig by inject<ExecutionPolicyConfig>()
     val dockerConfig by inject<DockerConfig>()
     val openShellConfig by inject<OpenShellConfig>()
+    val sandboxConfig by inject<SandboxConfig>()
 
     /**
      * Given a reference to the agent registry [AgentRegistry], this function will attempt to convert this request into
@@ -102,6 +104,7 @@ data class GraphAgentRequest(
                 runtime = localRuntime,
                 trust = trust,
                 openShellConfig = openShellConfig,
+                sandboxConfig = sandboxConfig,
             )
             if (rejections.isNotEmpty()) {
                 throw AgentRequestException(

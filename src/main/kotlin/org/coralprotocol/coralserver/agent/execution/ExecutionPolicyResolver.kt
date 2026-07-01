@@ -5,6 +5,7 @@ import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.config.ExecutionPolicyConfig
 import org.coralprotocol.coralserver.config.ExecutionTierPolicy
 import org.coralprotocol.coralserver.config.OpenShellConfig
+import org.coralprotocol.coralserver.config.SandboxConfig
 
 object ExecutionPolicyResolver {
     fun validate(
@@ -14,13 +15,14 @@ object ExecutionPolicyResolver {
         runtime: RuntimeId,
         trust: ExecutionTrustPolicy,
         openShellConfig: OpenShellConfig,
+        sandboxConfig: SandboxConfig,
     ): List<ExecutionRejection> = buildList {
         val tier = policy.forSource(source)
         if (declared != null) {
             validateIsolation(declared.minIsolation, tier.maxSupportedIsolation, runtime)
             validateHosts(declared.externalHosts, tier)
         }
-        validateRuntime(runtime, tier, trust, openShellConfig)
+        validateRuntime(runtime, tier, trust, openShellConfig, sandboxConfig)
     }
 
     private fun MutableList<ExecutionRejection>.validateIsolation(
@@ -51,9 +53,16 @@ object ExecutionPolicyResolver {
         tier: ExecutionTierPolicy,
         trust: ExecutionTrustPolicy,
         openShellConfig: OpenShellConfig,
+        sandboxConfig: SandboxConfig,
     ) {
         if (runtime !in tier.allowedRuntimes) {
             add(ExecutionRejection.RuntimeDisabled(runtime, trust.profileName, tier.allowedRuntimes))
+            return
+        }
+
+        if (runtime == RuntimeId.SANDBOX) {
+            if (sandboxConfig.provisionUrl == null)
+                add(ExecutionRejection.SandboxUnavailable("sandbox.provision_url (cloud /provision URL) is not configured"))
             return
         }
 

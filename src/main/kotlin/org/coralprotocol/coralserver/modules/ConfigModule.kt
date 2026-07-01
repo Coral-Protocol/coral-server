@@ -57,4 +57,5 @@ val configModuleParts = module {
     single<CloudConfig>(createdAtStart = true) { get<RootConfig>().cloudConfig }
     single<ExecutionPolicyConfig>(createdAtStart = true) { get<RootConfig>().executionPolicyConfig }
     single<OpenShellConfig>(createdAtStart = true) { get<RootConfig>().openShellConfig }
+    single<SandboxConfig>(createdAtStart = true) { get<RootConfig>().sandboxConfig }
 }
