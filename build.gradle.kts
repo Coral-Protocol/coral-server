@@ -36,6 +36,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.10.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
+    implementation("org.slf4j:slf4j-api:2.0.18")
     implementation("ch.qos.logback:logback-classic:1.5.32")
     implementation("org.fusesource.jansi:jansi:2.4.2")
     implementation("com.github.pgreze:kotlin-process:1.5.1")
@@ -46,7 +47,7 @@ dependencies {
     implementation("com.github.docker-java:docker-java:$dockerVersion")
     implementation("com.github.docker-java:docker-java-transport-httpclient5:$dockerVersion")
 
-    val ktorVersion = "3.4.3"
+    val ktorVersion = "3.5.1"
     implementation(enforcedPlatform("io.ktor:ktor-bom:$ktorVersion"))
     implementation("io.ktor:ktor-server-status-pages:${ktorVersion}")
     implementation("io.ktor:ktor-server-auth:${ktorVersion}")

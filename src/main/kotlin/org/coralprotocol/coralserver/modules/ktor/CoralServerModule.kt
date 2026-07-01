@@ -191,6 +191,8 @@ fun Application.coralServerModule(isTest: Boolean = false) {
                 "${call.request.httpMethod} ${call.request.uri}"
             }
         }
+
+        disableDefaultColors()
     }
     install(Authentication) {
         bearer("token") {
