@@ -12,6 +12,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
@@ -90,6 +91,12 @@ suspend fun KoinComponent.multiAgentPayloadTest(
                         MultiAgentTestPayloadResponse("Successfully received payload!")
                     )
                 }
+            } catch (e: SerializationException) {
+                logger.error(e) { "Cannot deserialize payload" }
+                call.respond(
+                    HttpStatusCode.OK,
+                    MultiAgentTestPayloadResponse("The given payload is invalid: ${e.message}")
+                )
             } catch (e: Exception) {
                 deferredPayload.completeExceptionally(e)
                 throw e
