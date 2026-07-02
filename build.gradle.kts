@@ -108,6 +108,7 @@ dependencies {
 
     val koogVersion = "1.0.0-beta"
     implementation("ai.koog:koog-agents-additions:${koogVersion}")
+    implementation("ai.koog:koog-ktor:${koogVersion}")
 }
 
 tasks.test {

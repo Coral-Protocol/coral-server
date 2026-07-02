@@ -40,4 +40,12 @@ sealed interface LlmProviderFormat : LlmProviderStrategy {
             return OpenAI.serializer().descriptor.serialName
         }
     }
+
+    @Serializable
+    @SerialName("DeepSeek")
+    object DeepSeek : LlmProviderFormat, LlmProviderStrategy by OpenAIStrategy {
+        override fun toString(): String {
+            return serializer().descriptor.serialName
+        }
+    }
 }

@@ -195,6 +195,7 @@ data class PrototypeRuntime(
         val client = client ?: when (proxiedModel.providerConfig.format) {
             LlmProviderFormat.Anthropic -> PrototypeClient.ANTHROPIC
             LlmProviderFormat.OpenAI -> PrototypeClient.OPEN_AI
+            LlmProviderFormat.DeepSeek -> PrototypeClient.DEEPSEEK
         }
 
         val iterationCount = iterationCount.resolve(executionContext).toInt()
@@ -232,7 +233,14 @@ data class PrototypeRuntime(
                                 executionContext.logger.debug { "Updated system resources in $resourceUpdateTime" }
 
                                 val (response, llmResponseTime) = measureTimedValue {
-                                    requestLLMOnlyCallingTools(if (iteration == 0) initialUserMessage else followupUserMessage)
+                                    when (client) {
+                                        // may no longer be required after https://github.com/JetBrains/koog/issues/2095 is released
+                                        PrototypeClient.DEEPSEEK -> {
+                                            requestLLMOnlyCallingTools(if (iteration == 0) initialUserMessage else followupUserMessage)
+                                        }
+
+                                        else -> requestLLMOnlyCallingTools(initialUserMessage)
+                                    }
                                 }
 
                                 llm.readSession { readSession -> postRequestToLLMCallback(readSession) }
@@ -244,6 +252,7 @@ data class PrototypeRuntime(
                                 val (toolCallResults, toolCallTime) = measureTimedValue {
                                     executeMultipleToolsCatching(toolCalls, executionContext.logger)
                                 }
+
                                 executionContext.logger.debug {
                                     "Executed ${toolCallResults.size} tools in $toolCallTime, results: ${
                                         json.encodeToString(
@@ -253,7 +262,9 @@ data class PrototypeRuntime(
 
                                 llm.writeSession {
                                     appendPrompt {
-                                        toolCalls.forEach { toolCall(it) }
+                                        user {
+                                            toolCallResults.forEach { toolResult(it.toMessagePart()) }
+                                        }
                                     }
                                 }
                             }

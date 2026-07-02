@@ -1,5 +1,8 @@
+@file:Suppress("UnstableApiUsage")
+
 package org.coralprotocol.coralserver.agent.runtime.prototype
 
+import ai.koog.http.client.ktor.KtorKoogHttpClient
 import ai.koog.prompt.executor.clients.anthropic.AnthropicClientSettings
 import ai.koog.prompt.executor.clients.anthropic.AnthropicLLMClient
 import ai.koog.prompt.executor.clients.anthropic.AnthropicModels
@@ -19,6 +22,7 @@ import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.exceptions.PrototypeRuntimeException
 import org.coralprotocol.coralserver.llmproxy.LlmProxiedModel
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
 
 @Serializable
 enum class PrototypeClient(val models: Any) : KoinComponent {
@@ -38,6 +42,7 @@ enum class PrototypeClient(val models: Any) : KoinComponent {
         when (this) {
             OPEN_AI -> MultiLLMPromptExecutor(
                 OpenAILLMClient(
+                    httpClientFactory = KtorKoogHttpClient.Factory(baseClient = get()),
                     apiKey = apiKey,
                     settings = OpenAIClientSettings(baseUrl = "$baseUrl/")
                 )
@@ -45,6 +50,7 @@ enum class PrototypeClient(val models: Any) : KoinComponent {
 
             OPEN_ROUTER -> MultiLLMPromptExecutor(
                 OpenRouterLLMClient(
+                    httpClientFactory = KtorKoogHttpClient.Factory(baseClient = get()),
                     apiKey = apiKey,
                     settings = OpenRouterClientSettings(baseUrl = baseUrl)
                 )
@@ -52,6 +58,7 @@ enum class PrototypeClient(val models: Any) : KoinComponent {
 
             ANTHROPIC -> MultiLLMPromptExecutor(
                 AnthropicLLMClient(
+                    httpClientFactory = KtorKoogHttpClient.Factory(baseClient = get()),
                     apiKey = apiKey,
                     settings = AnthropicClientSettings(baseUrl = baseUrl)
                 )
@@ -59,6 +66,7 @@ enum class PrototypeClient(val models: Any) : KoinComponent {
 
             DEEPSEEK -> MultiLLMPromptExecutor(
                 DeepSeekLLMClient(
+                    httpClientFactory = KtorKoogHttpClient.Factory(baseClient = get()),
                     apiKey = apiKey,
                     settings = DeepSeekClientSettings(baseUrl = baseUrl)
                 )
