@@ -51,6 +51,7 @@ class SandboxRuntimeTest : FunSpec({
         val request = ProvisionRequest(
             agentName = "researcher",
             coralSession = "sess-1",
+            image = "registry.fly.io/authors/researcher@sha256:abc",
             env = mapOf("CORAL_AGENT_SECRET" to "SEKRET"),
             egress = Egress(declared = listOf(Endpoint("api.firecrawl.dev", 443))),
             resources = Resources(cpus = 1, memoryMb = 512),
@@ -59,6 +60,7 @@ class SandboxRuntimeTest : FunSpec({
         val obj = json.parseToJsonElement(json.encodeToString(request)).jsonObject
         obj["agent_name"]!!.jsonPrimitive.content shouldBe "researcher"
         obj["coral_session"]!!.jsonPrimitive.content shouldBe "sess-1"
+        obj["image"]!!.jsonPrimitive.content shouldBe "registry.fly.io/authors/researcher@sha256:abc"
         obj["egress"]!!.jsonObject["declared"]!!.jsonArray[0]
             .jsonObject["host"]!!.jsonPrimitive.content shouldBe "api.firecrawl.dev"
         obj["resources"]!!.jsonObject["memory_mb"]!!.jsonPrimitive.int shouldBe 512

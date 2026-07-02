@@ -17,6 +17,9 @@ interface SandboxProvider {
 data class ProvisionRequest(
     @SerialName("agent_name") val agentName: String,
     @SerialName("coral_session") val coralSession: String,
+    // The author's OCI image (should be digest-pinned). Runs as the non-root agent container, wrapped
+    // by cloud's egress sidecar in the same microVM.
+    val image: String,
     // Opaque env built by coral-server (CORAL_CONNECTION_URL/CORAL_AGENT_SECRET/CORAL_PROXY_URL_*…).
     val env: Map<String, String>,
     val egress: Egress,
