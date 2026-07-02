@@ -37,7 +37,7 @@ sealed interface LlmProviderFormat : LlmProviderStrategy {
     @SerialName("Anthropic")
     object Anthropic : LlmProviderFormat, LlmProviderStrategy by AnthropicStrategy {
         override fun toString(): String {
-            return OpenAI.serializer().descriptor.serialName
+            return serializer().descriptor.serialName
         }
     }
 
