@@ -46,18 +46,21 @@ private data class CoralCloudProvider(
     val name: String,
     val format: LlmProviderFormat,
     val baseUrl: String,
+    val modelsUrl: String
 )
 
 private val supportedCoralCloudProviders = listOf(
     CoralCloudProvider(
         name = "Coral Cloud, OpenAI",
         format = LlmProviderFormat.OpenAI,
-        baseUrl = "https://llm.coralcloud.ai/openai/"
+        baseUrl = "https://llm.coralcloud.ai/openai/",
+        modelsUrl = "https://llm.coralcloud.ai/openai/v1/models"
     ),
     CoralCloudProvider(
         name = "Coral Cloud, DeepSeek",
         format = LlmProviderFormat.DeepSeek,
-        baseUrl = "https://llm.coralcloud.ai/deepseek/"
+        baseUrl = "https://llm.coralcloud.ai/deepseek/v1",
+        modelsUrl = "https://llm.coralcloud.ai/deepseek/v1/models"
     ),
 )
 
@@ -101,7 +104,7 @@ class LlmProxyService(
                     format = provider.format,
                     baseUrl = provider.baseUrl,
                     models = runBlocking {
-                        client.get("${provider.baseUrl}v1/models") {
+                        client.get(provider.modelsUrl) {
                             bearerAuth(apiKey)
                         }.body<CloudModelList>().models.map { it.id }.toSet()
                     },
