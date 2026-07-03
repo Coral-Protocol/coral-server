@@ -14,7 +14,6 @@ import ai.koog.agents.mcp.metadata.McpServerInfo
 import ai.koog.prompt.message.Message
 import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.message.RequestMetaInfo
-import ai.koog.prompt.params.LLMParams
 import ai.koog.serialization.JSONObject
 import dev.eav.tomlkt.TomlClassDiscriminator
 import io.ktor.client.*
@@ -31,8 +30,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonClassDiscriminator
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import org.coralprotocol.coralserver.agent.exceptions.PrototypeRuntimeException
 import org.coralprotocol.coralserver.agent.runtime.prototype.*
 import org.coralprotocol.coralserver.config.AddressConsumer
@@ -196,9 +193,9 @@ data class PrototypeRuntime(
         val followupUserMessage = prompts.loop.followup.resolve(executionContext)
 
         val client = client ?: when (proxiedModel.providerConfig.format) {
-            LlmProviderFormat.Anthropic -> PrototypeClient.ANTHROPIC
-            LlmProviderFormat.OpenAI -> PrototypeClient.OPEN_AI
-            LlmProviderFormat.DeepSeek -> PrototypeClient.DEEPSEEK
+            LlmProviderFormat.Anthropic -> PrototypeClient.Anthropic
+            LlmProviderFormat.OpenAI -> PrototypeClient.OpenAI()
+            LlmProviderFormat.DeepSeek -> PrototypeClient.DeepSeek()
         }
 
         val iterationCount = iterationCount.resolve(executionContext).toInt()
@@ -223,6 +220,8 @@ data class PrototypeRuntime(
                     repeat(iterationCount) { iteration ->
                         try {
                             val iterationTime = measureTime {
+                                client.startIteration(this@functionalStrategy, iteration, iterationCount)
+
                                 if (iteration > 0 && iterationDelay > 0) {
                                     executionContext.logger.debug { "Starting iteration $iteration in $iterationDelay ms" }
                                     delay(iterationDelay.milliseconds)
@@ -235,23 +234,8 @@ data class PrototypeRuntime(
                                 }
                                 executionContext.logger.debug { "Updated system resources in $resourceUpdateTime" }
 
-                                // with deepseek, tool_choice: required and thinking cannot be used together
-                                if (client == PrototypeClient.DEEPSEEK) {
-                                    llm.writeSession {
-                                        changeLLMParams(
-                                            LLMParams(
-                                                additionalProperties = mapOf(
-                                                    "thinking" to buildJsonObject {
-                                                        put("type", "disabled")
-                                                    }
-                                                )))
-                                    }
-                                }
-
                                 val (response, llmResponseTime) = measureTimedValue {
-                                    when (client) {
-                                        else -> requestLLMOnlyCallingTools(initialUserMessage)
-                                    }
+                                    requestLLMOnlyCallingTools(if (iteration == 0) initialUserMessage else followupUserMessage)
                                 }
 
                                 llm.readSession { readSession -> postRequestToLLMCallback(readSession) }
@@ -283,6 +267,8 @@ data class PrototypeRuntime(
                             val iterationTokenUsage = latestTokenUsage()
                             totalTokens += iterationTokenUsage
                             executionContext.logger.debug { "Iteration $iteration completed in $iterationTime.  This iteration used $iterationTokenUsage tokens.  Total cumulative token usage is $totalTokens" }
+
+                            client.endIteration(this@functionalStrategy, iteration, iterationCount)
                         } catch (e: CancellationException) {
                             throw e
                         } catch (e: Exception) {
