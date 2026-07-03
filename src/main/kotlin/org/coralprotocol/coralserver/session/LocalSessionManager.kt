@@ -27,6 +27,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
 
 private const val SESSION_END_WEBHOOK_ATTEMPTS = 3
+private const val SESSION_END_WEBHOOK_BACKOFF_MS = 1_000L
 
 data class LocalSessionNamespace(
     val name: String,
@@ -294,7 +295,7 @@ class LocalSessionManager(
             // A 4xx (bad HMAC/URL/auth) won't self-heal; retry only transport failures and 5xx.
             val retryable = status.isFailure || (code != null && code.value in 500..599)
             if (!retryable || attempt == SESSION_END_WEBHOOK_ATTEMPTS - 1) return
-            delay((attempt + 1) * 1000L)
+            delay((attempt + 1) * SESSION_END_WEBHOOK_BACKOFF_MS)
         }
     }
 
