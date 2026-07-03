@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.agent.execution
 
 import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.config.CloudConfig
 import org.coralprotocol.coralserver.config.ExecutionPolicyConfig
 import org.coralprotocol.coralserver.config.ExecutionTierPolicy
 import org.coralprotocol.coralserver.config.OpenShellConfig
@@ -16,6 +17,7 @@ object ExecutionPolicyResolver {
         trust: ExecutionTrustPolicy,
         openShellConfig: OpenShellConfig,
         sandboxConfig: SandboxConfig,
+        cloudConfig: CloudConfig,
         fileSystemOptions: Set<String> = emptySet(),
     ): List<ExecutionRejection> = buildList {
         val tier = policy.forSource(source)
@@ -23,7 +25,7 @@ object ExecutionPolicyResolver {
             validateIsolation(declared.minIsolation, tier.maxSupportedIsolation, runtime)
             validateHosts(declared.externalHosts, tier)
         }
-        validateRuntime(runtime, tier, trust, openShellConfig, sandboxConfig, fileSystemOptions)
+        validateRuntime(runtime, tier, trust, openShellConfig, sandboxConfig, cloudConfig, fileSystemOptions)
     }
 
     private fun MutableList<ExecutionRejection>.validateIsolation(
@@ -42,10 +44,13 @@ object ExecutionPolicyResolver {
         hosts: Set<String>,
         tier: ExecutionTierPolicy,
     ) {
+        // Match on the host component so a `:port` suffix can't slip past a bare-host deny entry (and a
+        // bare-host allow entry isn't defeated by one). Egress is enforced at domain granularity anyway.
+        val denied = tier.deniedHosts.mapTo(mutableSetOf()) { it.egressHost() }
+        val allowed = tier.allowedHosts?.mapTo(mutableSetOf()) { it.egressHost() }
         hosts.forEach { host ->
-            val denied = host in tier.deniedHosts
-            val notAllowlisted = tier.allowedHosts != null && host !in tier.allowedHosts
-            if (denied || notAllowlisted) add(ExecutionRejection.HostDenied(host))
+            val h = host.egressHost()
+            if (h in denied || (allowed != null && h !in allowed)) add(ExecutionRejection.HostDenied(host))
         }
     }
 
@@ -55,6 +60,7 @@ object ExecutionPolicyResolver {
         trust: ExecutionTrustPolicy,
         openShellConfig: OpenShellConfig,
         sandboxConfig: SandboxConfig,
+        cloudConfig: CloudConfig,
         fileSystemOptions: Set<String>,
     ) {
         if (runtime !in tier.allowedRuntimes) {
@@ -63,8 +69,14 @@ object ExecutionPolicyResolver {
         }
 
         if (runtime == RuntimeId.SANDBOX) {
+            // provision_url + agent_gateway_url are interdependent: without the gateway, resolveBaseUrl
+            // has no callback base and the agent could never reach coral-server. Gate both, plus a key.
             if (sandboxConfig.provisionUrl == null)
                 add(ExecutionRejection.SandboxUnavailable("sandbox.provision_url (cloud /provision URL) is not configured"))
+            if (sandboxConfig.agentGatewayUrl == null)
+                add(ExecutionRejection.SandboxUnavailable("sandbox.agent_gateway_url (cloud gateway the agent connects back through) is not configured"))
+            if (sandboxConfig.apiKey == null && cloudConfig.apiKey == null)
+                add(ExecutionRejection.SandboxUnavailable("sandbox.api_key / cloud.api_key (bearer for /provision) is not configured"))
             // The agent runs off-host, so file-system options would materialise as coral-server-local
             // mount paths the remote VM cannot see — reject up front instead of emitting broken paths.
             if (fileSystemOptions.isNotEmpty())

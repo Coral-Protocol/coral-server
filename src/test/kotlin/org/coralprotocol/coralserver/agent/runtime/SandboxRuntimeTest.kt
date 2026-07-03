@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.agent.runtime
 
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldStartWith
@@ -31,6 +32,12 @@ class SandboxRuntimeTest : FunSpec({
         config.resolveBaseUrl(AddressConsumer.EXTERNAL).toString() shouldBe "https://cloud.example.com/sandbox"
     }
 
+    test("resolveBaseUrl EXTERNAL fails closed when no gateway is configured") {
+        shouldThrow<IllegalStateException> {
+            RootConfig().resolveBaseUrl(AddressConsumer.EXTERNAL)
+        }
+    }
+
     test("resolveBaseUrl non-EXTERNAL still uses the local bind URL") {
         RootConfig().resolveBaseUrl(AddressConsumer.LOCAL).toString() shouldStartWith "http://localhost"
     }
@@ -53,7 +60,7 @@ class SandboxRuntimeTest : FunSpec({
             coralSession = "sess-1",
             image = "registry.fly.io/authors/researcher@sha256:abc",
             env = mapOf("CORAL_AGENT_SECRET" to "SEKRET"),
-            egress = Egress(declared = listOf(Endpoint("api.firecrawl.dev", 443))),
+            egress = Egress(declared = listOf(Endpoint("api.firecrawl.dev"))),
             resources = Resources(cpus = 1, memoryMb = 512),
         )
 

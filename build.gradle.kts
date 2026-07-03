@@ -52,6 +52,7 @@ dependencies {
     implementation("io.ktor:ktor-server-auth:${ktorVersion}")
     implementation("io.ktor:ktor-server-call-logging:${ktorVersion}")
     testImplementation("io.ktor:ktor-server-test-host")
+    testImplementation("io.ktor:ktor-client-mock")
 
     // kotest
     val kotestVersion = "6.1.11"

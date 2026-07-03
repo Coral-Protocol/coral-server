@@ -22,7 +22,10 @@ fun compileEgressPolicy(
     coralManaged = coralUrls.map { EgressEndpoint(it.host, it.port) }.toSet(),
 )
 
+/** Host component of a `host[:port]` entry (the whole string when no port is present). */
+internal fun String.egressHost(): String = substringBeforeLast(':', this)
+
 private fun String.toEgressEndpoint(): EgressEndpoint = EgressEndpoint(
-    host = substringBeforeLast(':', this),
+    host = egressHost(),
     port = substringAfterLast(':', "").toIntOrNull() ?: DEFAULT_EXTERNAL_PORT,
 )

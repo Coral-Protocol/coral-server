@@ -406,7 +406,6 @@ private fun RegistryAgent.validateRuntimes() {
             )
         }
     }
-
 }
 
 // [execution]

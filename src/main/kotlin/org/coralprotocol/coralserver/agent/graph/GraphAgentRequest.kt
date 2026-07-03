@@ -13,6 +13,7 @@ import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.AnyAgentOptionWithValue
+import org.coralprotocol.coralserver.config.CloudConfig
 import org.coralprotocol.coralserver.config.DockerConfig
 import org.coralprotocol.coralserver.config.ExecutionPolicyConfig
 import org.coralprotocol.coralserver.config.OpenShellConfig
@@ -78,6 +79,7 @@ data class GraphAgentRequest(
     val dockerConfig by inject<DockerConfig>()
     val openShellConfig by inject<OpenShellConfig>()
     val sandboxConfig by inject<SandboxConfig>()
+    val cloudConfig by inject<CloudConfig>()
 
     /**
      * Given a reference to the agent registry [AgentRegistry], this function will attempt to convert this request into
@@ -109,6 +111,7 @@ data class GraphAgentRequest(
                 trust = trust,
                 openShellConfig = openShellConfig,
                 sandboxConfig = sandboxConfig,
+                cloudConfig = cloudConfig,
                 fileSystemOptions = fileSystemOptions,
             )
             if (rejections.isNotEmpty()) {

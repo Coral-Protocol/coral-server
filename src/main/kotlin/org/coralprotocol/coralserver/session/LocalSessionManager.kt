@@ -4,6 +4,7 @@ package org.coralprotocol.coralserver.session
 
 import io.ktor.client.*
 import io.ktor.client.request.*
+import io.ktor.http.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -24,6 +25,8 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
+
+private const val SESSION_END_WEBHOOK_ATTEMPTS = 3
 
 data class LocalSessionNamespace(
     val name: String,
@@ -302,23 +305,35 @@ class LocalSessionManager(
 
         events.emit(LocalSessionManagerEvent.SessionClosing(session.getState().base, namespace.getState().base))
 
-        // The session end webhook should not block any of the other session ending logic
-        if (settings.webhooks.sessionEnd != null) {
+        // Session-end webhook: best-effort, must not block teardown. Off-host sandbox agents are reaped
+        // by cloud off this signal, so a silently-dropped delivery would leak a machine — retry a few
+        // times and warn if it never lands (cloud's orphan sweeper is the eventual backstop).
+        val sessionEnd = settings.webhooks.sessionEnd
+        if (sessionEnd != null) {
             managementScope.launch {
-                httpClient.post(settings.webhooks.sessionEnd.url) {
-                    addJsonBodyWithSignature(
-                        json,
-                        config.webhookSecret, SessionEndReport(
-                            timestamp = utcTimeNow(),
-                            namespaceState = session.namespace.getState().base,
-                            sessionState = if (settings.extendedEndReport) {
-                                SessionState.Extended(session.getState())
-                            } else {
-                                SessionState.Base(session.getState().base)
-                            },
-                            agentStats = session.agents.values.flatMap { it.usageReports },
-                        )
-                    )
+                val report = SessionEndReport(
+                    timestamp = utcTimeNow(),
+                    namespaceState = session.namespace.getState().base,
+                    sessionState = if (settings.extendedEndReport) {
+                        SessionState.Extended(session.getState())
+                    } else {
+                        SessionState.Base(session.getState().base)
+                    },
+                    agentStats = session.agents.values.flatMap { it.usageReports },
+                )
+                repeat(SESSION_END_WEBHOOK_ATTEMPTS) { attempt ->
+                    val status = runCatching {
+                        httpClient.post(sessionEnd.url) {
+                            addJsonBodyWithSignature(json, config.webhookSecret, report)
+                        }.status
+                    }
+                    if (status.getOrNull()?.isSuccess() == true) return@launch
+                    logger.warn {
+                        val reason = status.exceptionOrNull()?.message ?: "status ${status.getOrNull()}"
+                        "session-end webhook to ${sessionEnd.url} failed ($reason), " +
+                            "attempt ${attempt + 1}/$SESSION_END_WEBHOOK_ATTEMPTS"
+                    }
+                    if (attempt < SESSION_END_WEBHOOK_ATTEMPTS - 1) delay((attempt + 1) * 1000L)
                 }
             }
         }

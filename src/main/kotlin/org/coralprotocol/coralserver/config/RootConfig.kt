@@ -69,25 +69,23 @@ data class RootConfig(
     /**
      * Calculates the base URL required to access the server for a given consumer.
      *
-     * [AddressConsumer.EXTERNAL] is the off-host sandbox agent: it reaches coral-server through cloud's
-     * public gateway (`sandbox.agent_gateway_url`, e.g. `https://cloud/sandbox`), not the local bind
-     * port. This deliberately differs from [resolveAddress], which returns the server's own external
-     * host — the sandbox agent never talks to that host directly.
+     * [AddressConsumer.EXTERNAL] is the off-host sandbox agent: it reaches coral-server only through
+     * cloud's public gateway (`sandbox.agent_gateway_url`, e.g. `https://cloud/sandbox`), never the
+     * local bind port or the server's own host. Fails closed if the gateway is unset — the
+     * [org.coralprotocol.coralserver.agent.execution.ExecutionPolicyResolver] gate rejects a sandbox
+     * agent before this is reached, so throwing here only guards a misconfiguration.
      */
     fun resolveBaseUrl(consumer: AddressConsumer): Url =
         when (consumer) {
-            AddressConsumer.EXTERNAL ->
-                sandboxConfig.agentGatewayUrl?.let { gateway ->
-                    runCatching { Url(gateway) }.getOrElse {
-                        throw IllegalStateException(
-                            "sandbox.agent_gateway_url is not a valid URL: '$gateway'", it
-                        )
-                    }
-                } ?: URLBuilder(
-                    protocol = URLProtocol.HTTPS,
-                    host = networkConfig.externalAddress,
-                    port = 443,
-                ).build()
+            AddressConsumer.EXTERNAL -> {
+                val gateway = sandboxConfig.agentGatewayUrl
+                    ?: throw IllegalStateException(
+                        "sandbox.agent_gateway_url is not configured; the off-host sandbox agent has no gateway to reach"
+                    )
+                runCatching { Url(gateway) }.getOrElse {
+                    throw IllegalStateException("sandbox.agent_gateway_url is not a valid URL: '$gateway'", it)
+                }
+            }
 
             else -> URLBuilder(
                 protocol = URLProtocol.HTTP,

@@ -12,6 +12,7 @@ import org.coralprotocol.coralserver.agent.execution.ExecutionTrustPolicy
 import org.coralprotocol.coralserver.agent.execution.MinIsolation
 import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.config.CloudConfig
 import org.coralprotocol.coralserver.config.ExecutionPolicyConfig
 import org.coralprotocol.coralserver.config.ExecutionTierPolicy
 import org.coralprotocol.coralserver.config.OpenShellConfig
@@ -37,7 +38,11 @@ class ExecutionPolicyResolverTest : FunSpec({
     val availableSupervisor = OpenShellConfig(supervisorPath = Paths.get("/bin/sh"))
     val missingSupervisor = OpenShellConfig(supervisorPath = null)
 
-    val configuredSandbox = SandboxConfig(provisionUrl = "https://cloud.example.com/api/internal/coral/provision")
+    val configuredSandbox = SandboxConfig(
+        provisionUrl = "https://cloud.example.com/api/internal/coral/provision",
+        agentGatewayUrl = "https://cloud.example.com/sandbox",
+        apiKey = "provision-key",
+    )
     val unconfiguredSandbox = SandboxConfig()
 
     fun validate(
@@ -48,9 +53,10 @@ class ExecutionPolicyResolverTest : FunSpec({
         trust: ExecutionTrustPolicy = trustedProfile,
         openShellConfig: OpenShellConfig = availableSupervisor,
         sandboxConfig: SandboxConfig = configuredSandbox,
+        cloudConfig: CloudConfig = CloudConfig(),
         fileSystemOptions: Set<String> = emptySet(),
     ) = ExecutionPolicyResolver.validate(
-        declared, policy, source, runtime, trust, openShellConfig, sandboxConfig, fileSystemOptions,
+        declared, policy, source, runtime, trust, openShellConfig, sandboxConfig, cloudConfig, fileSystemOptions,
     )
 
     test("missingDeclarationSkipsValidation") {
@@ -281,7 +287,7 @@ class ExecutionPolicyResolverTest : FunSpec({
         )
     }
 
-    test("sandboxRuntimeRejectedWhenProvisionUrlMissing") {
+    test("sandboxRuntimeRejectedWhenUnconfigured") {
         validate(
             declared = null,
             source = AgentRegistrySourceIdentifier.Marketplace,
@@ -289,7 +295,45 @@ class ExecutionPolicyResolverTest : FunSpec({
             trust = marketplaceProfile,
             sandboxConfig = unconfiguredSandbox,
         ) shouldContainExactly listOf(
-            ExecutionRejection.SandboxUnavailable("sandbox.provision_url (cloud /provision URL) is not configured")
+            ExecutionRejection.SandboxUnavailable("sandbox.provision_url (cloud /provision URL) is not configured"),
+            ExecutionRejection.SandboxUnavailable("sandbox.agent_gateway_url (cloud gateway the agent connects back through) is not configured"),
+            ExecutionRejection.SandboxUnavailable("sandbox.api_key / cloud.api_key (bearer for /provision) is not configured"),
+        )
+    }
+
+    test("sandboxRuntimeRejectedWhenGatewayMissing") {
+        validate(
+            declared = null,
+            source = AgentRegistrySourceIdentifier.Marketplace,
+            runtime = RuntimeId.SANDBOX,
+            trust = marketplaceProfile,
+            sandboxConfig = configuredSandbox.copy(agentGatewayUrl = null),
+        ) shouldContainExactly listOf(
+            ExecutionRejection.SandboxUnavailable("sandbox.agent_gateway_url (cloud gateway the agent connects back through) is not configured")
+        )
+    }
+
+    test("sandboxRuntimeApiKeyFallsBackToCloudConfig") {
+        validate(
+            declared = ExecutionConfig(minIsolation = MinIsolation.CONTAINER),
+            source = AgentRegistrySourceIdentifier.Marketplace,
+            runtime = RuntimeId.SANDBOX,
+            trust = marketplaceProfile,
+            sandboxConfig = configuredSandbox.copy(apiKey = null),
+            cloudConfig = CloudConfig(apiKey = "cloud-key"),
+        ).shouldBeEmpty()
+    }
+
+    test("sandboxRuntimeRejectedWhenNoApiKeyAnywhere") {
+        validate(
+            declared = null,
+            source = AgentRegistrySourceIdentifier.Marketplace,
+            runtime = RuntimeId.SANDBOX,
+            trust = marketplaceProfile,
+            sandboxConfig = configuredSandbox.copy(apiKey = null),
+            cloudConfig = CloudConfig(apiKey = null),
+        ) shouldContainExactly listOf(
+            ExecutionRejection.SandboxUnavailable("sandbox.api_key / cloud.api_key (bearer for /provision) is not configured")
         )
     }
 
@@ -313,6 +357,21 @@ class ExecutionPolicyResolverTest : FunSpec({
             fileSystemOptions = setOf("config_blob"),
         ) shouldContainExactly listOf(
             ExecutionRejection.SandboxFileTransportUnsupported(setOf("config_blob"))
+        )
+    }
+
+    test("denylistMatchesHostRegardlessOfDeclaredPort") {
+        val policy = ExecutionPolicyConfig(
+            marketplace = ExecutionTierPolicy(deniedHosts = setOf("evil.example.com"))
+        )
+        val declared = ExecutionConfig(
+            minIsolation = MinIsolation.CONTAINER,
+            externalHosts = setOf("evil.example.com:443"),
+        )
+        validate(
+            declared, policy, AgentRegistrySourceIdentifier.Marketplace, trust = marketplaceProfile,
+        ) shouldContainExactly listOf(
+            ExecutionRejection.HostDenied("evil.example.com:443")
         )
     }
 })

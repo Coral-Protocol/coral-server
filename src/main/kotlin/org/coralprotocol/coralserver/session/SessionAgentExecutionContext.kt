@@ -11,12 +11,13 @@ import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.agent.runtime.DEFAULT_AGENT_RUNTIME_TRANSPORT
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
-import org.coralprotocol.coralserver.cloud.SandboxProvider
+import org.coralprotocol.coralserver.cloud.CloudProvisionClient
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.DebugConfig
 import org.coralprotocol.coralserver.config.DockerConfig
 import org.coralprotocol.coralserver.config.LlmProxyConfig
 import org.coralprotocol.coralserver.config.OpenShellConfig
+import org.coralprotocol.coralserver.config.SandboxConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.session.reporting.SessionAgentUsageReport
@@ -47,7 +48,8 @@ class SessionAgentExecutionContext(
     val dockerConfig by inject<DockerConfig>()
     val llmProxyConfig by inject<LlmProxyConfig>()
     val openShellConfig by inject<OpenShellConfig>()
-    val sandboxProvider by inject<SandboxProvider>()
+    val sandboxConfig by inject<SandboxConfig>()
+    val sandboxProvider by inject<CloudProvisionClient>()
 
     val disposableResources = mutableListOf<SessionAgentDisposableResource>()
 
@@ -79,6 +81,11 @@ class SessionAgentExecutionContext(
     ): Map<String, String> {
         return buildMap {
             val isContainer = provider.runtime.providesContainerIsolation
+            // DOCKER/OPENSHELL run as a local container coral-server hardens (read-only rootfs, nonroot,
+            // tmpfs scratch). SANDBOX also provides container isolation but runs off-host, so cloud — not
+            // coral-server's DockerConfig — owns its filesystem; don't push local Docker env/paths at it.
+            val localDockerRuntime =
+                provider.runtime == RuntimeId.DOCKER || provider.runtime == RuntimeId.OPENSHELL
 
             val filePathSeparator = if (isContainer) {
                 dockerConfig.containerPathSeparator
@@ -88,7 +95,7 @@ class SessionAgentExecutionContext(
 
             if (provider.runtime == RuntimeId.EXECUTABLE) {
                 putAll(debugConfig.additionalExecutableEnvironment)
-            } else if (isContainer) {
+            } else if (localDockerRuntime) {
                 putAll(debugConfig.additionalDockerEnvironment)
             }
 
@@ -96,7 +103,7 @@ class SessionAgentExecutionContext(
             // writable HOME and without a /etc/passwd entry, so libraries that derive paths via getpwuid() land
             // on /nonexistent. Redirect HOME/TMPDIR/XDG_* into the tmpfs scratch so caches and config writes
             // succeed without giving the agent write access to the rootfs.
-            if (isContainer && executionPolicy.docker.requiresWritableTmpHome) {
+            if (localDockerRuntime && executionPolicy.docker.requiresWritableTmpHome) {
                 this["HOME"] = dockerConfig.containerTemporaryDirectory
                 this["TMPDIR"] = dockerConfig.containerTemporaryDirectory
                 this["XDG_CACHE_HOME"] = "${dockerConfig.containerTemporaryDirectory}/.cache"
