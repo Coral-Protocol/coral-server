@@ -28,6 +28,9 @@ enum class RuntimeId {
 
     val providesContainerIsolation: Boolean
         get() = this == DOCKER || this == OPENSHELL || this == SANDBOX
+
+    val usesLocalDockerScratch: Boolean
+        get() = this == DOCKER || this == OPENSHELL
 }
 
 @Serializable

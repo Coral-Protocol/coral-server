@@ -275,6 +275,29 @@ class LocalSessionManager(
         getNamespace(namespaceName).sessions[sessionId]
             ?: throw SessionException.InvalidSession("Session \"$sessionId\" not found")
 
+    private suspend fun postSessionEndReport(url: String, report: SessionEndReport) {
+        repeat(SESSION_END_WEBHOOK_ATTEMPTS) { attempt ->
+            val status = runCatching {
+                httpClient.post(url) {
+                    addJsonBodyWithSignature(json, config.webhookSecret, report)
+                }.status
+            }
+            status.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+
+            val code = status.getOrNull()
+            if (code?.isSuccess() == true) return
+            logger.warn {
+                "session-end webhook to $url failed " +
+                    "(${status.exceptionOrNull()?.message ?: "status $code"}), " +
+                    "attempt ${attempt + 1}/$SESSION_END_WEBHOOK_ATTEMPTS"
+            }
+            // A 4xx (bad HMAC/URL/auth) won't self-heal; retry only transport failures and 5xx.
+            val retryable = status.isFailure || (code != null && code.value in 500..599)
+            if (!retryable || attempt == SESSION_END_WEBHOOK_ATTEMPTS - 1) return
+            delay((attempt + 1) * 1000L)
+        }
+    }
+
     /**
      * Behavior for session exit.
      *
@@ -305,9 +328,7 @@ class LocalSessionManager(
 
         events.emit(LocalSessionManagerEvent.SessionClosing(session.getState().base, namespace.getState().base))
 
-        // Session-end webhook: best-effort, must not block teardown. Off-host sandbox agents are reaped
-        // by cloud off this signal, so a silently-dropped delivery would leak a machine — retry a few
-        // times and warn if it never lands (cloud's orphan sweeper is the eventual backstop).
+        // Best-effort; a dropped delivery leaks the off-host machine until cloud's orphan sweeper.
         val sessionEnd = settings.webhooks.sessionEnd
         if (sessionEnd != null) {
             managementScope.launch {
@@ -321,20 +342,7 @@ class LocalSessionManager(
                     },
                     agentStats = session.agents.values.flatMap { it.usageReports },
                 )
-                repeat(SESSION_END_WEBHOOK_ATTEMPTS) { attempt ->
-                    val status = runCatching {
-                        httpClient.post(sessionEnd.url) {
-                            addJsonBodyWithSignature(json, config.webhookSecret, report)
-                        }.status
-                    }
-                    if (status.getOrNull()?.isSuccess() == true) return@launch
-                    logger.warn {
-                        val reason = status.exceptionOrNull()?.message ?: "status ${status.getOrNull()}"
-                        "session-end webhook to ${sessionEnd.url} failed ($reason), " +
-                            "attempt ${attempt + 1}/$SESSION_END_WEBHOOK_ATTEMPTS"
-                    }
-                    if (attempt < SESSION_END_WEBHOOK_ATTEMPTS - 1) delay((attempt + 1) * 1000L)
-                }
+                postSessionEndReport(sessionEnd.url, report)
             }
         }
 

@@ -49,7 +49,7 @@ class SessionAgentExecutionContext(
     val llmProxyConfig by inject<LlmProxyConfig>()
     val openShellConfig by inject<OpenShellConfig>()
     val sandboxConfig by inject<SandboxConfig>()
-    val sandboxProvider by inject<CloudProvisionClient>()
+    val sandboxClient by inject<CloudProvisionClient>()
 
     val disposableResources = mutableListOf<SessionAgentDisposableResource>()
 
@@ -81,11 +81,6 @@ class SessionAgentExecutionContext(
     ): Map<String, String> {
         return buildMap {
             val isContainer = provider.runtime.providesContainerIsolation
-            // DOCKER/OPENSHELL run as a local container coral-server hardens (read-only rootfs, nonroot,
-            // tmpfs scratch). SANDBOX also provides container isolation but runs off-host, so cloud — not
-            // coral-server's DockerConfig — owns its filesystem; don't push local Docker env/paths at it.
-            val localDockerRuntime =
-                provider.runtime == RuntimeId.DOCKER || provider.runtime == RuntimeId.OPENSHELL
 
             val filePathSeparator = if (isContainer) {
                 dockerConfig.containerPathSeparator
@@ -95,7 +90,7 @@ class SessionAgentExecutionContext(
 
             if (provider.runtime == RuntimeId.EXECUTABLE) {
                 putAll(debugConfig.additionalExecutableEnvironment)
-            } else if (localDockerRuntime) {
+            } else if (provider.runtime.usesLocalDockerScratch) {
                 putAll(debugConfig.additionalDockerEnvironment)
             }
 
@@ -103,7 +98,7 @@ class SessionAgentExecutionContext(
             // writable HOME and without a /etc/passwd entry, so libraries that derive paths via getpwuid() land
             // on /nonexistent. Redirect HOME/TMPDIR/XDG_* into the tmpfs scratch so caches and config writes
             // succeed without giving the agent write access to the rootfs.
-            if (localDockerRuntime && executionPolicy.docker.requiresWritableTmpHome) {
+            if (provider.runtime.usesLocalDockerScratch && executionPolicy.docker.requiresWritableTmpHome) {
                 this["HOME"] = dockerConfig.containerTemporaryDirectory
                 this["TMPDIR"] = dockerConfig.containerTemporaryDirectory
                 this["XDG_CACHE_HOME"] = "${dockerConfig.containerTemporaryDirectory}/.cache"

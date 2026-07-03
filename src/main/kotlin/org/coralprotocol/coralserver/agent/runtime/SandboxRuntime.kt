@@ -4,6 +4,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.execution.DockerExecutionTrustPolicy
+import org.coralprotocol.coralserver.agent.execution.ExecutionConfig
 import org.coralprotocol.coralserver.agent.execution.compileEgressPolicy
 import org.coralprotocol.coralserver.agent.execution.sanitizeImage
 import org.coralprotocol.coralserver.cloud.Egress
@@ -18,20 +19,12 @@ private const val NANOS_PER_CPU = 1_000_000_000L
 private const val BYTES_PER_MIB = 1024L * 1024L
 
 /**
- * Off-host runtime for untrusted agents. coral-server stays private: it builds the per-agent spec and
- * delegates provisioning to coral-cloud (which owns the Fly fleet + the gateway the agent connects
- * back through). The agent's callback URLs use [AddressConsumer.EXTERNAL] → cloud's public gateway,
- * with the per-agent secret in the path.
- *
- * The author ships their own [image] (non-root, digest-pinned per the trust profile). Egress is
- * enforced by cloud's egress sidecar — a separate container in the same microVM that locks the VM's
- * egress to the declared hosts (nftables + a DNS-intercepting resolver) — so the untrusted image never
- * has to cooperate. See coral-cloud's AGENT_EGRESS.md.
+ * Off-host runtime for untrusted agents: coral-server stays private and delegates provisioning to
+ * coral-cloud (Fly fleet + gateway). Cloud's sidecar enforces egress; see coral-cloud's AGENT_EGRESS.md.
  */
 @Serializable
 @SerialName("sandbox")
 data class SandboxRuntime(
-    /** The author's OCI image. Digest-pinning is enforced per the trust profile at launch. */
     val image: String,
     override val transport: McpTransportType = DEFAULT_AGENT_RUNTIME_TRANSPORT,
 ) : AgentRuntime {
@@ -39,10 +32,8 @@ data class SandboxRuntime(
         executionContext: SessionAgentExecutionContext,
         applicationRuntimeContext: ApplicationRuntimeContext,
     ) {
-        // Env points the agent at cloud's gateway (EXTERNAL); cloud forwards it into the machine verbatim.
         val environment = executionContext.buildEnvironment(transport, AddressConsumer.EXTERNAL)
 
-        // Same digest-pinning the Docker/OpenShell tiers apply to untrusted images.
         val pinnedImage = executionContext.executionPolicy.docker.sanitizeImage(
             imageName = image,
             id = executionContext.registryAgent.identifier,
@@ -50,19 +41,13 @@ data class SandboxRuntime(
             logger = executionContext.logger,
         )
 
-        // Only the author-declared hosts; cloud injects its own gateway endpoint + resolves IPs.
-        val declared = compileEgressPolicy(
-            declared = executionContext.registryAgent.execution,
-            coralUrls = emptySet(),
-        ).declared.map { Endpoint(host = it.host) }
-
-        val handle = executionContext.sandboxProvider.provision(
+        val handle = executionContext.sandboxClient.provision(
             ProvisionRequest(
                 agentName = executionContext.agent.name,
                 coralSession = executionContext.agent.session.id,
                 image = pinnedImage,
                 env = environment,
-                egress = Egress(declared = declared),
+                egress = Egress(declared = authorDeclaredEndpoints(executionContext.registryAgent.execution)),
                 resources = sandboxResources(executionContext.executionPolicy.docker),
             )
         )
@@ -70,10 +55,7 @@ data class SandboxRuntime(
             "Provisioned off-host agent ${executionContext.agent.name} -> machine ${handle.machineId}"
         }
 
-        // Fail fast if the agent never phones home; otherwise stay alive until session teardown cancels
-        // us (cancellation propagates out). coral-server holds no machine handle and issues no
-        // deprovision: cloud reaps the machine on the session-end webhook, with its orphan sweeper as the
-        // backstop (Fly auto_destroy does not fire while the always-on egress sidecar keeps the VM up).
+        // No deprovision here: cloud reaps via the session-end webhook + orphan sweeper.
         val connectTimeout = executionContext.sandboxConfig.connectTimeout
         if (!executionContext.agent.waitForMcpConnection(connectTimeout)) {
             executionContext.logger.warn {
@@ -85,11 +67,11 @@ data class SandboxRuntime(
     }
 }
 
-/**
- * Maps the trust profile's Docker CPU/memory limits to Fly guest sizing, or null when the profile
- * sets no limits (cloud then applies its own defaults). Lossy by design: integer division floors, and
- * a sub-1 vCPU limit is raised to the 1-vCPU minimum Fly requires.
- */
+private fun authorDeclaredEndpoints(execution: ExecutionConfig?): List<Endpoint> =
+    compileEgressPolicy(declared = execution, coralUrls = emptySet())
+        .declared.map { Endpoint(host = it.host) }
+
+/** Null when the profile sets no limits (cloud defaults then). Lossy: floors; sub-1 vCPU → 1. */
 internal fun sandboxResources(docker: DockerExecutionTrustPolicy): Resources? =
     if (docker.nanoCpus == null && docker.memoryLimitBytes == null) null
     else Resources(

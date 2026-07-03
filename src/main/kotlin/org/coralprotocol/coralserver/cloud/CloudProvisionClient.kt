@@ -15,10 +15,7 @@ import org.coralprotocol.coralserver.config.SandboxConfig
 data class ProvisionRequest(
     @SerialName("agent_name") val agentName: String,
     @SerialName("coral_session") val coralSession: String,
-    // The author's OCI image (digest-pinned by the trust profile). Runs as the non-root agent
-    // container, wrapped by cloud's egress sidecar in the same microVM.
     val image: String,
-    // Opaque env built by coral-server (CORAL_CONNECTION_URL/CORAL_AGENT_SECRET/CORAL_PROXY_URL_*…).
     val env: Map<String, String>,
     val egress: Egress,
     val resources: Resources? = null,
@@ -38,17 +35,11 @@ data class Resources(val cpus: Int, @SerialName("memory_mb") val memoryMb: Int)
 @Serializable
 data class MachineHandle(@SerialName("machine_id") val machineId: String)
 
-/**
- * Thrown when cloud's `/provision` returns a non-2xx, so the failure surfaces as a clear HTTP error
- * (carrying cloud's message) instead of an opaque deserialization error on a non-[MachineHandle] body.
- */
+/** A non-2xx from `/provision`, surfaced with cloud's status + body. */
 class SandboxProvisionException(val status: HttpStatusCode, val responseBody: String) :
     RuntimeException("cloud /provision failed ($status): $responseBody")
 
-/**
- * Off-host agent provisioning: POSTs the per-agent spec to coral-cloud's `/provision` and awaits the
- * machine handle. coral-server holds no provider (Fly/…) SDK; cloud owns the fleet and the gateway.
- */
+/** POSTs the per-agent spec to coral-cloud's `/provision`; no provider (Fly/…) SDK lives here. */
 class CloudProvisionClient(
     private val httpClient: HttpClient,
     private val sandboxConfig: SandboxConfig,

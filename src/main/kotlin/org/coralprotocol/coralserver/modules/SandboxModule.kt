@@ -22,8 +22,7 @@ val sandboxModule = module {
                 socketTimeoutMillis = 60_000
             }
             install(HttpRequestRetry) {
-                // /provision is idempotent (cloud keys on coral_session+agent_name), so retrying a
-                // transient 5xx or connection failure won't create duplicate machines.
+                // /provision is idempotent (keyed on coral_session+agent_name), so retries are safe.
                 maxRetries = 3
                 retryIf { _, response -> response.status.value in 500..599 }
                 retryOnExceptionIf { _, cause -> cause is IOException }

@@ -44,8 +44,7 @@ object ExecutionPolicyResolver {
         hosts: Set<String>,
         tier: ExecutionTierPolicy,
     ) {
-        // Match on the host component so a `:port` suffix can't slip past a bare-host deny entry (and a
-        // bare-host allow entry isn't defeated by one). Egress is enforced at domain granularity anyway.
+        // Match on host only (egress is domain-granular), so a `:port` suffix can't dodge a deny entry.
         val denied = tier.deniedHosts.mapTo(mutableSetOf()) { it.egressHost() }
         val allowed = tier.allowedHosts?.mapTo(mutableSetOf()) { it.egressHost() }
         hosts.forEach { host ->
@@ -69,16 +68,13 @@ object ExecutionPolicyResolver {
         }
 
         if (runtime == RuntimeId.SANDBOX) {
-            // provision_url + agent_gateway_url are interdependent: without the gateway, resolveBaseUrl
-            // has no callback base and the agent could never reach coral-server. Gate both, plus a key.
             if (sandboxConfig.provisionUrl == null)
                 add(ExecutionRejection.SandboxUnavailable("sandbox.provision_url (cloud /provision URL) is not configured"))
             if (sandboxConfig.agentGatewayUrl == null)
                 add(ExecutionRejection.SandboxUnavailable("sandbox.agent_gateway_url (cloud gateway the agent connects back through) is not configured"))
             if (sandboxConfig.apiKey == null && cloudConfig.apiKey == null)
                 add(ExecutionRejection.SandboxUnavailable("sandbox.api_key / cloud.api_key (bearer for /provision) is not configured"))
-            // The agent runs off-host, so file-system options would materialise as coral-server-local
-            // mount paths the remote VM cannot see — reject up front instead of emitting broken paths.
+            // Off-host: file-system options would be coral-server-local paths the remote VM can't see.
             if (fileSystemOptions.isNotEmpty())
                 add(ExecutionRejection.SandboxFileTransportUnsupported(fileSystemOptions))
             return

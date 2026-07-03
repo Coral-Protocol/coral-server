@@ -67,13 +67,8 @@ data class RootConfig(
     }
 
     /**
-     * Calculates the base URL required to access the server for a given consumer.
-     *
-     * [AddressConsumer.EXTERNAL] is the off-host sandbox agent: it reaches coral-server only through
-     * cloud's public gateway (`sandbox.agent_gateway_url`, e.g. `https://cloud/sandbox`), never the
-     * local bind port or the server's own host. Fails closed if the gateway is unset — the
-     * [org.coralprotocol.coralserver.agent.execution.ExecutionPolicyResolver] gate rejects a sandbox
-     * agent before this is reached, so throwing here only guards a misconfiguration.
+     * Base URL a consumer uses to reach coral-server. [AddressConsumer.EXTERNAL] is the off-host sandbox
+     * agent → cloud's gateway (`sandbox.agent_gateway_url`), never the local bind/host; throws if unset.
      */
     fun resolveBaseUrl(consumer: AddressConsumer): Url =
         when (consumer) {

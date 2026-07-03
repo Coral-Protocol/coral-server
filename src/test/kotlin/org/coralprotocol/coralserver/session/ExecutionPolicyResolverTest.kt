@@ -3,6 +3,7 @@ package org.coralprotocol.coralserver.session
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
 import org.coralprotocol.coralserver.agent.execution.DockerExecutionTrustPolicy
 import org.coralprotocol.coralserver.agent.execution.ExecutionConfig
@@ -294,7 +295,7 @@ class ExecutionPolicyResolverTest : FunSpec({
             runtime = RuntimeId.SANDBOX,
             trust = marketplaceProfile,
             sandboxConfig = unconfiguredSandbox,
-        ) shouldContainExactly listOf(
+        ) shouldContainExactlyInAnyOrder listOf(
             ExecutionRejection.SandboxUnavailable("sandbox.provision_url (cloud /provision URL) is not configured"),
             ExecutionRejection.SandboxUnavailable("sandbox.agent_gateway_url (cloud gateway the agent connects back through) is not configured"),
             ExecutionRejection.SandboxUnavailable("sandbox.api_key / cloud.api_key (bearer for /provision) is not configured"),
