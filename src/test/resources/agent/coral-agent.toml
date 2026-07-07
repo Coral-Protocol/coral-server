@@ -75,7 +75,7 @@ arguments = ["--some-argument"]
 iterations = 20 # > 0
 delay = 0 # >= 0
 proxy = "MAIN" # exists in [llm.proxies]
-client = "openai" # openai/anthropic/openrouter
+client.type = "openai" # openai/anthropic/openrouter
 
 [runtimes.prototype.prompts]
 # inline: 6KiB

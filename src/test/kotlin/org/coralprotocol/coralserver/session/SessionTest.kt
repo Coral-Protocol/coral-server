@@ -32,9 +32,11 @@ import org.coralprotocol.coralserver.agent.runtime.RuntimeId
 import org.coralprotocol.coralserver.dsl.graphAgentPair
 import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.routes.mcp.v1.Sse
+import org.coralprotocol.coralserver.util.utcTimeNow
 import org.coralprotocol.coralserver.utils.synchronizedMessageTransaction
 import org.koin.test.inject
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 class SessionTest : CoralTest({
     suspend fun HttpClient.sseHandshake(secret: String) {
@@ -454,5 +456,49 @@ class SessionTest : CoralTest({
         }
 
         session1.sessionScope.cancel()
+    }
+
+    test("testMessageReplay") {
+        val localSessionManager by inject<LocalSessionManager>()
+
+        val session = localSessionManager.createSession(
+            "ns",
+            AgentGraph(
+                agents = mapOf(
+                    graphAgentPair("agent1"),
+                    graphAgentPair("agent2"),
+                )
+            )
+        ).first
+
+        val beforeMessage = utcTimeNow()
+
+        val agent1 = shouldNotThrowAny { session.getAgent("agent1") }
+        val agent2 = shouldNotThrowAny { session.getAgent("agent2") }
+
+        val thread1 = shouldNotThrowAny {
+            session.createThread("Test thread", agent1.name, setOf(agent2.name))
+        }
+
+        shouldNotThrowAny {
+            agent1.sendMessage("Hello from agent 1", thread1.id)
+        }
+
+        agent2.waitForMessage(
+            timeoutMs = 1.seconds.inWholeMilliseconds,
+            replayAfter = beforeMessage,
+        ).shouldNotBeNull().text.shouldBeEqual("Hello from agent 1")
+
+        thread1.close(agent1, "thread closure")
+
+        // replay doesn't pick up the message because thread closure deletes it.
+        // this behavior isn't really desired; when time allows it, replaying messages should observe a session state
+        // accurate to the requested time
+        agent2.waitForMessage(
+            timeoutMs = 1.seconds.inWholeMilliseconds,
+            replayAfter = beforeMessage,
+        ).shouldBeNull()
+
+        session.sessionScope.cancel()
     }
 })
