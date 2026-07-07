@@ -28,7 +28,7 @@ enum class McpInstructionSnippet(
         ${McpToolName.CREATE_THREAD} tool.  Threads should be created when a new subject of conversation is started, 
         and should be closed when the conversation reaches a summary, using the ${McpToolName.CLOSE_THREAD} tool.  
        
-        You cannot send messages into a closed thread.
+        Messages in a closed thread will be deleted. New messages cannot be sent to a closed thread. 
         
         Threads have participants, agents who are not participating in a thread will not see the messages in the thread.
         Participants are set during the creation of a thread but can also be added or removed later using the 

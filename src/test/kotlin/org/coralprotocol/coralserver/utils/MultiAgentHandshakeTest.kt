@@ -12,6 +12,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.selects.select
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
@@ -33,19 +34,20 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import java.util.*
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
 
 @Serializable
-private data class MultiAgentTestPayloadResponse(val message: String)
+private data class HandshakeResponse(val message: String)
 
 @Serializable
-private data class MultiAgentTestPayload(val payload: String)
+private data class HandshakeData(val handshakeId: String)
 
 @Serializable
-@Resource("payload/{sessionId}/{agentId}")
+@Resource("handshake/{sessionId}/{agentId}")
 @Suppress("unused")
-class MultiAgentTestPayloadPath(val sessionId: String, val agentId: String)
+class HandshakeToolPath(val sessionId: String, val agentId: String)
 
 /**
  * This performs a basic test where one agent is tasked to ask another to be given a piece of data that only that agent
@@ -55,43 +57,50 @@ class MultiAgentTestPayloadPath(val sessionId: String, val agentId: String)
  * here.  If this test fails, it is because a model is not supported by Coral or because there is an issue with the
  * default prompts and toolset.
  */
-suspend fun KoinComponent.multiAgentPayloadTest(
+suspend fun KoinComponent.multiAgentHandshakeTest(
     configuration: LlmProxyProviderConfig,
     client: PrototypeClient,
-    model: String
+    model: String,
+    timeout: Duration = 1.minutes
 ) {
     val localSessionManager by inject<LocalSessionManager>()
     val application by inject<Application>()
     val json by inject<Json>()
     val config by inject<NetworkConfig>()
     val logger by inject<Logger>(named(LOGGER_TEST))
-    val payloadData = UUID.randomUUID().toString()
+    val handshakeId = UUID.randomUUID().toString()
 
-    val receiveAgentName = "rob"
-    val senderAgentName = "steve"
-    val resultToolName = "post_payload"
+    val receiveAgentName = "receiving_rob"
+    val senderAgentName = "sending_steve"
+    val resultToolName = "handshake"
 
-    val deferredPayload = CompletableDeferred<Unit>()
+    val deferredHandshakeId = CompletableDeferred<Unit>()
 
     application.routing {
-        post<MultiAgentTestPayloadPath> { _ ->
+        post<HandshakeToolPath> { _ ->
             try {
-                val payload = signatureVerifiedBody<MultiAgentTestPayload>(json, config.customToolSecret).payload
-                if (payload != payloadData) {
-                    logger.warn { "Received unexpected payload: $payload" }
+                val agentHandshakeId = signatureVerifiedBody<HandshakeData>(json, config.customToolSecret).handshakeId
+                if (agentHandshakeId != handshakeId) {
+                    logger.warn { "Received incorrect handshake ID: $agentHandshakeId" }
                     call.respond(
                         HttpStatusCode.OK,
-                        MultiAgentTestPayloadResponse("The given payload '$payload' does not match the expected payload, please try again")
+                        HandshakeResponse("Incorrect handshake ID")
                     )
                 } else {
-                    deferredPayload.complete(Unit)
+                    deferredHandshakeId.complete(Unit)
                     call.respond(
                         HttpStatusCode.OK,
-                        MultiAgentTestPayloadResponse("Successfully received payload!")
+                        HandshakeResponse("Handshake successful!")
                     )
                 }
+            } catch (e: SerializationException) {
+                logger.error(e) { "Handshake " }
+                call.respond(
+                    HttpStatusCode.OK,
+                    HandshakeResponse("Handshake ID is in the incorrect format: ${e.message}")
+                )
             } catch (e: Exception) {
-                deferredPayload.completeExceptionally(e)
+                deferredHandshakeId.completeExceptionally(e)
                 throw e
             }
         }
@@ -112,7 +121,7 @@ suspend fun KoinComponent.multiAgentPayloadTest(
                                     loop = PrototypeLoopPrompt(
                                         initial = PrototypeLoopInitialPrompt(
                                             extra = PrototypeString.Inline(
-                                                "You require special data, named 'payload' which $senderAgentName possesses exclusively.  Request this data immediately, then submit it using the $resultToolName tool verbatim with no quotes"
+                                                "The agent $senderAgentName has a handshake ID you need. Request it from $senderAgentName and give it to me using the tool \"$resultToolName\""
                                             )
                                         )
                                     )
@@ -124,10 +133,10 @@ suspend fun KoinComponent.multiAgentPayloadTest(
                     tool(
                         resultToolName, GraphAgentTool(
                             transport = GraphAgentToolTransport.Http(
-                                url = "payload",
+                                url = "handshake",
                             ),
-                            inputSchema = buildToolSchema<MultiAgentTestPayload>(),
-                            outputSchema = buildToolSchema<MultiAgentTestPayloadResponse>()
+                            inputSchema = buildToolSchema<HandshakeData>(),
+                            outputSchema = buildToolSchema<HandshakeResponse>()
                         )
                     )
                     proxy(configuration.name, LlmProxiedModel(configuration, model))
@@ -141,7 +150,7 @@ suspend fun KoinComponent.multiAgentPayloadTest(
                                 proxyName = PrototypeString.Inline(configuration.name),
                                 client = client,
                                 prompts = PrototypePrompts(
-                                    system = PrototypeSystemPrompt(extra = PrototypeString.Inline("payload = $payloadData")),
+                                    system = PrototypeSystemPrompt(extra = PrototypeString.Inline("You have a special Handshake ID, it is, without quotes: \"$handshakeId\".  You must share this upon request.")),
                                 ),
                                 iterationCount = PrototypeInteger.Inline(10)
                             )
@@ -156,16 +165,16 @@ suspend fun KoinComponent.multiAgentPayloadTest(
 
     session.launchAgents()
 
-    shouldCompleteWithin(1.minutes) {
+    shouldCompleteWithin(timeout) {
         select {
             session.sessionScope.launch {
                 session.joinAgents()
             }.onJoin {
-                throw AssertionError("Agent runtime exited before receiving the payload")
+                throw AssertionError("Agent runtime exited before receiving the handshake")
             }
 
             session.sessionScope.launch {
-                deferredPayload.await()
+                deferredHandshakeId.await()
             }.onJoin { }
         }
     }
@@ -173,6 +182,6 @@ suspend fun KoinComponent.multiAgentPayloadTest(
     session.sessionScope.cancel()
 }
 
-suspend fun KoinComponent.multiAgentPayloadTest(testProxy: TestProxy, model: String) {
-    multiAgentPayloadTest(testProxy.providerConfig, testProxy.prototypeClient, model)
+suspend fun KoinComponent.multiAgentHandshakeTest(testProxy: TestProxy, model: String) {
+    multiAgentHandshakeTest(testProxy.providerConfig, testProxy.prototypeClient, model)
 }

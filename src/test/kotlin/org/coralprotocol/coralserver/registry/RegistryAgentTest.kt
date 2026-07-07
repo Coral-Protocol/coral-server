@@ -77,7 +77,7 @@ class RegistryAgentTest : CoralTest({
         prototypeRuntime.iterationDelay.shouldBeInstanceOf<PrototypeInteger.Inline>().value.shouldBeZero()
 
         prototypeRuntime.proxyName.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("MAIN")
-        prototypeRuntime.client.shouldNotBeNull().shouldBeEqual(PrototypeClient.OPEN_AI)
+        prototypeRuntime.client.shouldNotBeNull().shouldBeInstanceOf<PrototypeClient.OpenAI>()
 
         prototypeRuntime.prompts.system.base.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("base system prompt")
         prototypeRuntime.prompts.system.extra.shouldBeInstanceOf<PrototypeString.Inline>().value.shouldBeEqual("extra system prompt")

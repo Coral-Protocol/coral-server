@@ -2,7 +2,7 @@ package org.coralprotocol.coralserver.llm
 
 import io.kotest.core.test.config.DefaultTestConfig
 import org.coralprotocol.coralserver.CoralTest
-import org.coralprotocol.coralserver.utils.multiAgentPayloadTest
+import org.coralprotocol.coralserver.utils.multiAgentHandshakeTest
 
 /**
  * This test should be run sparingly!
@@ -13,7 +13,7 @@ class OpenAITest : CoralTest({
     )
 
     suspend fun openaiPayloadTest(modelName: String) {
-        multiAgentPayloadTest(openAIProxy!!, modelName)
+        multiAgentHandshakeTest(openAIProxy!!, modelName)
     }
 
     test("testGpt41") { openaiPayloadTest("gpt-4.1") }

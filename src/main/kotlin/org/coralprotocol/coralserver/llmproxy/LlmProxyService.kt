@@ -38,21 +38,42 @@ import org.coralprotocol.coralserver.session.SessionAgent
 import java.io.ByteArrayOutputStream
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.seconds
 
 private val ALLOWED_METHODS = setOf(HttpMethod.Get, HttpMethod.Post)
 private val METHODS_WITH_BODY = setOf(HttpMethod.Post)
 
+private data class CoralCloudProvider(
+    val name: String,
+    val format: LlmProviderFormat,
+    val baseUrl: String,
+    val modelsUrl: String
+)
+
+private val supportedCoralCloudProviders = listOf(
+    CoralCloudProvider(
+        name = "Coral Cloud, OpenAI",
+        format = LlmProviderFormat.OpenAI,
+        baseUrl = "https://llm.coralcloud.ai/openai/",
+        modelsUrl = "https://llm.coralcloud.ai/openai/v1/models"
+    ),
+    CoralCloudProvider(
+        name = "Coral Cloud, DeepSeek",
+        format = LlmProviderFormat.DeepSeek,
+        baseUrl = "https://llm.coralcloud.ai/deepseek/v1",
+        modelsUrl = "https://llm.coralcloud.ai/deepseek/v1/models"
+    ),
+)
+
 @Serializable
 @JsonIgnoreUnknownKeys
-private data class OpenAIModelList(
-    @SerialName("data") val models: List<OpenAIModel>
+private data class CloudModelList(
+    @SerialName("data") val models: List<CloudModel>
     // .. etc
 )
 
 @Serializable
 @JsonIgnoreUnknownKeys
-private data class OpenAIModel(
+private data class CloudModel(
     val id: String,
     // .. etc
 )
@@ -77,21 +98,18 @@ class LlmProxyService(
                 }
             }
 
-            return buildList {
-                add(
-                    LlmProxyProviderConfig(
-                        name = "Coral Cloud, OpenAI",
-                        format = LlmProviderFormat.OpenAI,
-                        models = runBlocking {
-                            client.get("https://llm.coralcloud.ai/openai/v1/models") {
-                                bearerAuth(apiKey)
-                            }.body<OpenAIModelList>().models.map { it.id }.toSet()
-                        },
-                        apiKey = apiKey,
-                        baseUrl = "https://llm.coralcloud.ai/openai/",
-                        timeout = 10.seconds,
-                        allowAnyModel = false
-                    )
+            return supportedCoralCloudProviders.map { provider ->
+                LlmProxyProviderConfig(
+                    name = provider.name,
+                    format = provider.format,
+                    baseUrl = provider.baseUrl,
+                    models = runBlocking {
+                        client.get(provider.modelsUrl) {
+                            bearerAuth(apiKey)
+                        }.body<CloudModelList>().models.map { it.id }.toSet()
+                    },
+                    apiKey = apiKey,
+                    allowAnyModel = false
                 )
             }
         }
@@ -111,11 +129,12 @@ class LlmProxyService(
     }.toMutableList()
 
     init {
-        if (!providers.any { it.format == LlmProviderFormat.OpenAI })
-            logger.warn { "The server will not be able to launch agents that require OpenAI-format LLM proxies as no provider of this format has been configured" }
-
-        if (!providers.any { it.format == LlmProviderFormat.Anthropic })
-            logger.warn { "The server will not be able to launch agents that require Anthropic-format LLM proxies as no provider of this format has been configured" }
+        LlmProviderFormat::class.sealedSubclasses.forEach { formatClass ->
+            val format = formatClass.objectInstance ?: return@forEach
+            if (providers.none { it.format == format }) {
+                logger.warn { "The server will not be able to launch agents that require \"$format\" format LLM proxies as no provider of this format has been configured" }
+            }
+        }
     }
 
     /**

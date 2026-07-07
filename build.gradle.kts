@@ -31,11 +31,12 @@ repositories {
 dependencies {
     testImplementation(kotlin("test"))
     implementation("org.coralprotocol.payment:blockchain:0.1.1:all")
-    implementation("io.modelcontextprotocol:kotlin-sdk:0.9.0")
+    implementation("io.modelcontextprotocol:kotlin-sdk:0.13.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.1")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.7.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.10.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
+    implementation("org.slf4j:slf4j-api:2.0.18")
     implementation("ch.qos.logback:logback-classic:1.5.32")
     implementation("org.fusesource.jansi:jansi:2.4.2")
     implementation("com.github.pgreze:kotlin-process:1.5.1")
@@ -46,7 +47,7 @@ dependencies {
     implementation("com.github.docker-java:docker-java:$dockerVersion")
     implementation("com.github.docker-java:docker-java-transport-httpclient5:$dockerVersion")
 
-    val ktorVersion = "3.4.3"
+    val ktorVersion = "3.5.1"
     implementation(enforcedPlatform("io.ktor:ktor-bom:$ktorVersion"))
     implementation("io.ktor:ktor-server-status-pages:${ktorVersion}")
     implementation("io.ktor:ktor-server-auth:${ktorVersion}")
@@ -105,9 +106,9 @@ dependencies {
     implementation("com.sksamuel.hoplite:hoplite-core:${hopliteVersion}")
     implementation("com.sksamuel.hoplite:hoplite-toml:${hopliteVersion}")
 
-    val koogVersion = "0.8.0"
-    api("ai.koog:koog-agents:$koogVersion")
-    api("ai.koog:agents-mcp:$koogVersion")
+    val koogVersion = "1.0.0-beta"
+    implementation("ai.koog:koog-agents-additions:${koogVersion}")
+    implementation("ai.koog:koog-ktor:${koogVersion}")
 }
 
 tasks.test {

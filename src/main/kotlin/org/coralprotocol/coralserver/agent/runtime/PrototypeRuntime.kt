@@ -8,12 +8,11 @@ import ai.koog.agents.core.agent.functionalStrategy
 import ai.koog.agents.core.agent.session.AIAgentLLMReadSession
 import ai.koog.agents.core.environment.ReceivedToolResult
 import ai.koog.agents.core.environment.ToolResultKind
-import ai.koog.agents.core.environment.result
-import ai.koog.agents.core.feature.model.AIAgentError
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.mcp.McpToolRegistryProvider
 import ai.koog.agents.mcp.metadata.McpServerInfo
 import ai.koog.prompt.message.Message
+import ai.koog.prompt.message.MessagePart
 import ai.koog.prompt.message.RequestMetaInfo
 import ai.koog.serialization.JSONObject
 import dev.eav.tomlkt.TomlClassDiscriminator
@@ -106,7 +105,7 @@ data class PrototypeRuntime(
     }
 
     private suspend fun AIAgentFunctionalContext.executeMultipleToolsCatching(
-        toolCalls: List<Message.Tool.Call>,
+        toolCalls: List<MessagePart.Tool.Call>,
         logger: LoggingInterface
     ): List<ReceivedToolResult> {
         return toolCalls.map {
@@ -124,7 +123,7 @@ data class PrototypeRuntime(
                     toolArgs = JSONObject(emptyMap()),
                     null,
                     result,
-                    ToolResultKind.Failure(AIAgentError(e)),
+                    ToolResultKind.Failure(e),
                     null
                 )
             }
@@ -194,15 +193,16 @@ data class PrototypeRuntime(
         val followupUserMessage = prompts.loop.followup.resolve(executionContext)
 
         val client = client ?: when (proxiedModel.providerConfig.format) {
-            LlmProviderFormat.Anthropic -> PrototypeClient.ANTHROPIC
-            LlmProviderFormat.OpenAI -> PrototypeClient.OPEN_AI
+            LlmProviderFormat.Anthropic -> PrototypeClient.Anthropic
+            LlmProviderFormat.OpenAI -> PrototypeClient.OpenAI()
+            LlmProviderFormat.DeepSeek -> PrototypeClient.DeepSeek()
         }
 
         val iterationCount = iterationCount.resolve(executionContext).toInt()
         val iterationDelay = iterationDelay.resolve(executionContext).toInt()
 
         try {
-            AIAgent.Companion(
+            AIAgent(
                 systemPrompt = "",
                 promptExecutor = client.getPromptExecutor(
                     applicationRuntimeContext.getLlmProxyUrl(
@@ -216,10 +216,12 @@ data class PrototypeRuntime(
                     tools(coralToolRegistry.tools)
                     tools(additionalTools)
                 },
-                strategy = functionalStrategy { _: Nothing? ->
+                strategy = functionalStrategy<Unit, Unit> {
                     repeat(iterationCount) { iteration ->
                         try {
                             val iterationTime = measureTime {
+                                client.startIteration(this@functionalStrategy, iteration, iterationCount)
+
                                 if (iteration > 0 && iterationDelay > 0) {
                                     executionContext.logger.debug { "Starting iteration $iteration in $iterationDelay ms" }
                                     delay(iterationDelay.milliseconds)
@@ -237,25 +239,26 @@ data class PrototypeRuntime(
                                 }
 
                                 llm.readSession { readSession -> postRequestToLLMCallback(readSession) }
-                                executionContext.logger.debug { "${proxiedModel.providerConfig.name} responded in $llmResponseTime, with: ${response.content}" }
+                                executionContext.logger.debug { "${proxiedModel.providerConfig.name} responded in $llmResponseTime, with: ${response.textContent()}" }
 
-                                val toolCalls = extractToolCalls(listOf(response))
+                                val toolCalls = getToolCalls(response)
                                 executionContext.logger.debug { "Extracted tool calls: ${toolCalls.joinToString { it.tool }}" }
 
                                 val (toolCallResults, toolCallTime) = measureTimedValue {
                                     executeMultipleToolsCatching(toolCalls, executionContext.logger)
                                 }
+
                                 executionContext.logger.debug {
                                     "Executed ${toolCallResults.size} tools in $toolCallTime, results: ${
                                         json.encodeToString(
-                                            toolCallResults.map { it.toMessage() })
+                                            toolCallResults.map { it.toMessagePart() })
                                     }"
                                 }
 
                                 llm.writeSession {
                                     appendPrompt {
-                                        tool {
-                                            toolCallResults.forEach { toolResult -> this@tool.result(toolResult) }
+                                        user {
+                                            toolCallResults.forEach { toolResult(it.toMessagePart()) }
                                         }
                                     }
                                 }
@@ -265,6 +268,7 @@ data class PrototypeRuntime(
                             totalTokens += iterationTokenUsage
                             executionContext.logger.debug { "Iteration $iteration completed in $iterationTime.  This iteration used $iterationTokenUsage tokens.  Total cumulative token usage is $totalTokens" }
 
+                            client.endIteration(this@functionalStrategy, iteration, iterationCount)
                         } catch (e: CancellationException) {
                             throw e
                         } catch (e: Exception) {
@@ -275,7 +279,7 @@ data class PrototypeRuntime(
                         }
                     }
                 }
-            ).run(null)
+            ).run(Unit)
         } finally {
             coralMcpClient.close()
             resolvedServers.forEach { it.close() }
