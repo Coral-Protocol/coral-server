@@ -2,7 +2,7 @@ package org.coralprotocol.coralserver.llm
 
 import io.kotest.core.test.config.DefaultTestConfig
 import org.coralprotocol.coralserver.CoralTest
-import org.coralprotocol.coralserver.utils.multiAgentPayloadTest
+import org.coralprotocol.coralserver.utils.multiAgentHandshakeTest
 
 /**
  * This test should be run sparingly!
@@ -13,7 +13,7 @@ class AnthropicTest : CoralTest({
     )
 
     suspend fun anthropicPayloadTest(modelName: String) {
-        multiAgentPayloadTest(anthropicProxy!!, modelName)
+        multiAgentHandshakeTest(anthropicProxy!!, modelName)
     }
 
     test("testClaude3Haiku") { anthropicPayloadTest("claude-3-haiku") }

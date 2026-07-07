@@ -3,7 +3,7 @@ package org.coralprotocol.coralserver.session
 import io.kotest.core.NamedTag
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.utils.TestMcpServer
-import org.coralprotocol.coralserver.utils.multiAgentPayloadTest
+import org.coralprotocol.coralserver.utils.multiAgentHandshakeTest
 import org.coralprotocol.coralserver.utils.runTestServerTest
 import org.koin.core.component.get
 
@@ -11,7 +11,7 @@ class PrototypeRuntimeTest : CoralTest({
     val model = "gpt-4.1-mini"
 
     test("testMultiAgentPayload").config(enabledIf = ::hasOpenAIProxy) {
-        multiAgentPayloadTest(openAIProxy!!, model)
+        multiAgentHandshakeTest(openAIProxy!!, model)
     }
 
     test("testCustomMcpServerNoAuth").config(enabledIf = ::hasOpenAIProxy, tags = setOf(NamedTag("debug"))) {
