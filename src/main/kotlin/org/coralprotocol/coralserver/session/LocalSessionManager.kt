@@ -4,6 +4,7 @@ package org.coralprotocol.coralserver.session
 
 import io.ktor.client.*
 import io.ktor.client.request.*
+import io.ktor.http.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -24,6 +25,9 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.ExperimentalTime
+
+private const val SESSION_END_WEBHOOK_ATTEMPTS = 3
+private const val SESSION_END_WEBHOOK_BACKOFF_MS = 1_000L
 
 data class LocalSessionNamespace(
     val name: String,
@@ -272,6 +276,29 @@ class LocalSessionManager(
         getNamespace(namespaceName).sessions[sessionId]
             ?: throw SessionException.InvalidSession("Session \"$sessionId\" not found")
 
+    private suspend fun postSessionEndReport(url: String, report: SessionEndReport) {
+        repeat(SESSION_END_WEBHOOK_ATTEMPTS) { attempt ->
+            val status = runCatching {
+                httpClient.post(url) {
+                    addJsonBodyWithSignature(json, config.webhookSecret, report)
+                }.status
+            }
+            status.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+
+            val code = status.getOrNull()
+            if (code?.isSuccess() == true) return
+            logger.warn {
+                "session-end webhook to $url failed " +
+                    "(${status.exceptionOrNull()?.message ?: "status $code"}), " +
+                    "attempt ${attempt + 1}/$SESSION_END_WEBHOOK_ATTEMPTS"
+            }
+            // A 4xx (bad HMAC/URL/auth) won't self-heal; retry only transport failures and 5xx.
+            val retryable = status.isFailure || (code != null && code.value in 500..599)
+            if (!retryable || attempt == SESSION_END_WEBHOOK_ATTEMPTS - 1) return
+            delay((attempt + 1) * SESSION_END_WEBHOOK_BACKOFF_MS)
+        }
+    }
+
     /**
      * Behavior for session exit.
      *
@@ -302,24 +329,21 @@ class LocalSessionManager(
 
         events.emit(LocalSessionManagerEvent.SessionClosing(session.getState().base, namespace.getState().base))
 
-        // The session end webhook should not block any of the other session ending logic
-        if (settings.webhooks.sessionEnd != null) {
+        // Best-effort; a dropped delivery leaks the off-host machine until cloud's orphan sweeper.
+        val sessionEnd = settings.webhooks.sessionEnd
+        if (sessionEnd != null) {
             managementScope.launch {
-                httpClient.post(settings.webhooks.sessionEnd.url) {
-                    addJsonBodyWithSignature(
-                        json,
-                        config.webhookSecret, SessionEndReport(
-                            timestamp = utcTimeNow(),
-                            namespaceState = session.namespace.getState().base,
-                            sessionState = if (settings.extendedEndReport) {
-                                SessionState.Extended(session.getState())
-                            } else {
-                                SessionState.Base(session.getState().base)
-                            },
-                            agentStats = session.agents.values.flatMap { it.usageReports },
-                        )
-                    )
-                }
+                val report = SessionEndReport(
+                    timestamp = utcTimeNow(),
+                    namespaceState = session.namespace.getState().base,
+                    sessionState = if (settings.extendedEndReport) {
+                        SessionState.Extended(session.getState())
+                    } else {
+                        SessionState.Base(session.getState().base)
+                    },
+                    agentStats = session.agents.values.flatMap { it.usageReports },
+                )
+                postSessionEndReport(sessionEnd.url, report)
             }
         }
 

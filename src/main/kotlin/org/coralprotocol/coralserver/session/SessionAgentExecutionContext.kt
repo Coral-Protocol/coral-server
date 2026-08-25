@@ -4,14 +4,20 @@ package org.coralprotocol.coralserver.session
 
 import io.ktor.utils.io.*
 import kotlinx.coroutines.flow.update
+import org.coralprotocol.coralserver.agent.execution.ExecutionTrustPolicy
+import org.coralprotocol.coralserver.agent.execution.resolveTrustPolicy
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
 import org.coralprotocol.coralserver.agent.runtime.ApplicationRuntimeContext
 import org.coralprotocol.coralserver.agent.runtime.DEFAULT_AGENT_RUNTIME_TRANSPORT
 import org.coralprotocol.coralserver.agent.runtime.RuntimeId
+import org.coralprotocol.coralserver.cloud.CloudProvisionClient
 import org.coralprotocol.coralserver.config.AddressConsumer
 import org.coralprotocol.coralserver.config.DebugConfig
 import org.coralprotocol.coralserver.config.DockerConfig
+import org.coralprotocol.coralserver.config.LlmProxyConfig
+import org.coralprotocol.coralserver.config.OpenShellConfig
+import org.coralprotocol.coralserver.config.SandboxConfig
 import org.coralprotocol.coralserver.events.SessionEvent
 import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.session.reporting.SessionAgentUsageReport
@@ -40,9 +46,17 @@ class SessionAgentExecutionContext(
 
     val debugConfig by inject<DebugConfig>()
     val dockerConfig by inject<DockerConfig>()
+    val llmProxyConfig by inject<LlmProxyConfig>()
+    val openShellConfig by inject<OpenShellConfig>()
+    val sandboxConfig by inject<SandboxConfig>()
+    val sandboxClient by inject<CloudProvisionClient>()
+
     val disposableResources = mutableListOf<SessionAgentDisposableResource>()
 
     var lastLaunchTime: Instant? = null
+
+    val executionPolicy: ExecutionTrustPolicy =
+        registryAgent.identifier.registrySourceId.resolveTrustPolicy(dockerConfig)
 
     /**
      * A list of usage reports for this agent.  When a session ends, all usage reports for each agent will be sent to
@@ -60,16 +74,13 @@ class SessionAgentExecutionContext(
      *
      * If the [provider] uses a [RuntimeId.DOCKER] runtime, the temporary files path will be translated by
      */
-    fun buildEnvironment(transport: McpTransportType = DEFAULT_AGENT_RUNTIME_TRANSPORT): Map<String, String> {
+    fun buildEnvironment(
+        transport: McpTransportType = DEFAULT_AGENT_RUNTIME_TRANSPORT,
+        addressConsumer: AddressConsumer =
+            if (provider.runtime.providesContainerIsolation) AddressConsumer.CONTAINER else AddressConsumer.LOCAL,
+    ): Map<String, String> {
         return buildMap {
-            val addressConsumer = when (provider.runtime) {
-                RuntimeId.EXECUTABLE -> AddressConsumer.LOCAL
-                RuntimeId.DOCKER -> AddressConsumer.CONTAINER
-                RuntimeId.FUNCTION -> AddressConsumer.LOCAL
-                RuntimeId.PROTOTYPE -> AddressConsumer.LOCAL
-            }
-
-            val isContainer = provider.runtime == RuntimeId.DOCKER
+            val isContainer = provider.runtime.providesContainerIsolation
 
             val filePathSeparator = if (isContainer) {
                 dockerConfig.containerPathSeparator
@@ -79,8 +90,20 @@ class SessionAgentExecutionContext(
 
             if (provider.runtime == RuntimeId.EXECUTABLE) {
                 putAll(debugConfig.additionalExecutableEnvironment)
-            } else if (provider.runtime == RuntimeId.DOCKER) {
+            } else if (provider.runtime.usesLocalDockerScratch) {
                 putAll(debugConfig.additionalDockerEnvironment)
+            }
+
+            // Read-only rootfs + non-root UID (e.g. distroless 'nonroot' UID 65532) leaves the agent without a
+            // writable HOME and without a /etc/passwd entry, so libraries that derive paths via getpwuid() land
+            // on /nonexistent. Redirect HOME/TMPDIR/XDG_* into the tmpfs scratch so caches and config writes
+            // succeed without giving the agent write access to the rootfs.
+            if (provider.runtime.usesLocalDockerScratch && executionPolicy.docker.requiresWritableTmpHome) {
+                this["HOME"] = dockerConfig.containerTemporaryDirectory
+                this["TMPDIR"] = dockerConfig.containerTemporaryDirectory
+                this["XDG_CACHE_HOME"] = "${dockerConfig.containerTemporaryDirectory}/.cache"
+                this["XDG_CONFIG_HOME"] = "${dockerConfig.containerTemporaryDirectory}/.config"
+                this["XDG_DATA_HOME"] = "${dockerConfig.containerTemporaryDirectory}/.local/share"
             }
 
             // User options

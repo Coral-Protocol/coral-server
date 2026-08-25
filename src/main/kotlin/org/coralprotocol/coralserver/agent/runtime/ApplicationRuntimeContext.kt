@@ -53,17 +53,19 @@ class ApplicationRuntimeContext(
     }
 
     fun getSseUrl(executionContext: SessionAgentExecutionContext, addressConsumer: AddressConsumer): Url {
-        val builder = URLBuilder(getApiUrl(addressConsumer))
+        val base = getApiUrl(addressConsumer)
+        val builder = URLBuilder(base)
         href(ResourcesFormat(), Sse(agentSecret = executionContext.agent.secret), builder)
 
-        return builder.build()
+        return builder.prependBasePath(base).build()
     }
 
     fun getStreamableHttpUrl(executionContext: SessionAgentExecutionContext, addressConsumer: AddressConsumer): Url {
-        val builder = URLBuilder(getApiUrl(addressConsumer))
+        val base = getApiUrl(addressConsumer)
+        val builder = URLBuilder(base)
         href(ResourcesFormat(), StreamableHttp(agentSecret = executionContext.agent.secret), builder)
 
-        return builder.build()
+        return builder.prependBasePath(base).build()
     }
 
     fun getLlmProxyUrl(
@@ -86,4 +88,15 @@ class ApplicationRuntimeContext(
             McpTransportType.SSE -> getSseUrl(executionContext, addressConsumer)
             McpTransportType.STREAMABLE_HTTP -> getStreamableHttpUrl(executionContext, addressConsumer)
         }
+}
+
+/**
+ * `href` overwrites the builder's path with the resource path, dropping any base path (e.g. cloud's
+ * `/sandbox` gateway prefix). Re-prepend the base path so a resource URL composes with a based
+ * gateway URL. No-op when the base has no path (the local/container consumers).
+ */
+internal fun URLBuilder.prependBasePath(base: Url): URLBuilder {
+    val basePath = base.encodedPath.trimEnd('/')
+    if (basePath.isNotEmpty()) encodedPath = "$basePath/${encodedPath.trimStart('/')}"
+    return this
 }

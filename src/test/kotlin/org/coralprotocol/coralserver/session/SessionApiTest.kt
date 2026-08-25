@@ -16,6 +16,8 @@ import io.kotest.matchers.collections.shouldContainAll
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.maps.shouldHaveSize
+import io.kotest.matchers.shouldBe
+import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.client.*
@@ -28,6 +30,7 @@ import io.ktor.server.resources.post
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -37,6 +40,7 @@ import org.coralprotocol.coralserver.agent.debug.TOOL_AGENT_IDENTIFIER
 import org.coralprotocol.coralserver.agent.graph.GraphAgentProvider
 import org.coralprotocol.coralserver.agent.graph.GraphAgentTool
 import org.coralprotocol.coralserver.agent.graph.GraphAgentToolTransport
+import org.coralprotocol.coralserver.agent.execution.MinIsolation
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.AgentRegistrySourceIdentifier
 import org.coralprotocol.coralserver.agent.registry.ListAgentRegistrySource
@@ -112,6 +116,37 @@ class SessionApiTest : CoralTest({
                 }
             )
         }.shouldBeOK().body()
+    }
+
+    test("testExecutionPolicyRejectionReturnsBadRequest") {
+        val client by inject<HttpClient>()
+        val registry by inject<AgentRegistry>()
+
+        val rejectedName = "needs-container"
+        registry.sources.add(
+            ListAgentRegistrySource(
+                "execution-policy test agents",
+                listOf(registryAgent(rejectedName) {
+                    version = agentVersion
+                    execution(MinIsolation.CONTAINER)
+                    runtime(FunctionRuntime { _, _ -> })
+                })
+            )
+        )
+
+        client.authenticatedPost(LocalSessions.Session()) {
+            setBody(
+                sessionRequest {
+                    agentGraphRequest {
+                        agent(RegistryAgentIdentifier(rejectedName, agentVersion, AgentRegistrySourceIdentifier.Local)) {}
+                        isolateAllAgents()
+                    }
+                    createNamespaceIfNotExists {
+                        name = namespaceName
+                    }
+                }
+            )
+        }.shouldHaveStatus(HttpStatusCode.BadRequest)
     }
 
     test("testCreateSession") {

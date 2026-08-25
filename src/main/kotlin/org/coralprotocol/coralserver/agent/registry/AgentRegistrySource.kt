@@ -2,6 +2,7 @@
 
 package org.coralprotocol.coralserver.agent.registry
 
+import io.github.smiley4.schemakenerator.core.annotations.Description
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -11,8 +12,15 @@ import org.coralprotocol.coralserver.util.utcTimeNow
 import org.koin.core.component.KoinComponent
 import kotlin.time.ExperimentalTime
 
+/**
+ * Identifies where an agent's registry entry came from.  The runtime trust tier applied to the agent is a function
+ * of this value: `Local` is treated as trusted; `Marketplace` and `Linked` are treated as untrusted and run under the
+ * marketplace docker hardening profile.  The authoritative mapping lives in
+ * `org.coralprotocol.coralserver.agent.execution.resolveTrustPolicy`.
+ */
 @Serializable
 @JsonClassDiscriminator("type")
+@Description("Where an agent's registry entry came from. Local is trusted; Marketplace and Linked are untrusted (run under the marketplace docker hardening profile).")
 sealed class AgentRegistrySourceIdentifier {
     @Serializable
     @SerialName("local")

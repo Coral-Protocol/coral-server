@@ -1,5 +1,10 @@
+.tmp.drivedownload/
+.tmp.driveupload/
 .gradle
 build/
+
+# Secrets — never commit (holds Fly org tokens etc.)
+coral.properties
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
