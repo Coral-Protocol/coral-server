@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.5.0](https://github.com/Coral-Protocol/coral-server/compare/v1.4.0...v1.5.0) (2026-07-07)
+
+
+### Features
+
+* add deepseek as a supported prototype client ([38c5dec](https://github.com/Coral-Protocol/coral-server/commit/38c5dec1cc2e2da7ee18b78c8c84f6d8c84493aa))
+* added deepseek models to list of coral cloud proxy providers ([38c5dec](https://github.com/Coral-Protocol/coral-server/commit/38c5dec1cc2e2da7ee18b78c8c84f6d8c84493aa))
+* bump koog to v1.0.0 ([38c5dec](https://github.com/Coral-Protocol/coral-server/commit/38c5dec1cc2e2da7ee18b78c8c84f6d8c84493aa))
+* bump kotlin-sdk to 0.13.0 ([38c5dec](https://github.com/Coral-Protocol/coral-server/commit/38c5dec1cc2e2da7ee18b78c8c84f6d8c84493aa))
+* bump ktor 3.4.3 -&gt; 3.5.1 ([38c5dec](https://github.com/Coral-Protocol/coral-server/commit/38c5dec1cc2e2da7ee18b78c8c84f6d8c84493aa))
+* mcp instruction resources now explains closing a thread will delete the messages in it ([38c5dec](https://github.com/Coral-Protocol/coral-server/commit/38c5dec1cc2e2da7ee18b78c8c84f6d8c84493aa))
+* strict tool calling on prototype runtimes ([38c5dec](https://github.com/Coral-Protocol/coral-server/commit/38c5dec1cc2e2da7ee18b78c8c84f6d8c84493aa))
+* support for DeepSeek prototype formats (disable thinking for required tool calling) ([38c5dec](https://github.com/Coral-Protocol/coral-server/commit/38c5dec1cc2e2da7ee18b78c8c84f6d8c84493aa))
+
+
+### Bug Fixes
+
+* ClosedWatchServiceException thrown routinely in FileAgentRegistrySource (windows only) ([9151ac3](https://github.com/Coral-Protocol/coral-server/commit/9151ac3f62cb6902c37b7f45268aa40be8ee57fc))
+* model path calculation for cloud proxy ([38c5dec](https://github.com/Coral-Protocol/coral-server/commit/38c5dec1cc2e2da7ee18b78c8c84f6d8c84493aa))
+
 ## [1.4.0](https://github.com/Coral-Protocol/coral-server/compare/v1.3.0...v1.4.0) (2026-06-24)
 
 
