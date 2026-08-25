@@ -3,10 +3,7 @@
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Coral-Protocol/coral-server)
 
-> [!WARNING]
-> 
-> This readme and connected documentation are a work in progress.
-
+[Get started with the skill](https://github.com/Coral-Protocol/coral-skill-set)
 
 <br/>
 <div align="center">
