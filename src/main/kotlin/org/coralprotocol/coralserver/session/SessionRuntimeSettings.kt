@@ -48,6 +48,7 @@ data class SessionRuntimeSettings(
     val ttl: Long? = null,
 
     @Description("If specified, the end report generated for this session will be extended, including threads and messages")
+    @Optional
     val extendedEndReport: Boolean = false,
 
     @Description("Persistence mode for the session. Default is \"none\" meaning the session will be deleted as soon as it exits")

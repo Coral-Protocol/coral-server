@@ -7,7 +7,7 @@ description = "test"
 summary = "test"
 license = { type = "spdx", expression = "MIT" }
 
-readme = { type = "file", path = "README.MD" }
+readme = { type = "file", path = "README.MD", input = { charset = "windows-1251" } }
 
 [runtimes.docker]
 image = "ubuntu"

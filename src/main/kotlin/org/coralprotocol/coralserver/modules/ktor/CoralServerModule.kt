@@ -55,6 +55,7 @@ import org.coralprotocol.coralserver.server.AuthSession
 import org.coralprotocol.coralserver.session.LocalSessionManager
 import org.coralprotocol.coralserver.session.SessionException
 import org.coralprotocol.coralserver.session.reporting.SessionEndReport
+import org.coralprotocol.coralserver.util.CoralServerVersion
 import org.koin.core.qualifier.named
 import org.koin.ktor.ext.inject
 import org.slf4j.event.Level
@@ -71,7 +72,7 @@ fun Application.coralServerModule(isTest: Boolean = false) {
         install(OpenApi) {
             info {
                 title = "Coral Server API"
-                version = "1.0"
+                version = CoralServerVersion.current
             }
             tags {
                 tagGenerator = { url -> listOf(url.getOrNull(2)) }

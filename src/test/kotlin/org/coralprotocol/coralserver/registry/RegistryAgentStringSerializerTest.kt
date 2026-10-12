@@ -6,6 +6,7 @@ import io.kotest.matchers.equals.shouldBeEqual
 import io.kotest.matchers.maps.shouldHaveKey
 import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -98,7 +99,7 @@ class RegistryAgentStringSerializerTest : CoralTest({
             File("src/test/resources/string-file-reference/windows-1251/coral-agent.toml")
         )
 
-        agent.readme.shouldBeEqual(File("src/test/resources/string-file-reference/windows-1251/README.MD").readText())
+        agent.readme.shouldBeEqual(File("src/test/resources/string-file-reference/windows-1251/README.MD").readText(charset("Windows-1251")))
     }
 
     test("testDisabledFileReferences") {
@@ -143,6 +144,95 @@ class RegistryAgentStringSerializerTest : CoralTest({
 
         agent.options["BLOB_NO_DEFAULT"].shouldNotBeNull()
             .shouldBeInstanceOf<PolymorphicAgentOption.Blob>().default.shouldBeNull()
+    }
+
+    test("binaryBlobReferencesPreserveEveryByte") {
+        val bytes = ByteArray(256) { it.toByte() }
+        val file = File.createTempFile("coral-binary-reference-", ".bin")
+        try {
+            file.writeBytes(bytes)
+            val application by inject<Application>()
+            application.routing {
+                get("binary-blob-reference") { call.respondBytes(bytes) }
+            }
+            for (reference in listOf(
+                "{ type = \"file\", path = \"${file.invariantSeparatorsPath}\" }",
+                "{ type = \"url\", url = \"binary-blob-reference\" }"
+            )) {
+                val agent = UnresolvedRegistryAgent.resolveFromString(
+                    """
+                    edition = $MAXIMUM_SUPPORTED_AGENT_VERSION
+                    [agent]
+                    name = "binary-reference"
+                    version = "1.0.0"
+                    description = "test"
+                    summary = "test"
+                    readme = "test"
+                    license = { type = "spdx", expression = "MIT" }
+                    [runtimes.docker]
+                    image = "ubuntu"
+                    [options.BINARY]
+                    type = "blob"
+                    default = $reference
+                    [options.BINARIES]
+                    type = "list[blob]"
+                    default = [$reference]
+                    """.trimIndent()
+                )
+                agent.options["BINARY"].shouldBeInstanceOf<PolymorphicAgentOption.Blob>()
+                    .default.shouldNotBeNull().shouldBeEqual(Base64.encode(bytes))
+                agent.options["BINARIES"].shouldBeInstanceOf<PolymorphicAgentOption.BlobList>()
+                    .default.shouldNotBeNull().shouldContainExactly(listOf(Base64.encode(bytes)))
+            }
+        } finally {
+            file.delete()
+        }
+    }
+
+    test("lossyCharsetConversionsAreRejected") {
+        val file = File.createTempFile("coral-malformed-reference-", ".bin")
+        try {
+            file.writeBytes(byteArrayOf(0xFF.toByte()))
+            val path = file.invariantSeparatorsPath
+            for ((option, error) in listOf(
+                // Malformed input when transcoding a blob between charsets
+                """
+                type = "blob"
+                default = { type = "file", path = "$path", output = { base64 = true, charset = "UTF-16" } }
+                """ to "not valid UTF-8",
+                // Malformed input when reading a plain string
+                """
+                type = "string"
+                default = { type = "file", path = "$path" }
+                """ to "not valid UTF-8",
+                // Unmappable output characters
+                """
+                type = "string"
+                default = { type = "string", value = "\u65e5\u672c", output = { base64 = true, charset = "ISO-8859-1" } }
+                """ to "cannot be represented in ISO-8859-1"
+            )) {
+                shouldThrow<SerializationException> {
+                    UnresolvedRegistryAgent.resolveFromString(
+                        """
+                        |edition = $MAXIMUM_SUPPORTED_AGENT_VERSION
+                        |[agent]
+                        |name = "lossy-reference"
+                        |version = "1.0.0"
+                        |description = "test"
+                        |summary = "test"
+                        |readme = "test"
+                        |license = { type = "spdx", expression = "MIT" }
+                        |[runtimes.docker]
+                        |image = "ubuntu"
+                        |[options.LOSSY]
+                        |${option.trimIndent()}
+                        """.trimMargin()
+                    )
+                }.message.shouldNotBeNull().shouldContain(error)
+            }
+        } finally {
+            file.delete()
+        }
     }
 
     test("testStringConstants") {

@@ -21,6 +21,11 @@ import org.coralprotocol.coralserver.agent.runtime.prototype.DEFAULT_SYSTEM_PROM
 import org.coralprotocol.coralserver.mcp.McpResourceName
 import org.koin.core.component.KoinComponent
 import java.io.File
+import java.nio.ByteBuffer
+import java.nio.CharBuffer
+import java.nio.charset.CharacterCodingException
+import java.nio.charset.Charset
+import java.nio.charset.CodingErrorAction
 import kotlin.io.encoding.Base64
 import kotlin.reflect.full.findAnnotation
 import kotlin.text.Charsets
@@ -231,7 +236,7 @@ open class RegistryAgentStringSerializer : KSerializer<String>, KoinComponent {
                 }
             }
 
-            is PotentialStringReference.String -> reference.value.toByteArray(inputCharset)
+            is PotentialStringReference.String -> encodeStrict(reference.value, inputCharset)
             is PotentialStringReference.Url -> {
                 val context = registryAgentSerializationContext.get()
                     ?: throw SerializationException("URL references require a serialization context")
@@ -245,24 +250,51 @@ open class RegistryAgentStringSerializer : KSerializer<String>, KoinComponent {
             }
 
             is PotentialStringReference.Constant -> {
-                stringReferenceConstants[reference.name]?.toByteArray(inputCharset)
+                stringReferenceConstants[reference.name]?.let { encodeStrict(it, inputCharset) }
                     ?: throw SerializationException("Constant ${reference.name} not found")
             }
         }
 
         // If input and output settings are equal, no transformation is required
         if (inputEncodingOptions == outputEncodingOptions)
-            return String(bytes, outputCharset)
+            return decodeStrict(bytes, outputCharset)
 
         val inputBytes = if (inputEncodingOptions.base64) Base64.decode(bytes) else bytes
-        val inputText = String(inputBytes, inputCharset)
+        // When no charset conversion is requested, encode the bytes directly; decoding would replace malformed
+        // sequences, which corrupts binary data such as blob file and URL references.
+        if (outputEncodingOptions.base64 && inputCharset == outputCharset)
+            return Base64.encode(inputBytes)
+
+        val inputText = decodeStrict(inputBytes, inputCharset)
 
         // The output character set is only important if outputting base64, otherwise the Java string type is used
         return if (outputEncodingOptions.base64) {
-            Base64.encode(inputText.toByteArray(outputCharset))
+            Base64.encode(encodeStrict(inputText, outputCharset))
         } else {
             inputText
         }
+    }
+
+    // The default String/ByteArray conversions silently substitute malformed or unmappable characters, so anything
+    // that cannot be represented exactly in the requested charset is rejected instead.
+    private fun decodeStrict(bytes: ByteArray, charset: Charset): String = try {
+        charset.newDecoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT)
+            .decode(ByteBuffer.wrap(bytes))
+            .toString()
+    } catch (e: CharacterCodingException) {
+        throw SerializationException("String reference is not valid ${charset.name()} text", e)
+    }
+
+    private fun encodeStrict(text: String, charset: Charset): ByteArray = try {
+        val buffer = charset.newEncoder()
+            .onMalformedInput(CodingErrorAction.REPORT)
+            .onUnmappableCharacter(CodingErrorAction.REPORT)
+            .encode(CharBuffer.wrap(text))
+        ByteArray(buffer.remaining()).also { buffer.get(it) }
+    } catch (e: CharacterCodingException) {
+        throw SerializationException("String reference cannot be represented in ${charset.name()}", e)
     }
 
 }

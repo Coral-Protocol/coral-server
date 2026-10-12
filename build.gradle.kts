@@ -148,6 +148,14 @@ tasks.named("check") {
     dependsOn("detekt")
 }
 
+tasks.processResources {
+    val serverVersion = project.version.toString()
+    inputs.property("serverVersion", serverVersion)
+    filesMatching("**/server-version.properties") {
+        expand("version" to serverVersion)
+    }
+}
+
 tasks.jar {
     manifest {
         attributes["Main-Class"] = "org.coralprotocol.coralserver.MainKt"
