@@ -1,6 +1,7 @@
 package org.coralprotocol.coralserver.session
 
 import io.github.smiley4.schemakenerator.core.annotations.Description
+import io.github.smiley4.schemakenerator.core.annotations.Optional
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -14,7 +15,9 @@ data class SessionNamespaceRequest(
         does not guarantee that the namespace will never be empty, because namespaces can be created without sessions
     """
     )
+    @Optional
     val deleteOnLastSessionExit: Boolean = true,
 
+    @Optional
     override val annotations: Map<String, String> = mapOf(),
 ) : SessionResource
