@@ -100,4 +100,13 @@ sealed class SessionEvent {
         val claim: SessionAgentClaim,
         val result: AgentClaimResult,
     ) : SessionEvent()
+
+    @Serializable
+    @SerialName("egress_policy_violation")
+    data class EgressPolicyViolation(
+        val agentName: UniqueAgentName,
+        val protocol: String,
+        val host: String,
+        val port: Int,
+    ) : SessionEvent()
 }

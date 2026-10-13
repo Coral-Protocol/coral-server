@@ -5,11 +5,19 @@ import io.github.smiley4.schemakenerator.core.annotations.Optional
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.agent.exceptions.AgentOptionValidationException
 import org.coralprotocol.coralserver.agent.exceptions.AgentRequestException
+import org.coralprotocol.coralserver.agent.execution.ExecutionPolicyResolver
+import org.coralprotocol.coralserver.agent.execution.resolveTrustPolicy
 import org.coralprotocol.coralserver.agent.graph.plugin.GraphAgentPlugin
 import org.coralprotocol.coralserver.agent.registry.AgentRegistry
 import org.coralprotocol.coralserver.agent.registry.RegistryAgentIdentifier
+import org.coralprotocol.coralserver.agent.registry.option.AgentOptionTransport
 import org.coralprotocol.coralserver.agent.registry.option.AgentOptionValue
 import org.coralprotocol.coralserver.agent.registry.option.AnyAgentOptionWithValue
+import org.coralprotocol.coralserver.config.CloudConfig
+import org.coralprotocol.coralserver.config.DockerConfig
+import org.coralprotocol.coralserver.config.ExecutionPolicyConfig
+import org.coralprotocol.coralserver.config.OpenShellConfig
+import org.coralprotocol.coralserver.config.SandboxConfig
 import org.coralprotocol.coralserver.llmproxy.LlmProxyException
 import org.coralprotocol.coralserver.llmproxy.LlmProxyService
 import org.coralprotocol.coralserver.session.SessionResource
@@ -67,6 +75,11 @@ data class GraphAgentRequest(
 ) : SessionResource, KoinComponent {
     val agentRegistry by inject<AgentRegistry>()
     val llmProxyService by inject<LlmProxyService>()
+    val executionPolicyConfig by inject<ExecutionPolicyConfig>()
+    val dockerConfig by inject<DockerConfig>()
+    val openShellConfig by inject<OpenShellConfig>()
+    val sandboxConfig by inject<SandboxConfig>()
+    val cloudConfig by inject<CloudConfig>()
 
     /**
      * Given a reference to the agent registry [AgentRegistry], this function will attempt to convert this request into
@@ -80,6 +93,33 @@ data class GraphAgentRequest(
         restrictedRegistryAgent.restrictions.forEach { it.requireNotRestricted(this) }
 
         val registryAgent = restrictedRegistryAgent.registryAgent
+
+        val localRuntime = when (provider) {
+            is GraphAgentProvider.Local -> provider.runtime
+            is GraphAgentProvider.Linked -> null
+        }
+        if (localRuntime != null) {
+            val trust = id.registrySourceId.resolveTrustPolicy(dockerConfig)
+            val fileSystemOptions = registryAgent.options
+                .filterValues { it.transport == AgentOptionTransport.FILE_SYSTEM }
+                .keys
+            val rejections = ExecutionPolicyResolver.validate(
+                declared = registryAgent.execution,
+                policy = executionPolicyConfig,
+                source = id.registrySourceId,
+                runtime = localRuntime,
+                trust = trust,
+                openShellConfig = openShellConfig,
+                sandboxConfig = sandboxConfig,
+                cloudConfig = cloudConfig,
+                fileSystemOptions = fileSystemOptions,
+            )
+            if (rejections.isNotEmpty()) {
+                throw AgentRequestException(
+                    "Agent $id rejected by execution policy: ${rejections.joinToString("; ") { it.reason }}"
+                )
+            }
+        }
 
         // It is an error to specify unknown options
         val unknownOptions = options.filter { !registryAgent.options.containsKey(it.key) }

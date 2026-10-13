@@ -115,25 +115,25 @@ class LlmProxyResolutionTest : CoralTest({
     }
 
     test("openAINoConfigs") {
-        modelResolutionTest(listOf(), ExpectedResponse.Fails(HttpStatusCode.InternalServerError)) {
+        modelResolutionTest(listOf(), ExpectedResponse.Fails(HttpStatusCode.BadRequest)) {
             proxy("OpenAI", LlmProviderFormat.OpenAI)
         }
     }
 
     test("anthropicNoConfigs") {
-        modelResolutionTest(listOf(), ExpectedResponse.Fails(HttpStatusCode.InternalServerError)) {
+        modelResolutionTest(listOf(), ExpectedResponse.Fails(HttpStatusCode.BadRequest)) {
             proxy("Anthropic", LlmProviderFormat.Anthropic)
         }
     }
 
     test("openAIOnlyAnthropicConfig") {
-        modelResolutionTest(listOf(anthropicAnyModel), ExpectedResponse.Fails(HttpStatusCode.InternalServerError)) {
+        modelResolutionTest(listOf(anthropicAnyModel), ExpectedResponse.Fails(HttpStatusCode.BadRequest)) {
             proxy("OpenAI", LlmProviderFormat.OpenAI)
         }
     }
 
     test("anthropicOnlyOpenAIConfig") {
-        modelResolutionTest(listOf(openAIAnyModel), ExpectedResponse.Fails(HttpStatusCode.InternalServerError)) {
+        modelResolutionTest(listOf(openAIAnyModel), ExpectedResponse.Fails(HttpStatusCode.BadRequest)) {
             proxy("Anthropic", LlmProviderFormat.Anthropic)
         }
     }
@@ -141,7 +141,7 @@ class LlmProxyResolutionTest : CoralTest({
     test("openAIModelMismatch") {
         modelResolutionTest(
             listOf(openAIConfig("test model 123")),
-            ExpectedResponse.Fails(HttpStatusCode.InternalServerError)
+            ExpectedResponse.Fails(HttpStatusCode.BadRequest)
         ) {
             proxy("OpenAI", LlmProviderFormat.OpenAI, "test model")
         }
@@ -150,7 +150,7 @@ class LlmProxyResolutionTest : CoralTest({
     test("anthropicModelMismatch") {
         modelResolutionTest(
             listOf(anthropicConfig("test model 123")),
-            ExpectedResponse.Fails(HttpStatusCode.InternalServerError)
+            ExpectedResponse.Fails(HttpStatusCode.BadRequest)
         ) {
             proxy("Anthropic", LlmProviderFormat.Anthropic, "test model")
         }
@@ -159,7 +159,7 @@ class LlmProxyResolutionTest : CoralTest({
     test("openAIWrongProvider") {
         modelResolutionTest(
             listOf(anthropicConfig("test model")),
-            ExpectedResponse.Fails(HttpStatusCode.InternalServerError)
+            ExpectedResponse.Fails(HttpStatusCode.BadRequest)
         ) {
             proxy("OpenAI", LlmProviderFormat.OpenAI, "test model")
         }
@@ -168,7 +168,7 @@ class LlmProxyResolutionTest : CoralTest({
     test("anthropicWrongProvider") {
         modelResolutionTest(
             listOf(openAIConfig("test model")),
-            ExpectedResponse.Fails(HttpStatusCode.InternalServerError)
+            ExpectedResponse.Fails(HttpStatusCode.BadRequest)
         ) {
             proxy("Anthropic", LlmProviderFormat.Anthropic, "test model")
         }
@@ -265,7 +265,7 @@ class LlmProxyResolutionTest : CoralTest({
 
         modelResolutionTest(
             listOf(openAIAnyModel, anthropicAnyModel),
-            ExpectedResponse.Fails(HttpStatusCode.InternalServerError),
+            ExpectedResponse.Fails(HttpStatusCode.BadRequest),
             {
                 proxyOverride(requestName, GraphAgentProxyRequest(anthropicAnyModel.name, modelName))
             }) {
@@ -280,7 +280,7 @@ class LlmProxyResolutionTest : CoralTest({
 
         modelResolutionTest(
             listOf(openAIAnyModel, specificModelConfig),
-            ExpectedResponse.Fails(HttpStatusCode.InternalServerError),
+            ExpectedResponse.Fails(HttpStatusCode.BadRequest),
             {
                 proxyOverride(requestName, GraphAgentProxyRequest(specificModelConfig.name, modelName))
             }) {

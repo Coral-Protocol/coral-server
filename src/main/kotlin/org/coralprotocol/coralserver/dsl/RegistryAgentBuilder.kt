@@ -3,6 +3,8 @@ package org.coralprotocol.coralserver.dsl
 import io.ktor.client.*
 import io.modelcontextprotocol.kotlin.sdk.client.Client
 import org.coralprotocol.coralserver.agent.payment.AgentBudgetUnit
+import org.coralprotocol.coralserver.agent.execution.ExecutionConfig
+import org.coralprotocol.coralserver.agent.execution.MinIsolation
 import org.coralprotocol.coralserver.agent.registry.*
 import org.coralprotocol.coralserver.agent.registry.option.AgentOption
 import org.coralprotocol.coralserver.agent.registry.option.PolymorphicAgentOption
@@ -116,6 +118,7 @@ class RegistryAgentBuilder(
     private val dependencies: MutableList<RegistryAgentDependency> = mutableListOf()
     private var marketplace: RegistryAgentMarketplaceSettings? = null
     private var llm: AgentLlmConfig? = null
+    private var execution: ExecutionConfig? = null
 
     fun link(name: String, value: String) {
         links[name] = value
@@ -228,13 +231,12 @@ class RegistryAgentBuilder(
     fun doubleListOption(name: String, block: DoubleListAgentOptionBuilder.() -> Unit = {}) =
         option(name, doubleListOption(block))
 
+    fun execution(minIsolation: MinIsolation, block: ExecutionConfigBuilder.() -> Unit = {}) {
+        execution = ExecutionConfigBuilder(minIsolation).apply(block).build()
+    }
+
     fun runtime(functionRuntime: FunctionRuntime) {
-        runtimes = LocalAgentRuntimes(
-            executableRuntime = runtimes.executableRuntime,
-            dockerRuntime = runtimes.dockerRuntime,
-            functionRuntime = functionRuntime,
-            prototypeRuntime = runtimes.prototypeRuntime
-        )
+        runtimes = runtimes.copy(functionRuntime = functionRuntime)
     }
 
     fun debugRuntime(
@@ -252,30 +254,19 @@ class RegistryAgentBuilder(
     }
 
     fun runtime(dockerRuntime: DockerRuntime) {
-        runtimes = LocalAgentRuntimes(
-            executableRuntime = runtimes.executableRuntime,
-            dockerRuntime = dockerRuntime,
-            functionRuntime = runtimes.functionRuntime,
-            prototypeRuntime = runtimes.prototypeRuntime
-        )
+        runtimes = runtimes.copy(dockerRuntime = dockerRuntime)
     }
 
     fun runtime(executableRuntime: ExecutableRuntime) {
-        runtimes = LocalAgentRuntimes(
-            executableRuntime = executableRuntime,
-            dockerRuntime = runtimes.dockerRuntime,
-            functionRuntime = runtimes.functionRuntime,
-            prototypeRuntime = runtimes.prototypeRuntime
-        )
+        runtimes = runtimes.copy(executableRuntime = executableRuntime)
     }
 
     fun runtime(prototypeRuntime: PrototypeRuntime) {
-        runtimes = LocalAgentRuntimes(
-            executableRuntime = runtimes.executableRuntime,
-            dockerRuntime = runtimes.dockerRuntime,
-            functionRuntime = runtimes.functionRuntime,
-            prototypeRuntime = prototypeRuntime
-        )
+        runtimes = runtimes.copy(prototypeRuntime = prototypeRuntime)
+    }
+
+    fun runtime(openShellRuntime: OpenShellRuntime) {
+        runtimes = runtimes.copy(openShellRuntime = openShellRuntime)
     }
 
     fun build(): RegistryAgent {
@@ -301,8 +292,23 @@ class RegistryAgentBuilder(
             path = path,
             claimTypes = claimTypes,
             dependencies = dependencies,
+            execution = execution,
         )
     }
+}
+
+@CoralDsl
+class ExecutionConfigBuilder(private val minIsolation: MinIsolation) {
+    private val externalHosts: MutableSet<String> = mutableSetOf()
+
+    fun externalHost(host: String) {
+        externalHosts += host
+    }
+
+    fun build(): ExecutionConfig = ExecutionConfig(
+        minIsolation = minIsolation,
+        externalHosts = externalHosts.toSet(),
+    )
 }
 
 @CoralDsl

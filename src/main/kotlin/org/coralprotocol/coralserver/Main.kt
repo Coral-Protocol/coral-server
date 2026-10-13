@@ -37,6 +37,7 @@ fun main(args: Array<String>) {
             claimAgentModule,
             agentModule,
             llmProxyModule(true),
+            sandboxModule,
             sessionModule,
             module {
                 single {
