@@ -41,7 +41,7 @@ class SessionThread(
     /**
      * Adds a message to this thread
      *
-     * @param message The message to add
+     * @param content The content parts of the message to add
      * @param sender The agent that sent the message
      * @param mentions A list of agents that should be mentioned by this message
      *
@@ -50,7 +50,7 @@ class SessionThread(
      * @throws SessionException.MissingAgentException If any of the agents in [mentions] do not exist in [participants]
      */
     suspend fun addMessage(
-        message: String,
+        content: List<SessionThreadMessagePart>,
         sender: SessionAgent,
         mentions: Set<SessionAgent>
     ): SessionThreadMessage {
@@ -90,7 +90,7 @@ class SessionThread(
         }
 
         val msg = SessionThreadMessage(
-            text = message,
+            content = content,
             senderName = sender.name,
             threadId = this.id,
             mentionNames = mentions.map { it.name }.toSet()
@@ -112,7 +112,7 @@ class SessionThread(
             ", mentioning: ${mentions.joinToString(", ") { it.name }}"
         }
 
-        sender.logger.info { "sent message \"${message}\" (id=${msg.id}) into thread $id$mentionLogStr" }
+        sender.logger.info { "sent message (id=${msg.id}) into thread $id$mentionLogStr" }
         return msg
     }
 

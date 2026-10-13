@@ -371,7 +371,7 @@ class SessionAgent(
      * this agent exists in the [mentions].
      */
     suspend fun sendMessage(
-        message: String,
+        content: List<SessionThreadMessagePart>,
         threadId: ThreadId,
         mentions: Set<UniqueAgentName> = setOf()
     ): SessionThreadMessage {
@@ -383,7 +383,7 @@ class SessionAgent(
             session.getAgent(it)
         }.toSet()
 
-        val message = thread.addMessage(message, this, mentions)
+        val message = thread.addMessage(content, this, mentions)
         return message
     }
 

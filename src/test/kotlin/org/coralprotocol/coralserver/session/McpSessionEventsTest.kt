@@ -78,7 +78,7 @@ class McpSessionEventsTest : CoralTest({
                                             it is SessionEvent.ThreadCreated && it.thread.name == threadName
                                         },
                                         TestEvent("message '$messageText' posted") {
-                                            it is SessionEvent.ThreadMessageSent && it.message.text == messageText
+                                            it is SessionEvent.ThreadMessageSent && (it.message.content.single() as? SessionThreadMessagePart.Text)?.text == messageText
                                         },
                                         TestEvent("participant '$agent3Name' added to any thread") {
                                             it is SessionEvent.ThreadParticipantAdded && it.name == agent3Name
@@ -99,7 +99,7 @@ class McpSessionEventsTest : CoralTest({
                                     agent1.synchronizedMessageTransaction {
                                         mcpToolManager.sendMessageTool.executeOn(
                                             client,
-                                            SendMessageInput(thread.id, messageText, listOf())
+                                            SendMessageInput(thread.id, listOf(SessionThreadMessagePart.Text(messageText)), listOf())
                                         ).shouldNotBeNull().message.id
                                     }
 

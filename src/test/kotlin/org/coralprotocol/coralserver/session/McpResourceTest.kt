@@ -71,7 +71,7 @@ class McpResourceTest : CoralTest({
 
                                     mcpToolManager.sendMessageTool.executeOn(
                                         client,
-                                        SendMessageInput(createThreadResult.thread.id, "test message", listOf())
+                                        SendMessageInput(createThreadResult.thread.id, listOf(SessionThreadMessagePart.Text("test message")), listOf())
                                     )
 
                                     // should include 1 thread and 1 message
@@ -114,7 +114,7 @@ class McpResourceTest : CoralTest({
 
                                     mcpToolManager.sendMessageTool.executeOn(
                                         client,
-                                        SendMessageInput(createThreadResult.thread.id, "test message", listOf())
+                                        SendMessageInput(createThreadResult.thread.id, listOf(SessionThreadMessagePart.Text("test message")), listOf())
                                     )
 
                                     // should include output from agent1 and agent2 but not agent3
@@ -144,7 +144,7 @@ class McpResourceTest : CoralTest({
 
                                 mcpToolManager.sendMessageTool.executeOn(
                                     client,
-                                    SendMessageInput(createThreadResult.thread.id, "test message", listOf())
+                                    SendMessageInput(createThreadResult.thread.id, listOf(SessionThreadMessagePart.Text("test message")), listOf())
                                 )
 
                                 // should include all threads

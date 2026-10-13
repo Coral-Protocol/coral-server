@@ -9,6 +9,7 @@ import org.coralprotocol.coralserver.dsl.tryGet
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.mcp.tools.CreateThreadInput
 import org.coralprotocol.coralserver.mcp.tools.SendMessageInput
+import org.coralprotocol.coralserver.session.SessionThreadMessagePart
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import kotlin.time.Duration.Companion.milliseconds
@@ -81,7 +82,7 @@ val seedAgentModule = module {
                     repeat(seedMessageCountValue.toInt()) { messageNumber ->
                         mcpToolManager.sendMessageTool.executeOn(
                             client,
-                            SendMessageInput(thread.id, "message $messageNumber", mentionsValue)
+                            SendMessageInput(thread.id, listOf(SessionThreadMessagePart.Text("message $messageNumber")), mentionsValue)
                         )
 
                         if (operationDelayValue != null)

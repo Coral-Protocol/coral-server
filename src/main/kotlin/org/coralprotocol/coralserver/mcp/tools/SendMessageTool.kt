@@ -7,14 +7,15 @@ import org.coralprotocol.coralserver.mcp.toMcpToolException
 import org.coralprotocol.coralserver.session.SessionAgent
 import org.coralprotocol.coralserver.session.SessionException
 import org.coralprotocol.coralserver.session.SessionThreadMessage
+import org.coralprotocol.coralserver.session.SessionThreadMessagePart
 
 @Serializable
 data class SendMessageInput(
     @Description("The unique identifier for the thread to send a message in")
     val threadId: String,
 
-    @Description("The content of the message to send")
-    val content: String,
+    @Description("The content parts of the message to send (text, image, audio, embedded resource, or resource link)")
+    val content: List<SessionThreadMessagePart>,
 
     @Description("")
     // cannot be a set because generated schema will include "uniqueItems: true" that OpenAI throws errors for

@@ -182,8 +182,8 @@ class SessionTest : CoralTest({
         }
 
         shouldNotThrowAny {
-            agent1.sendMessage("Hello from agent 1", thread1.id)
-            agent2.sendMessage("Hello from agent 2", thread1.id)
+            agent1.sendMessage(listOf(SessionThreadMessagePart.Text("Hello from agent 1")), thread1.id)
+            agent2.sendMessage(listOf(SessionThreadMessagePart.Text("Hello from agent 2")), thread1.id)
         }
 
         // agent3 is not participating in thread1, which is the only thread with messages so far
@@ -195,7 +195,7 @@ class SessionTest : CoralTest({
         thread1.close(agent1, "Nothing to see here...")
 
         shouldThrow<SessionException.ThreadClosedException> {
-            agent1.sendMessage("Hello from agent 1", thread1.id)
+            agent1.sendMessage(listOf(SessionThreadMessagePart.Text("Hello from agent 1")), thread1.id)
         }
 
         // closing a thread should delete the messages
@@ -203,7 +203,7 @@ class SessionTest : CoralTest({
         agent2.getVisibleMessages().shouldBeEmpty()
 
         shouldNotThrowAny {
-            agent1.sendMessage("Hello from agent 1", thread2.id)
+            agent1.sendMessage(listOf(SessionThreadMessagePart.Text("Hello from agent 1")), thread2.id)
         }
 
         session.sessionScope.cancel()
@@ -248,25 +248,25 @@ class SessionTest : CoralTest({
                 SessionThreadMessageFilter.From("agent1"),
             )
 
-            agent2.waitForMessage(filters = filters).shouldNotBeNull().text.shouldBeEqual(messageText)
+            (agent2.waitForMessage(filters = filters).shouldNotBeNull().content.single() as SessionThreadMessagePart.Text).text.shouldBeEqual(messageText)
             agent2.waitForMessage().shouldBeNull() // timeout
         }
 
         agent2.synchronizedMessageTransaction {
             // should be filtered: does not mention
-            agent1.sendMessage("bad", thread.id)
+            agent1.sendMessage(listOf(SessionThreadMessagePart.Text("bad")), thread.id)
 
             // should be filtered: in the wrong thread
-            agent1.sendMessage("bad", otherThread.id, mentions = setOf("agent2"))
+            agent1.sendMessage(listOf(SessionThreadMessagePart.Text("bad")), otherThread.id, mentions = setOf("agent2"))
 
             // should be filtered: wrong sender (and wrong mentions)
             // checking channel buffer
             repeat(100_000) {
-                agent2.sendMessage("bad $it", thread.id, mentions = setOf("agent1"))
+                agent2.sendMessage(listOf(SessionThreadMessagePart.Text("bad $it")), thread.id, mentions = setOf("agent1"))
             }
 
             // correct message
-            agent1.sendMessage(messageText, thread.id, mentions = setOf("agent2")).id
+            agent1.sendMessage(listOf(SessionThreadMessagePart.Text(messageText)), thread.id, mentions = setOf("agent2")).id
         }
 
         session.sessionScope.cancel()
@@ -481,13 +481,13 @@ class SessionTest : CoralTest({
         }
 
         shouldNotThrowAny {
-            agent1.sendMessage("Hello from agent 1", thread1.id)
+            agent1.sendMessage(listOf(SessionThreadMessagePart.Text("Hello from agent 1")), thread1.id)
         }
 
-        agent2.waitForMessage(
+        (agent2.waitForMessage(
             timeoutMs = 1.seconds.inWholeMilliseconds,
             replayAfter = beforeMessage,
-        ).shouldNotBeNull().text.shouldBeEqual("Hello from agent 1")
+        ).shouldNotBeNull().content.single() as SessionThreadMessagePart.Text).text.shouldBeEqual("Hello from agent 1")
 
         thread1.close(agent1, "thread closure")
 

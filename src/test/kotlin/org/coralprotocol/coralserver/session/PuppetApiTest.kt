@@ -100,7 +100,7 @@ class PuppetApiTest : CoralTest({
                 setBody(
                     SendMessageInput(
                         threadId = threadId,
-                        content = "test message",
+                        content = listOf(SessionThreadMessagePart.Text("test message")),
                         mentions = listOf(agent1Name)
                     )
                 )

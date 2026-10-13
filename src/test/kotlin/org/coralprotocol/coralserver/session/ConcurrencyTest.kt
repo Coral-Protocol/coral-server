@@ -58,7 +58,7 @@ class ConcurrencyTest : CoralTest({
 
         val messagesWrite = launch {
             repeat(iterations) {
-                thread.addMessage("test message$it", admin, setOf())
+                thread.addMessage(listOf(SessionThreadMessagePart.Text("test message$it")), admin, setOf())
                 yield()
             }
         }
@@ -67,7 +67,7 @@ class ConcurrencyTest : CoralTest({
             while (true) {
                 thread.withMessageLock {
                     for (p in it) {
-                        if (p.text == "test message${iterations - 1}")
+                        if ((p.content.single() as? SessionThreadMessagePart.Text)?.text == "test message${iterations - 1}")
                             cancel()
 
                         yield()

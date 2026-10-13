@@ -9,6 +9,7 @@ import org.coralprotocol.coralserver.dsl.tryGet
 import org.coralprotocol.coralserver.mcp.McpToolManager
 import org.coralprotocol.coralserver.mcp.tools.SendMessageInput
 import org.coralprotocol.coralserver.mcp.tools.WaitForSingleMessageInput
+import org.coralprotocol.coralserver.session.SessionThreadMessagePart
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import kotlin.time.Duration.Companion.milliseconds
@@ -66,7 +67,7 @@ val echoAgentModule = module {
                         if (msg != null && (!mentions || msg.mentionNames.contains(agent.name)) && (fromAgent == null || msg.senderName == fromAgent)) {
                             mcpToolManager.sendMessageTool.executeOn(
                                 client,
-                                SendMessageInput(msg.threadId, "nice message!", listOf(msg.senderName))
+                                SendMessageInput(msg.threadId, listOf(SessionThreadMessagePart.Text("nice message!")), listOf(msg.senderName))
                             )
                             break
                         }
