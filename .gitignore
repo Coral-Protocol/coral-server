@@ -56,3 +56,8 @@ bin/
 ### Example directories ###
 examples/camel-search-maths/__pycache__/
 examples/session-posts/**.env.json
+
+# Coral code skills
+/.agents/skills/coral-code/
+/.gemini/skills/coral-code/
+/.claude/skills/coral-code/
