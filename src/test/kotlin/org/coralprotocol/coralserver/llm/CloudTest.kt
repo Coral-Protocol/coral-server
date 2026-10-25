@@ -12,7 +12,8 @@ class CloudTest : CoralTest({
     val openAI = cloudProviders?.firstOrNull { it.format == LlmProviderFormat.OpenAI }
     val deepSeek = cloudProviders?.firstOrNull { it.format == LlmProviderFormat.DeepSeek }
 
-    test("testCloudOpenAI[o3-mini]").config(enabledIf = { openAI != null }) {
+    // no longer supported (from OpenAI)
+    test("testCloudOpenAI[o3-mini]").config(enabledIf = { openAI != null }, enabled = false) {
         multiAgentHandshakeTest(
             configuration = openAI!!,
             client = PrototypeClient.OpenAI(),
@@ -21,7 +22,8 @@ class CloudTest : CoralTest({
         )
     }
 
-    test("testCloudOpenAI[o4-mini]").config(enabledIf = { openAI != null }) {
+    // no longer supported (from OpenAI)
+    test("testCloudOpenAI[o4-mini]").config(enabledIf = { openAI != null }, enabled = false) {
         multiAgentHandshakeTest(
             configuration = openAI!!,
             client = PrototypeClient.OpenAI(),
