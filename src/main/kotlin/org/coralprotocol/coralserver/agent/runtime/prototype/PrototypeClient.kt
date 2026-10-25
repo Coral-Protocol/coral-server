@@ -20,6 +20,7 @@ import ai.koog.prompt.executor.clients.openrouter.OpenRouterLLMClient
 import ai.koog.prompt.executor.clients.openrouter.OpenRouterModels
 import ai.koog.prompt.executor.llms.MultiLLMPromptExecutor
 import ai.koog.prompt.executor.model.PromptExecutor
+import ai.koog.prompt.llm.LLMProvider
 import ai.koog.prompt.llm.LLModel
 import ai.koog.prompt.params.LLMParams
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -44,29 +45,52 @@ class OpenAICompatibleStrictToolDescriptorGenerator : OpenAICompatibleToolDescri
 @Suppress("unused")
 sealed class PrototypeClient(@Transient val models: Any = Unit) {
 
+    /**
+     * The provider that models used with this client must have. This is a bit of a workaround for a requirement of Koog
+     * where LLModel's require an LLMProvider. It's a bit of an annoying requirement as this is only required (by us)
+     * when customModel is used, and in that case, it is likely that the provider specified is wrong.
+     */
+    abstract val provider: LLMProvider
+
+    /**
+     * A manually specified model to use instead of a model from [models].  This is used for models that are not known
+     * to Koog but are served by an API compatible with this client.
+     */
+    open val customModel: PrototypeLlmModel? get() = null
+
     abstract fun getPromptExecutor(baseUrl: String, apiKey: String): PromptExecutor
 
     open suspend fun startIteration(context: AIAgentFunctionalContext, iteration: Int, iterationCount: Int) = Unit
     open suspend fun endIteration(context: AIAgentFunctionalContext, iteration: Int, iterationCount: Int) = Unit
 
-    fun getLlmModel(model: LlmProxiedModel): LLModel {
-        val models = models::class.members.filter { member -> member.returnType.classifier == LLModel::class }
-            .mapNotNull { member -> member.call() as? LLModel }
+    fun getLlmModel(model: LlmProxiedModel): LLModel =
+        when (val custom = customModel) {
+            null -> {
+                val models = models::class.members.filter { member -> member.returnType.classifier == LLModel::class }
+                    .mapNotNull { member -> member.call() as? LLModel }
 
-        val name = serializer().descriptor.serialName
-        return models.firstOrNull { it.id == model.modelName }
-            ?: throw PrototypeRuntimeException.BadModel(
-                "model \"${model.modelName}\" is not provided prototype runtime client \"$name\".  Available models: ${
-                    models.joinToString(
-                        ", "
-                    ) { it.id }
-                }")
-    }
+                val name = serializer().descriptor.serialName
+                models.firstOrNull { it.id == model.modelName }
+                    ?: throw PrototypeRuntimeException.BadModel(
+                        "model \"${model.modelName}\" is not provided prototype runtime client \"$name\".  Available models: ${
+                            models.joinToString(
+                                ", "
+                            ) { it.id }
+                        }")
+            }
 
+            else -> custom.toLLModel(provider, model.modelName)
+        }
 
     @Serializable
     @SerialName("openai")
-    data class OpenAI(val strict: Boolean = true) : PrototypeClient(OpenAIModels.Chat), KoinComponent {
+    data class OpenAI(
+        val strict: Boolean = true,
+        @SerialName("custom_model")
+        override val customModel: PrototypeLlmModel? = null
+    ) : PrototypeClient(OpenAIModels.Chat), KoinComponent {
+        override val provider: LLMProvider get() = LLMProvider.OpenAI
+
         override fun getPromptExecutor(
             baseUrl: String, apiKey: String
         ): MultiLLMPromptExecutor = MultiLLMPromptExecutor(
@@ -81,7 +105,13 @@ sealed class PrototypeClient(@Transient val models: Any = Unit) {
 
     @Serializable
     @SerialName("openrouter")
-    data class OpenRouter(val strict: Boolean = true) : PrototypeClient(OpenRouterModels), KoinComponent {
+    data class OpenRouter(
+        val strict: Boolean = true,
+        @SerialName("custom_model")
+        override val customModel: PrototypeLlmModel? = null
+    ) : PrototypeClient(OpenRouterModels), KoinComponent {
+        override val provider: LLMProvider get() = LLMProvider.OpenRouter
+
         override fun getPromptExecutor(
             baseUrl: String, apiKey: String
         ): MultiLLMPromptExecutor = MultiLLMPromptExecutor(
@@ -96,7 +126,12 @@ sealed class PrototypeClient(@Transient val models: Any = Unit) {
 
     @Serializable
     @SerialName("anthropic")
-    object Anthropic : PrototypeClient(AnthropicModels), KoinComponent {
+    data class Anthropic(
+        @SerialName("custom_model")
+        override val customModel: PrototypeLlmModel? = null
+    ) : PrototypeClient(AnthropicModels), KoinComponent {
+        override val provider: LLMProvider get() = LLMProvider.Anthropic
+
         override fun getPromptExecutor(
             baseUrl: String, apiKey: String
         ): MultiLLMPromptExecutor = MultiLLMPromptExecutor(
@@ -110,7 +145,13 @@ sealed class PrototypeClient(@Transient val models: Any = Unit) {
 
     @Serializable
     @SerialName("deepseek")
-    data class DeepSeek(val strict: Boolean = true) : PrototypeClient(DeepSeekModels), KoinComponent {
+    data class DeepSeek(
+        val strict: Boolean = true,
+        @SerialName("custom_model")
+        override val customModel: PrototypeLlmModel? = null
+    ) : PrototypeClient(DeepSeekModels), KoinComponent {
+        override val provider: LLMProvider get() = LLMProvider.DeepSeek
+
         override fun getPromptExecutor(
             baseUrl: String, apiKey: String
         ): MultiLLMPromptExecutor = MultiLLMPromptExecutor(

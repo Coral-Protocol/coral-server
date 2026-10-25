@@ -193,7 +193,7 @@ data class PrototypeRuntime(
         val followupUserMessage = prompts.loop.followup.resolve(executionContext)
 
         val client = client ?: when (proxiedModel.providerConfig.format) {
-            LlmProviderFormat.Anthropic -> PrototypeClient.Anthropic
+            LlmProviderFormat.Anthropic -> PrototypeClient.Anthropic()
             LlmProviderFormat.OpenAI -> PrototypeClient.OpenAI()
             LlmProviderFormat.DeepSeek -> PrototypeClient.DeepSeek()
         }
