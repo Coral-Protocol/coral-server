@@ -55,7 +55,7 @@ data class PrototypeLoopInitialPrompt(
                     appendLine(extraString)
                 }
             } else {
-                appendLine("Since no specific instructions were provided, consider waiting for mentions until another agent provides further direction.")
+                appendLine("No specific instructions were provided, use the wait tooling to wait until another agent contacts you.")
             }
 
             appendLine("(Remember that 'I' am not the user, who is not directly reachable. Use tools to interact with other agents as necessary to fulfil the users needs. You will receive further automated messages this way.)")

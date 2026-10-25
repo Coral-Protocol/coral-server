@@ -136,7 +136,8 @@ suspend fun KoinComponent.multiAgentHandshakeTest(
                                 url = "handshake",
                             ),
                             inputSchema = buildToolSchema<HandshakeData>(),
-                            outputSchema = buildToolSchema<HandshakeResponse>()
+                            outputSchema = buildToolSchema<HandshakeResponse>(),
+                            description = "Call this tool with the handshake ID to complete the handshake process."
                         )
                     )
                     proxy(configuration.name, LlmProxiedModel(configuration, model))

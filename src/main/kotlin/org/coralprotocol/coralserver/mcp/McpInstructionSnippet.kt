@@ -20,7 +20,8 @@ enum class McpInstructionSnippet(
         # Messaging
         
         Agent to agent communication is important for a Coral agent and in Coral this is done with messages.  Messages 
-        can be sent using the ${McpToolName.SEND_MESSAGE} tool.  All messages must be sent into Coral threads.
+        can be sent using the ${McpToolName.SEND_MESSAGE} tool.  To message an agent you do not share a thread with yet, 
+        first create a thread with them using ${McpToolName.CREATE_THREAD}.
         
         # Threads
         

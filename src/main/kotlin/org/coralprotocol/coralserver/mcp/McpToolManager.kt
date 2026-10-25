@@ -53,7 +53,7 @@ inline fun <reified In> buildToolSchema(): ToolSchema {
 class McpToolManager(private val logger: Logger) {
     val createThreadTool = buildTool<CreateThreadInput, CreateThreadOutput>(
         name = McpToolName.CREATE_THREAD,
-        description = "Creates a new Coral thread",
+        description = "Creates a new Coral thread with the given participants. Needed before you can message an agent you do not share a thread with.",
         requiredSnippets = setOf(McpInstructionSnippet.MESSAGING),
         executor = ::createThreadExecutor
     )
@@ -81,21 +81,21 @@ class McpToolManager(private val logger: Logger) {
 
     val sendMessageTool = buildTool<SendMessageInput, SendMessageOutput>(
         name = McpToolName.SEND_MESSAGE,
-        description = "Posts a message into a Coral thread",
+        description = "Posts a message into an existing Coral thread (by threadId)",
         requiredSnippets = setOf(McpInstructionSnippet.MESSAGING, McpInstructionSnippet.MENTIONS),
         executor = ::sendMessageExecutor
     )
 
     val waitForMessageTool = buildTool<WaitForSingleMessageInput, WaitForMessageOutput>(
         name = McpToolName.WAIT_FOR_MESSAGE,
-        description = "Waits for and returns a single message from another agent in any Coral thread",
+        description = "Waits for and returns a single message from another agent in any Coral thread you share with them",
         requiredSnippets = setOf(McpInstructionSnippet.MESSAGING, McpInstructionSnippet.WAITING),
         executor = ::waitForSingleMessageExecutor
     )
 
     val waitForMentionTool = buildTool<WaitForMentioningMessageInput, WaitForMessageOutput>(
         name = McpToolName.WAIT_FOR_MENTION,
-        description = "Waits for and returns a single message that mentions you from any agent in any Coral thread",
+        description = "Waits for and returns a single message that mentions you from any agent in any Coral thread you share with them",
         requiredSnippets = setOf(
             McpInstructionSnippet.MESSAGING,
             McpInstructionSnippet.MENTIONS,
@@ -106,7 +106,7 @@ class McpToolManager(private val logger: Logger) {
 
     val waitForAgentMessageTool = buildTool<WaitForAgentMessageInput, WaitForMessageOutput>(
         name = McpToolName.WAIT_FOR_AGENT,
-        description = "Waits for and returns a single message from a specific agent in any Coral thread",
+        description = "Waits for and returns a single message from a specific agent in any Coral thread you share with them",
         requiredSnippets = setOf(McpInstructionSnippet.MESSAGING, McpInstructionSnippet.WAITING),
         executor = ::waitForAgentMessageExecutor
     )
