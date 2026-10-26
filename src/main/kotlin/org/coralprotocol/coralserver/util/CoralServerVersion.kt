@@ -1,6 +1,6 @@
 package org.coralprotocol.coralserver.util
 
-import java.util.Properties
+import java.util.*
 
 object CoralServerVersion {
     private const val RESOURCE = "/org/coralprotocol/coralserver/server-version.properties"
