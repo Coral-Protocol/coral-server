@@ -48,6 +48,7 @@ enum class McpInstructionSnippet(
         your message intends to directly seek input from or respond to an agent, you should mention them.
     """.trimIndent()),
 
+    @Suppress("MagicNumber")
     WAITING("""
         # Waiting
        
