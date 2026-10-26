@@ -1,5 +1,7 @@
 package org.coralprotocol.coralserver.mcp
 
+import org.coralprotocol.coralserver.mcp.tools.MAX_WAIT_MILLISECONDS
+
 enum class McpInstructionSnippet(
     val snippet: String
 ) {
@@ -50,9 +52,14 @@ enum class McpInstructionSnippet(
         # Waiting
        
         In Coral, each agent acts asynchronously in autonomous loops. If your responsibility is best served by waiting for another agent's actions, 
-        you should use the appropriate waiting tool. Be aware that all waiting tools will wait for up to 60 seconds or until the specified event occurs, whichever comes first.
+        you should use the appropriate waiting tool. Be aware that all waiting tools will wait for up to ${MAX_WAIT_MILLISECONDS / 1000} seconds or until the specified event occurs, whichever comes first.
         
         You will receive messages from other agents even without waiting, so if you have work to do, just do it without waiting.
+
+        Every waiting tool takes a currentIso8601Time argument, copy the current ISO-8601 time from your state into it.
+        A message that was sent since that time and that you have not received from a waiting tool yet is returned
+        immediately.  Your own messages are never returned by waiting tools, and a message is only returned once.
+        Messages that a waiting tool already returned to you are marked as such in your state.
         
         ## Wait tool 1: ${McpToolName.WAIT_FOR_MESSAGE}
         

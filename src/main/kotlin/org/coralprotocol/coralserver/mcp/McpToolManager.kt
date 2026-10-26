@@ -3,6 +3,7 @@ package org.coralprotocol.coralserver.mcp
 import io.github.smiley4.schemakenerator.core.CoreSteps.initial
 import io.github.smiley4.schemakenerator.jsonschema.JsonSchemaSteps.compileInlining
 import io.github.smiley4.schemakenerator.jsonschema.JsonSchemaSteps.generateJsonSchema
+import io.github.smiley4.schemakenerator.jsonschema.JsonSchemaSteps.handleCoreAnnotations
 import io.github.smiley4.schemakenerator.jsonschema.JsonSchemaSteps.merge
 import io.github.smiley4.schemakenerator.serialization.SerializationSteps.analyzeTypeUsingKotlinxSerialization
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
@@ -22,6 +23,7 @@ inline fun <reified In> buildToolSchema(): ToolSchema {
         initial<In>()
             .analyzeTypeUsingKotlinxSerialization()
             .generateJsonSchema()
+            .handleCoreAnnotations()
             .compileInlining()
             .merge()
             .convert() as? JsonObject
