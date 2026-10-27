@@ -197,8 +197,10 @@ class SessionThread(
      * Creates a version of this thread that is designed to be placed in an agent's state resource.  This contains all
      * information about the thread, except messages are also filtered with the similar [SessionThreadMessage.asJsonState]
      * function.
+     *
+     * @param viewer The agent whose state this is for, see [SessionThreadMessage.asJsonState]
      */
-    suspend fun asJsonState(): JsonObject = buildJsonObject {
+    suspend fun asJsonState(viewer: SessionAgent? = null): JsonObject = buildJsonObject {
         put("threadId", id)
         put("threadName", name)
         put("owningAgentName", creatorName)
@@ -217,7 +219,7 @@ class SessionThread(
                 put("state", "open")
 
                 messagesMutex.withLock {
-                    put("messages", JsonArray(messages.map { it.asJsonState() }))
+                    put("messages", JsonArray(messages.map { it.asJsonState(viewer) }))
                 }
             }
         }

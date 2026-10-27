@@ -16,7 +16,7 @@ data class SendMessageInput(
     @Description("The content of the message to send")
     val content: String,
 
-    @Description("")
+    @Description("The names of the agents that this message is for.  Agents waiting for a mention only receive messages that mention them")
     // cannot be a set because generated schema will include "uniqueItems: true" that OpenAI throws errors for
     val mentions: List<UniqueAgentName>
 )

@@ -20,6 +20,10 @@ import org.coralprotocol.coralserver.util.streamableHttpFunctionRuntime
 import org.coralprotocol.coralserver.utils.synchronizedMessageTransaction
 import org.koin.test.inject
 import java.util.*
+import kotlin.time.Instant
+
+// a time after every message, so that waits never replay messages
+private val NO_REPLAY = Instant.parse("9999-12-31T23:59:59Z")
 
 class McpToolsTest : CoralTest({
     suspend fun testCommonTools(
@@ -124,18 +128,18 @@ class McpToolsTest : CoralTest({
                                 val agent2 = session.getAgent(agent2Name)
 
                                 val singleMessageResult =
-                                    mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput(Long.MAX_VALUE))
+                                    mcpToolManager.waitForMessageTool.executeOn(client, WaitForSingleMessageInput(NO_REPLAY))
                                 singleMessageResult.message?.text shouldBe singleMessageText
 
                                 val agentMessageResult =
                                     mcpToolManager.waitForAgentMessageTool.executeOn(
                                         client,
-                                        WaitForAgentMessageInput(currentUnixTime = Long.MAX_VALUE, agentName = agent1Name)
+                                        WaitForAgentMessageInput(currentIso8601Time = NO_REPLAY, agentName = agent1Name)
                                     )
                                 agentMessageResult.message?.text shouldBe agentMessageText
 
                                 val mentionResult =
-                                    mcpToolManager.waitForMentionTool.executeOn(client, WaitForMentioningMessageInput(Long.MAX_VALUE))
+                                    mcpToolManager.waitForMentionTool.executeOn(client, WaitForMentioningMessageInput(NO_REPLAY))
                                 mentionResult.message?.text shouldBe mentionText
 
                                 agent2.waiters.value.shouldBeEmpty()
@@ -151,7 +155,7 @@ class McpToolsTest : CoralTest({
                                 val mentionMessageResult =
                                     mcpToolManager.waitForMentionTool.executeOn(
                                         client,
-                                        WaitForMentioningMessageInput(Long.MAX_VALUE)
+                                        WaitForMentioningMessageInput(NO_REPLAY)
                                     ).message.shouldNotBeNull()
 
                                 // the first message that this agent should receive is the first message sent by agent1, but only
