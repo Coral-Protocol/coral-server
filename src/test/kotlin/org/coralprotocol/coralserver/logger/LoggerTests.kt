@@ -7,7 +7,6 @@ import io.ktor.websocket.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.consumeEach
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -44,7 +43,7 @@ class LoggerTests : CoralTest({
             timeout = 3.seconds,
             events = events,
         ) { flow ->
-            val wsJob = launch {
+            val wsJob = this@genericLoggingTest.launch {
                 client.webSocket(client.href(Logs.WithToken(parent = logs, token = authToken))) {
                     incoming
                         .filterIsInstance<Frame.Text>(this@webSocket)
@@ -146,8 +145,9 @@ class LoggerTests : CoralTest({
                 TestEvent("warn") { it is LoggingEvent.Warning },
             ),
         ) {
+            // the sensitive messages above are in the replay buffer, if the filter let them through, they would be replayed
+            // before this live warning and fail the test as unexpected events
             warn { "test" }
-            delay(1.seconds)
         }
     }
 

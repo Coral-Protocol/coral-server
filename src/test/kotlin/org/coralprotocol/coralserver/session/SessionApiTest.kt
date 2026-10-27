@@ -248,7 +248,8 @@ class SessionApiTest : CoralTest({
             550,
             false
         ) {
-            persistenceMode = SessionPersistenceMode.HoldAfterExit(550)
+            // the session exists for at least 1550ms, leaving a large margin over the 1-second check
+            persistenceMode = SessionPersistenceMode.HoldAfterExit(1000)
         }
         continually(1.seconds) {
             client.authenticatedGet(
@@ -264,7 +265,8 @@ class SessionApiTest : CoralTest({
             100,
             false
         ) {
-            persistenceMode = SessionPersistenceMode.MinimumTime(1100)
+            // the session exists for at least 1500ms, leaving a large margin over the 1-second check
+            persistenceMode = SessionPersistenceMode.MinimumTime(1500)
         }
         continually(1.seconds) {
             client.authenticatedGet(
@@ -282,30 +284,35 @@ class SessionApiTest : CoralTest({
         ) {
             persistenceMode = SessionPersistenceMode.None
         }
-        delay(100.milliseconds)
 
-        client.authenticatedGet(
-            LocalSessions.Session.Existing(
-                namespace = namespaceName,
-                sessionId = id.sessionId
-            )
-        ).shouldHaveStatus(HttpStatusCode.NotFound)
+        // the session should be removed as soon as it exits, polled because session launch and exit timing varies
+        eventually(2.seconds) {
+            client.authenticatedGet(
+                LocalSessions.Session.Existing(
+                    namespace = namespaceName,
+                    sessionId = id.sessionId
+                )
+            ).shouldHaveStatus(HttpStatusCode.NotFound)
+        }
 
         id = sessionWithDelay(
             client,
             50,
             false,
         ) {
-            persistenceMode = SessionPersistenceMode.HoldAfterExit(1000)
+            persistenceMode = SessionPersistenceMode.HoldAfterExit(3000)
         }
-        delay(100.milliseconds)
 
-        client.authenticatedGet(
-            LocalSessions.Session.Existing(
-                namespace = namespaceName,
-                sessionId = id.sessionId
-            )
-        ).shouldBeOK().body<SessionStateBase>().status.shouldBeInstanceOf<SessionStatus.Closing>()
+        // the session should be held in a closing state after it exits, polled because session launch and exit timing
+        // varies.  The hold is longer than the polling time so that the session is never removed while polling
+        eventually(2.seconds) {
+            client.authenticatedGet(
+                LocalSessions.Session.Existing(
+                    namespace = namespaceName,
+                    sessionId = id.sessionId
+                )
+            ).shouldBeOK().body<SessionStateBase>().status.shouldBeInstanceOf<SessionStatus.Closing>()
+        }
     }
 
     test("testSessionWebhook").config(invocationTimeout = 30.seconds) {

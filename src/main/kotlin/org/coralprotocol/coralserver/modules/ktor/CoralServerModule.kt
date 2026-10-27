@@ -34,6 +34,8 @@ import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
 import io.ktor.server.sse.*
 import io.ktor.server.websocket.*
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import org.coralprotocol.coralserver.config.AuthConfig
 import org.coralprotocol.coralserver.config.NetworkConfig
@@ -59,6 +61,7 @@ import org.coralprotocol.coralserver.util.CoralServerVersion
 import org.koin.core.qualifier.named
 import org.koin.ktor.ext.inject
 import org.slf4j.event.Level
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration.Companion.seconds
 
 fun Application.coralServerModule(isTest: Boolean = false) {
@@ -170,6 +173,19 @@ fun Application.coralServerModule(isTest: Boolean = false) {
     }
     install(StatusPages) {
         exception<Throwable> { call, cause ->
+            // The call was cancelled because the client went away or the server is stopping, this is not an error.  A
+            // response must still be sent, Ktor rethrows exceptions for calls that have no response, which causes the
+            // engine to log the cancellation as an error anyway
+            if (cause is CancellationException) {
+                if (!call.response.isCommitted) {
+                    withContext(NonCancellable) {
+                        call.respond(HttpStatusCode.ServiceUnavailable)
+                    }
+                }
+
+                return@exception
+            }
+
             // Other exceptions should still be serialized, wrap non RouteException type exceptions in a
             // RouteException, giving a 500-status code
             val routeException = if (cause !is RouteException) {

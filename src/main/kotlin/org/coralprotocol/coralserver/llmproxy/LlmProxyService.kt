@@ -245,7 +245,7 @@ class LlmProxyService(
         try {
             if (isStreaming) proxyStreaming(req, call) else proxyBuffered(req, call)
         } catch (e: CancellationException) {
-            registerProxyResult(agent, LlmProxyResult.Exception(req, e))
+            registerProxyResult(agent, LlmProxyResult.Cancelled(req))
             throw e
         } catch (e: Exception) {
             registerProxyResult(agent, LlmProxyResult.Exception(req, e))
@@ -486,6 +486,10 @@ class LlmProxyService(
                 "Proxy request failed due to an exception"
             }
 
+            is LlmProxyResult.Cancelled -> result.request.logger.info {
+                "Proxy request cancelled after ${result.duration}"
+            }
+
             is LlmProxyResult.Streamed -> result.request.logger.info {
                 "Streamed proxy request finished in ${result.duration} with status code ${result.statusCode}, with ${result.chunkCount} chunks${result.usage.report()}"
             }
@@ -493,7 +497,7 @@ class LlmProxyService(
 
         val (code, usage) = when (result) {
             is LlmProxyResult.Buffered -> Pair(result.statusCode, result.usage)
-            is LlmProxyResult.Exception -> return
+            is LlmProxyResult.Exception, is LlmProxyResult.Cancelled -> return
             is LlmProxyResult.Streamed -> Pair(result.statusCode, result.usage)
         }
 

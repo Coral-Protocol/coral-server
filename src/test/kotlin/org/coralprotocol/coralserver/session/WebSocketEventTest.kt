@@ -1,5 +1,6 @@
 package org.coralprotocol.coralserver.session
 
+import io.kotest.assertions.ktor.client.shouldBeOK
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.resources.*
@@ -57,12 +58,19 @@ class WebSocketEventTest : CoralTest({
                         }
                         isolateAllAgents()
                     }
+
+                    // the session must not run until the WS connection is subscribed to its events, otherwise events
+                    // posted before the subscription are missed
+                    deferExecution()
                 }
             )
         }.body()
 
-        val webSocketJob = this.shouldPostEventsFromBody(
-            timeout = 3.seconds,
+        val session = localSessionManager.getSession(id.namespace, id.sessionId)
+
+        // 110 seeded threads and messages are sent over the WS connection
+        val webSocketJob = shouldPostEventsFromBody(
+            timeout = 10.seconds,
             allowUnexpectedEvents = true,
             events = buildList<TestEvent<SessionEvent>> {
                 repeat(threadCount.toInt()) { index ->
@@ -96,6 +104,17 @@ class WebSocketEventTest : CoralTest({
                 }
             }
 
+            // execute the session after the WS connection is subscribed to the session's events
+            session.events.subscriptionCount.first { it == 1 }
+            client.authenticatedPost(
+                LocalSessions.Session.Existing(
+                    namespace = id.namespace,
+                    sessionId = id.sessionId
+                )
+            ) {
+                setBody(SessionRuntimeSettings())
+            }.shouldBeOK()
+
             wsJob
         }
 
@@ -113,8 +132,9 @@ class WebSocketEventTest : CoralTest({
         val ns1Name = "ns1"
         val ns2Name = "ns2"
 
-        val webSocketJob = this.shouldPostEventsFromBody(
-            timeout = 3.seconds,
+        // includes the 1-second START_DELAY of the seed agents
+        val webSocketJob = shouldPostEventsFromBody(
+            timeout = 10.seconds,
             events = mutableListOf(
                 TestEvent("ns1 create") { it is LocalSessionManagerEvent.NamespaceCreated && it.initialState.name == ns1Name },
                 TestEvent("ns1 session create") { it is LocalSessionManagerEvent.SessionCreated && it.namespaceState.name == ns1Name },
@@ -217,8 +237,9 @@ class WebSocketEventTest : CoralTest({
             }
         }
 
-        val webSocketJob = this.shouldPostEventsFromBody(
-            timeout = 3.seconds,
+        // includes the 1-second START_DELAY of the seed agents
+        val webSocketJob = shouldPostEventsFromBody(
+            timeout = 10.seconds,
             events = expectedEvents
         ) { flow ->
             val wsJob = launch {

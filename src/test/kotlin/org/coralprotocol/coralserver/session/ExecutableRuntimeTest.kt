@@ -69,8 +69,9 @@ class ExecutableRuntimeTest : CoralTest({
             )
         )
 
+        // includes starting and waiting for the process, a cold process start can be slow on Windows
         shouldPostEvents(
-            timeout = 3.seconds,
+            timeout = 30.seconds,
             allowUnexpectedEvents = true,
             events = mutableListOf(
                 TestEvent("value 1") { it is LoggingEvent.Info && it.text == optionValue1 },
@@ -119,8 +120,9 @@ class ExecutableRuntimeTest : CoralTest({
             )
         )
 
+        // includes starting and waiting for the processes, a cold process start can be slow on Windows
         shouldPostEvents(
-            timeout = 3.seconds,
+            timeout = 30.seconds,
             allowUnexpectedEvents = true,
             events = mutableListOf(
                 TestEvent("relative path") { it is LoggingEvent.Info && it.text == secret1 },

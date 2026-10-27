@@ -165,14 +165,20 @@ class LocalSessionManager(
     }
 
     /**
-     * Launches an existing session on [managementScope]
+     * Launches an existing session on [managementScope].  The session's status is set to [SessionStatus.Running] before
+     * this function returns.
+     *
+     * @throws SessionException.AlreadyLaunchedException if the session is not pending execution
      */
     fun launchSession(session: LocalSession, namespace: LocalSessionNamespace, settings: SessionRuntimeSettings) {
+        // the status transition is atomic so that concurrent calls cannot both launch the same session
+        if (!session.status.compareAndSet(SessionStatus.PendingExecution, SessionStatus.Running(utcTimeNow())))
+            throw SessionException.AlreadyLaunchedException("Session ${session.id} is not pending execution")
+
         managementScope.launch {
             val timeoutDuration = settings.ttl?.milliseconds ?: Duration.INFINITE
             val timedOut = withTimeoutOrNull(timeoutDuration) {
                 events.emit(LocalSessionManagerEvent.SessionRunning(session.getState().base, namespace.getState().base))
-                session.status.update { SessionStatus.Running(utcTimeNow()) }
 
                 session.launchAgents()
                 session.joinAgents()

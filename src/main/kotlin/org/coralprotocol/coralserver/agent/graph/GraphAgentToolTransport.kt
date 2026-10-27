@@ -21,6 +21,7 @@ import org.coralprotocol.coralserver.util.CORAL_SIGNATURE_HEADER
 import org.coralprotocol.coralserver.util.addJsonBodyWithSignature
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import kotlin.coroutines.cancellation.CancellationException
 
 
 @Serializable
@@ -78,6 +79,8 @@ sealed interface GraphAgentToolTransport : KoinComponent {
                 CallToolResult(
                     content = listOf(TextContent(body))
                 )
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 agent.logger.error(e) { "Error executing custom tool $name" }
 

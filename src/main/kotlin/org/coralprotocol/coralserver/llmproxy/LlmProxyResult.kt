@@ -31,4 +31,9 @@ sealed interface LlmProxyResult {
         val error: Throwable,
         override val endTime: Instant = Clock.System.now(),
     ) : LlmProxyResult
+
+    data class Cancelled(
+        override val request: LlmProxyRequest,
+        override val endTime: Instant = Clock.System.now(),
+    ) : LlmProxyResult
 }

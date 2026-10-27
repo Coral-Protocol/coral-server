@@ -9,6 +9,7 @@ import io.kotest.matchers.string.shouldContain
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.*
 import org.coralprotocol.coralserver.CoralTest
 import org.coralprotocol.coralserver.agent.graph.AgentGraph
@@ -123,7 +124,7 @@ class MessageReplayTest : CoralTest({
 
         // an agent that sends a message while it is also waiting, e.g. with parallel tool calls
         val wait = session.sessionScope.async { agent1.waitForMessage(timeoutMs = timeout) }
-        delay(50.milliseconds)
+        agent1.waiters.first { it.isNotEmpty() }
         agent1.sendMessage("my own message", thread.id)
 
         wait.await().shouldBeNull()
@@ -180,7 +181,7 @@ class MessageReplayTest : CoralTest({
 
         val before = utcTimeNow()
         val wait = session.sessionScope.async { agent2.waitForMessage(timeoutMs = 1.seconds.inWholeMilliseconds) }
-        delay(50.milliseconds)
+        agent2.waiters.first { it.isNotEmpty() }
         agent1.sendMessage("hello", thread.id)
         wait.await().shouldNotBeNull().text.shouldBeEqual("hello")
 

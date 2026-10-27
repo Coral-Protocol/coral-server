@@ -207,6 +207,9 @@ fun Route.localSessionApi() {
             call.respond(HttpStatusCode.OK)
         } catch (e: SessionException.InvalidNamespace) {
             throw RouteException(HttpStatusCode.NotFound, e)
+        } catch (_: SessionException.AlreadyLaunchedException) {
+            // another request launched the session between the above check and the launch
+            throw RouteException(HttpStatusCode.BadRequest, "Session is not pending execution")
         }
     }
 

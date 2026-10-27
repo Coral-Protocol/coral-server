@@ -163,9 +163,10 @@ class LocalSession(
 
         logger.info { "Agent $agentName created thread \"${thread.name}\" with ID ${thread.id}$participantLogStr" }
 
+        // the thread must be registered before the event is posted, consumers of the event may look up the thread
+        threads[thread.id] = thread
         events.tryEmit(SessionEvent.ThreadCreated(thread))
 
-        threads[thread.id] = thread
         return thread
     }
 

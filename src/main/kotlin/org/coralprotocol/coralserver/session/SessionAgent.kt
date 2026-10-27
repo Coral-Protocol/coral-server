@@ -12,6 +12,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
@@ -413,60 +414,66 @@ class SessionAgent(
         filters: Set<SessionThreadMessageFilter> = setOf(),
         timeoutMs: Long = sessionConfig.defaultWaitTimeout
     ): SessionThreadMessage? {
-        val msg = withTimeoutOrNull(timeoutMs.milliseconds) {
-            val waiter = SessionAgentWaiter(filters)
-            waiters.update { it + waiter }
+        val waiter = SessionAgentWaiter(filters)
+        val msg = try {
+            withTimeoutOrNull(timeoutMs.milliseconds) {
+                waiters.update { it + waiter }
 
-            val replayMessages = mutableListOf<SessionThreadMessage>()
-            if (replayAfter != null) {
-                getThreads().forEach { thread ->
-                    replayMessages.addAll(thread.withMessageLock { messages ->
-                        messages.filter {
-                            it.timestamp >= replayAfter
-                                    && it.senderName != name
-                                    && !receivedMessageIds.contains(it.id)
-                        }
-                    })
+                val replayMessages = mutableListOf<SessionThreadMessage>()
+                if (replayAfter != null) {
+                    getThreads().forEach { thread ->
+                        replayMessages.addAll(thread.withMessageLock { messages ->
+                            messages.filter {
+                                it.timestamp >= replayAfter
+                                        && it.senderName != name
+                                        && !receivedMessageIds.contains(it.id)
+                            }
+                        })
+                    }
+                    replayMessages.sortBy { it.timestamp }
+
+                    if (filters.isEmpty()) {
+                        logger.info { "attempting to wait for any message from any agent, replaying messages after $replayAfter" }
+                    } else
+                        logger.info { "attempting to wait for a message that matches filters [${filters.joinToString(", ")}], replaying messages after $replayAfter" }
                 }
-                replayMessages.sortBy { it.timestamp }
 
-                if (filters.isEmpty()) {
-                    logger.info { "attempting to wait for any message from any agent, replaying messages after $replayAfter" }
+                session.events.emit(SessionEvent.AgentWaitStart(name, filters))
+                setCommunicationStatus(SessionAgentCommunicationStatus.WaitingMessage)
+
+                var foundInReplay = false
+                if (replayMessages.isNotEmpty()) {
+                    val matching = replayMessages.firstOrNull { waiter.matches(it) }
+                    if (matching != null) {
+                        logger.info { "found a matching message in ${replayMessages.size} replayed messages" }
+                        foundInReplay = true
+
+                        waiters.update { it - waiter }
+                        waiter.deferred.complete(matching)
+                    } else {
+                        logger.info { "no matching messages found in ${replayMessages.size} replayed messages, waiting for ${timeoutMs}ms..." }
+                    }
                 } else
-                    logger.info { "attempting to wait for a message that matches filters [${filters.joinToString(", ")}], replaying messages after $replayAfter" }
-            }
+                    logger.info { "${if (replayAfter != null) "no messages to replay, " else ""}waiting for new messages for ${timeoutMs}ms..." }
 
-            session.events.emit(SessionEvent.AgentWaitStart(name, filters))
-            setCommunicationStatus(SessionAgentCommunicationStatus.WaitingMessage)
-
-            var foundInReplay = false
-            if (replayMessages.isNotEmpty()) {
-                val matching = replayMessages.firstOrNull { waiter.matches(it) }
-                if (matching != null) {
-                    logger.info { "found a matching message in ${replayMessages.size} replayed messages" }
-                    foundInReplay = true
-
-                    waiters.update { it - waiter }
-                    waiter.deferred.complete(matching)
-                } else {
-                    logger.info { "no matching messages found in ${replayMessages.size} replayed messages, waiting for ${timeoutMs}ms..." }
+                val wait = measureTimedValue {
+                    waiter.deferred.await()
                 }
-            } else
-                logger.info { "${if (replayAfter != null) "no messages to replay, " else ""}waiting for new messages for ${timeoutMs}ms..." }
 
-            val wait = measureTimedValue {
-                waiter.deferred.await()
+                if (!foundInReplay)
+                    logger.info { "found matching message: ${wait.value.id} in ${wait.duration}" }
+
+                receivedMessageIds.add(wait.value.id)
+
+                session.events.emit(SessionEvent.AgentWaitStop(name, wait.value))
+                setCommunicationStatus(SessionAgentCommunicationStatus.Thinking)
+
+                wait.value
             }
-
-            if (!foundInReplay)
-                logger.info { "found matching message: ${wait.value.id} in ${wait.duration}" }
-
-            receivedMessageIds.add(wait.value.id)
-
-            session.events.emit(SessionEvent.AgentWaitStop(name, wait.value))
-            setCommunicationStatus(SessionAgentCommunicationStatus.Thinking)
-
-            wait.value
+        } finally {
+            // a waiter is removed when a message completes it, but a waiter that timed out or was cancelled must be
+            // removed here, otherwise it stays in waiters forever
+            waiters.update { it - waiter }
         }
 
         if (msg == null) {
@@ -541,15 +548,15 @@ class SessionAgent(
         if (message.senderName == name)
             return
 
-        val matching = mutableListOf<SessionAgentWaiter>()
-        waiters.update { waiters ->
-            val (a, b) = waiters.partition { it.matches(message) }
-            matching.addAll(a)
-
-            b
+        // update may run its function multiple times under contention, so the matching waiters must be taken from the
+        // list that was actually replaced
+        val previousWaiters = waiters.getAndUpdate { waiters ->
+            waiters.filterNot { it.matches(message) }
         }
 
-        matching.forEach { it.deferred.complete(message) }
+        previousWaiters
+            .filter { it.matches(message) }
+            .forEach { it.deferred.complete(message) }
     }
 
     /**

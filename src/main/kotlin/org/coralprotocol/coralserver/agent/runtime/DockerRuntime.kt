@@ -19,10 +19,19 @@ import org.coralprotocol.coralserver.logging.LoggingTagIo
 import org.coralprotocol.coralserver.mcp.McpTransportType
 import org.coralprotocol.coralserver.session.SessionAgentDisposableResource
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
+import java.io.ByteArrayOutputStream
+import java.io.Closeable
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.time.measureTime
+
+/**
+ * The maximum time to wait for the remaining outpu/t of a container after it exits
+ */
+private const val OUTPUT_DRAIN_TIMEOUT_SECONDS = 5L
 
 @Serializable
 @SerialName("docker")
@@ -86,36 +95,41 @@ data class DockerRuntime(
             executionContext.logger.info { "container $containerId created" }
             executionContext.session.events.emit(SessionEvent.DockerContainerCreated(containerId))
 
-            docker.startContainerCmd(containerId).exec()
-
-            val attachCmd = docker.attachContainerCmd(containerId)
+            // The container is attached to before it is started, so that no output is missed and so that attaching
+            // cannot race the container exiting and being removed
+            val outputCallback = docker.attachContainerCmd(containerId)
                 .withStdOut(true)
                 .withStdErr(true)
                 .withFollowStream(true)
                 .withLogs(true)
+                .exec(ContainerOutputCallback(executionContext.logger))
 
-            attachCmd.exec(object : ResultCallback.Adapter<Frame>() {
-                override fun onNext(frame: Frame) {
-                    val message = String(frame.payload).trimEnd('\n')
-                    if (frame.streamType == StreamType.STDOUT)
-                        executionContext.logger.info(LoggingTag.Io(LoggingTagIo.OUT)) { message }
-
-                    if (frame.streamType == StreamType.STDERR)
-                        executionContext.logger.warn(LoggingTag.Io(LoggingTagIo.ERROR)) { message }
+            outputCallback.use {
+                runInterruptible {
+                    outputCallback.awaitAttached()
                 }
-            })
 
-            runInterruptible {
-                val status = docker.waitContainerCmd(containerId)
-                    .exec(WaitContainerResultCallback())
-                    .awaitStatusCode()
+                docker.startContainerCmd(containerId).exec()
 
-                executionContext.logger.info { "container $containerId exited with code $status" }
+                runInterruptible {
+                    val status = docker.waitContainerCmd(containerId)
+                        .exec(WaitContainerResultCallback())
+                        .awaitStatusCode()
+
+                    executionContext.logger.info { "container $containerId exited with code $status" }
+
+                    // the output stream ends shortly after the container exits, the remaining output must be read
+                    // before the container is removed
+                    if (!outputCallback.awaitCompletion(OUTPUT_DRAIN_TIMEOUT_SECONDS, TimeUnit.SECONDS))
+                        executionContext.logger.warn { "timed out reading the remaining output of container $containerId" }
+                }
             }
         } catch (e: DockerClientException) {
             @OptIn(InternalAPI::class)
             if (e.rootCause is InterruptedException)
                 throw CancellationException("Docker timeout", e)
+
+            executionContext.logger.error(e) { "Docker error while running container $containerId" }
         } finally {
             withContext(NonCancellable) {
                 when (val containerId = containerId) {
@@ -131,6 +145,71 @@ data class DockerRuntime(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * Logs the stdout and stderr of a container line by line.  Docker frames are not aligned to lines, a frame can
+ * contain multiple lines or part of a line, so frames are buffered per stream until a full line is read.
+ */
+private class ContainerOutputCallback(private val logger: LoggingInterface) : ResultCallback.Adapter<Frame>() {
+    private val buffers = mutableMapOf<StreamType, ByteArrayOutputStream>()
+
+    /**
+     * Released when the attach either starts streaming or fails
+     */
+    private val attached = CountDownLatch(1)
+
+    /**
+     * Blocks until the attach is streaming, throwing the attach error if it failed
+     */
+    fun awaitAttached() {
+        attached.await()
+        throwFirstError()
+    }
+
+    override fun onStart(stream: Closeable?) {
+        super.onStart(stream)
+        attached.countDown()
+    }
+
+    override fun onError(throwable: Throwable?) {
+        super.onError(throwable)
+        attached.countDown()
+    }
+
+    @Synchronized
+    override fun onNext(frame: Frame) {
+        val buffer = buffers.getOrPut(frame.streamType) { ByteArrayOutputStream() }
+        frame.payload.forEach { byte ->
+            if (byte == '\n'.code.toByte()) {
+                logLine(frame.streamType, buffer)
+            } else {
+                buffer.write(byte.toInt())
+            }
+        }
+    }
+
+    @Synchronized
+    override fun close() {
+        // output that did not end with a newline
+        buffers.forEach { (streamType, buffer) ->
+            if (buffer.size() > 0)
+                logLine(streamType, buffer)
+        }
+
+        super.close()
+    }
+
+    private fun logLine(streamType: StreamType, buffer: ByteArrayOutputStream) {
+        val line = buffer.toString(Charsets.UTF_8)
+        buffer.reset()
+
+        when (streamType) {
+            StreamType.STDOUT -> logger.info(LoggingTag.Io(LoggingTagIo.OUT)) { line }
+            StreamType.STDERR -> logger.warn(LoggingTag.Io(LoggingTagIo.ERROR)) { line }
+            else -> {}
         }
     }
 }
@@ -154,7 +233,8 @@ private fun sanitizeDockerImageName(
 private fun DockerClient.findImage(imageName: String): Image? =
     listImagesCmd()
         .exec()
-        .firstOrNull { it.repoTags.contains(imageName) }
+        // repoTags is null for untagged images
+        .firstOrNull { it.repoTags?.contains(imageName) == true }
 
 private fun DockerClient.pullImage(imageName: String, logger: LoggingInterface): Image? {
     logger.info { "Docker image $imageName not found locally, pulling..." }
