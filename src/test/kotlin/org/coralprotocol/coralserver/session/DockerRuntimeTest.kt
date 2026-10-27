@@ -70,10 +70,26 @@ class DockerRuntimeTest : CoralTest({
             return false
         }
     }
+    
+    suspend fun ensureImage() {
+        val applicationRuntimeContext by inject<ApplicationRuntimeContext>()
 
-    /**
-     * The timeouts for other tests do not account for pull time, so this test must be run first.
-     */
+        withContext(Dispatchers.IO) {
+            val client = applicationRuntimeContext.dockerClient.shouldNotBeNull()
+            val present = client.listImagesCmd()
+                .exec()
+                .any { it.repoTags?.contains(image) == true }
+
+            if (!present) {
+                client.pullImageCmd(image)
+                    .exec(object : ResultCallback.Adapter<PullResponseItem>() {
+
+                    })
+                    .awaitCompletion()
+            }
+        }
+    }
+
     test("testDockerPull").config(
         invocations = 1,
         invocationTimeout = 60.seconds,
@@ -153,8 +169,11 @@ class DockerRuntimeTest : CoralTest({
             )
         )
 
+        ensureImage()
+
+        // includes creating, starting, waiting for and removing the container
         shouldPostEvents(
-            timeout = 3.seconds,
+            timeout = 30.seconds,
             allowUnexpectedEvents = true,
             events = mutableListOf(
                 TestEvent("value 1") { it is LoggingEvent.Info && it.text == optionValue1 },
@@ -169,7 +188,8 @@ class DockerRuntimeTest : CoralTest({
 
     test("testDockerRuntimeCleanup").config(
         invocations = 1,
-        invocationTimeout = 30.seconds,
+        // includes pulling the image if testDockerPull did not
+        invocationTimeout = 120.seconds,
         enabledIf = ::isDockerAvailable
     ) {
         val localSessionManager by inject<LocalSessionManager>()
@@ -192,6 +212,8 @@ class DockerRuntimeTest : CoralTest({
                 groups = setOf()
             )
         )
+
+        ensureImage()
 
         session1.shouldPostEvents(
             timeout = 15.seconds,
