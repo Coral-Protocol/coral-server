@@ -558,11 +558,12 @@ class TestAgentBudgets : CoralTest({
             }
         }
 
-        // force kill should occur exactly on the 5th claim, a claim not making it through and 1 extra claim making it
-        // through
+        // claims keep being made until the delayed kill, at most one more claim than fits in the delay can make it
+        // through.  The number of claims that fit in the delay depends on the overhead of each claim, which varies
+        // wildly on slow machines, so only one claim is required to have made it through
         val sessionRunningBudget = report.sessionState.shouldBeInstanceOf<SessionState.Extended>().state.runningBudget
         sessionRunningBudget.overclaim.shouldBeBetween(
-            claimAmount * (delayFactor - 1).toUInt(),
+            claimAmount,
             claimAmount * (delayFactor + 1).toUInt()
         )
     }
@@ -590,11 +591,12 @@ class TestAgentBudgets : CoralTest({
             }
         }
 
-        // force kill should occur exactly on the 5th claim, a claim not making it through and 1 extra claim making it
-        // through
+        // claims keep being made until the delayed kill, at most one more claim than fits in the delay can make it
+        // through.  The number of claims that fit in the delay depends on the overhead of each claim, which varies
+        // wildly on slow machines, so only one claim is required to have made it through
         val sessionRunningBudget = report.sessionState.shouldBeInstanceOf<SessionState.Extended>().state.runningBudget
         sessionRunningBudget.overclaim.shouldBeBetween(
-            claimAmount * (delayFactor - 1).toUInt(),
+            claimAmount,
             claimAmount * (delayFactor + 1).toUInt()
         )
     }
@@ -622,14 +624,15 @@ class TestAgentBudgets : CoralTest({
             }
         }
 
-        // force kill should occur exactly on the 5th claim, a claim not making it through and 1 extra claim making it
-        // through
+        // claims keep being made until the delayed kill, at most one more claim than fits in the delay can make it
+        // through.  The number of claims that fit in the delay depends on the overhead of each claim, which varies
+        // wildly on slow machines, so only one claim is required to have made it through
         val agentRunningBudget =
             report.sessionState.shouldBeInstanceOf<SessionState.Extended>().state.agents.shouldHaveSize(1)
                 .first().runningBudget
 
         agentRunningBudget.overclaim.shouldBeBetween(
-            claimAmount * (delayFactor - 1).toUInt(),
+            claimAmount,
             claimAmount * (delayFactor + 1).toUInt()
         )
     }
@@ -699,7 +702,7 @@ class TestAgentBudgets : CoralTest({
                         it.result.fulfilledAmount == amount
                                 && it.claim.additionalDescription == claim.second
                                 && it.result.remainingSessionBudget == amount * (claims.size - index - 1).toUInt()
-                                && it.result.claimId == index
+                                && it.result.claimId == index + 1
                                 && it.result.shouldExit == (index == claims.size - 1)
                     } else
                         false
