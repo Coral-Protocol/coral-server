@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.5.1](https://github.com/Coral-Protocol/coral-server/compare/v1.5.0...v1.5.1) (2026-10-27)
+
+
+### Bug Fixes
+
+* agent message waiters not being removed on timeouts ([aa1ab7a](https://github.com/Coral-Protocol/coral-server/commit/aa1ab7aa8436b4c5f8f71d4ca1fb6a5ab8a78f10))
+* docker runtime race condition fixes ([aa1ab7a](https://github.com/Coral-Protocol/coral-server/commit/aa1ab7aa8436b4c5f8f71d4ca1fb6a5ab8a78f10))
+* don't allow sessions to be launched multiple times from different threads ([aa1ab7a](https://github.com/Coral-Protocol/coral-server/commit/aa1ab7aa8436b4c5f8f71d4ca1fb6a5ab8a78f10))
+* map AlreadyLaunchedException in SessionApi ([aa1ab7a](https://github.com/Coral-Protocol/coral-server/commit/aa1ab7aa8436b4c5f8f71d4ca1fb6a5ab8a78f10))
+* no more cancellation exceptions in successful test runs ([aa1ab7a](https://github.com/Coral-Protocol/coral-server/commit/aa1ab7aa8436b4c5f8f71d4ca1fb6a5ab8a78f10))
+* register thread before posting thread creation event ([aa1ab7a](https://github.com/Coral-Protocol/coral-server/commit/aa1ab7aa8436b4c5f8f71d4ca1fb6a5ab8a78f10))
+* running agent message waiters now handles contention better ([aa1ab7a](https://github.com/Coral-Protocol/coral-server/commit/aa1ab7aa8436b4c5f8f71d4ca1fb6a5ab8a78f10))
+
 ## [1.5.0](https://github.com/Coral-Protocol/coral-server/compare/v1.4.0...v1.5.0) (2026-10-12)
 
 
