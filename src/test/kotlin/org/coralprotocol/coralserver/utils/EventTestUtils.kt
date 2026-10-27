@@ -5,6 +5,7 @@ import io.kotest.assertions.withClue
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.concurrent.suspension.shouldCompleteWithin
 import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import org.coralprotocol.coralserver.events.SessionEvent
@@ -16,66 +17,83 @@ data class TestEvent<Event>(
     val predicate: (event: Event) -> Boolean,
 )
 
-suspend inline fun <reified Event, FlowType> CoroutineScope.shouldPostEvent(
+/**
+ * Runs [block] and suspends until an event of type [Event] is posted to [eventFlow], failing if the event is not
+ * posted within [timeout].  Only events posted after this function is called are considered.
+ */
+suspend inline fun <reified Event> shouldPostEvent(
     timeout: Duration,
     eventFlow: Flow<*>,
     crossinline block: suspend () -> Unit,
-): Event where FlowType : Flow<Event> {
-    val listening = CompletableDeferred<Unit>()
-    val event = CompletableDeferred<Event>()
-
-    launch {
-        listening.complete(Unit)
-        event.complete(eventFlow.filterIsInstance<Event>().first())
+): Event = coroutineScope {
+    // started undispatched so that the flow is subscribed to before block runs, otherwise events posted by block
+    // before this coroutine was dispatched would be missed
+    val event = async(start = CoroutineStart.UNDISPATCHED) {
+        eventFlow.filterIsInstance<Event>().first()
     }
 
-    launch {
-        listening.await()
-        block()
-    }
-
-    return { "expected event was not posted" }.asClue {
-        shouldCompleteWithin(timeout) {
-            event.await().shouldNotBeNull()
+    try {
+        { "expected event was not posted" }.asClue {
+            shouldCompleteWithin(timeout) {
+                block()
+                event.await()
+            }
         }
+    } finally {
+        event.cancel()
     }
 }
 
-suspend fun <Event, FlowType, R> CoroutineScope.shouldPostEvents(
+/**
+ * Runs [block] and suspends until every event in [events] has been matched by an event posted to [eventFlow], failing
+ * if any are missing after [timeout].  Only events posted after this function is called are considered.  Matched
+ * events are removed from [events].
+ *
+ * @param allowUnexpectedEvents If false, any posted event that does not match an event in [events] fails the test.
+ */
+suspend fun <Event, FlowType, R> shouldPostEvents(
     timeout: Duration,
     allowUnexpectedEvents: Boolean = false,
     events: MutableList<TestEvent<Event>> = mutableListOf(),
     eventFlow: FlowType,
     block: suspend (FlowType) -> R,
-): R where FlowType : Flow<Event> {
-    val listening = CompletableDeferred<Unit>()
-    val eventJob = launch {
-        listening.complete(Unit)
+): R where FlowType : Flow<Event> = coroutineScope {
+    var unexpectedEvent: Event? = null
+    val expectingEvents = events.isNotEmpty()
 
-        eventFlow.collect { event ->
+    // started undispatched so that the flow is subscribed to before block runs, otherwise events posted by block
+    // before this coroutine was dispatched would be missed
+    val eventJob = launch(start = CoroutineStart.UNDISPATCHED) {
+        eventFlow.takeWhile { event ->
             if (!events.removeAll { it.predicate(event) } && !allowUnexpectedEvents)
-                throw AssertionError("Unexpected event: $event")
+                unexpectedEvent = event
 
-            if (events.isEmpty())
-                cancel()
+            unexpectedEvent == null && events.isNotEmpty()
+        }.collect()
+    }
+
+    try {
+        val result = withTimeoutOrNull(timeout) {
+            val result = block(eventFlow)
+
+            // with no expected events the collector only exists to catch unexpected events posted during block
+            if (expectingEvents)
+                eventJob.join()
+
+            Result.success(result)
         }
+
+        withClue("unexpected event: $unexpectedEvent") {
+            unexpectedEvent shouldBe null
+        }
+
+        withClue("missing expected events: ${events.joinToString(", ") { it.description }}") {
+            events.shouldBeEmpty()
+            result.shouldNotBeNull()
+        }.getOrThrow()
+    } finally {
+        eventJob.cancel()
     }
-
-    val retVal = CompletableDeferred<R>()
-    val blockJob = launch {
-        listening.await()
-        retVal.complete(block(eventFlow))
-    };
-
-    {
-        "missing expected events: ${events.joinToString(", ") { it.description }}"
-    }.asClue {
-        withTimeoutOrNull(timeout) {
-            joinAll(eventJob, blockJob)
-        }.shouldNotBeNull()
-    }
-
-    return retVal.await()
 }
 
 suspend fun <R> LocalSession.shouldPostEvents(
@@ -84,15 +102,15 @@ suspend fun <R> LocalSession.shouldPostEvents(
     events: MutableList<TestEvent<SessionEvent>>,
     block: suspend (SharedFlow<SessionEvent>) -> R,
 ): R =
-    this.sessionScope.shouldPostEvents(timeout, allowUnexpectedEvents, events, this@shouldPostEvents.events, block)
+    shouldPostEvents(timeout, allowUnexpectedEvents, events, this@shouldPostEvents.events, block)
 
 suspend inline fun <reified Event> LocalSession.shouldPostEvent(
     timeout: Duration,
     crossinline block: suspend () -> Unit,
 ) where Event : SessionEvent =
-    this.sessionScope.shouldPostEvent<Event, Flow<Event>>(timeout, events as Flow<*>, block)
+    shouldPostEvent<Event>(timeout, events, block)
 
-suspend fun <Event, R> CoroutineScope.shouldPostEventsFromBody(
+suspend fun <Event, R> shouldPostEventsFromBody(
     timeout: Duration,
     allowUnexpectedEvents: Boolean = false,
     events: MutableList<TestEvent<Event>>,
