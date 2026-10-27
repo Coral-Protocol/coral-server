@@ -37,6 +37,8 @@ class OpenAITest : CoralTest({
     test("testGpt54Pro") { openaiPayloadTest("gpt-5.4-pro") }
     test("testO1") { openaiPayloadTest("o1") }
     test("testO3") { openaiPayloadTest("o3") }
-    test("testO3Mini") { openaiPayloadTest("o3-mini") }
-    test("testO4Mini") { openaiPayloadTest("o4-mini") }
+
+    // no longer supported (from OpenAI)
+    test("testO3Mini").config(enabled = false) { openaiPayloadTest("o3-mini") }
+    test("testO4Mini").config(enabled = false) { openaiPayloadTest("o4-mini") }
 } )

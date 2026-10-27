@@ -3,6 +3,7 @@
 package org.coralprotocol.coralserver.util
 
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -23,6 +24,11 @@ object InstantSerializer : KSerializer<Instant> {
     }
 
     override fun deserialize(decoder: Decoder): Instant {
-        return Instant.parse(decoder.decodeString())
+        val text = decoder.decodeString()
+        return try {
+            Instant.parse(text)
+        } catch (e: IllegalArgumentException) {
+            throw SerializationException("\"$text\" is not an ISO-8601 time, e.g. 2026-10-25T12:30:00.123Z", e)
+        }
     }
 }

@@ -31,14 +31,20 @@ data class SessionThreadMessage(
     /**
      * Creates a version of this message that is designed to be placed in an agent's state resource.  This contains only
      * vital information about the message and does not include any IDs.
+     *
+     * @param viewer The agent whose state this is for.  If given, and if the message was not sent by [viewer], the
+     * message is marked with whether it was returned to [viewer] by a waiting tool.
      */
-    fun asJsonState() = buildJsonObject {
+    fun asJsonState(viewer: SessionAgent? = null) = buildJsonObject {
         put("messageText", text)
         put("sendingAgentName", senderName)
         put("messageTimestamp", timestamp.toString())
 
         if (mentionNames.isNotEmpty())
             put("mentionAgentNames", JsonArray(mentionNames.map { JsonPrimitive(it) }))
+
+        if (viewer != null && viewer.name != senderName)
+            put("receivedFromWaitingTool", viewer.hasReceived(this@SessionThreadMessage))
     }
 }
 

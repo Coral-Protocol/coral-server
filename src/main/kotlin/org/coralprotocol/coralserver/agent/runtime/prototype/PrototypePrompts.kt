@@ -2,6 +2,7 @@ package org.coralprotocol.coralserver.agent.runtime.prototype
 
 import kotlinx.serialization.Serializable
 import org.coralprotocol.coralserver.mcp.McpResourceName
+import org.coralprotocol.coralserver.mcp.McpToolName
 import org.coralprotocol.coralserver.session.SessionAgentExecutionContext
 import org.coralprotocol.coralserver.util.buildIndentedString
 
@@ -55,7 +56,8 @@ data class PrototypeLoopInitialPrompt(
                     appendLine(extraString)
                 }
             } else {
-                appendLine("Since no specific instructions were provided, consider waiting for mentions until another agent provides further direction.")
+                // smaller models see considerable benefit from naming the waiting tools rather than just stating "the waiting tools"
+                appendLine("No specific instructions were provided, use one of the waiting tools (${McpToolName.WAIT_FOR_MESSAGE}, ${McpToolName.WAIT_FOR_MENTION} or ${McpToolName.WAIT_FOR_AGENT}) to wait until another agent contacts you, unless your state shows that another agent has already asked something of you.")
             }
 
             appendLine("(Remember that 'I' am not the user, who is not directly reachable. Use tools to interact with other agents as necessary to fulfil the users needs. You will receive further automated messages this way.)")

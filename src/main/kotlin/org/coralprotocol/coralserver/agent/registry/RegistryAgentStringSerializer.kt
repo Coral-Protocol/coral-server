@@ -23,7 +23,6 @@ import org.koin.core.component.KoinComponent
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.CharBuffer
-import java.nio.charset.CharacterCodingException
 import java.nio.charset.Charset
 import java.nio.charset.CodingErrorAction
 import kotlin.io.encoding.Base64

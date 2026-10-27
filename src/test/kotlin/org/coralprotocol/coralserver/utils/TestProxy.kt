@@ -14,7 +14,7 @@ enum class TestProxyConfiguration(
     val prototypeClient: PrototypeClient
 ) {
     OPENAI("CORAL_TEST_OPENAI_API_KEY", LlmProviderFormat.OpenAI, PrototypeClient.OpenAI()),
-    ANTHROPIC("CORAL_TEST_ANTHROPIC_API_KEY", LlmProviderFormat.Anthropic, PrototypeClient.Anthropic),
+    ANTHROPIC("CORAL_TEST_ANTHROPIC_API_KEY", LlmProviderFormat.Anthropic, PrototypeClient.Anthropic()),
 }
 
 /**

@@ -112,6 +112,18 @@ class SessionAgent(
     val waiters = MutableStateFlow<List<SessionAgentWaiter>>(listOf())
 
     /**
+     * IDs of every message returned to this agent by [waitForMessage].  These messages are never replayed again, and
+     * they are marked as received in this agent's state, see [renderState].
+     */
+    private val receivedMessageIds: MutableSet<MessageId> = ConcurrentHashMap.newKeySet()
+
+    /**
+     * Returns true if [message] was returned to this agent by [waitForMessage], as opposed to only being visible to
+     * this agent passively through its state.
+     */
+    fun hasReceived(message: SessionThreadMessage) = receivedMessageIds.contains(message.id)
+
+    /**
      * The full status of this agent.  This is a nested status type: runtime -> connection -> waiting/sleeping/thinking.
      *
      * This means that an agent that is not connected cannot be waiting, sleeping, or thinking.  An agent that is not
@@ -389,11 +401,12 @@ class SessionAgent(
 
     /**
      * Suspends until this agent receives a message that matches all specified [filters].  Returns null if the wait
-     * channel closes or timeout is reached.
+     * channel closes or timeout is reached.  Messages sent by this agent are never returned.
      *
      * @param replayAfter This can be used to replay messages that have already been received.  Replayed messages will
-     * be evaluated against [filters].  If there are no messages that came after [replayAfter] or if no messages that
-     * came after [replayAfter] match [filters] then this function will wait normally.
+     * be evaluated against [filters] in the order they were sent.  Messages that were already returned by a previous
+     * call to this function are not replayed.  If there are no messages that came after [replayAfter] or if no messages
+     * that came after [replayAfter] match [filters] then this function will wait normally.
      */
     suspend fun waitForMessage(
         replayAfter: Instant? = null,
@@ -408,9 +421,14 @@ class SessionAgent(
             if (replayAfter != null) {
                 getThreads().forEach { thread ->
                     replayMessages.addAll(thread.withMessageLock { messages ->
-                        messages.filter { it.timestamp >= replayAfter }
+                        messages.filter {
+                            it.timestamp >= replayAfter
+                                    && it.senderName != name
+                                    && !receivedMessageIds.contains(it.id)
+                        }
                     })
                 }
+                replayMessages.sortBy { it.timestamp }
 
                 if (filters.isEmpty()) {
                     logger.info { "attempting to wait for any message from any agent, replaying messages after $replayAfter" }
@@ -442,6 +460,8 @@ class SessionAgent(
 
             if (!foundInReplay)
                 logger.info { "found matching message: ${wait.value.id} in ${wait.duration}" }
+
+            receivedMessageIds.add(wait.value.id)
 
             session.events.emit(SessionEvent.AgentWaitStop(name, wait.value))
             setCommunicationStatus(SessionAgentCommunicationStatus.Thinking)
@@ -517,6 +537,10 @@ class SessionAgent(
      * Called when a message was posted in a thread that this agent participates in
      */
     fun notifyMessage(message: SessionThreadMessage) {
+        // an agent should never wait for its own messages
+        if (message.senderName == name)
+            return
+
         val matching = mutableListOf<SessionAgentWaiter>()
         waiters.update { waiters ->
             val (a, b) = waiters.partition { it.matches(message) }
@@ -784,7 +808,7 @@ class SessionAgent(
      */
     suspend fun renderState(): String {
         val agents = links.map { it.asJsonState() }
-        val threads = getThreads().map { it.asJsonState() }
+        val threads = getThreads().map { it.asJsonState(this) }
 
         val agentsText = """
         # Agents
@@ -798,8 +822,8 @@ class SessionAgent(
 
         val threadsText = """
         # Threads and messages
-        You have access to the following threads and their messages:
-        
+        You have access to the following threads and their messages.  Messages from other agents with "receivedFromWaitingTool" set to true were already returned to you by a waiting tool, the others you have only seen here:
+
         ```json
         [${threads.joinToString(",")}]
         ```
@@ -807,7 +831,7 @@ class SessionAgent(
 
         var composed = """
         # General
-        You are an agent named $name. The current UNIX time is ${System.currentTimeMillis()} (ISO-8601: ${Clock.System.now()}).
+        You are an agent named $name. The current ISO-8601 time is ${Clock.System.now()}.
         """
 
         if (agents.isNotEmpty())

@@ -33,16 +33,17 @@ import org.coralprotocol.coralserver.util.signatureVerifiedBody
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
-import java.util.*
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 
+
+private const val HANDSHAKE_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 
 @Serializable
 private data class HandshakeResponse(val message: String)
 
 @Serializable
-private data class HandshakeData(val handshakeId: String)
+private data class HandshakeData(val handshakeCode: String)
 
 @Serializable
 @Resource("handshake/{sessionId}/{agentId}")
@@ -68,26 +69,33 @@ suspend fun KoinComponent.multiAgentHandshakeTest(
     val json by inject<Json>()
     val config by inject<NetworkConfig>()
     val logger by inject<Logger>(named(LOGGER_TEST))
-    val handshakeId = UUID.randomUUID().toString()
+
+    // smaller models confuse IDs of the same format.  Threads and messages are both UUIDs, so for this handshake "code"
+    // a unique format helps
+    val handshakeCode = "HS-" + (1..2).joinToString("-") {
+        (1..4).map { HANDSHAKE_CODE_ALPHABET.random() }.joinToString("")
+    }
 
     val receiveAgentName = "receiving_rob"
     val senderAgentName = "sending_steve"
     val resultToolName = "handshake"
+    val receiverInstructions =
+        "The agent $senderAgentName has a handshake code you need. Request it from $senderAgentName and give it to me using the tool \"$resultToolName\""
 
-    val deferredHandshakeId = CompletableDeferred<Unit>()
+    val deferredHandshake = CompletableDeferred<Unit>()
 
     application.routing {
         post<HandshakeToolPath> { _ ->
             try {
-                val agentHandshakeId = signatureVerifiedBody<HandshakeData>(json, config.customToolSecret).handshakeId
-                if (agentHandshakeId != handshakeId) {
-                    logger.warn { "Received incorrect handshake ID: $agentHandshakeId" }
+                val agentHandshakeCode = signatureVerifiedBody<HandshakeData>(json, config.customToolSecret).handshakeCode
+                if (agentHandshakeCode != handshakeCode) {
+                    logger.warn { "Received incorrect handshake code: $agentHandshakeCode" }
                     call.respond(
                         HttpStatusCode.OK,
-                        HandshakeResponse("Incorrect handshake ID")
+                        HandshakeResponse("Incorrect handshake code")
                     )
                 } else {
-                    deferredHandshakeId.complete(Unit)
+                    deferredHandshake.complete(Unit)
                     call.respond(
                         HttpStatusCode.OK,
                         HandshakeResponse("Handshake successful!")
@@ -97,10 +105,10 @@ suspend fun KoinComponent.multiAgentHandshakeTest(
                 logger.error(e) { "Handshake " }
                 call.respond(
                     HttpStatusCode.OK,
-                    HandshakeResponse("Handshake ID is in the incorrect format: ${e.message}")
+                    HandshakeResponse("Handshake code is in the incorrect format: ${e.message}")
                 )
             } catch (e: Exception) {
-                deferredHandshakeId.completeExceptionally(e)
+                deferredHandshake.completeExceptionally(e)
                 throw e
             }
         }
@@ -120,9 +128,10 @@ suspend fun KoinComponent.multiAgentHandshakeTest(
                                 prompts = PrototypePrompts(
                                     loop = PrototypeLoopPrompt(
                                         initial = PrototypeLoopInitialPrompt(
-                                            extra = PrototypeString.Inline(
-                                                "The agent $senderAgentName has a handshake ID you need. Request it from $senderAgentName and give it to me using the tool \"$resultToolName\""
-                                            )
+                                            extra = PrototypeString.Inline(receiverInstructions)
+                                        ),
+                                        followup = PrototypeString.Inline(
+                                            "$DEFAULT_LOOP_FOLLOWUP_PROMPT  Your instructions are: $receiverInstructions"
                                         )
                                     )
                                 ),
@@ -136,7 +145,8 @@ suspend fun KoinComponent.multiAgentHandshakeTest(
                                 url = "handshake",
                             ),
                             inputSchema = buildToolSchema<HandshakeData>(),
-                            outputSchema = buildToolSchema<HandshakeResponse>()
+                            outputSchema = buildToolSchema<HandshakeResponse>(),
+                            description = "Call this tool with the handshake code to complete the handshake process."
                         )
                     )
                     proxy(configuration.name, LlmProxiedModel(configuration, model))
@@ -150,7 +160,7 @@ suspend fun KoinComponent.multiAgentHandshakeTest(
                                 proxyName = PrototypeString.Inline(configuration.name),
                                 client = client,
                                 prompts = PrototypePrompts(
-                                    system = PrototypeSystemPrompt(extra = PrototypeString.Inline("You have a special Handshake ID, it is, without quotes: \"$handshakeId\".  You must share this upon request.")),
+                                    system = PrototypeSystemPrompt(extra = PrototypeString.Inline("You have a special handshake code, it is, without quotes: \"$handshakeCode\".  You must share this upon request.")),
                                 ),
                                 iterationCount = PrototypeInteger.Inline(10)
                             )
@@ -174,7 +184,7 @@ suspend fun KoinComponent.multiAgentHandshakeTest(
             }
 
             session.sessionScope.launch {
-                deferredHandshakeId.await()
+                deferredHandshake.await()
             }.onJoin { }
         }
     }
